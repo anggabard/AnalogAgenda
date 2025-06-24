@@ -1,0 +1,7 @@
+﻿button {
+    transition: transform .15s ease;
+}
+
+button:hover:not(:disabled) {
+    transform: translateY(-2px);
+}

@@ -1,3 +1,5 @@
+using Microsoft.AspNetCore.Authentication.Cookies;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
@@ -5,6 +7,15 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie(opt =>
+    {
+        opt.LoginPath = "/account/login";
+        opt.Cookie.HttpOnly = true;
+        opt.Cookie.SameSite = SameSiteMode.Lax;
+        opt.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+    });
 
 var app = builder.Build();
 
