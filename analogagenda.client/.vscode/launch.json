@@ -1,0 +1,13 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "localhost (Chrome)",
+      "type": "chrome",
+      "request": "launch",
+      "url": "https://localhost:58774",
+      "webRoot": "${workspaceFolder}"
+    }
+  ],
+  "compounds": []
+}
