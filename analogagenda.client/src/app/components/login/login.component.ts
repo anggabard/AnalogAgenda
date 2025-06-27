@@ -24,4 +24,16 @@ export class LoginComponent {
     this.api.login(username!, password!)
       .subscribe({ next: () => this.loading = false, error: () => this.loading = false });
   }
+
+  secret(){
+    this.api.secret().subscribe({ next: () => this.loading = false, error: () => this.loading = false });
+  }
+
+  whoAmI(){
+    this.api.whoAmI().subscribe({ next: () => this.loading = false, error: () => this.loading = false });
+  }
+
+  logout(){
+    this.api.logout().subscribe({ next: () => this.loading = false, error: () => this.loading = false });
+  }
 }

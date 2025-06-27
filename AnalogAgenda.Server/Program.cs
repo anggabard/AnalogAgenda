@@ -1,3 +1,4 @@
+using Database.Services;
 using Microsoft.AspNetCore.Authentication.Cookies;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -11,11 +12,27 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(opt =>
     {
+        opt.Cookie.Name = ".AnalogAgenda.Auth";
         opt.LoginPath = "/account/login";
+        opt.LogoutPath = "/account/logout";
         opt.Cookie.HttpOnly = true;
-        opt.Cookie.SameSite = SameSiteMode.Lax;
+        opt.Cookie.SameSite = SameSiteMode.None;
         opt.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+        opt.ExpireTimeSpan = TimeSpan.FromDays(7);
     });
+
+builder.Services.AddSingleton<ITableService, TableService>();
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("Frontend", builder =>
+    {
+        builder.WithOrigins("https://localhost:58774")
+               .AllowAnyMethod()
+               .AllowAnyHeader()
+               .AllowCredentials();
+    });
+});
 
 var app = builder.Build();
 
@@ -28,6 +45,8 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+
+app.UseCors("Frontend");
 
 app.UseHttpsRedirection();
 
