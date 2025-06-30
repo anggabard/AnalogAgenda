@@ -1,26 +1,21 @@
 ﻿using Azure.Data.Tables;
+using Configuration.Sections;
 using Database.Helpers;
-using Microsoft.Extensions.Configuration;
 using System.Collections.Concurrent;
 
 namespace Database.Services
 {
-    public sealed class TableService : ITableService
+    public sealed class TableService(AzureAd azureAdCfg, Storage storageCfg) : ITableService
     {
-        private readonly string _connString;
+        private readonly Uri _accountUri = new($"https://{storageCfg.AccountName}.table.core.windows.net");
         private readonly ConcurrentDictionary<string, TableClient> _cache = new();
-
-        public TableService(IConfiguration cfg)
-            => _connString = cfg.GetConnectionString("Storage");
 
         public TableClient GetTable(string tableName)
             => _cache.GetOrAdd(tableName, name =>
             {
                 if (!tableName.IsTable()) throw new ArgumentException($"Error: '{tableName}' is not a valid Table.");
 
-                var client = new TableClient(_connString, name);
-                client.CreateIfNotExists();
-                return client;
+                return new TableClient(_accountUri, name, azureAdCfg.GetClientSecretCredential());
             });
 
         public TableClient GetTable(Table table)
