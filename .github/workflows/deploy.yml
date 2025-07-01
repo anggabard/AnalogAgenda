@@ -33,7 +33,7 @@ jobs:
     - name: Replace secrets in appsettings.Production.json
       shell: pwsh
       run: |
-        $filePath = "${{ env.WORKING_DIRECTORY }}\appsettings.Production.json"
+        $filePath = "${{ env.WORKING_DIRECTORY }}\AnalogAgenda.Server\appsettings.Production.json"
 
         (Get-Content $filePath) `
           -replace 'AZ_CLIENT_ID', '${{ secrets.AZ_CLIENT_ID }}' `
