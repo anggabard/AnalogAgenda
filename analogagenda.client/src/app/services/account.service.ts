@@ -1,5 +1,4 @@
-import { inject, Injectable } from '@angular/core';
-import { HttpClient } from "@angular/common/http";
+import { Injectable } from '@angular/core';
 import { BaseService } from './base.service';
 
 @Injectable({
@@ -8,22 +7,19 @@ import { BaseService } from './base.service';
 export class AccountService extends BaseService {
   constructor() { super('Account') }
 
-  #http = inject(HttpClient);
-
   login(email: string, password: string) {
-    return this.#http.post(this.baseUrl + '/login', { email, password }, { withCredentials: true });
+    return this.post('login', {email, password});
   }
 
   secret() {
-    return this.#http.get(this.baseUrl + '/secret', { withCredentials: true, responseType: 'text' });
+    return this.get('secret', {responseType: 'text'});
   }
 
   whoAmI() {
-    console.log(this.baseUrl);
-    return this.#http.get(this.baseUrl + '/whoAmI', { withCredentials: true });
+    return this.get('whoAmI');
   }
 
   logout() {
-    return this.#http.post(this.baseUrl + '/logout', {}, { withCredentials: true });
+    return this.post('logout');
   }
 }

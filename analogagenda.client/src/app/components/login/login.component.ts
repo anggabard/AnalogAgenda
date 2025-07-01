@@ -1,6 +1,6 @@
 import { Component, inject } from '@angular/core';
 import { FormBuilder, Validators } from '@angular/forms';
-import { AccountService } from '../../services/account.service';
+import { AccountService } from '../../services';
 
 @Component({
   selector: 'app-root',
