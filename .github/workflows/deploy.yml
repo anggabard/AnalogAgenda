@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 env:
-  AZURE_WEBAPP_NAME: analogagenda-app     # Change to your app service name
+  AZURE_WEBAPP_NAME: analog-agenda
   CONFIGURATION: Release
   DOTNET_VERSION: '8.0.x'
   NODE_VERSION: '20.x'
