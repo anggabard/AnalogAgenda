@@ -1,0 +1,54 @@
+name: Build & Deploy AnalogAgenda
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+env:
+  AZURE_WEBAPP_NAME: analogagenda-app     # Change to your app service name
+  CONFIGURATION: Release
+  DOTNET_VERSION: '8.0.x'
+  NODE_VERSION: '20.x'
+  PUBLISH_DIR: ./publish
+  WORKING_DIRECTORY: .
+
+jobs:
+  build-and-deploy:
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup .NET SDK
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+
+    - name: Restore
+      run: dotnet restore ${{ env.WORKING_DIRECTORY }}
+
+    - name: Build
+      run: dotnet build ${{ env.WORKING_DIRECTORY }} --configuration ${{ env.CONFIGURATION }} --no-restore
+
+    - name: Publish
+      run: dotnet publish ${{ env.WORKING_DIRECTORY }} --configuration ${{ env.CONFIGURATION }} --no-build --output ${{ env.PUBLISH_DIR }}
+
+    - name: Zip publish output
+      run: Compress-Archive -Path "${{ env.PUBLISH_DIR }}\*" -DestinationPath "${{ env.PUBLISH_DIR }}.zip"
+
+    - name: Azure Login
+      uses: azure/login@v2
+      with:
+        creds: ${{ secrets.WEBAPP_SPN }}
+
+    - name: Deploy to Azure Web App
+      uses: azure/webapps-deploy@v3
+      with:
+        app-name: ${{ env.AZURE_WEBAPP_NAME }}
+        package: ${{ env.PUBLISH_DIR }}.zip
