@@ -1,6 +1,6 @@
 import { Component, inject } from '@angular/core';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { ApiService } from '../../services/api.service';
+import { FormBuilder, Validators } from '@angular/forms';
+import { AccountService } from '../../services/account.service';
 
 @Component({
   selector: 'app-root',
@@ -9,7 +9,7 @@ import { ApiService } from '../../services/api.service';
 })
 export class LoginComponent {
   private fb = inject(FormBuilder);
-  private api = inject(ApiService);
+  private api = inject(AccountService);
 
   loading = false;
   form = this.fb.group({

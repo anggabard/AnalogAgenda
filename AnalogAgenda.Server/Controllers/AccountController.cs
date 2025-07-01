@@ -5,6 +5,7 @@ using Database.Helpers;
 using Database.Services;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 
@@ -57,6 +58,10 @@ public class AccountController(ITableService tables) : ControllerBase
             analogUsername = User.Name()
         });
     }
+
+    [Authorize]
+    [HttpGet("secret")]
+    public IActionResult Secret() => Ok("🎉  super secret data");
 
     [HttpPost("logout")]
     public async Task<IActionResult> Logout()
