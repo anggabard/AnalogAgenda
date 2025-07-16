@@ -1,20 +1,22 @@
 import { HttpClientModule } from '@angular/common/http';
 import { NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
-
-import { AppRoutingModule } from './app-routing.module';
-import { LoginComponent } from './components/login/login.component';
 import { SharedModule } from '../shared.module';
+import { AppRoutingModule } from './app-routing.module';
+import { AppComponent, HomeComponent, LoginComponent, NavbarComponent } from './components';
 
 @NgModule({
   declarations: [
-    LoginComponent
+    LoginComponent,
+    NavbarComponent,
+    HomeComponent,
+    AppComponent
   ],
   imports: [
     BrowserModule, HttpClientModule,
     AppRoutingModule, SharedModule
   ],
   providers: [],
-  bootstrap: [LoginComponent]
+  bootstrap: [AppComponent]
 })
 export class AppModule { }
