@@ -1,1 +1,7 @@
-/* You can add global styles to this file, and also import other style files */
+:root {
+  --bg-menu: #f7cba8;
+  --bg-menu-highlight: #e0a57d;
+  --bg-dark: #e88e72;
+  --text-light: #ffffff;
+  --text-dark: #4b2e2e;
+}

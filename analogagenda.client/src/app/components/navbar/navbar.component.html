@@ -1,27 +1,18 @@
-<div class="nav">
-  <div class="container">
-    <div class="btn">Home</div>
-    <div class="btn">Contact</div>
-    <div class="btn">About</div>
-    <div class="btn">FAQ</div>
-    <svg
-      class="outline"
-      overflow="visible"
-      width="400"
-      height="60"
-      viewBox="0 0 400 60"
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      <rect
-        class="rect"
-        pathLength="100"
-        x="0"
-        y="0"
-        width="400"
-        height="60"
-        fill="transparent"
-        stroke-width="5"
-      ></rect>
-    </svg>
+<button class="mobile-toggle" (click)="toggleSidebar()">☰</button>
+
+<div class="nav" [class.open]="isOpenOnMobile">
+  <div class="nav-items">
+    <div class="menu-btn" (click)="onHomeClick()">
+      <img src="/assets/home.svg" class="icon" />
+      <span>Home</span>
+    </div>
+    <div class="menu-btn" (click)="onBookClick()">
+      <img src="/assets/book.png" class="icon" />
+      <span>Notes</span>
+    </div>
+    <div class="menu-btn" (click)="onInventoryClick()">
+      <img src="/assets/substance.png" class="icon" />
+      <span>Substances</span>
+    </div>
   </div>
 </div>
