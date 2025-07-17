@@ -4,7 +4,7 @@
   left: 0;
   height: 100vh;
   width: 12%;
-  background-color: var(--bg-menu);
+  background-color: var(--bg-menu-panel);
   box-shadow: 4px 0 10px rgba(0, 0, 0, 0.2);
   display: flex;
   flex-direction: column;
@@ -30,7 +30,7 @@
   padding-left: 24px;
 }
 
-.icon{
+.icon{  
   width: 20px;
   height: 20px;
   object-fit: contain;
@@ -39,7 +39,7 @@
 
 @media (max-width: 768px) {
   .nav {
-    width: 220px;
+    width: 180px;
     transform: translateX(-100%);
     transition: transform 0.3s ease-in-out;
   }
@@ -49,7 +49,7 @@
   }
 
   .nav-items {
-    margin-top: 50px; 
+    margin-top: 60px; 
   }
 
   .mobile-toggle {
@@ -57,7 +57,7 @@
     top: 10px;
     left: 10px;
     z-index: 1100;
-    background-color: var(--bg-menu);
+    background-color: var(--bg-menu-panel);
     color: white;
     border: none;
     padding: 10px 14px;

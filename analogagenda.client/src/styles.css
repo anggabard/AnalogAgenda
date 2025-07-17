@@ -1,7 +1,23 @@
 :root {
-  --bg-menu: #f7cba8;
-  --bg-menu-highlight: #e0a57d;
+  --bg-color: #e4eaf5;
+  --bg-menu-panel: #7c92a4  ;
+  --bg-menu-highlight: #e0e0e0a6;
   --bg-dark: #e88e72;
-  --text-light: #ffffff;
+  --text-light: #ffffffb2;
   --text-dark: #4b2e2e;
+}
+
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: sans-serif;
+  background-image: url('/assets/main-background.jpg');
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-position: center center;
+
 }
