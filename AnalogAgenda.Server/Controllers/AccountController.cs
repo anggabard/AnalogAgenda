@@ -52,16 +52,15 @@ public class AccountController(ITableService tables) : ControllerBase
         if (!User.IsAuthenticated())
             return Unauthorized();
 
-        return Ok(new
-        {
-            analogEmail = User.Email(),
-            analogUsername = User.Name()
+        return Ok(new IdentityDto {
+            Username = User.Name(),
+            Email = User.Email()
         });
     }
 
     [Authorize]
-    [HttpGet("secret")]
-    public IActionResult Secret() => Ok("🎉  super secret data");
+    [HttpGet("isAuth")]
+    public IActionResult IsAuth() => Ok("babla");
 
     [HttpPost("logout")]
     public async Task<IActionResult> Logout()

@@ -14,12 +14,10 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
     .AddCookie(opt =>
     {
         opt.Cookie.Name = ".AnalogAgenda.Auth";
-        opt.LoginPath = "/account/login";
-        opt.LogoutPath = "/account/logout";
         opt.Cookie.HttpOnly = true;
         opt.Cookie.SameSite = SameSiteMode.None;
         opt.Cookie.SecurePolicy = CookieSecurePolicy.Always;
-        opt.ExpireTimeSpan = TimeSpan.FromDays(7);
+        opt.ExpireTimeSpan = TimeSpan.FromDays(1);
     });
 
 builder.Configuration

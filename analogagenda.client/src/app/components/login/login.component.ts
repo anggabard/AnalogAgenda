@@ -38,8 +38,8 @@ export class LoginComponent {
   });
   }
 
-  secret(){
-    this.api.secret().subscribe({ next: () => this.loading = false, error: () => this.loading = false });
+  isAuth(){
+    this.api.isAuth().subscribe({ next: () => this.loading = false, error: () => this.loading = false });
   }
 
   whoAmI(){

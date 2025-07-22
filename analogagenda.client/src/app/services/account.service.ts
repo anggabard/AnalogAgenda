@@ -1,4 +1,6 @@
 import { Injectable } from '@angular/core';
+import { Observable } from 'rxjs';
+import { IdentityDto } from '../DTOs';
 import { BaseService } from './base.service';
 
 @Injectable({
@@ -11,12 +13,12 @@ export class AccountService extends BaseService {
     return this.post('login', {email, password});
   }
 
-  secret() {
-    return this.get('secret', {responseType: 'text'});
+  isAuth() {
+    return this.get('isAuth', {responseType: 'text'});
   }
 
-  whoAmI() {
-    return this.get('whoAmI');
+  whoAmI(): Observable<IdentityDto> {
+    return this.get<IdentityDto>('whoAmI');
   }
 
   logout() {

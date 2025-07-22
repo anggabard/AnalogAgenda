@@ -1,6 +1,7 @@
 <button class="mobile-toggle" (click)="toggleSidebar()">☰</button>
 
 <div class="nav" [class.open]="isOpenOnMobile">
+  <span>{{username}}</span>
   <div class="nav-items">
     <div class="menu-btn" (click)="onHomeClick()">
       <img src="/assets/home.svg" class="icon" />

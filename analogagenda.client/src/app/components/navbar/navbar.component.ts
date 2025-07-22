@@ -1,6 +1,7 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { AccountService } from '../../services';
+import { IdentityDto } from '../../DTOs';
 
 @Component({
   selector: 'app-navbar',
@@ -8,12 +9,17 @@ import { AccountService } from '../../services';
   styleUrl: './navbar.component.css'
 })
 export class NavbarComponent {
+  private api = inject(AccountService);
+  
   isOpenOnMobile = false;
+  username: string = "";
 
   constructor(
     private router: Router, 
     private accountService: AccountService
-  ) {}
+  ) {
+    this.api.whoAmI().subscribe({ next: (response : IdentityDto) => this.username = response.username});
+  }
 
   toggleSidebar() {
     this.isOpenOnMobile = !this.isOpenOnMobile;

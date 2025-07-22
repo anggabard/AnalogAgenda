@@ -1,7 +1,7 @@
-import { inject } from "@angular/core";
-import { environment } from "../../environments/environment";
 import { HttpClient } from "@angular/common/http";
+import { inject } from "@angular/core";
 import { Observable } from "rxjs";
+import { environment } from "../../environments/environment";
 
 export class BaseService {
     #http = inject(HttpClient);
@@ -12,19 +12,27 @@ export class BaseService {
         this.baseUrl = environment.apiUrl + '/' + scope;
     }
 
-    get(path: string, options?: any): Observable<Object> {
-        return this.#http.get(this.baseUrl + this.ensureLeadingSlash(path), { ...this.defaultOptions, ...options });
+    get<T>(path: string, options?: any): Observable<T> {
+        return this.#http.get<T>(this.baseUrl + this.ensureLeadingSlash(path), {
+            ...this.defaultOptions,
+            ...options,
+            observe: 'body'
+        }) as Observable<T>;
     }
 
-    post(path: string, body: any = {}, options?: any): Observable<Object> {
-        return this.#http.post(this.baseUrl + this.ensureLeadingSlash(path), body, { ...this.defaultOptions, ...options });
+    post<T>(path: string, body: any = {}, options?: any): Observable<T> {
+        return this.#http.post<T>(this.baseUrl + this.ensureLeadingSlash(path), body, {
+            ...this.defaultOptions,
+            ...options,
+            observe: 'body'
+        }) as Observable<T>;
     }
 
     private ensureLeadingSlash(input: string): string {
-    const trimmed = input.trim();
-    if (trimmed.startsWith('/')) {
-        return trimmed;
+        const trimmed = input.trim();
+        if (trimmed.startsWith('/')) {
+            return trimmed;
+        }
+        return '/' + trimmed;
     }
-    return '/' + trimmed;
-}
 }
