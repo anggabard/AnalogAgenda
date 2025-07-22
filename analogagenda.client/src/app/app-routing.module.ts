@@ -3,7 +3,7 @@ import { RouterModule, Routes } from '@angular/router';
 import { LoginComponent, HomeComponent } from './components';
 import { BookNotesComponent } from './components/book-notes/book-notes.component';
 import { InventoryComponent } from './components/inventory/inventory.component';
-import { sessionGuard } from './guards/session.guard';
+import { sessionGuard, loginGuard } from './guards';
 import { MainLayoutComponent } from './layouts/main-layout/main-layout.component';
 import { AuthLayoutComponent } from './layouts/auth-layout/auth-layout.component';
 
@@ -23,7 +23,7 @@ const routes: Routes = [
     path: '',
     component: AuthLayoutComponent,
     children: [
-      { path: 'login', component: LoginComponent },
+      { path: 'login', component: LoginComponent, canActivate: [loginGuard] },
     ]
   },
   //{ path: '**', component: NotFoundComponent } 
