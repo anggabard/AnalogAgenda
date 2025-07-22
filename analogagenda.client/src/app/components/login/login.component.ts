@@ -37,16 +37,4 @@ export class LoginComponent {
     }
   });
   }
-
-  isAuth(){
-    this.api.isAuth().subscribe({ next: () => this.loading = false, error: () => this.loading = false });
-  }
-
-  whoAmI(){
-    this.api.whoAmI().subscribe({ next: () => this.loading = false, error: () => this.loading = false });
-  }
-
-  logout(){
-    this.api.logout().subscribe({ next: () => this.loading = false, error: () => this.loading = false });
-  }
 }

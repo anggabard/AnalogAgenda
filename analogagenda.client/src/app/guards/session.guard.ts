@@ -8,7 +8,7 @@ export const sessionGuard: CanActivateFn = () => {
   const router = inject(Router);
 
   return api.isAuth().pipe(
-    map((response) => {console.log(response); return true}),
+    map(() => true),
     catchError(() => {
       return of(router.createUrlTree(['/login']));
     })

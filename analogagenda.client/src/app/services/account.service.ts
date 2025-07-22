@@ -14,7 +14,7 @@ export class AccountService extends BaseService {
   }
 
   isAuth() {
-    return this.get('isAuth', {responseType: 'text'});
+    return this.get('isAuth');
   }
 
   whoAmI(): Observable<IdentityDto> {

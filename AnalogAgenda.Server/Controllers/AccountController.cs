@@ -60,7 +60,7 @@ public class AccountController(ITableService tables) : ControllerBase
 
     [Authorize]
     [HttpGet("isAuth")]
-    public IActionResult IsAuth() => Ok("babla");
+    public IActionResult IsAuth() => Ok();
 
     [HttpPost("logout")]
     public async Task<IActionResult> Logout()
