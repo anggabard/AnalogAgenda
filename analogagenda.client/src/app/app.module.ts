@@ -3,11 +3,8 @@ import { NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 import { SharedModule } from '../shared.module';
 import { AppRoutingModule } from './app-routing.module';
-import { AppComponent, HomeComponent, LoginComponent, NavbarComponent } from './components';
-import { BookNotesComponent } from './components/book-notes/book-notes.component';
-import { InventoryComponent } from './components/inventory/inventory.component';
-import { MainLayoutComponent } from './layouts/main-layout/main-layout.component';
-import { AuthLayoutComponent } from './layouts/auth-layout/auth-layout.component';
+import { AppComponent, LoginComponent, NavbarComponent, HomeComponent, NotesComponent, SubstancesComponent } from './components';
+import { MainLayoutComponent, AuthLayoutComponent} from './layouts';
 
 @NgModule({
   declarations: [
@@ -15,8 +12,8 @@ import { AuthLayoutComponent } from './layouts/auth-layout/auth-layout.component
     NavbarComponent,
     HomeComponent,
     AppComponent,
-    BookNotesComponent,
-    InventoryComponent,
+    NotesComponent,
+    SubstancesComponent,
     MainLayoutComponent,
     AuthLayoutComponent
   ],

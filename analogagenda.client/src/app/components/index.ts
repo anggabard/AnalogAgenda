@@ -1,4 +1,6 @@
+export { AppComponent } from './app/app.component'
 export { LoginComponent } from './login/login.component'
 export { NavbarComponent } from './navbar/navbar.component'
 export { HomeComponent } from './home/home.component'
-export { AppComponent } from './app/app.component'
+export { NotesComponent } from './notes/notes.component'
+export { SubstancesComponent } from './substances/substances.component'

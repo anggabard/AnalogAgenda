@@ -25,7 +25,7 @@ export class NavbarComponent {
     this.isOpenOnMobile = !this.isOpenOnMobile;
   }
 
-  onBookClick() {
+  onNotesClick() {
     this.router.navigate(['/notes']);
     this.closeMobileSidebar();
   }
@@ -35,8 +35,8 @@ export class NavbarComponent {
     this.closeMobileSidebar();
   }
 
-   onInventoryClick() {
-    this.router.navigate(['/inventory']);
+   onSubstancesClick() {
+    this.router.navigate(['/substances']);
     this.closeMobileSidebar();
   }
 
