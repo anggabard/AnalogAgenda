@@ -5,6 +5,7 @@ import { SharedModule } from '../shared.module';
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent, LoginComponent, NavbarComponent, HomeComponent, NotesComponent, SubstancesComponent } from './components';
 import { MainLayoutComponent, AuthLayoutComponent} from './layouts';
+import { NewKitComponent } from './components/substances/new-kit/new-kit.component';
 
 @NgModule({
   declarations: [
@@ -15,7 +16,8 @@ import { MainLayoutComponent, AuthLayoutComponent} from './layouts';
     NotesComponent,
     SubstancesComponent,
     MainLayoutComponent,
-    AuthLayoutComponent
+    AuthLayoutComponent,
+    NewKitComponent
   ],
   imports: [
     BrowserModule, HttpClientModule,
