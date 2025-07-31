@@ -1,22 +1,19 @@
 .add-kit {
-  width: 150px;
-  height: 60px;
-  border: 3px solid #315cfd;
-  border-radius: 45px;
-  transition: all 0.3s;
+  padding: 0.5rem;
+  background-color: rgba(37, 35, 35, 0.897);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 1rem;
   cursor: pointer;
-  background: white;
-  font-size: 1.2em;
-  font-weight: 550;
+  transition: transform .15s ease;
 }
 
 .add-kit:hover {
-  background: #315cfd;
-  color: white;
-  font-size: 1.5em;
+  transform: scaleX(1.03);
 }
 
-.center-container{
-    margin: 0 auto; 
-    text-align: center;
+.center-container {
+  margin: 0 auto;
+  text-align: center;
 }

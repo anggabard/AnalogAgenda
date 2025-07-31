@@ -1,13 +1,13 @@
 ﻿button {
-    transition: transform .15s ease;
+  transition: transform .15s ease;
 }
 
 button:hover:not(:disabled) {
-    transform: translateY(-2px);
+  transform: scaleX(1.03);
 }
 
-.login-content{
-    display: flex;
+.background {
+  display: flex;
   justify-content: center;
   align-items: center;
   min-height: 100vh;
