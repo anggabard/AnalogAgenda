@@ -39,7 +39,6 @@ public class DevKitController(IMapper mapper, ITableService tables, IBlobService
             entity.ImageId = imageId;
 
             await devKitsTable.AddEntityAsync(entity);
-            return Ok(entity.RowKey);
         }
         catch (Exception ex)
         {
@@ -48,5 +47,7 @@ public class DevKitController(IMapper mapper, ITableService tables, IBlobService
 
             return UnprocessableEntity(ex.Message);
         }
+
+        return Ok();
     }
 }
