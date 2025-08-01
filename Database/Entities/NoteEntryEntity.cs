@@ -1,21 +1,20 @@
-﻿using Azure;
-using Azure.Data.Tables;
-using Database.Enums;
+﻿using Database.DBObjects.Enums;
 using Database.Helpers;
 
 namespace Database.Entities;
 
-public class NoteEntryEntity : ITableEntity
+public class NoteEntryEntity : BaseEntity
 {
-    public string PartitionKey { get; set; } = Table.NotesEntries.PartitionKey();
-    public string RowKey { get; set; } = default!;
+    public NoteEntryEntity() : base(TableName.NotesEntries) { }
+
     public string NoteRowKey { get; set; } = default!;
     public required TimeSpan Time { get; set; }
     public required ENoteEntryType ProcessType { get; set; }
     public required string Film { get; set; }
     public string? Details { get; set; }
 
-    // housekeeping
-    public DateTimeOffset? Timestamp { get; set; }
-    public ETag ETag { get; set; }
+    protected override string GetId(params string[] inputs)
+    {
+        return IdGenerator.Get(8, NoteRowKey, Time.Ticks.ToString(), ProcessType.ToString(), Film, Details!);
+    }
 }

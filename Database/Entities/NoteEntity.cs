@@ -1,17 +1,17 @@
-﻿using Azure;
-using Azure.Data.Tables;
+﻿using Database.DBObjects.Enums;
 using Database.Helpers;
 
 namespace Database.Entities;
 
-public class NoteEntity : ITableEntity
+public class NoteEntity : BaseEntity
 {
-    public string PartitionKey { get; set; } = Table.Notes.PartitionKey();
-    public string RowKey { get; set; } = default!;
+    public NoteEntity() : base(TableName.Notes) { }
+
     public required string Name { get; set; }
     public DateTime CreatedDate { get; set; }
 
-    // housekeeping
-    public DateTimeOffset? Timestamp { get; set; }
-    public ETag ETag { get; set; }
+    protected override string GetId(params string[] inputs)
+    {
+        return IdGenerator.Get(4, Name, CreatedDate.Ticks.ToString());
+    }
 }

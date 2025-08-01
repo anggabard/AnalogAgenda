@@ -1,10 +1,10 @@
 ﻿using Azure.Data.Tables;
-using Database.Helpers;
+using Database.DBObjects.Enums;
 
-namespace Database.Services;
+namespace Database.Services.Interfaces;
 
 public interface ITableService
 {
     TableClient GetTable(string tableName);
-    TableClient GetTable(Table table);
+    TableClient GetTable(TableName table);
 }

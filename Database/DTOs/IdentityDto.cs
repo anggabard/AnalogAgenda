@@ -1,4 +1,4 @@
-﻿namespace AnalogAgenda.Server.DTOs;
+﻿namespace Database.DTOs;
 
 public class IdentityDto
 {

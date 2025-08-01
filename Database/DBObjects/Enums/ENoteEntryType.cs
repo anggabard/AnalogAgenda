@@ -1,4 +1,4 @@
-﻿namespace Database.Enums;
+﻿namespace Database.DBObjects.Enums;
 
 public enum ENoteEntryType
 {

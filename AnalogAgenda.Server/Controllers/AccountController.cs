@@ -1,8 +1,9 @@
-﻿using AnalogAgenda.Server.DTOs;
-using AnalogAgenda.Server.Identity;
+﻿using AnalogAgenda.Server.Identity;
+using Database.DBObjects.Enums;
+using Database.DTOs;
 using Database.Entities;
 using Database.Helpers;
-using Database.Services;
+using Database.Services.Interfaces;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
@@ -19,9 +20,9 @@ public class AccountController(ITableService tables) : ControllerBase
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginDto login)
     {
-        var users = _tables.GetTable(Table.Users);
+        var users = _tables.GetTable(TableName.Users);
         var result = await users.GetEntityIfExistsAsync<UserEntity>(
-                         Table.Users.PartitionKey(), login.Email.ToLowerInvariant());
+                         TableName.Users.PartitionKey(), login.Email.ToLowerInvariant());
 
         if (!result.HasValue) return Unauthorized("Bad creds");
 

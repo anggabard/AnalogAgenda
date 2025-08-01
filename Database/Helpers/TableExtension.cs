@@ -1,28 +1,24 @@
-﻿namespace Database.Helpers;
+﻿using Database.DBObjects.Enums;
 
-public enum Table
-{
-    Users,
-    Notes,
-    NotesEntries
-}
+namespace Database.Helpers;
 
 public static class TableExtension
 {
-    public static string PartitionKey(this Table table)
+    public static string PartitionKey(this TableName table)
     {
         return table switch
         {
-            Table.Users => "USER",
-            Table.Notes => "NOTE",
-            Table.NotesEntries => "NOTEENTRY",
+            TableName.Users => "USER",
+            TableName.Notes => "NOTE",
+            TableName.NotesEntries => "NOTEENTRY",
+            TableName.DevKits => "DEVKIT",
             _ => throw new Exception($"Partition key for {table} does not exist"),
         };
     }
 
     public static bool IsTable(this string tableName)
     {
-        return Enum.TryParse(tableName, out Table _);
+        return Enum.TryParse(tableName, out TableName _);
     }
 }
 

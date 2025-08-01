@@ -1,6 +1,8 @@
 ﻿using Azure.Data.Tables;
 using Configuration.Sections;
+using Database.DBObjects.Enums;
 using Database.Helpers;
+using Database.Services.Interfaces;
 using System.Collections.Concurrent;
 
 namespace Database.Services
@@ -13,12 +15,12 @@ namespace Database.Services
         public TableClient GetTable(string tableName)
             => _cache.GetOrAdd(tableName, name =>
             {
-                if (!tableName.IsTable()) throw new ArgumentException($"Error: '{tableName}' is not a valid Table.");
+                if (!name.IsTable()) throw new ArgumentException($"Error: '{name}' is not a valid Table.");
 
                 return new TableClient(_accountUri, name, azureAdCfg.GetClientSecretCredential());
             });
 
-        public TableClient GetTable(Table table)
+        public TableClient GetTable(TableName table)
         {
             return GetTable(table.ToString());
         }
