@@ -1,7 +1,5 @@
 ﻿using AnalogAgenda.Server.Helpers;
 using AutoMapper;
-using Azure.Storage.Blobs;
-using Azure.Storage.Blobs.Models;
 using Database.DBObjects;
 using Database.DBObjects.Enums;
 using Database.DTOs;
@@ -9,7 +7,6 @@ using Database.Entities;
 using Database.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System.Text.RegularExpressions;
 
 namespace AnalogAgenda.Server.Controllers;
 
@@ -49,5 +46,27 @@ public class DevKitController(IMapper mapper, ITableService tables, IBlobService
         }
 
         return Ok();
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> GetAllKits()
+    {
+        var devKitsTable = _tables.GetTable(TableName.DevKits);
+        var entities = new List<DevKitEntity>();
+        var results = new List<DevKitDto>();
+        await foreach (var entity in devKitsTable.QueryAsync<DevKitEntity>())
+        {
+            entities.Add(entity);
+        }
+
+        var devKitsContainer = _blobs.GetBlobContainer(ContainerName.devkits);
+        foreach (var entity in entities)
+        {
+            var dto = _mapper.Map<DevKitDto>(entity);
+            dto.ImageAsBase64 = await BlobImageHelper.DownloadImageAsBase64WithContentTypeAsync(devKitsContainer, entity.ImageId);
+            results.Add(dto);
+        }
+
+        return Ok(results);
     }
 }

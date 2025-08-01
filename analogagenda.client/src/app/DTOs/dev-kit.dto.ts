@@ -7,7 +7,7 @@ export interface DevKitDto {
   purchasedBy: UsernameType,
   purchasedOn: string,
   mixedOn: string,
-  validForMonths: number,
+  validForWeeks: number,
   validForFilms: number,
   imageAsBase64: string,
   description: string;

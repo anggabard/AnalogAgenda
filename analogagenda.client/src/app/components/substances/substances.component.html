@@ -1,8 +1,16 @@
 <div class="center-container">
     <button class="add-kit" (click)="onNewKitClick()">+ New Kit +</button>
-</div>
 
-<div *ngFor="let kit of availableDevKits">
-  <span>{{kit.name}}</span>
-  <span>{{kit.purchasedBy}}</span>
+    <div *ngFor="let kit of availableDevKits">
+        <div>{{kit.name}}</div>
+        <div>{{kit.url}}</div>
+        <div>{{kit.type}}</div>
+        <div>{{kit.purchasedBy}}</div>
+        <div>{{kit.purchasedOn}}</div>
+        <div>{{kit.mixedOn}}</div>
+        <div>{{kit.validForWeeks}}</div>
+        <div>{{kit.validForFilms}}</div>
+        <div>{{kit.description}}</div>
+        <img [src]="kit.imageAsBase64" alt="Base64 Image" />
+    </div>
 </div>
