@@ -1,25 +1,39 @@
-﻿namespace Database.Helpers;
+﻿using System.Security.Cryptography;
+using System.Text;
 
-public class IdGenerator
+namespace Database.Helpers;
+
+public static class IdGenerator
 {
-    private const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+    private static readonly char[] AlphanumericChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789".ToCharArray();
     public static string Get(int length = 8, params string[] inputs)
     {
-        var random = new Random(GetSeed(inputs));
+        if (length <= 0 || length >= 100)
+            throw new ArgumentOutOfRangeException(nameof(length), "Length must be between 1 and 99.");
 
-        return new string(Enumerable.Range(0, length)
-            .Select(_ => chars[random.Next(chars.Length)])
-            .ToArray());
-    }
+        string combinedInput = string.Join("|", inputs);
+        byte[] hash = SHA256.HashData(Encoding.UTF8.GetBytes(combinedInput));
 
-    private static int GetSeed(string[] inputs)
-    {
-        var seed = string.Empty;
-        foreach (var input in inputs) 
+        var result = new StringBuilder();
+        int counter = 0;
+
+        while (result.Length < length)
         {
-            seed += input;
+            byte[] extendedInput = hash.Concat(BitConverter.GetBytes(counter)).ToArray();
+            byte[] extendedHash = SHA256.HashData(extendedInput);
+
+            foreach (byte b in extendedHash)
+            {
+                char c = AlphanumericChars[b % AlphanumericChars.Length];
+                result.Append(c);
+
+                if (result.Length == length)
+                    break;
+            }
+
+            counter++;
         }
 
-        return seed.GetHashCode();
+        return result.ToString();
     }
 }

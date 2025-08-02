@@ -14,8 +14,29 @@ env:
   WORKING_DIRECTORY: .
 
 jobs:
+  test:
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup .NET SDK
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+
+    - name: Restore dependencies
+      run: dotnet restore ${{ env.WORKING_DIRECTORY }}
+
+    - name: Build solution
+      run: dotnet build ${{ env.WORKING_DIRECTORY }} --configuration ${{ env.CONFIGURATION }} --no-restore
+
+    - name: Run unit tests
+      run: dotnet test ./Database.Tests/Database.Tests.csproj --configuration ${{ env.CONFIGURATION }} --no-build --verbosity normal
+
   build-and-deploy:
     runs-on: windows-latest
+    needs: test
 
     steps:
     - uses: actions/checkout@v4

@@ -35,7 +35,7 @@ namespace Database.Tests
             var h1 = PasswordHasher.HashPassword(pw);
             var h2 = PasswordHasher.HashPassword(pw);
 
-            Assert.NotEqual(h1, h2);            // 16-byte random salt each call
+            Assert.NotEqual(h1, h2);
         }
 
         [Fact]

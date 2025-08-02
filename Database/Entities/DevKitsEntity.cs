@@ -29,6 +29,10 @@ public class DevKitEntity : BaseEntity
 
     protected override string GetId(params string[] inputs)
     {
-        return IdGenerator.Get(8, Name, Url, Type.ToString(), PurchasedBy.ToString(), PurchasedOn.ToString(), Description);
+        return IdGenerator.Get(8, Name, Url, Type.ToString(), 
+            PurchasedBy.ToString(), PurchasedOn.Ticks.ToString(), 
+            MixedOn.Ticks.ToString(), ValidForWeeks.ToString(),
+            ValidForFilms.ToString(), ImageId.ToString(),
+            Description);
     }
 }
