@@ -28,6 +28,7 @@ export class NewKitComponent {
     mixedOn: [new Date().toISOString().split('T')[0]],
     validForWeeks: [6, Validators.required],
     validForFilms: [8, Validators.required],
+    filmsDeveloped: [0, Validators.required],
     imageAsBase64: [''],
     description: ['']
   });

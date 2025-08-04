@@ -9,6 +9,7 @@ export interface DevKitDto {
   mixedOn: string,
   validForWeeks: number,
   validForFilms: number,
+  filmsDeveloped: number,
   imageAsBase64: string,
   description: string;
 }

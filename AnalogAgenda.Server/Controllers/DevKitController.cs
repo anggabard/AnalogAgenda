@@ -14,15 +14,15 @@ namespace AnalogAgenda.Server.Controllers;
 public class DevKitController(IMapper mapper, ITableService tables, IBlobService blobs) : ControllerBase
 {
     private readonly IMapper _mapper = mapper;
-    private readonly ITableService _tables = tables;
-    private readonly IBlobService _blobs = blobs;
+    private readonly ITableService _tableService = tables;
+    private readonly IBlobService _blobService = blobs;
 
     [HttpPost]
     public async Task<IActionResult> CreateNewKit([FromBody] DevKitDto dto)
     {
         var imageId = Constants.DefaultDevKitImageId;
-        var devKitsTable = _tables.GetTable(TableName.DevKits);
-        var devKitsContainer = _blobs.GetBlobContainer(ContainerName.devkits);
+        var devKitsTable = _tableService.GetTable(TableName.DevKits);
+        var devKitsContainer = _blobService.GetBlobContainer(ContainerName.devkits);
 
         try
         {
@@ -51,21 +51,17 @@ public class DevKitController(IMapper mapper, ITableService tables, IBlobService
     [HttpGet]
     public async Task<IActionResult> GetAllKits()
     {
-        var devKitsTable = _tables.GetTable(TableName.DevKits);
-        var entities = new List<DevKitEntity>();
-        var results = new List<DevKitDto>();
-        await foreach (var entity in devKitsTable.QueryAsync<DevKitEntity>())
-        {
-            entities.Add(entity);
-        }
+        var entities = await _tableService.GetTableEntries<DevKitEntity>();
 
-        var devKitsContainer = _blobs.GetBlobContainer(ContainerName.devkits);
-        foreach (var entity in entities)
-        {
-            var dto = _mapper.Map<DevKitDto>(entity);
-            dto.ImageAsBase64 = await BlobImageHelper.DownloadImageAsBase64WithContentTypeAsync(devKitsContainer, entity.ImageId);
-            results.Add(dto);
-        }
+        var devKitsContainer = _blobService.GetBlobContainer(ContainerName.devkits);
+        var results = await Task.WhenAll(
+            entities.Select(async entity =>
+                {
+                    var dto = _mapper.Map<DevKitDto>(entity);
+                    dto.ImageAsBase64 = await BlobImageHelper.DownloadImageAsBase64WithContentTypeAsync(devKitsContainer, entity.ImageId);
+                    return dto;
+                })
+            );
 
         return Ok(results);
     }

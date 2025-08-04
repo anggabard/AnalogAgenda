@@ -23,6 +23,8 @@ public class DevKitEntity : BaseEntity
 
     public int ValidForFilms { get; set; }
 
+    public int FilmsDeveloped { get; set; }
+
     public Guid ImageId { get; set; }
 
     public string Description { get; set; } = string.Empty;

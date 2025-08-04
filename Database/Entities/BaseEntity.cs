@@ -17,4 +17,6 @@ public abstract class BaseEntity(TableName table) : ITableEntity
     public ETag ETag { get; set; }
 
     protected abstract string GetId(params string[] inputs);
+
+    public TableName GetTable() => Table;
 }
