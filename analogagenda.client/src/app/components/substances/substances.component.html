@@ -1,17 +1,23 @@
-<div class="center-container">
+<div class="container">
     <button class="add-kit" (click)="onNewKitClick()">+ New Kit +</button>
 
-    <div *ngFor="let kit of availableDevKits">
-        <div>{{kit.name}}</div>
-        <div>{{kit.url}}</div>
-        <div>{{kit.type}}</div>
-        <div>{{kit.purchasedBy}}</div>
-        <div>{{kit.purchasedOn}}</div>
-        <div>{{kit.mixedOn}}</div>
-        <div>{{kit.validForWeeks}}</div>
-        <div>{{kit.validForFilms}}</div>
-        <div>{{kit.filmsDeveloped}}</div>
-        <div>{{kit.description}}</div>
-        <img [src]="kit.imageAsBase64" alt="Base64 Image" />
+    <div class="devkits-container">
+        <div class="devkit-list">
+            <div *ngFor="let kit of availableDevKits" class="card">
+                <img class="image" [src]="kit.imageAsBase64" />
+                <span class="title">{{kit.name}}</span>
+                <span class="info type">{{kit.type}}</span>
+                <span class="info ramaining">{{kit.filmsDeveloped}}/{{kit.validForFilms}}</span>
+            </div>
+        </div>
+
+        <div class="devkit-list">
+            <div *ngFor="let kit of expiredDevKits" class="card">
+                <img class="image" [src]="kit.imageAsBase64" />
+                <span class="title">{{kit.name}}</span>
+                <span class="info type">{{kit.type}}</span>
+                <span class="info ramaining">{{kit.filmsDeveloped}}/{{kit.validForFilms}}</span>
+            </div>
+        </div>
     </div>
 </div>

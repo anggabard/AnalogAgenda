@@ -1,67 +1,65 @@
-<div class="background">
-    <div class="container">
+<div class="container">
 
-        <div class="box">
-            <form [formGroup]="form" (ngSubmit)="submit()" class="form">
-                <h1 class="form-title">Add New Kit</h1>
+    <div class="box">
+        <form [formGroup]="form" (ngSubmit)="submit()" class="form">
+            <h1 class="form-title">Add New Kit</h1>
 
-                <div *ngIf="errorMessage" class="error-message">
-                    {{ errorMessage }}
-                </div>
+            <div *ngIf="errorMessage" class="error-message">
+                {{ errorMessage }}
+            </div>
 
-                <input type="text" formControlName="name" placeholder="Name" class="input" />
+            <input type="text" formControlName="name" placeholder="Name" class="input" />
 
-                <input type="url" formControlName="url" placeholder="Url" class="input" />
+            <input type="url" formControlName="url" placeholder="Url" class="input" />
 
-                <div>
-                    <label for="type">Type</label>
-                    <select formControlName="type" class="input">
-                        <option *ngFor="let option of devKitOptions" [value]="option">{{ option }}</option>
-                    </select>
-                </div>
+            <div>
+                <label for="type">Type</label>
+                <select formControlName="type" class="input">
+                    <option *ngFor="let option of devKitOptions" [value]="option">{{ option }}</option>
+                </select>
+            </div>
 
-                <div>
-                    <label for="purchasedBy">Purchased by</label>
-                    <select formControlName="purchasedBy" class="input">
-                        <option *ngFor="let option of purchasedByOptions" [value]="option">{{ option }}</option>
-                    </select>
-                </div>
+            <div>
+                <label for="purchasedBy">Purchased by</label>
+                <select formControlName="purchasedBy" class="input">
+                    <option *ngFor="let option of purchasedByOptions" [value]="option">{{ option }}</option>
+                </select>
+            </div>
 
-                <div>
-                    <label for="purchasedOn">Purchased On</label>
-                    <input type="date" formControlName="purchasedOn" class="input" />
-                </div>
+            <div>
+                <label for="purchasedOn">Purchased On</label>
+                <input type="date" formControlName="purchasedOn" class="input" />
+            </div>
 
-                <div>
-                    <label for="mixedOn">Mixed On</label>
-                    <input type="date" formControlName="mixedOn" class="input" />
-                </div>
+            <div>
+                <label for="mixedOn">Mixed On</label>
+                <input type="date" formControlName="mixedOn" class="input" />
+            </div>
 
-                <div class="valid-for-container">
-                    <label>Valid for</label>
-                    <input type="number" formControlName="validForWeeks" class="input" />
-                    <span>Weeks</span>
-                    <span id="validForSeparator">or</span>
-                    <input type="number" formControlName="validForFilms" class="input" />
-                    <span>Films</span>
-                    <label>Developed</label>
-                    <input type="number" formControlName="filmsDeveloped" class="input" />
-                    <span>Films</span>
-                </div>
+            <div class="valid-for-container">
+                <label>Valid for</label>
+                <input type="number" formControlName="validForWeeks" class="input" />
+                <span>Weeks</span>
+                <span id="validForSeparator">or</span>
+                <input type="number" formControlName="validForFilms" class="input" />
+                <span>Films</span>
+                <label>Developed</label>
+                <input type="number" formControlName="filmsDeveloped" class="input" />
+                <span>Films</span>
+            </div>
 
-                <input type="file" (change)="onImageSelected($event)" accept="image/*" class="input" />
+            <input type="file" (change)="onImageSelected($event)" accept="image/*" class="input" />
 
-                <textarea formControlName="description" rows="4" cols="40" class="input"
-                    placeholder="Description"></textarea>
+            <textarea formControlName="description" rows="4" cols="40" class="input"
+                placeholder="Description"></textarea>
 
-                <button type="submit" [disabled]="form.invalid || loading" class="submit-btn">
-                    <span *ngIf="!loading">Save</span>
-                    <svg *ngIf="loading" class="spinner" viewBox="0 0 24 24">
-                        <circle class="spinner-bg" cx="12" cy="12" r="10" stroke-width="4"></circle>
-                        <path class="spinner-path" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
-                    </svg>
-                </button>
-            </form>
-        </div>
+            <button type="submit" [disabled]="form.invalid || loading" class="submit-btn">
+                <span *ngIf="!loading">Save</span>
+                <svg *ngIf="loading" class="spinner" viewBox="0 0 24 24">
+                    <circle class="spinner-bg" cx="12" cy="12" r="10" stroke-width="4"></circle>
+                    <path class="spinner-path" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                </svg>
+            </button>
+        </form>
     </div>
 </div>

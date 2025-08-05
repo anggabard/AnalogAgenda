@@ -1,7 +1,6 @@
 ﻿using Azure.Data.Tables;
 using Configuration.Sections;
 using Database.DBObjects.Enums;
-using Database.DTOs;
 using Database.Entities;
 using Database.Helpers;
 using Database.Services.Interfaces;

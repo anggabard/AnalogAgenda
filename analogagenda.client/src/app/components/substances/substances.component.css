@@ -1,4 +1,5 @@
 .add-kit {
+  display: flex;
   padding: 0.5rem;
   background-color: rgba(37, 35, 35, 0.897);
   color: white;
@@ -13,11 +14,94 @@
   transform: scaleX(1.03);
 }
 
-.center-container {
+.container {
+  display: flex;
   margin: 0 auto;
   text-align: center;
 }
 
-img {
-  width: 200px;
+.devkit-list{
+  display: inline-flex;
+  /* margin: 30px 2px 50px 15%; */
+}
+
+.devkits-container{
+  display: grid;
+  margin-top: 20px;
+}
+
+.card {
+  position: relative;
+  width: 11.875em;
+  height: 11.875em;
+  box-shadow: 0px 1px 13px rgba(0,0,0,0.1);
+  cursor: pointer;
+  transition: all 120ms;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  padding: 0.5em;
+  padding-bottom: 3.4em;
+}
+
+.card::after {
+  content: "Edit";
+  place-self: center;
+  padding-top: 1.25em;
+  position: absolute;
+  left: 0;
+  bottom: 0px;
+  background: #00AC7C;
+  color: #fff;
+  height: 2.5em;
+  width: 100%;
+  transition: all 80ms;
+  font-weight: 600;
+  text-transform: uppercase;
+  visibility: hidden;
+}
+
+.card .title {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 0.9em;
+  position: absolute;
+  margin: 0px 15px 0px 15px;
+  bottom: 1.875em;
+  font-weight: 400;
+  color: #000;
+}
+
+.card .info {
+  font-family: Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif;
+  font-size: 0.9em;
+  position: absolute;
+  color: #000;
+}
+
+.card .info.type{
+  left: 0.625em;
+  bottom: 0.625em;
+}
+
+.card .info.ramaining{
+  right: 0.625em;
+  bottom: 0.625em;
+}
+
+.card:hover::after {
+  transform: translateY(-60px);
+  visibility: visible;
+}
+
+.card:active {
+  transform: scale(0.98);
+}
+
+.image {
+  background: rgb(241, 241, 241);
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
 }
