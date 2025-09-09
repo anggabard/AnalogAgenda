@@ -76,6 +76,7 @@
   padding: 0.5em;
   padding-bottom: 3.4em;
   scroll-snap-align: start;
+  cursor: pointer;
 }
 
 .card::after {
