@@ -3,9 +3,8 @@ import { NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 import { SharedModule } from '../shared.module';
 import { AppRoutingModule } from './app-routing.module';
-import { AppComponent, LoginComponent, NavbarComponent, HomeComponent, NotesComponent, SubstancesComponent } from './components';
+import { AppComponent, LoginComponent, NavbarComponent, HomeComponent, NotesComponent, SubstancesComponent, UpsertKitComponent } from './components';
 import { MainLayoutComponent, AuthLayoutComponent} from './layouts';
-import { NewKitComponent } from './components/substances/new-kit/new-kit.component';
 
 @NgModule({
   declarations: [
@@ -17,7 +16,7 @@ import { NewKitComponent } from './components/substances/new-kit/new-kit.compone
     SubstancesComponent,
     MainLayoutComponent,
     AuthLayoutComponent,
-    NewKitComponent
+    UpsertKitComponent
   ],
   imports: [
     BrowserModule, HttpClientModule,

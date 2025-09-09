@@ -6,11 +6,11 @@ import { DevKitDto, IdentityDto } from '../../../DTOs';
 import { ActivatedRoute, Router } from '@angular/router';
 
 @Component({
-  selector: 'app-new-kit',
-  templateUrl: './new-kit.component.html',
-  styleUrl: './new-kit.component.css'
+  selector: 'app-upsert-kit',
+  templateUrl: './upsert-kit.component.html',
+  styleUrl: './upsert-kit.component.css'
 })
-export class NewKitComponent {
+export class UpsertKitComponent {
   private fb = inject(FormBuilder);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
