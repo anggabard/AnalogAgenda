@@ -49,11 +49,7 @@
 
 .nav.open {
   transform: translateX(0);
-}
-
-.nav-items {
-  margin-top: 60px;
-}
+} 
 
 .mobile-toggle {
   position: absolute;
