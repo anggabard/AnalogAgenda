@@ -1,6 +1,5 @@
-<button class="mobile-toggle" (click)="toggleSidebar()">☰</button>
-
-<div class="nav" [class.open]="isOpenOnMobile">
+<button class="mobile-toggle" (click)="toggleSidebar()" [class.open]="isSidebarOpen">{{this.getToggleArrow()}}</button>
+<div class="nav" [class.open]="isSidebarOpen">
   <span>{{username}}</span>
   <div class="nav-items">
     <div class="menu-btn" (click)="onHomeClick()">

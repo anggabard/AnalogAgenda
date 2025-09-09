@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, EventEmitter, inject, Output } from '@angular/core';
 import { Router } from '@angular/router';
 import { AccountService } from '../../services';
 import { IdentityDto } from '../../DTOs';
@@ -9,20 +9,23 @@ import { IdentityDto } from '../../DTOs';
   styleUrl: './navbar.component.css'
 })
 export class NavbarComponent {
+  @Output() isOpenEvent = new EventEmitter<boolean>();
+
   private api = inject(AccountService);
-  
-  isOpenOnMobile = false;
+
+  isSidebarOpen = false;
   username: string = "";
 
   constructor(
-    private router: Router, 
+    private router: Router,
     private accountService: AccountService
   ) {
-    this.api.whoAmI().subscribe({ next: (response : IdentityDto) => this.username = response.username});
+    this.api.whoAmI().subscribe({ next: (response: IdentityDto) => this.username = response.username });
   }
 
   toggleSidebar() {
-    this.isOpenOnMobile = !this.isOpenOnMobile;
+    this.isSidebarOpen = !this.isSidebarOpen;
+    this.isOpenEvent.emit(this.isSidebarOpen);
   }
 
   onNotesClick() {
@@ -30,12 +33,12 @@ export class NavbarComponent {
     this.closeMobileSidebar();
   }
 
-   onHomeClick() {
+  onHomeClick() {
     this.router.navigate(['/home']);
     this.closeMobileSidebar();
   }
 
-   onSubstancesClick() {
+  onSubstancesClick() {
     this.router.navigate(['/substances']);
     this.closeMobileSidebar();
   }
@@ -44,10 +47,13 @@ export class NavbarComponent {
     this.accountService.logout().subscribe({ next: () => this.router.navigate(['/login']), error: () => this.router.navigate(['/login']) });
   }
 
+  getToggleArrow() {
+    return this.isSidebarOpen ? '<' : '>'
+  }
+
   private closeMobileSidebar() {
-    if (window.innerWidth <= 768) {
-      this.isOpenOnMobile = false;
-    }
+    this.isSidebarOpen = false;
+    this.isOpenEvent.emit(this.isSidebarOpen);
   }
 
 }
