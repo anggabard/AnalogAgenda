@@ -64,7 +64,7 @@ namespace Database.Services
             }
             catch (Azure.RequestFailedException ex)
             {
-                if (ex.Status != 404)
+                if (ex.Status == 404)
                 {
                     return null;
                 }
