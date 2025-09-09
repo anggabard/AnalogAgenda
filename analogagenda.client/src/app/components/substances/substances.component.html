@@ -5,10 +5,10 @@
 
     <div class="devkits-container">
         <div class="devkit-section">
-            <h2 class="devkit-title">Available Dev Kits</h2>
+            <h2 class="devkit-title">Available Substances</h2>
             <div class="devkit-list">
-                <div *ngFor="let kit of availableDevKits" class="card">
-                    <img class="image" [src]="kit.image" />
+                <div *ngFor="let kit of availableDevKits" class="card" (click)="onKitSelected(kit.rowKey)">
+                    <img class="image" [src]="kit.imageUrl" />
                     <span class="title">{{kit.name}}</span>
                     <span class="info type">{{kit.type}}</span>
                     <span class="info ramaining">{{kit.filmsDeveloped}}/{{kit.validForFilms}}</span>
@@ -18,10 +18,10 @@
 
 
         <div class="devkit-section">
-            <h2 class="devkit-title">Expired Dev Kits</h2>
+            <h2 class="devkit-title">Expired Substances</h2>
             <div class="devkit-list">
-                <div *ngFor="let kit of expiredDevKits" class="card">
-                    <img class="image" [src]="kit.image" />
+                <div *ngFor="let kit of expiredDevKits" class="card" (click)="onKitSelected(kit.rowKey)">
+                    <img class="image" [src]="kit.imageUrl" />
                     <span class="title">{{kit.name}}</span>
                     <span class="info type">{{kit.type}}</span>
                     <span class="info ramaining">{{kit.filmsDeveloped}}/{{kit.validForFilms}}</span>

@@ -2,7 +2,10 @@
 
     <div class="box">
         <form [formGroup]="form" (ngSubmit)="submit()" class="form">
-            <h1 class="form-title">Add New Kit</h1>
+            <h1 class="form-title" *ngIf="isInsert;else is_update">Add New Kit</h1>
+            <ng-template #is_update>
+                <h1 class="form-title">Edit Kit</h1>
+            </ng-template>
 
             <div *ngIf="errorMessage" class="error-message">
                 {{ errorMessage }}
@@ -52,6 +55,17 @@
 
             <textarea formControlName="description" rows="4" cols="40" class="input"
                 placeholder="Description"></textarea>
+
+            <div *ngIf="!isInsert" class="expired-toggle-container">
+                <span style="justify-self: end;" >Expired</span>
+                <div class="toggle-border">
+                    <input id="toggle" type="checkbox" formControlName="expired">
+                    <label for="toggle">
+                        <div class="handle"></div>
+                    </label>
+                </div>
+                <span style="justify-self: start;">Available</span>
+            </div>
 
             <button type="submit" [disabled]="form.invalid || loading" class="submit-btn">
                 <span *ngIf="!loading">Save</span>

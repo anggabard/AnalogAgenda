@@ -26,16 +26,23 @@ namespace Database.Services
             return GetTable(table.ToString());
         }
 
-        public async Task<List<T>> GetTableEntries<T>() where T : BaseEntity
+        private static TableName GetTableName<T>() where T : BaseEntity
         {
             var method = typeof(T).GetMethod("GetTable") ?? throw new InvalidOperationException($"Method 'GetTable' not found on type {typeof(T).Name}");
-            
+
             if (Activator.CreateInstance(typeof(T)) is not BaseEntity instance)
                 throw new InvalidOperationException($"Could not create instance of type {typeof(T).Name}");
 
             var tableObj = method.Invoke(instance, null);
             if (tableObj is not TableName tableName)
                 throw new InvalidOperationException($"Returned value from 'GetTable' is not of type TableName");
+
+            return tableName;
+        }
+
+        public async Task<List<T>> GetTableEntries<T>() where T : BaseEntity
+        {
+            TableName tableName = GetTableName<T>();
 
             var entities = new List<T>();
             await foreach (var entity in GetTable(tableName).QueryAsync<T>())
@@ -44,6 +51,27 @@ namespace Database.Services
             }
 
             return entities;
+        }
+
+        public async Task<T?> GetTableEntry<T>(string partitionKey, string rowKey) where T : BaseEntity
+        {
+            var table = GetTable(GetTableName<T>());
+
+            try
+            {
+                var entity = await table.GetEntityAsync<T>(partitionKey, rowKey);
+                return entity.Value;
+            }
+            catch (Azure.RequestFailedException ex)
+            {
+                if (ex.Status != 404)
+                {
+                    return null;
+                }
+
+                throw;
+            }
+
         }
     }
 }

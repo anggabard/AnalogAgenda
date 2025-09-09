@@ -29,6 +29,8 @@ public class DevKitEntity : BaseEntity
 
     public string Description { get; set; } = string.Empty;
 
+    public bool Expired { get; set; }
+
     protected override string GetId(params string[] inputs)
     {
         return IdGenerator.Get(8, Name, Url, Type.ToString(), 

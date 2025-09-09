@@ -14,7 +14,8 @@ const routes: Routes = [
       { path: 'home', component: HomeComponent, canActivate: [sessionGuard] },
       { path: 'notes', component: NotesComponent, canActivate: [sessionGuard] },
       { path: 'substances', component: SubstancesComponent, canActivate: [sessionGuard] },
-      { path: 'substances/new-kit', component: NewKitComponent, canActivate: [sessionGuard] },
+      { path: 'substances/kit', component: NewKitComponent, canActivate: [sessionGuard] },
+      { path: 'substances/kit/:id', component: NewKitComponent, canActivate: [sessionGuard] },
     ]
   },
   {

@@ -1,6 +1,7 @@
 import { DevKitType, UsernameType } from "../enums";
 
 export interface DevKitDto {
+  rowKey: string;
   name: string;
   url: string;
   type: DevKitType,
@@ -10,6 +11,8 @@ export interface DevKitDto {
   validForWeeks: number,
   validForFilms: number,
   filmsDeveloped: number,
-  image: string,
+  imageUrl: string,
+  imageBase64: string,
   description: string;
+  expired: boolean
 }

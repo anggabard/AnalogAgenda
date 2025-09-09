@@ -2,6 +2,8 @@
 
 public class DevKitDto
 {
+    public string RowKey { get; set; } = string.Empty;
+
     public required string Name { get; set; }
 
     public required string Url { get; set; }
@@ -20,7 +22,11 @@ public class DevKitDto
 
     public int FilmsDeveloped { get; set; }
 
-    public string Image { get; set; } = string.Empty;
+    public string ImageUrl { get; set; } = string.Empty;
+
+    public string ImageBase64 { get; set; } = string.Empty;
 
     public string Description { get; set; } = string.Empty;
+
+    public bool Expired { get; set; }
 }

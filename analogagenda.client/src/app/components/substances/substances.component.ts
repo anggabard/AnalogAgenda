@@ -2,7 +2,7 @@ import { Component, inject } from "@angular/core";
 import { Router } from "@angular/router";
 import { DevKitDto } from "../../DTOs";
 import { DevKitService } from "../../services";
-import { isAfter, addWeeks, parseISO, compareAsc } from 'date-fns';
+import { parseISO, compareAsc } from 'date-fns';
 
 @Component({
   selector: 'app-substances',
@@ -25,21 +25,18 @@ export class SubstancesComponent {
   }
 
   onNewKitClick() {
-    this.router.navigate(['/substances/new-kit']);
+    this.router.navigate(['/substances/kit']);
+  }
+
+  onKitSelected(rowKey: string): void {
+    this.router.navigate(['/substances/kit/' + rowKey]);
   }
 
 
   splitAndSortDevKits(devKits: DevKitDto[]) {
-    const today = new Date();
-
     const { availableDevKits, expiredDevKits } = devKits.reduce(
       (acc, kit) => {
-        const mixedOnDate = parseISO(kit.mixedOn);
-        const validUntil = addWeeks(mixedOnDate, kit.validForWeeks);
-        const isValidByFilms = kit.filmsDeveloped < kit.validForFilms;
-        const isValidByTime = isAfter(validUntil, today);
-
-        if (isValidByFilms && isValidByTime) {
+        if (!kit.expired) {
           acc.availableDevKits.push(kit);
         } else {
           acc.expiredDevKits.push(kit);

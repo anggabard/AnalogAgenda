@@ -3,7 +3,7 @@ import { FormBuilder, Validators } from '@angular/forms';
 import { AccountService, DevKitService } from '../../../services';
 import { DevKitType, UsernameType } from '../../../enums';
 import { DevKitDto, IdentityDto } from '../../../DTOs';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 
 @Component({
   selector: 'app-new-kit',
@@ -13,9 +13,12 @@ import { Router } from '@angular/router';
 export class NewKitComponent {
   private fb = inject(FormBuilder);
   private router = inject(Router);
+  private route = inject(ActivatedRoute);
   private dk = inject(DevKitService);
   private api = inject(AccountService);
 
+  rowKey: string | null;
+  isInsert: boolean = false;
   loading = false;
   errorMessage: string | null = null;
 
@@ -29,15 +32,28 @@ export class NewKitComponent {
     validForWeeks: [6, Validators.required],
     validForFilms: [8, Validators.required],
     filmsDeveloped: [0, Validators.required],
-    image: [''],
-    description: ['']
+    imageUrl: [''],
+    imageBase64: [''],
+    description: [''],
+    expired: [false, Validators.required]
   });
 
   devKitOptions = Object.values(DevKitType);
   purchasedByOptions = Object.values(UsernameType);
 
   constructor() {
-    this.api.whoAmI().subscribe({ next: (response: IdentityDto) => this.form.patchValue({ purchasedBy: response.username }) });
+    this.rowKey = this.route.snapshot.paramMap.get('id');
+    this.isInsert = this.rowKey == null;
+
+    if (this.isInsert) {
+      this.api.whoAmI().subscribe({ next: (response: IdentityDto) => this.form.patchValue({ purchasedBy: response.username }) });
+    } else {
+      this.dk.getKit(this.rowKey!).subscribe({
+        next: (response: DevKitDto) => {
+          this.form.patchValue(response);
+        }
+      });
+    }
   }
 
   submit() {
@@ -47,16 +63,31 @@ export class NewKitComponent {
     this.loading = true;
     this.errorMessage = null;
 
-    this.dk.addNewKit(formData).subscribe({
-      next: () => {
-        this.loading = false;
-        this.router.navigate(['/substances']);
-      },
-      error: (err) => {
-        this.loading = false;
-        this.errorMessage = 'There was an error saving the new Kit.';
-      }
-    });
+    if (this.isInsert) {
+      this.dk.addNewKit(formData).subscribe({
+        next: () => {
+          this.loading = false;
+          this.router.navigate(['/substances']);
+        },
+        error: (err) => {
+          this.loading = false;
+          this.errorMessage = 'There was an error saving the new Kit.';
+        }
+      });
+    } else {
+      
+      this.dk.updateKit(this.rowKey!, formData).subscribe({
+        next: () => {
+          this.loading = false;
+          this.router.navigate(['/substances']);
+        },
+        error: (err) => {
+          this.loading = false;
+          this.errorMessage = 'There was an error updating the Kit.';
+        }
+      });
+    }
+
   }
 
   onImageSelected(event: Event): void {
@@ -66,7 +97,7 @@ export class NewKitComponent {
       const reader = new FileReader();
 
       reader.readAsDataURL(file);
-      reader.onload = () => (this.form.patchValue({ image: reader.result as string }));
+      reader.onload = () => (this.form.patchValue({ imageBase64: reader.result as string }));
     }
   }
 }

@@ -28,6 +28,14 @@ export class BaseService {
         }) as Observable<T>;
     }
 
+    put<T>(path: string, body: any = {}, options?: any): Observable<T> {
+        return this.#http.put<T>(this.baseUrl + this.ensureLeadingSlash(path), body, {
+            ...this.defaultOptions,
+            ...options,
+            observe: 'body'
+        }) as Observable<T>;
+    }
+
     private ensureLeadingSlash(input: string): string {
         const trimmed = input.trim();
         if (trimmed.startsWith('/')) {
