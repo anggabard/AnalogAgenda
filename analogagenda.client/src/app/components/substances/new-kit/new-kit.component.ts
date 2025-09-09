@@ -29,7 +29,7 @@ export class NewKitComponent {
     validForWeeks: [6, Validators.required],
     validForFilms: [8, Validators.required],
     filmsDeveloped: [0, Validators.required],
-    imageAsBase64: [''],
+    image: [''],
     description: ['']
   });
 
@@ -66,7 +66,7 @@ export class NewKitComponent {
       const reader = new FileReader();
 
       reader.readAsDataURL(file);
-      reader.onload = () => (this.form.patchValue({ imageAsBase64: reader.result as string }));
+      reader.onload = () => (this.form.patchValue({ image: reader.result as string }));
     }
   }
 }

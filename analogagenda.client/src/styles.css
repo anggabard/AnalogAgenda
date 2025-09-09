@@ -33,7 +33,7 @@ body {
     #c0c0c0 1400px,
     #e0e0e0 1500px
   );
-  background-size: 2000px 2000px; /* Enlarged to fit the wider smooth stripes */
+  background-size: 3000px 3000px; /* Enlarged to fit the wider smooth stripes */
   background-repeat: repeat;
   color: #333;
 }

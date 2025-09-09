@@ -20,7 +20,7 @@ public class DevKitDto
 
     public int FilmsDeveloped { get; set; }
 
-    public string ImageAsBase64 { get; set; } = string.Empty;
+    public string Image { get; set; } = string.Empty;
 
     public string Description { get; set; } = string.Empty;
 }

@@ -10,6 +10,6 @@ export interface DevKitDto {
   validForWeeks: number,
   validForFilms: number,
   filmsDeveloped: number,
-  imageAsBase64: string,
+  image: string,
   description: string;
 }

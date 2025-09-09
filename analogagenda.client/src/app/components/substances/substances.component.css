@@ -30,7 +30,7 @@
 .devkits-container {
   display: flex;
   flex-direction: column;
-  margin: 5px 2px 30px 10%;
+  margin: 5px 2px 30px 5%;
   gap: 50px;
 }
 
