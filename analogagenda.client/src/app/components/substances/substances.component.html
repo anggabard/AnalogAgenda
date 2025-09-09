@@ -1,22 +1,31 @@
 <div class="container">
-    <button class="add-kit" (click)="onNewKitClick()">+ New Kit +</button>
+    <div class="header">
+        <button class="add-kit" (click)="onNewKitClick()">+ New Kit +</button>
+    </div>
 
     <div class="devkits-container">
-        <div class="devkit-list">
-            <div *ngFor="let kit of availableDevKits" class="card">
-                <img class="image" [src]="kit.imageAsBase64" />
-                <span class="title">{{kit.name}}</span>
-                <span class="info type">{{kit.type}}</span>
-                <span class="info ramaining">{{kit.filmsDeveloped}}/{{kit.validForFilms}}</span>
+        <div class="devkit-section">
+            <h2 class="devkit-title">Available Dev Kits</h2>
+            <div class="devkit-list">
+                <div *ngFor="let kit of availableDevKits" class="card">
+                    <img class="image" [src]="kit.imageAsBase64" />
+                    <span class="title">{{kit.name}}</span>
+                    <span class="info type">{{kit.type}}</span>
+                    <span class="info ramaining">{{kit.filmsDeveloped}}/{{kit.validForFilms}}</span>
+                </div>
             </div>
         </div>
 
-        <div class="devkit-list">
-            <div *ngFor="let kit of expiredDevKits" class="card">
-                <img class="image" [src]="kit.imageAsBase64" />
-                <span class="title">{{kit.name}}</span>
-                <span class="info type">{{kit.type}}</span>
-                <span class="info ramaining">{{kit.filmsDeveloped}}/{{kit.validForFilms}}</span>
+
+        <div class="devkit-section">
+            <h2 class="devkit-title">Expired Dev Kits</h2>
+            <div class="devkit-list">
+                <div *ngFor="let kit of expiredDevKits" class="card">
+                    <img class="image" [src]="kit.imageAsBase64" />
+                    <span class="title">{{kit.name}}</span>
+                    <span class="info type">{{kit.type}}</span>
+                    <span class="info ramaining">{{kit.filmsDeveloped}}/{{kit.validForFilms}}</span>
+                </div>
             </div>
         </div>
     </div>

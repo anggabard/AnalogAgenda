@@ -1,5 +1,4 @@
 .add-kit {
-  display: flex;
   padding: 0.5rem;
   background-color: rgba(37, 35, 35, 0.897);
   color: white;
@@ -7,7 +6,7 @@
   border-radius: 6px;
   font-size: 1rem;
   cursor: pointer;
-  transition: transform .15s ease;
+  transition: transform 0.15s ease;
 }
 
 .add-kit:hover {
@@ -16,23 +15,56 @@
 
 .container {
   display: flex;
+  flex-direction: column;
   margin: 0 auto;
   text-align: center;
 }
 
-.devkit-list{
-  display: inline-flex;
-  /* margin: 30px 2px 50px 15%; */
+.header {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 10px;
+  margin-top: 5px;
 }
 
-.devkits-container{
-  display: grid;
-  margin-top: 20px;
+.devkits-container {
+  display: flex;
+  flex-direction: column;
+  margin: 5px 2px 30px 10%;
+  gap: 50px;
 }
 
+.devkit-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.devkit-title {
+  font-size: 1.2rem;
+  font-weight: bold;
+  text-align: left;
+  margin: 0 0 8px 4px;
+  color: #222;
+}
+
+.devkit-list {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;          /* Enable horizontal scrolling */
+  -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+  scrollbar-width: none;     /* Firefox */
+  scroll-snap-type: x mandatory;
+}
+
+/* Hide scrollbar - Chrome, Safari, Edge */
+.devkit-list::-webkit-scrollbar {
+  display: none;
+}
 .card {
   position: relative;
-  width: 11.875em;
+  flex: 0 0 auto;      /* ✅ This is key: don't shrink, keep natural width */
+  width: 11.875em;     /* Your fixed card width */
   height: 11.875em;
   box-shadow: 0px 1px 13px rgba(0,0,0,0.1);
   cursor: pointer;
@@ -43,6 +75,7 @@
   background: #fff;
   padding: 0.5em;
   padding-bottom: 3.4em;
+  scroll-snap-align: start;
 }
 
 .card::after {
