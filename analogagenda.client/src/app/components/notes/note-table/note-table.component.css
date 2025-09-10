@@ -1,0 +1,58 @@
+.note-table-container {
+  max-width: 900px;
+  margin: auto;
+  padding: 20px;
+}
+
+.note-header {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.note-title {
+  font-size: 24px;
+  font-weight: bold;
+}
+
+.note-title-input {
+  font-size: 24px;
+  font-weight: bold;
+  width: 100%;
+  text-align: center;
+  border: 1px solid #ccc;
+  padding: 5px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+thead th {
+  background: #f0f0f0;
+  padding: 8px;
+}
+
+tbody td {
+  padding: 8px;
+}
+
+tbody tr.alt-row {
+  background-color: #f9f9f9;
+}
+
+input[readonly] {
+  border: none;
+  background: transparent;
+  color: #333;
+}
+
+.actions {
+  margin-top: 20px;
+  text-align: center;
+}
+
+.actions button {
+  margin: 0 5px;
+  padding: 6px 12px;
+}

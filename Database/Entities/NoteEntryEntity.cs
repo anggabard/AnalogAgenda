@@ -9,12 +9,12 @@ public class NoteEntryEntity : BaseEntity
 
     public string NoteRowKey { get; set; } = default!;
     public required TimeSpan Time { get; set; }
-    public required ENoteEntryType ProcessType { get; set; }
+    public required string Process { get; set; }
     public required string Film { get; set; }
     public string Details { get; set; } = string.Empty;
 
     protected override string GetId(params string[] inputs)
     {
-        return IdGenerator.Get(8, NoteRowKey, Time.Ticks.ToString(), ProcessType.ToString(), Film, Details);
+        return IdGenerator.Get(8, NoteRowKey, Time.Ticks.ToString(), Process, Film, Details);
     }
 }

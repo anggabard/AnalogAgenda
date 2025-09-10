@@ -1,0 +1,28 @@
+.add-note {
+  padding: 0.5rem;
+  background-color: rgba(37, 35, 35, 0.897);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.add-note:hover {
+  transform: scaleX(1.03);
+}
+
+.container {
+  display: flex;
+  flex-direction: column;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.header {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 10px;
+  margin-top: 5px;
+}

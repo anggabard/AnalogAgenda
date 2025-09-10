@@ -12,11 +12,12 @@ import { parseISO, compareAsc } from 'date-fns';
 
 export class SubstancesComponent {
   private dk = inject(DevKitService);
+  private router = inject(Router)
 
   availableDevKits: DevKitDto[] = [];
   expiredDevKits: DevKitDto[] = [];
 
-  constructor(private router: Router) {
+  constructor() {
     this.dk.getAllDevKits().subscribe({
       next: (devKits: DevKitDto[]) => {
         this.splitAndSortDevKits(devKits);
@@ -25,11 +26,11 @@ export class SubstancesComponent {
   }
 
   onNewKitClick() {
-    this.router.navigate(['/substances/kit']);
+    this.router.navigate(['/substances/new']);
   }
 
   onKitSelected(rowKey: string): void {
-    this.router.navigate(['/substances/kit/' + rowKey]);
+    this.router.navigate(['/substances/' + rowKey]);
   }
 
 

@@ -1,4 +1,5 @@
-import { Component } from "@angular/core";
+import { Component, inject } from "@angular/core";
+import { Router } from "@angular/router";
 
 @Component({
   selector: 'app-notes',
@@ -7,4 +8,9 @@ import { Component } from "@angular/core";
 })
 
 export class NotesComponent {
+  private router = inject(Router)
+  
+  onNewNoteClick() {
+    this.router.navigate(['/notes/new']);
+  }
 }

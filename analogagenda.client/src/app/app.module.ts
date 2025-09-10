@@ -3,7 +3,7 @@ import { NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 import { SharedModule } from '../shared.module';
 import { AppRoutingModule } from './app-routing.module';
-import { AppComponent, LoginComponent, NavbarComponent, HomeComponent, NotesComponent, SubstancesComponent, UpsertKitComponent } from './components';
+import { AppComponent, LoginComponent, NavbarComponent, HomeComponent, NotesComponent, SubstancesComponent, UpsertKitComponent, NoteTableComponent } from './components';
 import { MainLayoutComponent, AuthLayoutComponent} from './layouts';
 
 @NgModule({
@@ -16,7 +16,8 @@ import { MainLayoutComponent, AuthLayoutComponent} from './layouts';
     SubstancesComponent,
     MainLayoutComponent,
     AuthLayoutComponent,
-    UpsertKitComponent
+    UpsertKitComponent,
+    NoteTableComponent
   ],
   imports: [
     BrowserModule, HttpClientModule,
