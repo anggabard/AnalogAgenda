@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
-import { NoteDto, NoteEntryDto } from '../../../DTOs';
+import { NoteDto } from '../../../DTOs';
 
 @Component({
   selector: 'app-note-table',
@@ -8,10 +8,15 @@ import { NoteDto, NoteEntryDto } from '../../../DTOs';
   styleUrls: ['./note-table.component.css']
 })
 export class NoteTableComponent implements OnInit {
-  note: NoteDto = { rowKey: '', name: 'Note Name', entries: []};
+  note: NoteDto = {
+    rowKey: '',
+    name: 'Note Name',
+    entries: []
+  };
 
   isEditMode = false;
   isLoading = true;
+  originalNote: NoteDto | null = null; // Used for discard
 
   constructor(private route: ActivatedRoute) {}
 
@@ -30,13 +35,14 @@ export class NoteTableComponent implements OnInit {
           { noteRowKey: '', time: 0, process: '', film: '', details: '' }
         ]
       };
+      this.originalNote = JSON.parse(JSON.stringify(this.note));
       this.isLoading = false;
-      this.isEditMode = true; // allow direct editing
+      this.isEditMode = true; // allow direct editing when creating
     }
   }
 
+  /** Simulated backend load */
   loadNoteFromBackend(rowKey: string) {
-    // Replace with real backend call
     setTimeout(() => {
       this.note = {
         rowKey,
@@ -46,39 +52,41 @@ export class NoteTableComponent implements OnInit {
           { noteRowKey: '2', time: 10, process: 'Develop Film', film: 'Kodak', details: 'Agitate every 30s' },
         ]
       };
+      this.originalNote = JSON.parse(JSON.stringify(this.note));
       this.isLoading = false;
     }, 500);
   }
 
+  /** Switch between view and edit */
   toggleEditMode() {
-    if (this.isEditMode) {
-      // If already editing, prompt to save or discard
-      this.saveNote();
-    } else {
+    if (!this.isEditMode) {
       this.isEditMode = true;
     }
   }
 
+  /** Discard changes and return to original */
   discardChanges() {
-    if (this.note.rowKey) {
-      // Creating a new note → just reset
+    if (!this.note.rowKey) {
+      // Creating a new note → reset to initial
       this.note = {
         rowKey: '',
         name: '',
         entries: [{ noteRowKey: '', time: 0, process: '', film: '', details: '' }]
       };
-    } else {
-      this.loadNoteFromBackend(this.note.rowKey); // reload original data
+    } else if (this.originalNote) {
+      this.note = JSON.parse(JSON.stringify(this.originalNote));
     }
     this.isEditMode = false;
   }
 
+  /** Save changes to backend */
   saveNote() {
-    // Simulate save to backend
     console.log('Saving note:', this.note);
+    this.originalNote = JSON.parse(JSON.stringify(this.note));
     this.isEditMode = false;
   }
 
+  /** Add a new row */
   addRow() {
     const lastEntry = this.note.entries[this.note.entries.length - 1];
     const newTime = lastEntry ? lastEntry.time : 0;
@@ -92,12 +100,14 @@ export class NoteTableComponent implements OnInit {
     });
   }
 
+  /** Remove an existing row */
   removeRow(index: number) {
     if (this.note.entries.length > 1) {
       this.note.entries.splice(index, 1);
     }
   }
 
+  /** Validate that time cannot be lower than the previous row */
   onTimeChange(index: number, newTime: number) {
     const previousTime = index > 0 ? this.note.entries[index - 1].time : 0;
 

@@ -1,93 +1,68 @@
-<div *ngIf="!isLoading; else loadingTemplate" class="p-4">
-  <!-- Note Name (Editable in Edit Mode) -->
-  <div class="flex justify-center mb-4">
+<div *ngIf="!isLoading; else loadingTemplate">
+  <!-- Title -->
+  <div class="note-header">
     <input
       *ngIf="isEditMode"
       [(ngModel)]="note.name"
-      class="border p-2 text-xl font-semibold text-center w-1/2"
+      class="note-title-input"
       placeholder="Enter note name"
     />
-    <h1 *ngIf="!isEditMode" class="text-2xl font-bold">{{ note.name || 'Untitled Note' }}</h1>
+    <h1 *ngIf="!isEditMode" class="note-title">{{ note.name || 'Untitled Note' }}</h1>
   </div>
 
-  <!-- Table -->
-  <table class="min-w-full border border-gray-300">
-    <thead class="bg-gray-200">
-      <tr>
-        <th class="border border-gray-300 px-4 py-2">Time (min)</th>
-        <th class="border border-gray-300 px-4 py-2">Process</th>
-        <th class="border border-gray-300 px-4 py-2">Film</th>
-        <th class="border border-gray-300 px-4 py-2">Details</th>
-        <th *ngIf="isEditMode" class="border border-gray-300 px-4 py-2">Actions</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr
-        *ngFor="let entry of note.entries; let i = index"
-        [class.bg-gray-50]="i % 2 === 0"
-      >
-        <!-- Time -->
-        <td class="border px-4 py-2">
-          <input
-            *ngIf="isEditMode"
-            type="number"
-            class="border p-1 w-20"
-            [(ngModel)]="entry.time"
-            (change)="onTimeChange(i, entry.time)"
-          />
-          <span *ngIf="!isEditMode">{{ entry.time }}m</span>
-        </td>
-
-        <!-- Process -->
-        <td class="border px-4 py-2">
-          <input *ngIf="isEditMode" [(ngModel)]="entry.process" class="border p-1 w-full" />
-          <span *ngIf="!isEditMode">{{ entry.process }}</span>
-        </td>
-
-        <!-- Film -->
-        <td class="border px-4 py-2">
-          <input *ngIf="isEditMode" [(ngModel)]="entry.film" class="border p-1 w-full" />
-          <span *ngIf="!isEditMode">{{ entry.film }}</span>
-        </td>
-
-        <!-- Details -->
-        <td class="border px-4 py-2">
-          <input *ngIf="isEditMode" [(ngModel)]="entry.details" class="border p-1 w-full" />
-          <span *ngIf="!isEditMode">{{ entry.details }}</span>
-        </td>
-
-        <!-- Actions -->
-        <td *ngIf="isEditMode" class="border px-4 py-2 text-center">
-          <button (click)="removeRow(i)" class="bg-red-500 text-white px-2 py-1 rounded">Remove</button>
-        </td>
-      </tr>
-    </tbody>
-  </table>
-
-  <!-- Add Row Button -->
-  <div *ngIf="isEditMode" class="mt-4">
-    <button (click)="addRow()" class="bg-green-500 text-white px-4 py-2 rounded">
-      Add Row
-    </button>
+  <!-- Table Wrapper -->
+  <div class="table-wrapper">
+    <table>
+      <thead>
+        <tr>
+          <th>Time (min)</th>
+          <th>Process</th>
+          <th>Film</th>
+          <th>Details</th>
+          <th *ngIf="isEditMode">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let entry of note.entries; let i = index">
+          <td data-label="Time (min)">
+            <input *ngIf="isEditMode" type="number" [(ngModel)]="entry.time" (change)="onTimeChange(i, entry.time)" />
+            <span *ngIf="!isEditMode">{{ entry.time }}m</span>
+          </td>
+          <td data-label="Process">
+            <input *ngIf="isEditMode" [(ngModel)]="entry.process" />
+            <span *ngIf="!isEditMode">{{ entry.process }}</span>
+          </td>
+          <td data-label="Film">
+            <input *ngIf="isEditMode" [(ngModel)]="entry.film" />
+            <span *ngIf="!isEditMode">{{ entry.film }}</span>
+          </td>
+          <td data-label="Details">
+            <input *ngIf="isEditMode" [(ngModel)]="entry.details" />
+            <span *ngIf="!isEditMode">{{ entry.details }}</span>
+          </td>
+          <td *ngIf="isEditMode" data-label="Actions" class="text-center">
+            <button class="remove-btn" (click)="removeRow(i)">Remove</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
   </div>
 
-  <!-- Action Buttons -->
-  <div class="flex justify-end gap-2 mt-4">
-    <button *ngIf="!isEditMode" (click)="toggleEditMode()" class="bg-blue-500 text-white px-4 py-2 rounded">
-      Edit
-    </button>
+  <!-- Add Row -->
+  <div *ngIf="isEditMode" style="margin-top: 10px;">
+    <button class="btn-add" (click)="addRow()">Add Row</button>
+  </div>
 
-    <div *ngIf="isEditMode" class="flex gap-2">
-      <button (click)="saveNote()" class="bg-green-500 text-white px-4 py-2 rounded">
-        Save
-      </button>
-      <button (click)="discardChanges()" class="bg-gray-500 text-white px-4 py-2 rounded">
-        Discard
-      </button>
-    </div>
+  <!-- Footer Actions -->
+  <div class="actions">
+    <button *ngIf="!isEditMode" class="btn-edit" (click)="toggleEditMode()">Edit</button>
+    <ng-container *ngIf="isEditMode">
+      <button class="btn-primary" (click)="saveNote()">Save</button>
+      <button class="btn-ghost" (click)="discardChanges()">Discard</button>
+    </ng-container>
   </div>
 </div>
 
 <ng-template #loadingTemplate>
-  <div class="text-center text-gray-600">Loading...</div>
+  <div class="loading">Loading...</div>
 </ng-template>
