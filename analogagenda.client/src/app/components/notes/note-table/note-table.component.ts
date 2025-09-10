@@ -10,7 +10,7 @@ import { NoteDto } from '../../../DTOs';
 export class NoteTableComponent implements OnInit {
   note: NoteDto = {
     rowKey: '',
-    name: 'Note Name',
+    name: '',
     entries: []
   };
 
@@ -18,7 +18,7 @@ export class NoteTableComponent implements OnInit {
   isLoading = true;
   originalNote: NoteDto | null = null; // Used for discard
 
-  constructor(private route: ActivatedRoute) {}
+  constructor(private route: ActivatedRoute) { }
 
   ngOnInit(): void {
     const noteId = this.route.snapshot.paramMap.get('id');

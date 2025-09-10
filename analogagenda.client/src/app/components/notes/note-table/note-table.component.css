@@ -1,115 +1,174 @@
 :host {
-  display: block;
-  max-width: 960px;
-  margin: 0 auto;
-  padding: 12px;
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
-  color: #111827;
+    display: block;
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 12px;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    color: #111827;
 }
 
 .note-header {
-  text-align: center;
-  margin-bottom: 16px;
+    text-align: center;
+    margin-bottom: 16px;
 }
 
 .note-title {
-  font-size: 1.375rem;
-  font-weight: 600;
+    font-size: 1.375rem;
+    font-weight: 600;
 }
 
 .note-title-input {
-  font-size: 1.375rem;
-  font-weight: 600;
-  width: 100%;
-  max-width: 680px;
-  text-align: center;
-  padding: 8px 10px;
-  border-radius: 6px;
-  border: 1px solid #d1d5db;
-  box-sizing: border-box;
+    font-size: 1.375rem;
+    font-weight: 600;
+    width: 75%;
+    max-width: fit-content;
+    text-align: center;
+    padding: 8px 10px;
+    border-radius: 6px;
+    border: 1px solid #d1d5db;
+    box-sizing: border-box;
 }
 
 /* Table Base */
 table {
-  width: 100%;
-  border-collapse: collapse;
+    width: 100%;
+    border-collapse: collapse;
 }
 
 thead th {
-  padding: 10px 12px;
-  text-align: left;
-  font-weight: 600;
-  border-bottom: 1px solid #e6e9ee;
-  background: #f3f4f6;
-  color: #111827;
+    padding: 10px 12px;
+    text-align: left;
+    font-weight: 600;
+    border-bottom: 1px solid #e6e9ee;
+    background: #f3f4f6;
+    color: #111827;
 }
 
 tbody td {
-  padding: 10px 12px;
-  vertical-align: middle;
-  border-bottom: 1px solid #eef2f7;
-  font-size: 0.95rem;
+    padding: 10px 12px;
+    vertical-align: middle;
+    border-bottom: 1px solid #eef2f7;
+    font-size: 0.95rem;
 }
 
-tbody tr:nth-child(odd) { background: #ffffff; }
-tbody tr:nth-child(even) { background: #fafafa; }
+tbody tr:nth-child(odd) {
+    background: #ffffff;
+}
 
-input[type="text"], input[type="number"] {
-  width: 100%;
-  padding: 6px 8px;
-  border-radius: 6px;
-  border: 1px solid #d1d5db;
-  font-size: 0.9rem;
-  box-sizing: border-box;
+tbody tr:nth-child(even) {
+    background: #fafafa;
+}
+
+input[type="text"],
+input[type="number"] {
+    width: 100%;
+    padding: 6px 8px;
+    border-radius: 6px;
+    border: 1px solid #d1d5db;
+    font-size: 0.9rem;
+    box-sizing: border-box;
 }
 
 .remove-btn {
-  padding: 6px 8px;
-  border-radius: 6px;
-  background: #ef4444;
-  color: white;
-  cursor: pointer;
-  font-size: 0.85rem;
-  border: none;
+    padding: 6px 8px;
+    border-radius: 6px;
+    background: #ef4444;
+    color: white;
+    cursor: pointer;
+    font-size: 0.85rem;
+    border: none;
 }
 
-.actions { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
+.actions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+}
 
-button { padding: 8px 12px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 0.95rem; }
-.btn-primary { background: #10b981; color: white; }
-.btn-edit { background: #3b82f6; color: white; }
-.btn-ghost { background: transparent; color: #374151; border: 1px solid #d1d5db; }
-.btn-add { background: #06b6d4; color: white; }
+button {
+    padding: 8px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.95rem;
+}
 
-.loading { text-align: center; color: #6b7280; padding: 24px 0; font-size: 1rem; }
+.btn-primary {
+    background: #10b981;
+    color: white;
+}
+
+.btn-edit {
+    background: #3b82f6;
+    color: white;
+}
+
+.btn-ghost {
+    background: transparent;
+    color: #374151;
+    border: 1px solid #d1d5db;
+}
+
+.btn-add {
+    background: #06b6d4;
+    color: white;
+}
+
+.loading {
+    text-align: center;
+    color: #6b7280;
+    padding: 24px 0;
+    font-size: 1rem;
+}
 
 /* ---------- RESPONSIVE PHONE STACKED LAYOUT ---------- */
 @media (max-width: 640px) {
-  table, thead, tbody, th, td, tr { display: block; }
-  thead { display: none; }
-  tr {
-    margin-bottom: 12px;
-    border: 1px solid #e5e7eb;
-    border-radius: 8px;
-    background: #ffffff;
-    padding: 10px;
-  }
-  td {
-    border: none;
-    display: flex;
-    flex-direction: row;
-    justify-content: space-between;
-    padding: 8px 0;
-    font-size: 0.9rem;
-  }
-  td::before {
-    content: attr(data-label);
-    font-weight: 600;
-    color: #374151;
-    flex: 1;
-    padding-right: 8px;
-    text-align: left;
-  }
-  td:last-child { justify-content: flex-end; }
-  input[type="number"] { max-width: 80px; }
+
+    table,
+    thead,
+    tbody,
+    th,
+    td,
+    tr {
+        display: block;
+    }
+
+    thead {
+        display: none;
+    }
+
+    tr {
+        margin-bottom: 12px;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        background: #ffffff;
+        padding: 10px;
+    }
+
+    td {
+        border: none;
+        display: flex;
+        flex-direction: row;
+        justify-content: space-between;
+        padding: 8px 0;
+        font-size: 0.9rem;
+    }
+
+    td::before {
+        content: attr(data-label);
+        font-weight: 600;
+        color: #374151;
+        flex: 1;
+        padding-right: 8px;
+        text-align: left;
+    }
+
+    td:last-child {
+        justify-content: flex-end;
+    }
+
+    input[type="number"] {
+        max-width: 80px;
+    }
 }
