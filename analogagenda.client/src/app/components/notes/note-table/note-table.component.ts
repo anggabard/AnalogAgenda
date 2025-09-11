@@ -107,6 +107,11 @@ export class NoteTableComponent implements OnInit {
     }
   }
 
+  copyRow(index: number) {
+    const entry = this.note.entries[index];
+    this.note.entries.splice(index, 0, entry);
+}
+
   /** Validate that time cannot be lower than the previous row */
   onTimeChange(index: number, newTime: number) {
     const previousTime = index > 0 ? this.note.entries[index - 1].time : 0;
