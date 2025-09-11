@@ -1,7 +1,7 @@
 export interface NoteEntryDto {
   rowKey: string;
   noteRowKey: string;
-  time: number; // serialized as "hh:mm:ss"
+  time: number;
   process: string;
   film: string;
   details: string;

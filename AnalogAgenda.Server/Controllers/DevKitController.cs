@@ -52,7 +52,7 @@ public class DevKitController(Storage storageCfg, ITableService tablesService, I
     [HttpGet]
     public async Task<IActionResult> GetAllKits()
     {
-        var entities = await tablesService.GetTableEntries<DevKitEntity>();
+        var entities = await tablesService.GetTableEntriesAsync<DevKitEntity>();
         var results = entities.Select(entity => entity.ToDTO(storageCfg.AccountName));
 
         return Ok(results);
@@ -61,7 +61,7 @@ public class DevKitController(Storage storageCfg, ITableService tablesService, I
     [HttpGet("{rowKey}")]
     public async Task<IActionResult> GetKitByRowKey(string rowKey)
     {
-        var entity = await tablesService.GetTableEntryIfExists<DevKitEntity>(TableName.DevKits.PartitionKey(), rowKey);
+        var entity = await tablesService.GetTableEntryIfExistsAsync<DevKitEntity>(TableName.DevKits.PartitionKey(), rowKey);
 
         if (entity == null)
         {
@@ -77,7 +77,7 @@ public class DevKitController(Storage storageCfg, ITableService tablesService, I
         if (updateDto == null)
             return BadRequest("Invalid data.");
 
-        var existingEntity = await tablesService.GetTableEntryIfExists<DevKitEntity>(TableName.DevKits.PartitionKey(), rowKey);
+        var existingEntity = await tablesService.GetTableEntryIfExistsAsync<DevKitEntity>(TableName.DevKits.PartitionKey(), rowKey);
         if (existingEntity == null)
             return NotFound();
 

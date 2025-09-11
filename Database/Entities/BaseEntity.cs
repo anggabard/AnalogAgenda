@@ -13,7 +13,7 @@ public abstract class BaseEntity(TableName table) : ITableEntity
 
     public string PartitionKey { get => Table.PartitionKey(); set => Table.PartitionKey(); }
     public string RowKey { get => GetId(); set => GetId(); }
-    protected abstract ushort RowKeyLenght();
+    protected abstract int RowKeyLenght();
 
     public DateTime CreatedDate { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedDate { get; set; } = DateTime.UtcNow;

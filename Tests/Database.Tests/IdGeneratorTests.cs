@@ -35,7 +35,7 @@ namespace Database.Tests
         [InlineData(32)]
         [InlineData(64)]
         [InlineData(99)]
-        public void Generate_ShouldHandleVariousValidLengths(ushort length)
+        public void Generate_ShouldHandleVariousValidLengths(int length)
         {
             var result = IdGenerator.Get(length, "some", "fixed", "input");
             Assert.Equal(length, result.Length);

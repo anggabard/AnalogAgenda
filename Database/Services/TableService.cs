@@ -40,7 +40,7 @@ namespace Database.Services
             return tableName;
         }
 
-        public async Task<List<T>> GetTableEntries<T>() where T : BaseEntity
+        public async Task<List<T>> GetTableEntriesAsync<T>() where T : BaseEntity
         {
             TableName tableName = GetTableName<T>();
 
@@ -53,7 +53,7 @@ namespace Database.Services
             return entities;
         }
 
-        public async Task<T?> GetTableEntryIfExists<T>(string partitionKey, string rowKey) where T : BaseEntity
+        public async Task<T?> GetTableEntryIfExistsAsync<T>(string partitionKey, string rowKey) where T : BaseEntity
         {
             var table = GetTable(GetTableName<T>());
 
@@ -63,11 +63,11 @@ namespace Database.Services
 
         }
 
-        public async Task<bool> EntryExists<T>(string partitionKey, string rowKey) where T : BaseEntity
+        public async Task<bool> EntryExistsAsync(BaseEntity entity)
         {
-            var table = GetTable(GetTableName<T>());
+            var table = GetTable(entity.GetTable());
 
-            var entry = await table.GetEntityIfExistsAsync<T>(partitionKey, rowKey);
+            var entry = await table.GetEntityIfExistsAsync<BaseEntity>(entity.PartitionKey, entity.RowKey);
 
             return entry.HasValue;
         }

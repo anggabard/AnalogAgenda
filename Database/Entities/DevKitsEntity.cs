@@ -20,11 +20,11 @@ public class DevKitEntity : BaseEntity
 
     public DateTime MixedOn { get; set; }
 
-    public ushort ValidForWeeks { get; set; }
+    public int ValidForWeeks { get; set; }
 
-    public ushort ValidForFilms { get; set; }
+    public int ValidForFilms { get; set; }
 
-    public ushort FilmsDeveloped { get; set; }
+    public int FilmsDeveloped { get; set; }
 
     public Guid ImageId { get; set; }
 
@@ -32,7 +32,7 @@ public class DevKitEntity : BaseEntity
 
     public bool Expired { get; set; }
 
-    protected override ushort RowKeyLenght() => 8;
+    protected override int RowKeyLenght() => 8;
 
     public DevKitDto ToDTO(string accountName)
     {

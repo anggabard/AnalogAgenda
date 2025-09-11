@@ -5,7 +5,7 @@ namespace Database.Helpers;
 public static class PasswordHasher
 {
     private static readonly HashAlgorithmName hashAlgorithmName = HashAlgorithmName.SHA256;
-    private const ushort inputLength = 32;
+    private const int inputLength = 32;
     private static readonly DateTime startDate = new(2025, 6, 27, 14, 57, 18, 226, 758, DateTimeKind.Utc);
     private static readonly int iterations = (DateTime.UtcNow - startDate).Days / 30 * 1_000 + 100_000;
 

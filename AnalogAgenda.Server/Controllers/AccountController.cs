@@ -15,12 +15,10 @@ namespace AnalogAgenda.Server.Controllers;
 [ApiController, Route("[controller]")]
 public class AccountController(ITableService tables) : ControllerBase
 {
-    private readonly ITableService _tables = tables;
-
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginDto login)
     {
-        var users = _tables.GetTable(TableName.Users);
+        var users = tables.GetTable(TableName.Users);
         var result = await users.GetEntityIfExistsAsync<UserEntity>(
                          TableName.Users.PartitionKey(), login.Email.ToLowerInvariant());
 

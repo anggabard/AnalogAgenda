@@ -1,6 +1,8 @@
-import { Component, OnInit } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
+import { Component, inject, OnInit } from '@angular/core';
+import { ActivatedRoute, Router } from '@angular/router';
 import { NoteDto } from '../../../DTOs';
+import { NotesService } from '../../../services';
+import { Observable } from 'rxjs';
 
 @Component({
   selector: 'app-note-table',
@@ -8,6 +10,9 @@ import { NoteDto } from '../../../DTOs';
   styleUrls: ['./note-table.component.css']
 })
 export class NoteTableComponent implements OnInit {
+  private router = inject(Router);
+  private notesService = inject(NotesService)
+
   note: NoteDto = {
     rowKey: '',
     name: '',
@@ -15,17 +20,20 @@ export class NoteTableComponent implements OnInit {
   };
 
   isEditMode = false;
+  isNewNote = false;
   isLoading = true;
+
+  noteRowKey: string | null = null;
   originalNote: NoteDto | null = null; // Used for discard
 
   constructor(private route: ActivatedRoute) { }
 
   ngOnInit(): void {
-    const noteId = this.route.snapshot.paramMap.get('id');
+    this.noteRowKey = this.route.snapshot.paramMap.get('id');
 
-    if (noteId) {
+    if (this.noteRowKey) {
       // VIEW / EDIT MODE - Load from backend
-      this.loadNoteFromBackend(noteId);
+      this.loadNoteFromBackend(this.noteRowKey);
     } else {
       // CREATE MODE
       this.note = {
@@ -37,6 +45,7 @@ export class NoteTableComponent implements OnInit {
       };
       this.originalNote = JSON.parse(JSON.stringify(this.note));
       this.isLoading = false;
+      this.isNewNote = true;
       this.isEditMode = true; // allow direct editing when creating
     }
   }
@@ -81,9 +90,30 @@ export class NoteTableComponent implements OnInit {
 
   /** Save changes to backend */
   saveNote() {
-    console.log('Saving note:', this.note);
-    this.originalNote = JSON.parse(JSON.stringify(this.note));
-    this.isEditMode = false;
+    if (this.isNewNote) {
+      this.notesService.addNewNote(this.note).subscribe({
+        next: (noteRowKey: string) => {
+          this.isLoading = false;
+          this.router.navigate(['/notes/' + noteRowKey]);
+        },
+        error: (err) => {
+          this.isLoading = false;
+          console.error(err);
+        }
+      });
+    } else {
+      this.notesService.updateNote(this.noteRowKey!, this.note).subscribe({
+        next: () => {
+          this.isLoading = false;
+          this.originalNote = JSON.parse(JSON.stringify(this.note));
+          this.isEditMode = false;
+        },
+        error: (err) => {
+          this.isLoading = false;
+          console.error(err);
+        }
+      });
+    }
   }
 
   /** Add a new row */
@@ -112,9 +142,9 @@ export class NoteTableComponent implements OnInit {
     const originalEntry = this.note.entries[index];
     var copyEntry = JSON.parse(JSON.stringify(originalEntry));
     copyEntry.rowKey = '';
-    
+
     this.note.entries.splice(index, 0, copyEntry);
-}
+  }
 
   /** Validate that time cannot be lower than the previous row */
   onTimeChange(index: number, newTime: number) {

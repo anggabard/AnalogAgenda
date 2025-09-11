@@ -20,11 +20,11 @@ public class DevKitDto
 
     public DateOnly MixedOn { get; set; }
 
-    public ushort ValidForWeeks { get; set; }
+    public int ValidForWeeks { get; set; }
 
-    public ushort ValidForFilms { get; set; }
+    public int ValidForFilms { get; set; }
 
-    public ushort FilmsDeveloped { get; set; }
+    public int FilmsDeveloped { get; set; }
 
     public string ImageUrl { get; set; } = string.Empty;
 

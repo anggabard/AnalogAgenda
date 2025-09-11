@@ -14,5 +14,5 @@ public class UserEntity : BaseEntity
         return Username;
     }
 
-    protected override ushort RowKeyLenght() => 0; //Not Aplicable
+    protected override int RowKeyLenght() => 0; //Not Aplicable
 }
