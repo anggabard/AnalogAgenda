@@ -1,5 +1,4 @@
 ﻿using Database.DBObjects.Enums;
-using Database.Helpers;
 
 namespace Database.Entities;
 
@@ -31,12 +30,5 @@ public class DevKitEntity : BaseEntity
 
     public bool Expired { get; set; }
 
-    protected override string GetId(params string[] inputs)
-    {
-        return IdGenerator.Get(8, Name, Url, Type.ToString(), 
-            PurchasedBy.ToString(), PurchasedOn.Ticks.ToString(), 
-            MixedOn.Ticks.ToString(), ValidForWeeks.ToString(),
-            ValidForFilms.ToString(), ImageId.ToString(),
-            Description);
-    }
+    protected override int RowKeyLenght() => 8;
 }
