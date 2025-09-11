@@ -9,7 +9,10 @@ public class UserEntity : BaseEntity
     public string Username { get; set; } = default!;
     public string PasswordHash { get; set; } = default!;
 
-    protected override string GetId() => throw new Exception("Not aplicable"); //The RowKey is the email and the entries are added manually
+    protected override string GetId()
+    {
+        return Username;
+    }
 
-    protected override int RowKeyLenght() => throw new Exception("Not aplicable"); //The RowKey is the email and its variable
+    protected override int RowKeyLenght() => 0; //Not Aplicable
 }

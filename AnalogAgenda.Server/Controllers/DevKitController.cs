@@ -69,7 +69,7 @@ public class DevKitController(IMapper mapper, Storage storageCfg, ITableService 
     [HttpGet("{rowKey}")]
     public async Task<IActionResult> GetKitByRowKey(string rowKey)
     {
-        var entity = await tablesService.GetTableEntry<DevKitEntity>(TableName.DevKits.PartitionKey(), rowKey);
+        var entity = await tablesService.GetTableEntryIfExists<DevKitEntity>(TableName.DevKits.PartitionKey(), rowKey);
 
         if (entity == null)
         {
@@ -88,11 +88,12 @@ public class DevKitController(IMapper mapper, Storage storageCfg, ITableService 
         if (updateDto == null)
             return BadRequest("Invalid data.");
 
-        var existingEntity = await tablesService.GetTableEntry<DevKitEntity>(TableName.DevKits.PartitionKey(), rowKey);
+        var existingEntity = await tablesService.GetTableEntryIfExists<DevKitEntity>(TableName.DevKits.PartitionKey(), rowKey);
         if (existingEntity == null)
             return NotFound();
 
         var updatedEntity = mapper.Map<DevKitEntity>(updateDto);
+        updatedEntity.CreatedDate = existingEntity.CreatedDate;
 
         var imageId = existingEntity.ImageId;
         if (!string.IsNullOrEmpty(updateDto.ImageBase64))
@@ -107,11 +108,9 @@ public class DevKitController(IMapper mapper, Storage storageCfg, ITableService 
         }
 
         updatedEntity.ImageId = imageId;
+        updatedEntity.UpdatedDate = DateTime.UtcNow;
 
-
-        var devKitsTable = tablesService.GetTable(TableName.DevKits);
-        await devKitsTable.DeleteEntityAsync(existingEntity.PartitionKey, existingEntity.RowKey);
-        await devKitsTable.AddEntityAsync(updatedEntity);
+        await devKitsTable.UpdateEntityAsync(updatedEntity, existingEntity.ETag, TableUpdateMode.Replace);
 
         return NoContent();
     }

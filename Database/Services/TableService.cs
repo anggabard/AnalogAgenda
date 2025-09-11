@@ -53,25 +53,23 @@ namespace Database.Services
             return entities;
         }
 
-        public async Task<T?> GetTableEntry<T>(string partitionKey, string rowKey) where T : BaseEntity
+        public async Task<T?> GetTableEntryIfExists<T>(string partitionKey, string rowKey) where T : BaseEntity
         {
             var table = GetTable(GetTableName<T>());
 
-            try
-            {
-                var entity = await table.GetEntityAsync<T>(partitionKey, rowKey);
-                return entity.Value;
-            }
-            catch (Azure.RequestFailedException ex)
-            {
-                if (ex.Status == 404)
-                {
-                    return null;
-                }
+            var entity = await table.GetEntityIfExistsAsync<T>(partitionKey, rowKey);
 
-                throw;
-            }
+            return entity.HasValue ? entity.Value : null;
 
+        }
+
+        public async Task<bool> EntryExists<T>(string partitionKey, string rowKey) where T : BaseEntity
+        {
+            var table = GetTable(GetTableName<T>());
+
+            var entry = await table.GetEntityIfExistsAsync<T>(partitionKey, rowKey);
+
+            return entry.HasValue;
         }
     }
 }
