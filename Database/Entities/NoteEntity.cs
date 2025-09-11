@@ -8,5 +8,5 @@ public class NoteEntity : BaseEntity
 
     public required string Name { get; set; }
 
-    protected override int RowKeyLenght() => 4;
+    protected override ushort RowKeyLenght() => 4;
 }

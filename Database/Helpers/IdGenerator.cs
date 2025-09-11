@@ -6,7 +6,7 @@ namespace Database.Helpers;
 public static class IdGenerator
 {
     private static readonly char[] AlphanumericChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789".ToCharArray();
-    public static string Get(int length = 8, params string[] inputs)
+    public static string Get(ushort length = 8, params string[] inputs)
     {
         if (length <= 0 || length >= 100)
             throw new ArgumentOutOfRangeException(nameof(length), "Length must be between 1 and 99.");
@@ -15,7 +15,7 @@ public static class IdGenerator
         byte[] hash = SHA256.HashData(Encoding.UTF8.GetBytes(combinedInput));
 
         var result = new StringBuilder();
-        int counter = 0;
+        ushort counter = 0;
 
         while (result.Length < length)
         {

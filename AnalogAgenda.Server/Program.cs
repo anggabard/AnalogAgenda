@@ -1,5 +1,4 @@
 using AnalogAgenda.Server.Configuration;
-using Database.Automapper.Profiles;
 using Database.Services;
 using Database.Services.Interfaces;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -38,9 +37,6 @@ builder.Configuration
     .AddJsonFile("appsettings.json", optional: true)
     .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true)
     .AddEnvironmentVariables();
-
-
-builder.Services.AddAutoMapper(cfg => { cfg.AddMaps(typeof(DevKitProfile).Assembly); });
 
 builder.Services.AddSingleton<ITableService, TableService>();
 builder.Services.AddSingleton<IBlobService, BlobService>();

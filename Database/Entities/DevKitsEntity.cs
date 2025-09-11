@@ -1,4 +1,6 @@
 ﻿using Database.DBObjects.Enums;
+using Database.DTOs;
+using Database.Helpers;
 
 namespace Database.Entities;
 
@@ -18,11 +20,11 @@ public class DevKitEntity : BaseEntity
 
     public DateTime MixedOn { get; set; }
 
-    public int ValidForWeeks { get; set; }
+    public ushort ValidForWeeks { get; set; }
 
-    public int ValidForFilms { get; set; }
+    public ushort ValidForFilms { get; set; }
 
-    public int FilmsDeveloped { get; set; }
+    public ushort FilmsDeveloped { get; set; }
 
     public Guid ImageId { get; set; }
 
@@ -30,5 +32,25 @@ public class DevKitEntity : BaseEntity
 
     public bool Expired { get; set; }
 
-    protected override int RowKeyLenght() => 8;
+    protected override ushort RowKeyLenght() => 8;
+
+    public DevKitDto ToDTO(string accountName)
+    {
+        return new DevKitDto()
+        {
+            RowKey = RowKey,
+            Name = Name,
+            Url = Url,
+            Type = Type.ToString(),
+            PurchasedBy = PurchasedBy.ToString(),
+            PurchasedOn = DateOnly.FromDateTime(PurchasedOn),
+            MixedOn = DateOnly.FromDateTime(MixedOn),
+            ValidForWeeks = ValidForWeeks,
+            ValidForFilms = ValidForFilms,
+            FilmsDeveloped = FilmsDeveloped,
+            ImageUrl = ImageId == Guid.Empty ? string.Empty : BlobUrlHelper.GetUrlFromImageImageInfo(accountName, ContainerName.devkits.ToString(), ImageId),
+            Description = Description,
+            Expired = Expired
+        };
+    }
 }

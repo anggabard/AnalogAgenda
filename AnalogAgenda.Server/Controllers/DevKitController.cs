@@ -1,5 +1,4 @@
 ﻿using AnalogAgenda.Server.Helpers;
-using AutoMapper;
 using Azure.Data.Tables;
 using Azure.Storage.Blobs;
 using Configuration.Sections;
@@ -15,7 +14,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace AnalogAgenda.Server.Controllers;
 
 [ApiController, Route("[controller]"), Authorize]
-public class DevKitController(IMapper mapper, Storage storageCfg, ITableService tablesService, IBlobService blobsService) : ControllerBase
+public class DevKitController(Storage storageCfg, ITableService tablesService, IBlobService blobsService) : ControllerBase
 {
     private readonly TableClient devKitsTable = tablesService.GetTable(TableName.DevKits);
     private readonly BlobContainerClient devKitsContainer = blobsService.GetBlobContainer(ContainerName.devkits);
@@ -33,7 +32,7 @@ public class DevKitController(IMapper mapper, Storage storageCfg, ITableService 
                 await BlobImageHelper.UploadBase64ImageWithContentTypeAsync(devKitsContainer, dto.ImageBase64, imageId);
             }
 
-            var entity = mapper.Map<DevKitEntity>(dto);
+            var entity = dto.ToEntity();
             entity.ImageId = imageId;
 
 
@@ -54,14 +53,7 @@ public class DevKitController(IMapper mapper, Storage storageCfg, ITableService 
     public async Task<IActionResult> GetAllKits()
     {
         var entities = await tablesService.GetTableEntries<DevKitEntity>();
-        var results =
-            entities.Select(entity =>
-                {
-                    var dto = mapper.Map<DevKitDto>(entity);
-                    dto.ImageUrl = BlobUrlHelper.GetUrlFromImageImageInfo(storageCfg.AccountName, ContainerName.devkits.ToString(), entity.ImageId);
-
-                    return dto;
-                });
+        var results = entities.Select(entity => entity.ToDTO(storageCfg.AccountName));
 
         return Ok(results);
     }
@@ -76,10 +68,7 @@ public class DevKitController(IMapper mapper, Storage storageCfg, ITableService 
             return NotFound($"No DevKit found with RowKey: {rowKey}");
         }
 
-        var dto = mapper.Map<DevKitDto>(entity);
-        dto.ImageUrl = BlobUrlHelper.GetUrlFromImageImageInfo(storageCfg.AccountName, ContainerName.devkits.ToString(), entity.ImageId);
-        
-        return Ok(dto);
+        return Ok(entity.ToDTO(storageCfg.AccountName));
     }
 
     [HttpPut("{rowKey}")]
@@ -92,7 +81,7 @@ public class DevKitController(IMapper mapper, Storage storageCfg, ITableService 
         if (existingEntity == null)
             return NotFound();
 
-        var updatedEntity = mapper.Map<DevKitEntity>(updateDto);
+        var updatedEntity = updateDto.ToEntity();
         updatedEntity.CreatedDate = existingEntity.CreatedDate;
 
         var imageId = existingEntity.ImageId;
