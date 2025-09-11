@@ -32,7 +32,7 @@ export class NoteTableComponent implements OnInit {
         rowKey: '',
         name: '',
         entries: [
-          { noteRowKey: '', time: 0, process: '', film: '', details: '' }
+          { rowKey: '', noteRowKey: '', time: 0, process: '', film: '', details: '' }
         ]
       };
       this.originalNote = JSON.parse(JSON.stringify(this.note));
@@ -48,8 +48,8 @@ export class NoteTableComponent implements OnInit {
         rowKey,
         name: 'My Existing Note',
         entries: [
-          { noteRowKey: '1', time: 0, process: 'Prep Chemicals', film: 'Kodak', details: '' },
-          { noteRowKey: '2', time: 10, process: 'Develop Film', film: 'Kodak', details: 'Agitate every 30s' },
+          { rowKey: '', noteRowKey: '1', time: 0, process: 'Prep Chemicals', film: 'Kodak', details: '' },
+          { rowKey: '', noteRowKey: '2', time: 10, process: 'Develop Film', film: 'Kodak', details: 'Agitate every 30s' },
         ]
       };
       this.originalNote = JSON.parse(JSON.stringify(this.note));
@@ -71,7 +71,7 @@ export class NoteTableComponent implements OnInit {
       this.note = {
         rowKey: '',
         name: '',
-        entries: [{ noteRowKey: '', time: 0, process: '', film: '', details: '' }]
+        entries: [{ rowKey: '', noteRowKey: '', time: 0, process: '', film: '', details: '' }]
       };
     } else if (this.originalNote) {
       this.note = JSON.parse(JSON.stringify(this.originalNote));
@@ -92,6 +92,7 @@ export class NoteTableComponent implements OnInit {
     const newTime = lastEntry ? lastEntry.time : 0;
 
     this.note.entries.push({
+      rowKey: '',
       noteRowKey: '',
       time: newTime,
       process: '',
@@ -108,8 +109,11 @@ export class NoteTableComponent implements OnInit {
   }
 
   copyRow(index: number) {
-    const entry = this.note.entries[index];
-    this.note.entries.splice(index, 0, entry);
+    const originalEntry = this.note.entries[index];
+    var copyEntry = JSON.parse(JSON.stringify(originalEntry));
+    copyEntry.rowKey = '';
+    
+    this.note.entries.splice(index, 0, copyEntry);
 }
 
   /** Validate that time cannot be lower than the previous row */

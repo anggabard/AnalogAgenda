@@ -18,6 +18,7 @@ const routes: Routes = [
       { path: 'substances/:id', component: UpsertKitComponent, canActivate: [sessionGuard] },
       { path: 'notes/new', component: NoteTableComponent, canActivate: [sessionGuard] },
       { path: 'notes/:id', component: NoteTableComponent, canActivate: [sessionGuard] },
+      { path: '**', component: HomeComponent, canActivate: [sessionGuard] },
     ]
   },
   {
