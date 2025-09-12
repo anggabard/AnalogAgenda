@@ -21,7 +21,6 @@ export class NoteTableComponent implements OnInit {
 
   isEditMode = false;
   isNewNote = false;
-  isLoading = true;
 
   noteRowKey: string | null = null;
   originalNote: NoteDto | null = null; // Used for discard
@@ -44,7 +43,6 @@ export class NoteTableComponent implements OnInit {
         ]
       };
       this.originalNote = JSON.parse(JSON.stringify(this.note));
-      this.isLoading = false;
       this.isNewNote = true;
       this.isEditMode = true; // allow direct editing when creating
     }
@@ -62,7 +60,6 @@ export class NoteTableComponent implements OnInit {
         ]
       };
       this.originalNote = JSON.parse(JSON.stringify(this.note));
-      this.isLoading = false;
     }, 500);
   }
 
@@ -93,23 +90,19 @@ export class NoteTableComponent implements OnInit {
     if (this.isNewNote) {
       this.notesService.addNewNote(this.note).subscribe({
         next: (noteRowKey: string) => {
-          this.isLoading = false;
           this.router.navigate(['/notes/' + noteRowKey]);
         },
         error: (err) => {
-          this.isLoading = false;
           console.error(err);
         }
       });
     } else {
       this.notesService.updateNote(this.noteRowKey!, this.note).subscribe({
         next: () => {
-          this.isLoading = false;
           this.originalNote = JSON.parse(JSON.stringify(this.note));
           this.isEditMode = false;
         },
         error: (err) => {
-          this.isLoading = false;
           console.error(err);
         }
       });
@@ -146,14 +139,20 @@ export class NoteTableComponent implements OnInit {
     this.note.entries.splice(index, 0, copyEntry);
   }
 
-  /** Validate that time cannot be lower than the previous row */
+  /** Validate that time cannot be lower than the previous row and higher that the next*/
   onTimeChange(index: number, newTime: number) {
+    console.log("index: ", index, "lenght: ", this.note.entries.length)
     const previousTime = index > 0 ? this.note.entries[index - 1].time : 0;
+    const nextTime = index < this.note.entries.length - 1 ? this.note.entries[index + 1].time : null;
 
     if (newTime < previousTime) {
       alert('Time cannot be lower than the previous step!');
       this.note.entries[index].time = previousTime;
-    } else {
+    } else if (nextTime && newTime > nextTime){
+      alert('Time cannot be higher than the next step!');
+      this.note.entries[index].time = nextTime;
+    } 
+    else {
       this.note.entries[index].time = newTime;
     }
   }

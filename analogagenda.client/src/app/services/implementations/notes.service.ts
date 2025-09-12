@@ -13,9 +13,9 @@ export class NotesService extends BaseService {
     return this.post('', newNote, {responseType: 'text'});
   }
 
-  // getAllDevKits(): Observable<DevKitDto[]> {
-  //   return this.get<DevKitDto[]>('');
-  // }
+  getAllNotes(withEntries : boolean = false): Observable<NoteDto[]> {
+    return this.get<NoteDto[]>(withEntries ? 'withEntries=true' : '');
+  }
 
   // getKit(rowKey: string): Observable<DevKitDto> {
   //   return this.get<DevKitDto>(rowKey)

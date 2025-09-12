@@ -1,6 +1,7 @@
 ﻿using Azure.Data.Tables;
 using Database.DBObjects.Enums;
 using Database.DTOs;
+using Database.Entities;
 using Database.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -30,7 +31,7 @@ public class NotesController(ITableService tablesService) : ControllerBase
         }
         catch (Exception ex)
         {
-            if(await tablesService.EntryExistsAsync(entity))
+            if (await tablesService.EntryExistsAsync(entity))
                 await notesTable.DeleteEntityAsync(entity);
 
 
@@ -47,21 +48,27 @@ public class NotesController(ITableService tablesService) : ControllerBase
         return Ok(entity.RowKey);
     }
 
-    //[HttpGet]
-    //public async Task<IActionResult> GetAllKits()
-    //{
-    //    var entities = await tablesService.GetTableEntries<NotesEntity>();
-    //    var results =
-    //        entities.Select(entity =>
-    //            {
-    //                var dto = mapper.Map<NotesDto>(entity);
-    //                dto.ImageUrl = BlobUrlHelper.GetUrlFromImageImageInfo(storageCfg.AccountName, ContainerName.Notess.ToString(), entity.ImageId);
+    [HttpGet]
+    public async Task<IActionResult> GetAllNotes([FromQuery] bool withEntries = false)
+    {
+        var result = new List<NoteDto>();
+        var notesEntities = await tablesService.GetTableEntriesAsync<NoteEntity>();
 
-    //                return dto;
-    //            });
+        if (!withEntries)
+        {
+            return Ok(notesEntities.Select(note => note.ToDTO()));
+        }
 
-    //    return Ok(results);
-    //}
+        var results = await Task.WhenAll(
+            notesEntities.Select(async noteEntity =>
+                {
+                    var entryEntities = await tablesService.GetTableEntriesAsync<NoteEntryEntity>(entry => entry.NoteRowKey == noteEntity.RowKey);
+
+                    return noteEntity.ToDTO(entryEntities);
+                }));
+
+        return Ok(results);
+    }
 
     //[HttpGet("{rowKey}")]
     //public async Task<IActionResult> GetKitByRowKey(string rowKey)
@@ -75,7 +82,7 @@ public class NotesController(ITableService tablesService) : ControllerBase
 
     //    var dto = mapper.Map<NotesDto>(entity);
     //    dto.ImageUrl = BlobUrlHelper.GetUrlFromImageImageInfo(storageCfg.AccountName, ContainerName.Notess.ToString(), entity.ImageId);
-        
+
     //    return Ok(dto);
     //}
 

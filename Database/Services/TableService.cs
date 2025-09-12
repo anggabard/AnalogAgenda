@@ -5,6 +5,7 @@ using Database.Entities;
 using Database.Helpers;
 using Database.Services.Interfaces;
 using System.Collections.Concurrent;
+using System.Linq.Expressions;
 
 namespace Database.Services
 {
@@ -46,6 +47,19 @@ namespace Database.Services
 
             var entities = new List<T>();
             await foreach (var entity in GetTable(tableName).QueryAsync<T>())
+            {
+                entities.Add(entity);
+            }
+
+            return entities;
+        }
+
+        public async Task<List<T>> GetTableEntriesAsync<T>(Expression<Func<T, bool>> predicate) where T : BaseEntity
+        {
+            TableName tableName = GetTableName<T>();
+
+            var entities = new List<T>();
+            await foreach (T entity in GetTable(tableName).QueryAsync(predicate))
             {
                 entities.Add(entity);
             }
