@@ -2,4 +2,14 @@
     <div class="header">
         <button class="add-note" (click)="onNewNoteClick()">+ New Note +</button>
     </div>
+
+    <div class="notes-section">
+        <h2 class="notes-title">Available Substances</h2>
+        <div class="notes-list">
+            <div *ngFor="let note of notes" class="card" (click)="onNoteSelected(note.rowKey)">
+                <img class="image" [src]="note.imageUrl" />
+                <span class="title">{{note.name}}</span>
+            </div>
+        </div>
+    </div>
 </div>

@@ -2,5 +2,6 @@
 
 public enum ContainerName
 { 
-    devkits
+    devkits,
+    notes
 }

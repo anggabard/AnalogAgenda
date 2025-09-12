@@ -1,10 +1,11 @@
 ﻿using Database.DBObjects.Enums;
+using Database.DTOs.Subclasses;
 using Database.Entities;
 using Database.Helpers;
 
 namespace Database.DTOs;
 
-public class DevKitDto
+public class DevKitDto : HasImage
 {
     public string RowKey { get; set; } = string.Empty;
 
@@ -25,10 +26,6 @@ public class DevKitDto
     public int ValidForFilms { get; set; }
 
     public int FilmsDeveloped { get; set; }
-
-    public string ImageUrl { get; set; } = string.Empty;
-
-    public string ImageBase64 { get; set; } = string.Empty;
 
     public string Description { get; set; } = string.Empty;
 

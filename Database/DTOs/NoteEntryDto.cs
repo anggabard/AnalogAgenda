@@ -6,7 +6,7 @@ public class NoteEntryDto
 {
     public string RowKey { get; set; } = string.Empty;
     public required string NoteRowKey { get; set; }
-    public int Time { get; set; }
+    public double Time { get; set; }
     public required string Process { get; set; }
     public required string Film { get; set; }
     public string Details { get; set; } = string.Empty;

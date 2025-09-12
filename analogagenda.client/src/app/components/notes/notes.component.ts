@@ -9,7 +9,7 @@ import { NoteDto } from "../../DTOs";
   styleUrl: './notes.component.css'
 })
 
-export class NotesComponent implements OnInit{
+export class NotesComponent implements OnInit {
   private router = inject(Router);
   private notesService = inject(NotesService);
 
@@ -18,16 +18,20 @@ export class NotesComponent implements OnInit{
   ngOnInit(): void {
     this.notesService.getAllNotes().subscribe({
       next: (notes: NoteDto[]) => {
-          this.notes = notes;
-          console.log(this.notes);
-        },
-        error: (err) => {
-          console.error(err);
-        }
+        this.notes = notes;
+        console.log(this.notes);
+      },
+      error: (err) => {
+        console.error(err);
+      }
     });
   }
-  
+
   onNewNoteClick() {
     this.router.navigate(['/notes/new']);
+  }
+
+  onNoteSelected(rowKey: string) {
+    this.router.navigate(['/notes/' + rowKey]);
   }
 }

@@ -35,7 +35,6 @@ public class DevKitController(Storage storageCfg, ITableService tablesService, I
             var entity = dto.ToEntity();
             entity.ImageId = imageId;
 
-
             await devKitsTable.AddEntityAsync(entity);
         }
         catch (Exception ex)

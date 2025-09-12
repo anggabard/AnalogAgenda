@@ -54,13 +54,37 @@
                 </tr>
             </tbody>
         </table>
+        <button *ngIf="isEditMode" class="btn-add" (click)="addRow()">Add Row</button>
     </div>
+
+    <div *ngIf="isEditMode" class="form-wrapper">
+        <div class="form-row">
+
+            <!-- Side Notes -->
+            <div class="textarea-group">
+                <label for="sideNotes">Side Notes</label>
+                <textarea id="sideNotes" [(ngModel)]="this.note.sideNote" placeholder="Enter your notes here..."
+                    required></textarea>
+            </div>
+
+            <!-- Image Upload -->
+            <div class="file-upload-group">
+                <label for="fileInput">Upload Image</label>
+                <label class="file-square-zone">
+                    <p *ngIf="!selectedFileName">+</p>
+                    <p *ngIf="selectedFileName" class="file-name">{{ selectedFileName }}</p>
+                    <input type="file" id="fileInput" (change)="onFileSelected($event)" />
+                </label>
+            </div>
+
+        </div>
+    </div>
+
 
     <!-- Footer Actions -->
     <div class="actions">
         <button *ngIf="!isEditMode" class="btn-edit" (click)="toggleEditMode()">Edit</button>
         <ng-container *ngIf="isEditMode">
-            <button class="btn-add" (click)="addRow()">Add Row</button>
             <button class="btn-primary" (click)="saveNote()">Save</button>
             <button class="btn-ghost" (click)="discardChanges()">Discard</button>
         </ng-container>

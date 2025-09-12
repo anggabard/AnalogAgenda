@@ -1,7 +1,12 @@
-﻿using Azure.Data.Tables;
+﻿using AnalogAgenda.Server.Helpers;
+using Azure.Data.Tables;
+using Azure.Storage.Blobs;
+using Configuration.Sections;
+using Database.DBObjects;
 using Database.DBObjects.Enums;
 using Database.DTOs;
 using Database.Entities;
+using Database.Helpers;
 using Database.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -9,10 +14,11 @@ using Microsoft.AspNetCore.Mvc;
 namespace AnalogAgenda.Server.Controllers;
 
 [ApiController, Route("[controller]"), Authorize]
-public class NotesController(ITableService tablesService) : ControllerBase
+public class NotesController(Storage storageCfg, ITableService tablesService, IBlobService blobsService) : ControllerBase
 {
     private readonly TableClient notesTable = tablesService.GetTable(TableName.Notes);
     private readonly TableClient notesEntriesTable = tablesService.GetTable(TableName.NotesEntries);
+    private readonly BlobContainerClient notesContainer = blobsService.GetBlobContainer(ContainerName.notes);
 
     [HttpPost]
     public async Task<IActionResult> CreateNewNote([FromBody] NoteDto dto)
@@ -20,8 +26,16 @@ public class NotesController(ITableService tablesService) : ControllerBase
         var entity = dto.ToNoteEntity();
         var entries = dto.ToNoteEntryEntities(entity.RowKey);
 
+        var imageId = Constants.DefaultNoteImageId;
         try
         {
+            if (!string.IsNullOrEmpty(dto.ImageBase64))
+            {
+                imageId = Guid.NewGuid();
+                await BlobImageHelper.UploadBase64ImageWithContentTypeAsync(notesContainer, dto.ImageBase64, imageId);
+            }
+
+            entity.ImageId = imageId;
             await notesTable.AddEntityAsync(entity);
 
             foreach (var entry in entries)
@@ -31,16 +45,17 @@ public class NotesController(ITableService tablesService) : ControllerBase
         }
         catch (Exception ex)
         {
+            if (imageId != Constants.DefaultNoteImageId)
+                await notesContainer.GetBlobClient(imageId.ToString()).DeleteIfExistsAsync();
+
             if (await tablesService.EntryExistsAsync(entity))
                 await notesTable.DeleteEntityAsync(entity);
-
 
             foreach (var entry in entries)
             {
                 if (await tablesService.EntryExistsAsync(entry))
                     await notesEntriesTable.DeleteEntityAsync(entry);
             }
-
 
             return UnprocessableEntity(ex.Message);
         }
@@ -56,7 +71,7 @@ public class NotesController(ITableService tablesService) : ControllerBase
 
         if (!withEntries)
         {
-            return Ok(notesEntities.Select(note => note.ToDTO()));
+            return Ok(notesEntities.Select(note => note.ToDTO(storageCfg.AccountName)));
         }
 
         var results = await Task.WhenAll(
@@ -64,27 +79,26 @@ public class NotesController(ITableService tablesService) : ControllerBase
                 {
                     var entryEntities = await tablesService.GetTableEntriesAsync<NoteEntryEntity>(entry => entry.NoteRowKey == noteEntity.RowKey);
 
-                    return noteEntity.ToDTO(entryEntities);
+                    return noteEntity.ToDTO(storageCfg.AccountName, entryEntities);
                 }));
 
         return Ok(results);
     }
 
-    //[HttpGet("{rowKey}")]
-    //public async Task<IActionResult> GetKitByRowKey(string rowKey)
-    //{
-    //    var entity = await tablesService.GetTableEntryIfExists<NotesEntity>(TableName.Notess.PartitionKey(), rowKey);
+    [HttpGet("{rowKey}")]
+    public async Task<IActionResult> GetNoteByRowKey(string rowKey)
+    {
+        var noteEntity = await tablesService.GetTableEntryIfExistsAsync<NoteEntity>(TableName.Notes.PartitionKey(), rowKey);
 
-    //    if (entity == null)
-    //    {
-    //        return NotFound($"No Notes found with RowKey: {rowKey}");
-    //    }
+        if (noteEntity == null)
+        {
+            return NotFound($"No Notes found with RowKey: {rowKey}");
+        }
 
-    //    var dto = mapper.Map<NotesDto>(entity);
-    //    dto.ImageUrl = BlobUrlHelper.GetUrlFromImageImageInfo(storageCfg.AccountName, ContainerName.Notess.ToString(), entity.ImageId);
+        var entryEntities = await tablesService.GetTableEntriesAsync<NoteEntryEntity>(entry => entry.NoteRowKey == noteEntity.RowKey);
 
-    //    return Ok(dto);
-    //}
+        return Ok(noteEntity.ToDTO(storageCfg.AccountName, entryEntities.OrderBy(entry => entry.Time).ToList()));
+    }
 
     //[HttpPut("{rowKey}")]
     //public async Task<IActionResult> UpdateProduct(string rowKey, [FromBody] NotesDto updateDto)

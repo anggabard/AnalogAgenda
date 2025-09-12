@@ -2,7 +2,6 @@ import { Component, inject, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { NoteDto } from '../../../DTOs';
 import { NotesService } from '../../../services';
-import { Observable } from 'rxjs';
 
 @Component({
   selector: 'app-note-table',
@@ -11,13 +10,10 @@ import { Observable } from 'rxjs';
 })
 export class NoteTableComponent implements OnInit {
   private router = inject(Router);
-  private notesService = inject(NotesService)
+  private notesService = inject(NotesService);
 
-  note: NoteDto = {
-    rowKey: '',
-    name: '',
-    entries: []
-  };
+  note: NoteDto = this.getEmptyNote();
+  selectedFileName: string | null = null;
 
   isEditMode = false;
   isNewNote = false;
@@ -35,13 +31,6 @@ export class NoteTableComponent implements OnInit {
       this.loadNoteFromBackend(this.noteRowKey);
     } else {
       // CREATE MODE
-      this.note = {
-        rowKey: '',
-        name: '',
-        entries: [
-          { rowKey: '', noteRowKey: '', time: 0, process: '', film: '', details: '' }
-        ]
-      };
       this.originalNote = JSON.parse(JSON.stringify(this.note));
       this.isNewNote = true;
       this.isEditMode = true; // allow direct editing when creating
@@ -50,17 +39,15 @@ export class NoteTableComponent implements OnInit {
 
   /** Simulated backend load */
   loadNoteFromBackend(rowKey: string) {
-    setTimeout(() => {
-      this.note = {
-        rowKey,
-        name: 'My Existing Note',
-        entries: [
-          { rowKey: '', noteRowKey: '1', time: 0, process: 'Prep Chemicals', film: 'Kodak', details: '' },
-          { rowKey: '', noteRowKey: '2', time: 10, process: 'Develop Film', film: 'Kodak', details: 'Agitate every 30s' },
-        ]
-      };
-      this.originalNote = JSON.parse(JSON.stringify(this.note));
-    }, 500);
+    this.notesService.getNote(rowKey).subscribe({
+        next: (note: NoteDto) => {
+          this.note = note;
+          this.originalNote = JSON.parse(JSON.stringify(this.note));
+        },
+        error: (err) => {
+          console.error(err);
+        }
+      });
   }
 
   /** Switch between view and edit */
@@ -72,21 +59,31 @@ export class NoteTableComponent implements OnInit {
 
   /** Discard changes and return to original */
   discardChanges() {
-    if (!this.note.rowKey) {
-      // Creating a new note → reset to initial
-      this.note = {
-        rowKey: '',
-        name: '',
-        entries: [{ rowKey: '', noteRowKey: '', time: 0, process: '', film: '', details: '' }]
-      };
+    if (this.isNewNote) {
+      this.note = this.getEmptyNote();
+      this.router.navigate(['/notes']);
     } else if (this.originalNote) {
       this.note = JSON.parse(JSON.stringify(this.originalNote));
     }
     this.isEditMode = false;
   }
 
+  getEmptyNote() {
+    return JSON.parse(JSON.stringify({
+      rowKey: '',
+      name: '',
+      sideNote: '',
+      imageBase64: '',
+      imageUrl: '',
+      entries: [{ rowKey: '', noteRowKey: '', time: 0, process: '', film: '', details: '' }]
+    }));
+  }
+
   /** Save changes to backend */
   saveNote() {
+    if(!this.note.name)
+      this.note.name = 'Untitled Note'
+
     if (this.isNewNote) {
       this.notesService.addNewNote(this.note).subscribe({
         next: (noteRowKey: string) => {
@@ -141,19 +138,29 @@ export class NoteTableComponent implements OnInit {
 
   /** Validate that time cannot be lower than the previous row and higher that the next*/
   onTimeChange(index: number, newTime: number) {
-    console.log("index: ", index, "lenght: ", this.note.entries.length)
     const previousTime = index > 0 ? this.note.entries[index - 1].time : 0;
     const nextTime = index < this.note.entries.length - 1 ? this.note.entries[index + 1].time : null;
 
     if (newTime < previousTime) {
       alert('Time cannot be lower than the previous step!');
       this.note.entries[index].time = previousTime;
-    } else if (nextTime && newTime > nextTime){
+    } else if (nextTime && newTime > nextTime) {
       alert('Time cannot be higher than the next step!');
       this.note.entries[index].time = nextTime;
-    } 
+    }
     else {
       this.note.entries[index].time = newTime;
+    }
+  }
+
+  onFileSelected(event: Event): void {
+    const file = (event.target as HTMLInputElement).files?.[0];
+    if (file) {
+      this.selectedFileName = file.name;
+      const reader = new FileReader();
+
+      reader.readAsDataURL(file);
+      reader.onload = () => (this.note.imageBase64 = reader.result as string);
     }
   }
 }

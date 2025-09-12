@@ -17,9 +17,9 @@ export class NotesService extends BaseService {
     return this.get<NoteDto[]>(withEntries ? 'withEntries=true' : '');
   }
 
-  // getKit(rowKey: string): Observable<DevKitDto> {
-  //   return this.get<DevKitDto>(rowKey)
-  // }
+  getNote(rowKey: string): Observable<NoteDto> {
+    return this.get<NoteDto>(rowKey)
+  }
 
   updateNote(rowKey: string , updateNote: NoteDto) {
     return this.put(rowKey, updateNote);
