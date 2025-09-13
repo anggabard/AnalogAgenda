@@ -18,7 +18,6 @@ const routes: Routes = [
       { path: 'substances/:id', component: UpsertKitComponent, canActivate: [sessionGuard] },
       { path: 'notes/new', component: NoteTableComponent, canActivate: [sessionGuard] },
       { path: 'notes/:id', component: NoteTableComponent, canActivate: [sessionGuard] },
-      { path: '**', component: HomeComponent, canActivate: [sessionGuard] },
     ]
   },
   {
@@ -28,7 +27,7 @@ const routes: Routes = [
       { path: 'login', component: LoginComponent, canActivate: [loginGuard] },
     ]
   },
-  //{ path: '**', component: NotFoundComponent } 
+  { path: '**', redirectTo: '/login', pathMatch: 'full' } 
 ];
 
 @NgModule({
