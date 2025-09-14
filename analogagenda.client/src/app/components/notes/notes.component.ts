@@ -19,7 +19,6 @@ export class NotesComponent implements OnInit {
     this.notesService.getAllNotes().subscribe({
       next: (notes: NoteDto[]) => {
         this.notes = notes;
-        console.log(this.notes);
       },
       error: (err) => {
         console.error(err);

@@ -17,6 +17,7 @@ export class NoteTableComponent implements OnInit {
 
   isEditMode = false;
   isNewNote = false;
+  isPreviewOpen = false;
 
   noteRowKey: string | null = null;
   originalNote: NoteDto | null = null; // Used for discard

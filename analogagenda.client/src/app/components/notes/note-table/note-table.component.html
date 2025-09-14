@@ -57,24 +57,45 @@
         <button *ngIf="isEditMode" class="btn-add" (click)="addRow()">Add Row</button>
     </div>
 
-    <div *ngIf="isEditMode" class="form-wrapper">
+    <div class="form-wrapper">
         <div class="form-row">
 
             <!-- Side Notes -->
             <div class="textarea-group">
                 <label for="sideNotes">Side Notes</label>
-                <textarea id="sideNotes" [(ngModel)]="this.note.sideNote" placeholder="Enter your notes here..."
-                    required></textarea>
+                <textarea [readonly]="!isEditMode" id="sideNotes" [(ngModel)]="this.note.sideNote"
+                    placeholder="Enter your notes here..." required></textarea>
             </div>
 
             <!-- Image Upload -->
-            <div class="file-upload-group">
+            <div *ngIf="isEditMode" class="file-upload-group">
                 <label for="fileInput">Upload Image</label>
                 <label class="file-square-zone">
                     <p *ngIf="!selectedFileName">+</p>
                     <p *ngIf="selectedFileName" class="file-name">{{ selectedFileName }}</p>
                     <input type="file" id="fileInput" (change)="onFileSelected($event)" />
                 </label>
+            </div>
+
+            <!-- Preview Image -->
+            <div *ngIf="!isEditMode" class="file-upload-group">
+                <label for="previewButton">Preview Image</label>
+                <label class="file-square-zone" (click)="this.isPreviewOpen = true">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="eye-icon" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M1.5 12s4.5-7.5 10.5-7.5S22.5 12 22.5 12s-4.5 7.5-10.5 7.5S1.5 12 1.5 12z" />
+                        <circle cx="12" cy="12" r="3" />
+                    </svg>
+                </label>
+            </div>
+
+            <!-- Modal Overlay -->
+            <div class="image-preview-overlay" *ngIf="isPreviewOpen" (click)="this.isPreviewOpen = false">
+                <div class="image-preview-content" (click)="$event.stopPropagation()">
+                    <img [src]="this.note.imageUrl" alt="Preview" />
+                    <button class="close-btn" (click)="this.isPreviewOpen = false">✖</button>
+                </div>
             </div>
 
         </div>
