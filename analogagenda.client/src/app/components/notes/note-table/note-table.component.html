@@ -80,7 +80,7 @@
             <!-- Preview Image -->
             <div *ngIf="!isEditMode" class="file-upload-group">
                 <label for="previewButton">Preview Image</label>
-                <label class="file-square-zone" (click)="this.isPreviewOpen = true">
+                <label class="file-square-zone" (click)="this.isPreviewModalOpen = true">
                     <svg xmlns="http://www.w3.org/2000/svg" class="eye-icon" fill="none" viewBox="0 0 24 24"
                         stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round"
@@ -91,10 +91,10 @@
             </div>
 
             <!-- Modal Overlay -->
-            <div class="image-preview-overlay" *ngIf="isPreviewOpen" (click)="this.isPreviewOpen = false">
+            <div class="image-preview-overlay" *ngIf="isPreviewModalOpen" (click)="this.isPreviewModalOpen = false">
                 <div class="image-preview-content" (click)="$event.stopPropagation()">
                     <img [src]="this.note.imageUrl" alt="Preview" />
-                    <button class="close-btn" (click)="this.isPreviewOpen = false">✖</button>
+                    <button class="close-btn" (click)="this.isPreviewModalOpen = false">✖</button>
                 </div>
             </div>
 
@@ -105,9 +105,24 @@
     <!-- Footer Actions -->
     <div class="actions">
         <button *ngIf="!isEditMode" class="btn-edit" (click)="toggleEditMode()">Edit</button>
+        <button *ngIf="!isNewNote && !isEditMode" class="delete-btn" (click)="isDeleteModalOpen = true">Delete</button>
+
         <ng-container *ngIf="isEditMode">
             <button class="btn-primary" (click)="saveNote()">Save</button>
             <button class="btn-ghost" (click)="discardChanges()">Discard</button>
         </ng-container>
+    </div>
+
+    <div class="delete-modal-overlay" *ngIf="isDeleteModalOpen" (click)="isDeleteModalOpen = false">
+        <div class="delete-modal" (click)="$event.stopPropagation()">
+            <h2>Confirm Delete</h2>
+            <p>
+                Are you sure you want to delete <strong>{{ this.originalNote?.name }}</strong> Note?
+            </p>
+            <div class="delete-modal-actions">
+                <button class="cancel-btn" (click)="isDeleteModalOpen = false">Cancel</button>
+                <button class="delete-btn" (click)="onDelete()">Delete</button>
+            </div>
+        </div>
     </div>
 </div>

@@ -10,10 +10,10 @@ export class NotesService extends BaseService {
   constructor() { super('Notes'); }
 
   addNewNote(newNote: NoteDto): Observable<string> {
-    return this.post('', newNote, {responseType: 'text'});
+    return this.post('', newNote, { responseType: 'text' });
   }
 
-  getAllNotes(withEntries : boolean = false): Observable<NoteDto[]> {
+  getAllNotes(withEntries: boolean = false): Observable<NoteDto[]> {
     return this.get<NoteDto[]>(withEntries ? 'withEntries=true' : '');
   }
 
@@ -21,7 +21,11 @@ export class NotesService extends BaseService {
     return this.get<NoteDto>(rowKey)
   }
 
-  updateNote(rowKey: string , updateNote: NoteDto) {
+  updateNote(rowKey: string, updateNote: NoteDto) {
     return this.put(rowKey, updateNote);
+  }
+
+  deleteNote(rowKey: string) {
+    return this.delete(rowKey);
   }
 }

@@ -210,7 +210,7 @@ select {
   transition: background .5s;
 }
 
-.toggle-border input[type="checkbox"]:checked + label {
+.toggle-border input[type="checkbox"]:checked+label {
   background: #d13613;
 }
 
@@ -228,8 +228,8 @@ select {
   transition: left .4s;
 }
 
-.toggle-border input[type="checkbox"]:checked + label > .handle {
-  left: -10px; 
+.toggle-border input[type="checkbox"]:checked+label>.handle {
+  left: -10px;
 }
 
 .expired-toggle-container {
@@ -237,5 +237,87 @@ select {
   grid-template-columns: 100px auto 100px;
   grid-gap: 0.5rem 1rem;
   align-items: center;
-  margin-top: 0.5rem;
+  margin: 10px 0px 10px 0px;
+}
+
+.delete-btn {
+  background-color: #ef4444;
+  color: white;
+  font-size: 0.9rem;
+  font-weight: 600;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+  margin-top: 15px;
+  width: 100%;
+}
+
+.delete-btn:hover {
+  transform: scale(1.03);
+}
+
+.cancel-btn {
+  background-color: #e5e7eb;
+  /* Tailwind gray-200 */
+  color: #374151;
+  font-size: 0.9rem;
+  font-weight: 600;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  margin-top: 15px;
+  width: 100%;
+}
+
+.cancel-btn:hover {
+  background-color: #d1d5db;
+  /* Tailwind gray-300 */
+}
+
+/* ===== delete-modal OVERLAY ===== */
+.delete-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+/* ===== delete-modal ===== */
+.delete-modal {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  max-width: 350px;
+  width: 90%;
+  text-align: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.delete-modal h2 {
+  margin-top: 0;
+  font-size: 1.2rem;
+  color: #111827;
+}
+
+.delete-modal p {
+  margin: 15px 0;
+  font-size: 1rem;
+  color: #374151;
+}
+
+/* delete-modal actions layout */
+.delete-modal-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
 }

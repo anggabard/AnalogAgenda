@@ -19,8 +19,10 @@ export class UpsertKitComponent {
 
   rowKey: string | null;
   isInsert: boolean = false;
-  loading = false;
+  originalName: string = '';
+  isDeleteModalOpen: boolean = false;
   errorMessage: string | null = null;
+  loading = false;
 
   form = this.fb.group({
     name: ['', Validators.required],
@@ -51,6 +53,7 @@ export class UpsertKitComponent {
       this.dk.getKit(this.rowKey!).subscribe({
         next: (response: DevKitDto) => {
           this.form.patchValue(response);
+          this.originalName = response.name;
         }
       });
     }
@@ -75,7 +78,7 @@ export class UpsertKitComponent {
         }
       });
     } else {
-      
+
       this.dk.updateKit(this.rowKey!, formData).subscribe({
         next: () => {
           this.loading = false;
@@ -99,5 +102,16 @@ export class UpsertKitComponent {
       reader.readAsDataURL(file);
       reader.onload = () => (this.form.patchValue({ imageBase64: reader.result as string }));
     }
+  }
+
+  onDelete() {
+    this.dk.deleteKit(this.rowKey!).subscribe({
+      next: () => {
+        this.router.navigate(['/substances']);
+      },
+      error: (err) => {
+        this.errorMessage = 'There was an error updating the Kit.';
+      }
+    });
   }
 }

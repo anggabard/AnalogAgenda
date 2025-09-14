@@ -67,11 +67,12 @@ namespace Database.Services
             return entities;
         }
 
-        public async Task<T?> GetTableEntryIfExistsAsync<T>(string partitionKey, string rowKey) where T : BaseEntity
+        public async Task<T?> GetTableEntryIfExistsAsync<T>(string rowKey) where T : BaseEntity
         {
-            var table = GetTable(GetTableName<T>());
+            var tableName = GetTableName<T>();
+            var table = GetTable(tableName);
 
-            var entity = await table.GetEntityIfExistsAsync<T>(partitionKey, rowKey);
+            var entity = await table.GetEntityIfExistsAsync<T>(tableName.PartitionKey(), rowKey);
 
             return entity.HasValue ? entity.Value : null;
 
@@ -84,6 +85,38 @@ namespace Database.Services
             var entry = await table.GetEntityIfExistsAsync<BaseEntity>(entity.PartitionKey, entity.RowKey);
 
             return entry.HasValue;
+        }
+
+        public async Task DeleteTableEntryAsync<T>(string rowKey) where T : BaseEntity
+        {
+            var tableName = GetTableName<T>();
+            var table = GetTable(tableName);
+
+            await table.DeleteEntityAsync(tableName.PartitionKey(), rowKey);
+        }
+
+        public async Task DeleteTableEntriesAsync<T>(IEnumerable<T> entities) where T : BaseEntity
+        {
+            if (!entities.Any()) return;
+
+            var tableName = GetTableName<T>();
+            var table = GetTable(tableName);
+
+            foreach (var entity in entities)
+            {
+                await table.DeleteEntityAsync(tableName.PartitionKey(), entity.RowKey);
+            }
+        }
+
+        public async Task DeleteTableEntriesAsync<T>(Expression<Func<T, bool>> predicate) where T : BaseEntity
+        {
+            TableName tableName = GetTableName<T>();
+            var table = GetTable(tableName);
+
+            await foreach (T entity in GetTable(tableName).QueryAsync(predicate))
+            {
+                await table.DeleteEntityAsync(tableName.PartitionKey(), entity.RowKey);
+            }
         }
     }
 }

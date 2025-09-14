@@ -57,7 +57,7 @@
                 placeholder="Description"></textarea>
 
             <div *ngIf="!isInsert" class="expired-toggle-container">
-                <span style="justify-self: end;" >Expired</span>
+                <span style="justify-self: end;">Expired</span>
                 <div class="toggle-border">
                     <input id="toggle" type="checkbox" formControlName="expired">
                     <label for="toggle">
@@ -75,5 +75,21 @@
                 </svg>
             </button>
         </form>
+
+        <!-- Delete Button -->
+        <button *ngIf="!isInsert" class="delete-btn" (click)="isDeleteModalOpen = true">Delete</button>
+
+        <div class="delete-modal-overlay" *ngIf="isDeleteModalOpen" (click)="isDeleteModalOpen = false">
+            <div class="delete-modal" (click)="$event.stopPropagation()">
+                <h2>Confirm Delete</h2>
+                <p>
+                    Are you sure you want to delete <strong>{{ this.originalName }}</strong> Development Kit?
+                </p>
+                <div class="delete-modal-actions">
+                    <button class="cancel-btn" (click)="isDeleteModalOpen = false">Cancel</button>
+                    <button class="delete-btn" (click)="onDelete()">Delete</button>
+                </div>
+            </div>
+        </div>
     </div>
 </div>

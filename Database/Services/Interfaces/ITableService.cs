@@ -11,6 +11,9 @@ public interface ITableService
     TableClient GetTable(TableName table);
     Task<List<T>> GetTableEntriesAsync<T>() where T : BaseEntity;
     Task<List<T>> GetTableEntriesAsync<T>(Expression<Func<T, bool>> predicate) where T : BaseEntity;
-    Task<T?> GetTableEntryIfExistsAsync<T>(string partitionKey, string rowKey) where T : BaseEntity;
+    Task<T?> GetTableEntryIfExistsAsync<T>(string rowKey) where T : BaseEntity;
     Task<bool> EntryExistsAsync(BaseEntity entity);
+    Task DeleteTableEntryAsync<T>(string rowKey) where T : BaseEntity;
+    Task DeleteTableEntriesAsync<T>(IEnumerable<T> entities) where T : BaseEntity;
+    Task DeleteTableEntriesAsync<T>(Expression<Func<T, bool>> predicate) where T : BaseEntity;
 }

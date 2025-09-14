@@ -6,7 +6,6 @@ using Database.DBObjects;
 using Database.DBObjects.Enums;
 using Database.DTOs;
 using Database.Entities;
-using Database.Helpers;
 using Database.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -60,7 +59,7 @@ public class DevKitController(Storage storageCfg, ITableService tablesService, I
     [HttpGet("{rowKey}")]
     public async Task<IActionResult> GetKitByRowKey(string rowKey)
     {
-        var entity = await tablesService.GetTableEntryIfExistsAsync<DevKitEntity>(TableName.DevKits.PartitionKey(), rowKey);
+        var entity = await tablesService.GetTableEntryIfExistsAsync<DevKitEntity>(rowKey);
 
         if (entity == null)
         {
@@ -76,7 +75,7 @@ public class DevKitController(Storage storageCfg, ITableService tablesService, I
         if (updateDto == null)
             return BadRequest("Invalid data.");
 
-        var existingEntity = await tablesService.GetTableEntryIfExistsAsync<DevKitEntity>(TableName.DevKits.PartitionKey(), rowKey);
+        var existingEntity = await tablesService.GetTableEntryIfExistsAsync<DevKitEntity>(rowKey);
         if (existingEntity == null)
             return NotFound();
 
@@ -86,7 +85,7 @@ public class DevKitController(Storage storageCfg, ITableService tablesService, I
         var imageId = existingEntity.ImageId;
         if (!string.IsNullOrEmpty(updateDto.ImageBase64))
         {
-            if(existingEntity.ImageId != Constants.DefaultDevKitImageId)
+            if (existingEntity.ImageId != Constants.DefaultDevKitImageId)
             {
                 await devKitsContainer.DeleteBlobAsync(existingEntity.ImageId.ToString());
             }
@@ -100,6 +99,20 @@ public class DevKitController(Storage storageCfg, ITableService tablesService, I
 
         await devKitsTable.UpdateEntityAsync(updatedEntity, existingEntity.ETag, TableUpdateMode.Replace);
 
+        return NoContent();
+    }
+
+    [HttpDelete("{rowKey}")]
+    public async Task<IActionResult> DeleteKit(string rowKey)
+    {
+        var existingEntity = await tablesService.GetTableEntryIfExistsAsync<DevKitEntity>(rowKey);
+        if (existingEntity == null)
+            return NotFound();
+
+        if (existingEntity.ImageId != Constants.DefaultDevKitImageId)
+            await devKitsContainer.DeleteBlobAsync(existingEntity.ImageId.ToString());
+
+        await devKitsTable.DeleteEntityAsync(existingEntity);
         return NoContent();
     }
 }

@@ -17,7 +17,8 @@ export class NoteTableComponent implements OnInit {
 
   isEditMode = false;
   isNewNote = false;
-  isPreviewOpen = false;
+  isPreviewModalOpen: boolean = false;
+  isDeleteModalOpen: boolean = false;
 
   noteRowKey: string | null = null;
   originalNote: NoteDto | null = null; // Used for discard
@@ -32,7 +33,6 @@ export class NoteTableComponent implements OnInit {
       this.loadNoteFromBackend(this.noteRowKey);
     } else {
       // CREATE MODE
-      this.originalNote = JSON.parse(JSON.stringify(this.note));
       this.isNewNote = true;
       this.isEditMode = true; // allow direct editing when creating
     }
@@ -41,14 +41,14 @@ export class NoteTableComponent implements OnInit {
   /** Simulated backend load */
   loadNoteFromBackend(rowKey: string) {
     this.notesService.getNote(rowKey).subscribe({
-        next: (note: NoteDto) => {
-          this.note = note;
-          this.originalNote = JSON.parse(JSON.stringify(this.note));
-        },
-        error: (err) => {
-          console.error(err);
-        }
-      });
+      next: (note: NoteDto) => {
+        this.note = note;
+        this.originalNote = JSON.parse(JSON.stringify(this.note));
+      },
+      error: (err) => {
+        console.error(err);
+      }
+    });
   }
 
   /** Switch between view and edit */
@@ -82,7 +82,7 @@ export class NoteTableComponent implements OnInit {
 
   /** Save changes to backend */
   saveNote() {
-    if(!this.note.name)
+    if (!this.note.name)
       this.note.name = 'Untitled Note'
 
     if (this.isNewNote) {
@@ -163,5 +163,16 @@ export class NoteTableComponent implements OnInit {
       reader.readAsDataURL(file);
       reader.onload = () => (this.note.imageBase64 = reader.result as string);
     }
+  }
+
+  onDelete() {
+    this.notesService.deleteNote(this.note.rowKey).subscribe({
+      next: () => {
+        this.router.navigate(['/notes']);
+      },
+      error: (err) => {
+        console.error(err);
+      }
+    });
   }
 }

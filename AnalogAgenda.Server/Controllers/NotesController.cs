@@ -6,7 +6,6 @@ using Database.DBObjects;
 using Database.DBObjects.Enums;
 using Database.DTOs;
 using Database.Entities;
-using Database.Helpers;
 using Database.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -88,7 +87,7 @@ public class NotesController(Storage storageCfg, ITableService tablesService, IB
     [HttpGet("{rowKey}")]
     public async Task<IActionResult> GetNoteByRowKey(string rowKey)
     {
-        var noteEntity = await tablesService.GetTableEntryIfExistsAsync<NoteEntity>(TableName.Notes.PartitionKey(), rowKey);
+        var noteEntity = await tablesService.GetTableEntryIfExistsAsync<NoteEntity>(rowKey);
 
         if (noteEntity == null)
         {
@@ -106,7 +105,7 @@ public class NotesController(Storage storageCfg, ITableService tablesService, IB
         if (updateDto == null)
             return BadRequest("Invalid data.");
 
-        var existingEntity = await tablesService.GetTableEntryIfExistsAsync<NoteEntity>(TableName.Notes.PartitionKey(), rowKey);
+        var existingEntity = await tablesService.GetTableEntryIfExistsAsync<NoteEntity>(rowKey);
         if (existingEntity == null)
             return NotFound();
 
@@ -152,11 +151,23 @@ public class NotesController(Storage storageCfg, ITableService tablesService, IB
             existingEntryEntities.Remove(existingEntryEntity);
         }
 
-        foreach (var remainingOldEntry in existingEntryEntities)
-        {
-            await notesEntriesTable.DeleteEntityAsync(remainingOldEntry);
-        }
+        await tablesService.DeleteTableEntriesAsync(existingEntryEntities);
 
+        return NoContent();
+    }
+
+    [HttpDelete("{rowKey}")]
+    public async Task<IActionResult> DeleteNote(string rowKey)
+    {
+        var existingEntity = await tablesService.GetTableEntryIfExistsAsync<NoteEntity>(rowKey);
+        if (existingEntity == null)
+            return NotFound();
+
+        if (existingEntity.ImageId != Constants.DefaultNoteImageId)
+            await notesContainer.DeleteBlobAsync(existingEntity.ImageId.ToString());
+
+        await tablesService.DeleteTableEntryAsync<NoteEntity>(existingEntity.RowKey);
+        await tablesService.DeleteTableEntriesAsync<NoteEntryEntity>(entry => entry.NoteRowKey == existingEntity.RowKey);
         return NoContent();
     }
 }

@@ -24,4 +24,8 @@ export class DevKitService extends BaseService {
   updateKit(rowKey: string , updateKit: DevKitDto) {
     return this.put(rowKey, updateKit);
   }
+
+  deleteKit(rowKey: string){
+    return this.delete(rowKey);
+  }
 }

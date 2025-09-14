@@ -36,6 +36,14 @@ export class BaseService {
         }) as Observable<T>;
     }
 
+    delete<T>(path: string, options?: any): Observable<T> {
+        return this.#http.delete<T>(this.baseUrl + this.ensureLeadingSlash(path), {
+            ...this.defaultOptions,
+            ...options,
+            observe: 'body'
+        }) as Observable<T>;
+    }
+
     private ensureLeadingSlash(input: string): string {
         const trimmed = input.trim();
         if (trimmed.startsWith('/')) {
