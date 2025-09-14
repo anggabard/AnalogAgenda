@@ -107,8 +107,6 @@ button {
   border: none;
   border-radius: 6px;
   font-size: 1rem;
-  cursor: pointer;
-  transition: transform 0.15s ease;
 }
 
 .btn-primary {
@@ -350,10 +348,6 @@ button {
   transition: background 0.2s ease;
 }
 
-.close-btn:hover {
-  background: #dc2626;
-}
-
 /* --- SUBMIT BUTTON --- */
 .form-actions {
   display: flex;
@@ -367,12 +361,6 @@ button {
   border: none;
   border-radius: 6px;
   font-size: 1rem;
-  cursor: pointer;
-  transition: transform 0.15s ease;
-}
-
-button:hover {
-  transform: scale(1.03);
 }
 
 .btn-primary {
@@ -390,8 +378,6 @@ button:hover {
   color: white;
   border: none;
   border-radius: 6px;
-  cursor: pointer;
-  transition: transform 0.15s ease;
 }
 
 .cancel-btn {
@@ -405,11 +391,6 @@ button:hover {
   border-radius: 6px;
   cursor: pointer;
   transition: background-color 0.2s ease;
-}
-
-.cancel-btn:hover {
-  background-color: #d1d5db;
-  /* Tailwind gray-300 */
 }
 
 /* ===== delete-modal OVERLAY ===== */

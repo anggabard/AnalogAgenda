@@ -37,3 +37,13 @@ body {
   background-repeat: repeat;
   color: #333;
 }
+
+button {
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+button:hover:not(:disabled) {
+  transform: scale(1.03);
+}
+
