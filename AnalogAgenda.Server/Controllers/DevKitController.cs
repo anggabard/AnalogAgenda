@@ -71,7 +71,7 @@ public class DevKitController(Storage storageCfg, ITableService tablesService, I
     }
 
     [HttpPut("{rowKey}")]
-    public async Task<IActionResult> UpdateProduct(string rowKey, [FromBody] DevKitDto updateDto)
+    public async Task<IActionResult> UpdateKit(string rowKey, [FromBody] DevKitDto updateDto)
     {
         if (updateDto == null)
             return BadRequest("Invalid data.");

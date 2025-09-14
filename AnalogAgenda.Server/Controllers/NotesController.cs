@@ -100,36 +100,63 @@ public class NotesController(Storage storageCfg, ITableService tablesService, IB
         return Ok(noteEntity.ToDTO(storageCfg.AccountName, entryEntities.OrderBy(entry => entry.Time).ToList()));
     }
 
-    //[HttpPut("{rowKey}")]
-    //public async Task<IActionResult> UpdateProduct(string rowKey, [FromBody] NotesDto updateDto)
-    //{
-    //    if (updateDto == null)
-    //        return BadRequest("Invalid data.");
+    [HttpPut("{rowKey}")]
+    public async Task<IActionResult> UpdateNote(string rowKey, [FromBody] NoteDto updateDto)
+    {
+        if (updateDto == null)
+            return BadRequest("Invalid data.");
 
-    //    var existingEntity = await tablesService.GetTableEntryIfExists<NotesEntity>(TableName.Notess.PartitionKey(), rowKey);
-    //    if (existingEntity == null)
-    //        return NotFound();
+        var existingEntity = await tablesService.GetTableEntryIfExistsAsync<NoteEntity>(TableName.Notes.PartitionKey(), rowKey);
+        if (existingEntity == null)
+            return NotFound();
 
-    //    var updatedEntity = mapper.Map<NotesEntity>(updateDto);
-    //    updatedEntity.CreatedDate = existingEntity.CreatedDate;
+        var updatedNoteEntity = updateDto.ToNoteEntity();
+        updatedNoteEntity.CreatedDate = existingEntity.CreatedDate;
 
-    //    var imageId = existingEntity.ImageId;
-    //    if (!string.IsNullOrEmpty(updateDto.ImageBase64))
-    //    {
-    //        if(existingEntity.ImageId != Constants.DefaultNotesImageId)
-    //        {
-    //            await NotessContainer.DeleteBlobAsync(existingEntity.ImageId.ToString());
-    //        }
+        var imageId = existingEntity.ImageId;
+        if (!string.IsNullOrEmpty(updateDto.ImageBase64))
+        {
+            if (existingEntity.ImageId != Constants.DefaultNoteImageId)
+            {
+                await notesContainer.DeleteBlobAsync(existingEntity.ImageId.ToString());
+            }
 
-    //        imageId = Guid.NewGuid();
-    //        await BlobImageHelper.UploadBase64ImageWithContentTypeAsync(NotessContainer, updateDto.ImageBase64, imageId);
-    //    }
+            imageId = Guid.NewGuid();
+            await BlobImageHelper.UploadBase64ImageWithContentTypeAsync(notesContainer, updateDto.ImageBase64, imageId);
+        }
 
-    //    updatedEntity.ImageId = imageId;
-    //    updatedEntity.UpdatedDate = DateTime.UtcNow;
+        updatedNoteEntity.ImageId = imageId;
+        updatedNoteEntity.UpdatedDate = DateTime.UtcNow;
 
-    //    await NotessTable.UpdateEntityAsync(updatedEntity, existingEntity.ETag, TableUpdateMode.Replace);
+        await notesTable.UpdateEntityAsync(updatedNoteEntity, existingEntity.ETag, TableUpdateMode.Replace);
 
-    //    return NoContent();
-    //}
+        var existingEntryEntities = await tablesService.GetTableEntriesAsync<NoteEntryEntity>(entry => entry.NoteRowKey == rowKey);
+        foreach (var noteEntryDto in updateDto.Entries)
+        {
+            var updatedNoteEntryEntity = noteEntryDto.ToEntity(rowKey);
+
+            if (string.IsNullOrEmpty(noteEntryDto.RowKey))
+            {
+                await notesEntriesTable.AddEntityAsync(updatedNoteEntryEntity);
+                continue;
+            }
+
+            var existingEntryEntity = existingEntryEntities.FirstOrDefault(existingEntry => existingEntry.RowKey == noteEntryDto.RowKey);
+            if (existingEntryEntity == null)
+                continue;
+
+            updatedNoteEntryEntity.CreatedDate = existingEntryEntity.CreatedDate;
+            updatedNoteEntryEntity.UpdatedDate = DateTime.UtcNow;
+            
+            await notesEntriesTable.UpdateEntityAsync(updatedNoteEntryEntity, existingEntryEntity.ETag, TableUpdateMode.Replace);
+            existingEntryEntities.Remove(existingEntryEntity);
+        }
+
+        foreach (var remainingOldEntry in existingEntryEntities)
+        {
+            await notesEntriesTable.DeleteEntityAsync(remainingOldEntry);
+        }
+
+        return NoContent();
+    }
 }

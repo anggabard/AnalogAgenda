@@ -134,7 +134,7 @@ export class NoteTableComponent implements OnInit {
     var copyEntry = JSON.parse(JSON.stringify(originalEntry));
     copyEntry.rowKey = '';
 
-    this.note.entries.splice(index, 0, copyEntry);
+    this.note.entries.splice(index + 1, 0, copyEntry);
   }
 
   /** Validate that time cannot be lower than the previous row and higher that the next*/
