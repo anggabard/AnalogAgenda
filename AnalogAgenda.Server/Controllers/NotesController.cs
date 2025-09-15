@@ -12,7 +12,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace AnalogAgenda.Server.Controllers;
 
-[ApiController, Route("[controller]"), Authorize]
+[ApiController, Route("api/[controller]"), Authorize]
 public class NotesController(Storage storageCfg, ITableService tablesService, IBlobService blobsService) : ControllerBase
 {
     private readonly TableClient notesTable = tablesService.GetTable(TableName.Notes);

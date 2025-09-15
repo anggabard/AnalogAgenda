@@ -9,7 +9,7 @@ export class BaseService {
     defaultOptions = { withCredentials: true };
 
     constructor(scope: string) {
-        this.baseUrl = environment.apiUrl + '/' + scope;
+        this.baseUrl = environment.apiUrl + '/api/' + scope;
     }
 
     get<T>(path: string, options?: any): Observable<T> {

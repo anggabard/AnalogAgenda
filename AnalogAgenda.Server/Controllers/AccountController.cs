@@ -12,7 +12,7 @@ using System.Security.Claims;
 
 namespace AnalogAgenda.Server.Controllers;
 
-[ApiController, Route("[controller]")]
+[ApiController, Route("api/[controller]")]
 public class AccountController(ITableService tables) : ControllerBase
 {
     [HttpPost("login")]
