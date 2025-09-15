@@ -1,5 +1,4 @@
 ﻿using AnalogAgenda.Server.Identity;
-using Database.DBObjects.Enums;
 using Database.DTOs;
 using Database.Entities;
 using Database.Helpers;
@@ -18,13 +17,12 @@ public class AccountController(ITableService tables) : ControllerBase
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginDto login)
     {
-        var users = tables.GetTable(TableName.Users);
-        var result = await users.GetEntityIfExistsAsync<UserEntity>(
-                         TableName.Users.PartitionKey(), login.Email.ToLowerInvariant());
+        var users = await tables.GetTableEntriesAsync<UserEntity>(user => user.Email == login.Email.ToLowerInvariant());
 
-        if (!result.HasValue) return Unauthorized("Bad creds");
 
-        var user = result.Value!;
+        if (users.Count == 0) return Unauthorized("Bad creds");
+
+        var user = users.Single();
 
         if (!PasswordHasher.VerifyPassword(login.Password, user.PasswordHash))
             return Unauthorized("Bad creds");
@@ -32,8 +30,8 @@ public class AccountController(ITableService tables) : ControllerBase
         var claims = new[]
        {
             new Claim(ClaimTypes.NameIdentifier, user.RowKey),
-            new Claim(ClaimTypes.Email,          user.RowKey),
-            new Claim(ClaimTypes.Name,           user.Username)
+            new Claim(ClaimTypes.Email,          user.Email),
+            new Claim(ClaimTypes.Name,           user.Name)
         };
         var id = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
 

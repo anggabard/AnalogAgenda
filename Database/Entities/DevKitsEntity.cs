@@ -34,6 +34,8 @@ public class DevKitEntity : BaseEntity
 
     protected override int RowKeyLenght() => 8;
 
+    public DateTime GetExpirationDate() => MixedOn.AddDays(7 * ValidForWeeks);
+
     public DevKitDto ToDTO(string accountName)
     {
         return new DevKitDto()

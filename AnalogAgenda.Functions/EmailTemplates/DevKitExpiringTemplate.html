@@ -1,0 +1,88 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset='UTF-8'>
+    <title>Film Development Kit Expiring</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f8f9fa;
+            color: #333;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: auto;
+            background: #fff;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+
+        .header {
+            background-color: #6c63ff;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+            .header h1 {
+                margin: 0;
+                font-size: 24px;
+            }
+
+        .content {
+            padding: 20px;
+        }
+
+            .content img {
+                max-width: 100%;
+                border-radius: 8px;
+            }
+
+        .button {
+            display: inline-block;
+            background-color: #6c63ff;
+            color: white;
+            text-decoration: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+            font-weight: bold;
+        }
+
+        .footer {
+            font-size: 12px;
+            text-align: center;
+            padding: 10px;
+            color: #888;
+        }
+    </style>
+</head>
+<body>
+    <div class='container'>
+        <div class='header'>
+            <h1>Film Development Kit Expiring Soon!</h1>
+        </div>
+        <div class='content'>
+            <p>Hello <strong>Analog Brother</strong>,</p>
+            <p>
+                Your <strong>{{Name}}</strong> for <strong>{{Type}}</strong> film development kit, purchased on <strong>{{PurchasedOn}}</strong>
+                by <strong>{{PurchasedBy}}</strong>, is about to expire in <strong>{{DaysUntilExpiry}} days</strong>.
+            </p>
+
+            <p>You currently have <strong>{{RemainingFilms}}</strong> film(s) left in this kit.</p>
+
+            <img src='https://analogagendastorage.blob.core.windows.net/devkits/{{ImageId}}' alt='Dev Kit Image' />
+
+            <p>Click below to manage your kit or purchase a new one:</p>
+
+            <a class='button' href='https://analog-agenda.azurewebsites.net/substances/{{RowKey}}'>Manage Your Kit</a>
+        </div>
+        <div class='footer'>
+            <p>&copy; {{Year}} AnalogAgenda. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>
