@@ -6,6 +6,7 @@ on:
     paths-ignore:
       - "AnalogAgenda.Functions/**"
       - "AnalogAgenda.EmailSender/**"
+      - ".github/workflows/deploy-azure-function.yml"
   workflow_dispatch:
 
 env:
