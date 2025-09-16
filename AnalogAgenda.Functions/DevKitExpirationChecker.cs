@@ -10,9 +10,9 @@ namespace AnalogAgenda.Functions
     {
         private readonly ILogger _logger = loggerFactory.CreateLogger<DevKitExpirationChecker>();
 
-        //At 09:00 AM, only on Monday
+        //On the 1st, 15th of the month
         [Function("DevKitExpirationChecker")]
-        public async Task Run([TimerTrigger("0 * * * * *")] TimerInfo myTimer)
+        public async Task Run([TimerTrigger("0 0 0 1,15 * *")] TimerInfo myTimer)
         {
             var now = DateTime.UtcNow;
             _logger.LogInformation($"C# Timer trigger function executed at: {now}");
