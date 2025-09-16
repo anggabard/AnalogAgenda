@@ -22,10 +22,10 @@ jobs:
       - name: Setup .NET SDK
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: ${{ env.FUNCTIONS_SLN }}
+          dotnet-version: ${{ env.DOTNET_VERSION }}
 
       - name: Restore dependencies
-        run: dotnet restore ${{ env.DOTNET_VERSION }}
+        run: dotnet restore ${{ env.FUNCTIONS_SLN }}
 
       - name: Build project
         run: dotnet build ${{ env.FUNCTIONS_SLN }} --configuration ${{ env.CONFIGURATION }} --no-restore
