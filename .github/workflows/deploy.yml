@@ -3,6 +3,9 @@ name: Build & Deploy AnalogAgenda
 on:
   push:
     branches: [ main ]
+    paths-ignore:
+      - "AnalogAgenda.Functions/**"
+      - "AnalogAgenda.EmailSender/**"
   workflow_dispatch:
 
 env:
@@ -42,16 +45,16 @@ jobs:
           | Set-Content $filePath
 
     - name: Restore
-      run: dotnet restore ${{ env.WORKING_DIRECTORY }}
+      run: dotnet restore ${{ env.WORKING_DIRECTORY }}/AnalogAgenda.sln
 
     - name: Build
-      run: dotnet build ${{ env.WORKING_DIRECTORY }} --configuration ${{ env.CONFIGURATION }} --no-restore
+      run: dotnet build ${{ env.WORKING_DIRECTORY }}/AnalogAgenda.sln --configuration ${{ env.CONFIGURATION }} --no-restore
 
     - name: Run unit tests
       run: dotnet test ${{ env.WORKING_DIRECTORY }}/Tests/Database.Tests/Database.Tests.csproj --configuration ${{ env.CONFIGURATION }} --no-build --verbosity normal
 
     - name: Publish
-      run: dotnet publish ${{ env.WORKING_DIRECTORY }} --configuration ${{ env.CONFIGURATION }} --no-build --output ${{ env.PUBLISH_DIR }}
+      run: dotnet publish ${{ env.WORKING_DIRECTORY }}/AnalogAgenda.sln --configuration ${{ env.CONFIGURATION }} --no-build --output ${{ env.PUBLISH_DIR }}
 
     - name: Zip publish output
       run: Compress-Archive -Path "${{ env.PUBLISH_DIR }}\*" -DestinationPath "${{ env.PUBLISH_DIR }}.zip"
