@@ -3,6 +3,10 @@ name: Deploy Azure Function
 on:
   workflow_dispatch:
 
+permissions:
+  id-token: write
+  contents: read
+
 env:
   AZURE_FUNCTION_NAME: AnalogAgenda
   CONFIGURATION: Release
