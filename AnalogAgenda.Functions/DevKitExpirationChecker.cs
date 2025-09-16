@@ -12,7 +12,7 @@ namespace AnalogAgenda.Functions
 
         //At 09:00 AM, only on Monday
         [Function("DevKitExpirationChecker")]
-        public async Task Run([TimerTrigger("0 9 * * 1")] TimerInfo myTimer)
+        public async Task Run([TimerTrigger("*/5 * * * *")] TimerInfo myTimer)
         {
             var now = DateTime.UtcNow;
             _logger.LogInformation($"C# Timer trigger function executed at: {now}");
