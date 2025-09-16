@@ -1,4 +1,4 @@
-﻿namespace AnalogAgenda.EmailSender;
+﻿namespace Configuration.Sections;
 
 public class Smtp
 {

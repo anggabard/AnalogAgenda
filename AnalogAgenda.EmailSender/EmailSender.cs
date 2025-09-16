@@ -1,4 +1,5 @@
-﻿using System.Net;
+﻿using Configuration.Sections;
+using System.Net;
 using System.Net.Mail;
 
 namespace AnalogAgenda.EmailSender;

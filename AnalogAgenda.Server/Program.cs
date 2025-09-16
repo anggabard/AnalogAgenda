@@ -1,4 +1,4 @@
-using AnalogAgenda.Server.Configuration;
+using Configuration;
 using Database.Services;
 using Database.Services.Interfaces;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -9,7 +9,8 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-builder.Services.AddConfigBindings();
+builder.Services.AddAzureAdConfigBinding();
+builder.Services.AddStorageConfigBinding();
 
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(opt =>
