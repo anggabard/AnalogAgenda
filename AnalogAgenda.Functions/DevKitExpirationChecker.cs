@@ -10,12 +10,12 @@ namespace AnalogAgenda.Functions
     {
         private readonly ILogger _logger = loggerFactory.CreateLogger<DevKitExpirationChecker>();
 
-        //On the 1st, 15th of the month
+        //On the 1st, 15th of the month at 11:00 AM
         [Function("DevKitExpirationChecker")]
-        public async Task Run([TimerTrigger("0 0 0 1,15 * *")] TimerInfo myTimer)
+        public async Task Run([TimerTrigger("0 0 11 1,15 * *")] TimerInfo myTimer)
         {
             var now = DateTime.UtcNow;
-            _logger.LogInformation($"C# Timer trigger function executed at: {now}");
+            _logger.LogInformation($"DevKitExpirationChecker function executed at: {now}");
             var oneMonthLater = now.AddMonths(1);
 
             var entities = await tablesService.GetTableEntriesAsync<DevKitEntity>(kit => !kit.Expired);
@@ -33,7 +33,7 @@ namespace AnalogAgenda.Functions
 
                 await emailSender.SendEmailAsync(
                     receivers,
-                    "Your C41 Dev Kit is about to expire!",
+                    "Your Film Development Kit is about to expire!",
                     html
                 );
             }

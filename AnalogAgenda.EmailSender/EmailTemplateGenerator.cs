@@ -18,4 +18,21 @@ public class EmailTemplateGenerator
             .Replace("{{DaysUntilExpiry}}", daysUntilExpiry.ToString())
             .Replace("{{Year}}", DateTime.UtcNow.Year.ToString());
     }
+
+    public static string GetExpiredDevKit(string name, string type, DateTime purchasedOn, string purchasedBy, DateTime kitExpirationDate, int remainingFilms, Guid imageId, string rowKey)
+    {
+        var templatePath = Path.Combine(Directory.GetCurrentDirectory(), "EmailTemplates", "DevKitExpiredTemplate.html");
+        string template = File.ReadAllText(templatePath);
+
+        return template
+            .Replace("{{Name}}", name)
+            .Replace("{{Type}}", type)
+            .Replace("{{PurchasedOn}}", purchasedOn.ToString("MMMM dd, yyyy"))
+            .Replace("{{PurchasedBy}}", purchasedBy)
+            .Replace("{{ExpirationDate}}", kitExpirationDate.ToString("MMMM dd, yyyy"))
+            .Replace("{{RemainingFilms}}", remainingFilms.ToString())
+            .Replace("{{ImageId}}", imageId.ToString())
+            .Replace("{{RowKey}}", rowKey)
+            .Replace("{{Year}}", DateTime.UtcNow.Year.ToString());
+    }
 }

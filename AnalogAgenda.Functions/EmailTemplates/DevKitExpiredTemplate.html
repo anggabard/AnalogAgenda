@@ -21,7 +21,7 @@
         }
 
         .header {
-            background-color: #6c63ff;
+            background-color: #ff4242;
             color: white;
             padding: 20px;
             text-align: center;
@@ -64,16 +64,16 @@
 <body>
     <div class='container'>
         <div class='header'>
-            <h1>Film Development Kit Expiring Soon!</h1>
+            <h1>Film Development Kit Expired!</h1>
         </div>
         <div class='content'>
             <p>Hello <strong>Analog Brother</strong>,</p>
             <p>
                 Your <strong>{{Name}}</strong> for <strong>{{Type}}</strong> film development kit, purchased on <strong>{{PurchasedOn}}</strong>
-                by <strong>{{PurchasedBy}}</strong>, is about to expire in <strong>{{DaysUntilExpiry}} days</strong>.
+                by <strong>{{PurchasedBy}}</strong>, has expired on <strong>{{ExpirationDate}}</strong>.
             </p>
 
-            <p>You currently have <strong>{{RemainingFilms}}</strong> film(s) left in this kit.</p>
+            <p>You had <strong>{{RemainingFilms}}</strong> film(s) left in this kit.</p>
 
             <img src='https://analogagendastorage.blob.core.windows.net/devkits/{{ImageId}}' alt='Dev Kit Image' />
 
