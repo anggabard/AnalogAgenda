@@ -5,7 +5,8 @@ namespace AnalogAgenda.Server.Identity
     public enum AllowedClaims
     {
         Name,
-        Email
+        Email,
+        RowKey
     }
 
     public static class ClaimsPrincipalExtensions
@@ -22,6 +23,8 @@ namespace AnalogAgenda.Server.Identity
 
         public static string Email(this ClaimsPrincipal principal) => GetClaim(principal, AllowedClaims.Email);
 
+        public static string RowKey(this ClaimsPrincipal principal) => GetClaim(principal, AllowedClaims.RowKey);
+
         private static void CheckClaimsPrincipal(ClaimsPrincipal principal)
         {
             if (principal == null) throw new NullReferenceException("Claims Principal is null.");
@@ -31,6 +34,7 @@ namespace AnalogAgenda.Server.Identity
         {
             AllowedClaims.Name => ClaimTypes.Name,
             AllowedClaims.Email => ClaimTypes.Email,
+            AllowedClaims.RowKey => ClaimTypes.NameIdentifier,
             _ => throw new Exception($"'{claim}' is not allowed."),
         };
     }

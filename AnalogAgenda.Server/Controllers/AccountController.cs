@@ -1,4 +1,5 @@
 ﻿using AnalogAgenda.Server.Identity;
+using Database.DBObjects.Enums;
 using Database.DTOs;
 using Database.Entities;
 using Database.Helpers;
@@ -19,7 +20,6 @@ public class AccountController(ITableService tables) : ControllerBase
     {
         var users = await tables.GetTableEntriesAsync<UserEntity>(user => user.Email == login.Email.ToLowerInvariant());
 
-
         if (users.Count == 0) return Unauthorized("Bad creds");
 
         var user = users.Single();
@@ -28,7 +28,7 @@ public class AccountController(ITableService tables) : ControllerBase
             return Unauthorized("Bad creds");
 
         var claims = new[]
-       {
+        {
             new Claim(ClaimTypes.NameIdentifier, user.RowKey),
             new Claim(ClaimTypes.Email,          user.Email),
             new Claim(ClaimTypes.Name,           user.Name)
@@ -43,13 +43,35 @@ public class AccountController(ITableService tables) : ControllerBase
         return Ok();
     }
 
+    [Authorize]
+    [HttpPost("changePassword")]
+    public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordDto dto)
+    {
+        var usersTable = tables.GetTable(TableName.Users);
+        var result = await usersTable.GetEntityIfExistsAsync<UserEntity>(TableName.Users.PartitionKey(), User.RowKey());
+
+        if (!result.HasValue) return Problem("Something went terribly wrong.");
+        var user = result.Value!;
+
+        if (!PasswordHasher.VerifyPassword(dto.OldPassword, user.PasswordHash))
+            return Unauthorized("Bad creds");
+
+        user.PasswordHash = PasswordHasher.HashPassword(dto.NewPassword);
+        user.UpdatedDate = DateTime.UtcNow;
+
+        await usersTable.UpdateEntityAsync(user, user.ETag);
+
+        return Ok();
+    }
+
     [HttpGet("whoAmI")]
     public IActionResult Me()
     {
         if (!User.IsAuthenticated())
             return Unauthorized();
 
-        return Ok(new IdentityDto {
+        return Ok(new IdentityDto
+        {
             Username = User.Name(),
             Email = User.Email()
         });

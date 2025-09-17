@@ -13,6 +13,10 @@ export class AccountService extends BaseService {
     return this.post('login', {email, password});
   }
 
+  changePassword(oldPassword: string, newPassword: string) {
+    return this.post('changePassword', {oldPassword, newPassword});
+  }
+
   isAuth() {
     return this.get('isAuth');
   }

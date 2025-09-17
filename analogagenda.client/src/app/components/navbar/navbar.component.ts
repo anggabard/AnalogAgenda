@@ -43,6 +43,11 @@ export class NavbarComponent {
     this.closeMobileSidebar();
   }
 
+  onChangePasswordClick() {
+    this.router.navigate(['/change-password']);
+    this.closeMobileSidebar();
+  }
+
   onLogoutClick() {
     this.accountService.logout().subscribe({ next: () => this.router.navigate(['/login']), error: () => this.router.navigate(['/login']) });
   }
