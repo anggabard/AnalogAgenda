@@ -57,10 +57,6 @@ jobs:
         dotnet test ${{ env.WORKING_DIRECTORY }}/Tests/Database.Tests/Database.Tests.csproj --configuration ${{ env.CONFIGURATION }} --no-build --verbosity normal
         dotnet test ${{ env.WORKING_DIRECTORY }}/Tests/AnalogAgenda.Server.Tests/AnalogAgenda.Server.Tests.csproj --configuration ${{ env.CONFIGURATION }} --no-build --verbosity normal
 
-    - name: Install frontend dependencies
-      working-directory: ${{ env.WORKING_DIRECTORY }}/analogagenda.client
-      run: npm ci
-
     - name: Run frontend tests
       working-directory: ${{ env.WORKING_DIRECTORY }}/analogagenda.client
       run: npm run test -- --watch=false --browsers=ChromeHeadless

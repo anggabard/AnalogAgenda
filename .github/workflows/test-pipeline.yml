@@ -104,6 +104,9 @@ jobs:
         name: frontend-build
         path: analogagenda.client/
         
+    - name: Install Angular CLI
+      run: npm install -g @angular/cli
+        
     - name: Run frontend tests
       working-directory: ./analogagenda.client
       run: npm test -- --watch=false --browsers=ChromeHeadless --code-coverage
