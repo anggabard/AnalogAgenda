@@ -17,6 +17,7 @@ The application has two test suites:
 
 **Features**:
 - Runs on Windows runners for consistency with development environment
+- Only builds and runs test projects (not entire solution) for efficiency
 - Parallel execution of backend and frontend tests
 - Test result artifacts and code coverage
 - Beautiful test summary in GitHub UI
@@ -28,7 +29,15 @@ The application has two test suites:
 
 #### Backend Tests Only
 ```bash
-# From project root
+# From project root - Test projects only (faster)
+dotnet restore Tests/AnalogAgenda.Server.Tests/AnalogAgenda.Server.Tests.csproj
+dotnet restore Tests/Database.Tests/Database.Tests.csproj
+dotnet build Tests/AnalogAgenda.Server.Tests/AnalogAgenda.Server.Tests.csproj --no-restore
+dotnet build Tests/Database.Tests/Database.Tests.csproj --no-restore
+dotnet test Tests/AnalogAgenda.Server.Tests/AnalogAgenda.Server.Tests.csproj --no-build --verbosity normal
+dotnet test Tests/Database.Tests/Database.Tests.csproj --no-build --verbosity normal
+
+# Or entire solution (slower)
 dotnet restore
 dotnet build --no-restore
 dotnet test --no-build --verbosity normal
@@ -75,7 +84,7 @@ npm test -- --watch=false --browsers=ChromeHeadless
 ### Typical Execution Times
 - **Backend Tests**: ~3-5 seconds (128 tests)
 - **Frontend Tests**: ~0.4 seconds (67 tests)
-- **Total Pipeline**: ~2-3 minutes (including setup)
+- **Total Pipeline**: ~1-2 minutes (including setup, optimized for test projects only)
 
 ### Parallel Execution
 Both CI/CD pipelines run backend and frontend tests in parallel for optimal speed.

@@ -17,14 +17,23 @@ jobs:
       with:
         dotnet-version: '8.0.x'
         
-    - name: Restore backend dependencies
-      run: dotnet restore
+    - name: Restore test projects
+      run: |
+        dotnet restore Tests/AnalogAgenda.Server.Tests/AnalogAgenda.Server.Tests.csproj
+        dotnet restore Tests/Database.Tests/Database.Tests.csproj
+      shell: pwsh
       
-    - name: Build backend
-      run: dotnet build --no-restore
+    - name: Build test projects
+      run: |
+        dotnet build Tests/AnalogAgenda.Server.Tests/AnalogAgenda.Server.Tests.csproj --no-restore
+        dotnet build Tests/Database.Tests/Database.Tests.csproj --no-restore
+      shell: pwsh
       
     - name: Run backend tests
-      run: dotnet test --no-build --verbosity normal --logger trx --results-directory TestResults
+      run: |
+        dotnet test Tests/AnalogAgenda.Server.Tests/AnalogAgenda.Server.Tests.csproj --no-build --verbosity normal --logger trx --results-directory TestResults
+        dotnet test Tests/Database.Tests/Database.Tests.csproj --no-build --verbosity normal --logger trx --results-directory TestResults
+      shell: pwsh
       
     - name: Upload backend test results
       uses: actions/upload-artifact@v4
