@@ -13,6 +13,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{02EA681E
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Database.Tests", "Tests\Database.Tests\Database.Tests.csproj", "{2998E87F-759E-47AD-8717-BD7C78E7467F}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AnalogAgenda.Server.Tests", "Tests\AnalogAgenda.Server.Tests\AnalogAgenda.Server.Tests.csproj", "{9037EC2B-2C95-4138-A792-26EE7C6F73BC}"
+EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Configuration", "Configuration\Configuration.csproj", "{71CA44D8-B228-450B-9586-4A8953B0A3B6}"
 EndProject
 Global
@@ -39,6 +41,10 @@ Global
 		{2998E87F-759E-47AD-8717-BD7C78E7467F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{2998E87F-759E-47AD-8717-BD7C78E7467F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{2998E87F-759E-47AD-8717-BD7C78E7467F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9037EC2B-2C95-4138-A792-26EE7C6F73BC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9037EC2B-2C95-4138-A792-26EE7C6F73BC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9037EC2B-2C95-4138-A792-26EE7C6F73BC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9037EC2B-2C95-4138-A792-26EE7C6F73BC}.Release|Any CPU.Build.0 = Release|Any CPU
 		{71CA44D8-B228-450B-9586-4A8953B0A3B6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{71CA44D8-B228-450B-9586-4A8953B0A3B6}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{71CA44D8-B228-450B-9586-4A8953B0A3B6}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -49,6 +55,7 @@ Global
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{2998E87F-759E-47AD-8717-BD7C78E7467F} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
+		{9037EC2B-2C95-4138-A792-26EE7C6F73BC} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {B6169003-EE34-4C93-BFB5-7A1E70B3237B}

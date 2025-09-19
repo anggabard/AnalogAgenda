@@ -1,14 +1,23 @@
+using AnalogAgenda.Server.Middleware;
+using AnalogAgenda.Server.Validators;
 using Configuration;
 using Database.Services;
 using Database.Services.Interfaces;
+using FluentValidation;
+using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Authentication.Cookies;
 
 var builder = WebApplication.CreateBuilder(args);
 
-
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+// Add FluentValidation
+builder.Services.AddFluentValidationAutoValidation();
+builder.Services.AddFluentValidationClientsideAdapters();
+builder.Services.AddScoped<IValidator<Database.DTOs.LoginDto>, LoginDtoValidator>();
+builder.Services.AddScoped<IValidator<Database.DTOs.ChangePasswordDto>, ChangePasswordDtoValidator>();
 builder.Services.AddAzureAdConfigBinding();
 builder.Services.AddStorageConfigBinding();
 
@@ -55,6 +64,15 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
+// Add global exception handling middleware early in the pipeline
+app.UseMiddleware<GlobalExceptionMiddleware>();
+
+// Add rate limiting middleware for authentication endpoints
+app.UseMiddleware<RateLimitingMiddleware>();
+
+// Add security headers middleware
+app.UseMiddleware<SecurityHeadersMiddleware>();
+
 app.UseDefaultFiles();
 app.UseStaticFiles();
 
@@ -75,3 +93,6 @@ app.MapControllers();
 app.MapFallbackToFile("/index.html");
 
 app.Run();
+
+// Make the implicit Program class public for testing
+public partial class Program { }
