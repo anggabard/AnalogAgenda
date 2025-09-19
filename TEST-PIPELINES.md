@@ -17,11 +17,11 @@ The application has two test suites:
 
 **Features**:
 - Runs on Windows runners for consistency with development environment
-- 3-job pipeline: Build → Backend Tests + Frontend Tests (parallel)
-- Shared build step handles SPA compilation once
-- Independent test jobs run in parallel after build
+- Single test job: Build → Frontend Tests → Backend Tests (sequential)
+- No artifact transfers between jobs (maximum efficiency)
+- All 195 tests (128 backend + 67 frontend) in one streamlined job
 - Test result artifacts and code coverage
-- Beautiful test summary in GitHub UI
+- Beautiful test summary in GitHub UI  
 - Fails pipeline if any tests fail
 
 ## 💻 Local Test Execution
@@ -83,19 +83,17 @@ npm test -- --watch=false --browsers=ChromeHeadless
 ## ⚡ Performance
 
 ### Pipeline Structure
-1. **Build Job**: Restores and builds test projects (includes SPA build)
-2. **Backend Tests Job**: Downloads build artifacts, runs .NET tests  
-3. **Frontend Tests Job**: Downloads build artifacts, runs Angular tests
-4. **Test Summary Job**: Aggregates results from both test jobs
+1. **Test All Job**: Build → Frontend Tests → Backend Tests (all sequential in one job)
+2. **Test Summary Job**: Downloads artifacts and provides beautiful GitHub summary
 
 ### Typical Execution Times
-- **Build Job**: ~1-2 minutes (includes SPA compilation)
+- **Build Phase**: ~1-2 minutes (SPA build, includes npm install)
+- **Frontend Tests**: ~30-45 seconds (67 tests with coverage)
 - **Backend Tests**: ~10-15 seconds (128 tests)
-- **Frontend Tests**: ~30-45 seconds (67 tests)  
-- **Total Pipeline**: ~2-3 minutes (build sequential, tests parallel)
+- **Total Pipeline**: ~2.5-3 minutes (sequential execution, zero artifact transfer time)
 
-### Parallel Execution
-After the shared build job completes, backend and frontend test jobs run in parallel for optimal speed. Build artifacts are shared between jobs to avoid rebuilding.
+### Sequential Execution
+All tests run sequentially in a single job for maximum efficiency. No job coordination overhead, no artifact transfers, no waiting between steps - just build once and test everything in the same environment!
 
 ## 🐛 Troubleshooting
 

@@ -4,8 +4,8 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
-    name: Build Projects
+  test-all:
+    name: Build + All Tests
     runs-on: windows-latest
     
     steps:
@@ -32,85 +32,23 @@ jobs:
         dotnet build Tests/Database.Tests/Database.Tests.csproj --no-restore
       shell: pwsh
       
-    - name: Upload backend build artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: backend-build
-        path: |
-          Tests/AnalogAgenda.Server.Tests/bin/
-          Tests/Database.Tests/bin/
-          AnalogAgenda.Server/bin/
-          Database/bin/
-        retention-days: 1
-        
-    - name: Upload frontend build artifacts  
-      uses: actions/upload-artifact@v4
-      with:
-        name: frontend-build
-        path: |
-          analogagenda.client/node_modules/
-          analogagenda.client/dist/
-        retention-days: 1
-
-  backend-tests:
-    name: Backend Tests (.NET)
-    runs-on: windows-latest
-    needs: build
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+    - name: Run frontend tests
+      working-directory: ./analogagenda.client
+      run: npx ng test --watch=false --browsers=ChromeHeadless --code-coverage
       
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v4
-      with:
-        dotnet-version: '8.0.x'
-        
-    - name: Download backend build artifacts
-      uses: actions/download-artifact@v4
-      with:
-        name: backend-build
-        
     - name: Run backend tests
       run: |
         dotnet test Tests/AnalogAgenda.Server.Tests/AnalogAgenda.Server.Tests.csproj --no-build --verbosity normal --logger trx --results-directory TestResults
         dotnet test Tests/Database.Tests/Database.Tests.csproj --no-build --verbosity normal --logger trx --results-directory TestResults
       shell: pwsh
-      
+        
     - name: Upload backend test results
       uses: actions/upload-artifact@v4
       if: always()
       with:
         name: backend-test-results
         path: TestResults/*.trx
-
-  frontend-tests:
-    name: Frontend Tests (Angular)
-    runs-on: windows-latest
-    needs: build
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '20.x'
         
-    - name: Download frontend build artifacts
-      uses: actions/download-artifact@v4
-      with:
-        name: frontend-build
-        path: analogagenda.client/
-        
-    - name: Install Angular CLI
-      run: npm install -g @angular/cli
-        
-    - name: Run frontend tests
-      working-directory: ./analogagenda.client
-      run: npm test -- --watch=false --browsers=ChromeHeadless --code-coverage
-      
     - name: Upload frontend test coverage
       uses: actions/upload-artifact@v4
       if: always()
@@ -121,7 +59,7 @@ jobs:
   test-summary:
     name: Test Summary
     runs-on: windows-latest
-    needs: [backend-tests, frontend-tests]
+    needs: test-all
     if: always()
     
     steps:
@@ -142,25 +80,13 @@ jobs:
       run: |
         "## Test Results Summary" | Add-Content $env:GITHUB_STEP_SUMMARY
         "" | Add-Content $env:GITHUB_STEP_SUMMARY
-        "### Backend Tests" | Add-Content $env:GITHUB_STEP_SUMMARY
-        if ("${{ needs.backend-tests.result }}" -eq "success") {
-          "✅ Backend tests passed" | Add-Content $env:GITHUB_STEP_SUMMARY
-        } else {
-          "❌ Backend tests failed" | Add-Content $env:GITHUB_STEP_SUMMARY
-        }
-        "" | Add-Content $env:GITHUB_STEP_SUMMARY
-        "### Frontend Tests" | Add-Content $env:GITHUB_STEP_SUMMARY
-        if ("${{ needs.frontend-tests.result }}" -eq "success") {
-          "✅ Frontend tests passed" | Add-Content $env:GITHUB_STEP_SUMMARY
-        } else {
-          "❌ Frontend tests failed" | Add-Content $env:GITHUB_STEP_SUMMARY
-        }
-        "" | Add-Content $env:GITHUB_STEP_SUMMARY
-        "### Overall Status" | Add-Content $env:GITHUB_STEP_SUMMARY
-        if (("${{ needs.backend-tests.result }}" -eq "success") -and ("${{ needs.frontend-tests.result }}" -eq "success")) {
-          "🎉 All tests passed!" | Add-Content $env:GITHUB_STEP_SUMMARY
+        "### All Tests" | Add-Content $env:GITHUB_STEP_SUMMARY
+        if ("${{ needs.test-all.result }}" -eq "success") {
+          "✅ All tests passed (128 backend + 67 frontend)" | Add-Content $env:GITHUB_STEP_SUMMARY
+          "🎉 Pipeline completed successfully!" | Add-Content $env:GITHUB_STEP_SUMMARY
           exit 0
         } else {
-          "💥 Some tests failed!" | Add-Content $env:GITHUB_STEP_SUMMARY
+          "❌ Some tests failed" | Add-Content $env:GITHUB_STEP_SUMMARY
+          "💥 Pipeline failed!" | Add-Content $env:GITHUB_STEP_SUMMARY
           exit 1
         }
