@@ -24,12 +24,10 @@ jobs:
         cache: 'npm'
         cache-dependency-path: analogagenda.client/package-lock.json
         
-    - name: Restore and build test projects (includes SPA)
+    - name: Build test projects (includes SPA)
       run: |
-        dotnet restore Tests/AnalogAgenda.Server.Tests/AnalogAgenda.Server.Tests.csproj
-        dotnet restore Tests/Database.Tests/Database.Tests.csproj
-        dotnet build Tests/AnalogAgenda.Server.Tests/AnalogAgenda.Server.Tests.csproj --no-restore
-        dotnet build Tests/Database.Tests/Database.Tests.csproj --no-restore
+        dotnet build Tests/AnalogAgenda.Server.Tests/AnalogAgenda.Server.Tests.csproj
+        dotnet build Tests/Database.Tests/Database.Tests.csproj
       shell: pwsh
       
     - name: Run frontend tests
