@@ -18,7 +18,7 @@ public static class TableExtension
 
     public static bool IsTable(this string tableName)
     {
-        return Enum.TryParse(tableName, out TableName _);
+        return Enum.TryParse(tableName, out TableName result) && Enum.IsDefined(typeof(TableName), result);
     }
 }
 

@@ -11,14 +11,12 @@ import { IdentityDto } from '../../DTOs';
 export class NavbarComponent {
   @Output() isOpenEvent = new EventEmitter<boolean>();
 
-  private api = inject(AccountService);
-
   isSidebarOpen = false;
   username: string = "";
 
   constructor(
     private router: Router,
-    private accountService: AccountService
+    private api: AccountService
   ) {
     this.api.whoAmI().subscribe({ next: (response: IdentityDto) => this.username = response.username });
   }
@@ -49,7 +47,7 @@ export class NavbarComponent {
   }
 
   onLogoutClick() {
-    this.accountService.logout().subscribe({ next: () => this.router.navigate(['/login']), error: () => this.router.navigate(['/login']) });
+    this.api.logout().subscribe({ next: () => this.router.navigate(['/login']), error: () => this.router.navigate(['/login']) });
   }
 
   getToggleArrow() {

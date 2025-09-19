@@ -1,10 +1,11 @@
-import { HttpClientModule } from '@angular/common/http';
+import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 import { SharedModule } from '../shared.module';
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent, LoginComponent, NavbarComponent, HomeComponent, NotesComponent, SubstancesComponent, UpsertKitComponent, NoteTableComponent, ChangePasswordComponent } from './components';
 import { MainLayoutComponent, AuthLayoutComponent} from './layouts';
+import { errorInterceptor } from './interceptors/error.interceptor';
 
 @NgModule({
   declarations: [
@@ -21,10 +22,13 @@ import { MainLayoutComponent, AuthLayoutComponent} from './layouts';
     ChangePasswordComponent
   ],
   imports: [
-    BrowserModule, HttpClientModule,
-    AppRoutingModule, SharedModule
+    BrowserModule,
+    AppRoutingModule, 
+    SharedModule
   ],
-  providers: [],
+  providers: [
+    provideHttpClient(withInterceptors([errorInterceptor]))
+  ],
   bootstrap: [AppComponent]
 })
 export class AppModule { }

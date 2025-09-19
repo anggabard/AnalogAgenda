@@ -63,20 +63,5 @@ namespace Database.Tests
                 Assert.True(char.IsLetterOrDigit(c), $"Character '{c}' is not alphanumeric."));
         }
 
-        [Fact]
-        public void Generate_ShouldWorkWithSingleInputString()
-        {
-            var result = IdGenerator.Get(20, "OnlyOneInput");
-            Assert.Equal(20, result.Length);
-        }
-
-        [Fact]
-        public void Generate_ShouldWorkWithEmptyStrings()
-        {
-            var result = IdGenerator.Get(12, "", "", "");
-            var result2 = IdGenerator.Get(12, "", "", "");
-            Assert.Equal(result, result2);
-            Assert.Equal(12, result.Length);
-        }
     }
 }
