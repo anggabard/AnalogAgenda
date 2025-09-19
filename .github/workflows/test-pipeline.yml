@@ -4,8 +4,8 @@ on:
   workflow_dispatch:
 
 jobs:
-  backend-tests:
-    name: Backend Tests (.NET)
+  build:
+    name: Build Projects
     runs-on: windows-latest
     
     steps:
@@ -17,18 +17,60 @@ jobs:
       with:
         dotnet-version: '8.0.x'
         
-    - name: Restore test projects
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+        cache: 'npm'
+        cache-dependency-path: analogagenda.client/package-lock.json
+        
+    - name: Restore and build test projects (includes SPA)
       run: |
         dotnet restore Tests/AnalogAgenda.Server.Tests/AnalogAgenda.Server.Tests.csproj
         dotnet restore Tests/Database.Tests/Database.Tests.csproj
-      shell: pwsh
-      
-    - name: Build test projects
-      run: |
         dotnet build Tests/AnalogAgenda.Server.Tests/AnalogAgenda.Server.Tests.csproj --no-restore
         dotnet build Tests/Database.Tests/Database.Tests.csproj --no-restore
       shell: pwsh
       
+    - name: Upload backend build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: backend-build
+        path: |
+          Tests/AnalogAgenda.Server.Tests/bin/
+          Tests/Database.Tests/bin/
+          AnalogAgenda.Server/bin/
+          Database/bin/
+        retention-days: 1
+        
+    - name: Upload frontend build artifacts  
+      uses: actions/upload-artifact@v4
+      with:
+        name: frontend-build
+        path: |
+          analogagenda.client/node_modules/
+          analogagenda.client/dist/
+        retention-days: 1
+
+  backend-tests:
+    name: Backend Tests (.NET)
+    runs-on: windows-latest
+    needs: build
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+        
+    - name: Download backend build artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: backend-build
+        
     - name: Run backend tests
       run: |
         dotnet test Tests/AnalogAgenda.Server.Tests/AnalogAgenda.Server.Tests.csproj --no-build --verbosity normal --logger trx --results-directory TestResults
@@ -45,6 +87,7 @@ jobs:
   frontend-tests:
     name: Frontend Tests (Angular)
     runs-on: windows-latest
+    needs: build
     
     steps:
     - name: Checkout code
@@ -54,13 +97,13 @@ jobs:
       uses: actions/setup-node@v4
       with:
         node-version: '20.x'
-        cache: 'npm'
-        cache-dependency-path: analogagenda.client/package-lock.json
         
-    - name: Install frontend dependencies
-      working-directory: ./analogagenda.client
-      run: npm ci
-      
+    - name: Download frontend build artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: frontend-build
+        path: analogagenda.client/
+        
     - name: Run frontend tests
       working-directory: ./analogagenda.client
       run: npm test -- --watch=false --browsers=ChromeHeadless --code-coverage

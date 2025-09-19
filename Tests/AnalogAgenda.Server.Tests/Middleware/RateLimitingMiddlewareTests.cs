@@ -2,8 +2,6 @@ using AnalogAgenda.Server.Middleware;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Moq;
-using System.Net;
-using Xunit;
 
 namespace AnalogAgenda.Server.Tests.Middleware;
 

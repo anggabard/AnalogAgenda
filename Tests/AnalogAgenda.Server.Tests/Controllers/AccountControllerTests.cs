@@ -9,7 +9,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using System.Security.Claims;
-using Xunit;
 
 namespace AnalogAgenda.Server.Tests.Controllers;
 

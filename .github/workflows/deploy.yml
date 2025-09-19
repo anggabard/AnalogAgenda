@@ -7,6 +7,7 @@ on:
       - "AnalogAgenda.Functions/**"
       - "AnalogAgenda.EmailSender/**"
       - ".github/workflows/deploy-azure-function.yml"
+      - ".github/workflows/test-pipeline.yml"
   workflow_dispatch:
 
 env:

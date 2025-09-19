@@ -17,8 +17,9 @@ The application has two test suites:
 
 **Features**:
 - Runs on Windows runners for consistency with development environment
-- Only builds and runs test projects (not entire solution) for efficiency
-- Parallel execution of backend and frontend tests
+- 3-job pipeline: Build → Backend Tests + Frontend Tests (parallel)
+- Shared build step handles SPA compilation once
+- Independent test jobs run in parallel after build
 - Test result artifacts and code coverage
 - Beautiful test summary in GitHub UI
 - Fails pipeline if any tests fail
@@ -81,13 +82,20 @@ npm test -- --watch=false --browsers=ChromeHeadless
 
 ## ⚡ Performance
 
+### Pipeline Structure
+1. **Build Job**: Restores and builds test projects (includes SPA build)
+2. **Backend Tests Job**: Downloads build artifacts, runs .NET tests  
+3. **Frontend Tests Job**: Downloads build artifacts, runs Angular tests
+4. **Test Summary Job**: Aggregates results from both test jobs
+
 ### Typical Execution Times
-- **Backend Tests**: ~3-5 seconds (128 tests)
-- **Frontend Tests**: ~0.4 seconds (67 tests)
-- **Total Pipeline**: ~1-2 minutes (including setup, optimized for test projects only)
+- **Build Job**: ~1-2 minutes (includes SPA compilation)
+- **Backend Tests**: ~10-15 seconds (128 tests)
+- **Frontend Tests**: ~30-45 seconds (67 tests)  
+- **Total Pipeline**: ~2-3 minutes (build sequential, tests parallel)
 
 ### Parallel Execution
-Both CI/CD pipelines run backend and frontend tests in parallel for optimal speed.
+After the shared build job completes, backend and frontend test jobs run in parallel for optimal speed. Build artifacts are shared between jobs to avoid rebuilding.
 
 ## 🐛 Troubleshooting
 

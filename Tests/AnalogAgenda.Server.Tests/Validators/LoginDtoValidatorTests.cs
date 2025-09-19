@@ -1,6 +1,5 @@
 using AnalogAgenda.Server.Validators;
 using Database.DTOs;
-using Xunit;
 
 namespace AnalogAgenda.Server.Tests.Validators;
 
