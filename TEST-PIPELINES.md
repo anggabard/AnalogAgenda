@@ -83,14 +83,13 @@ npm test -- --watch=false --browsers=ChromeHeadless
 ## ⚡ Performance
 
 ### Pipeline Structure
-1. **Test All Job**: Build → Frontend Tests → Backend Tests (all sequential in one job)
-2. **Test Summary Job**: Downloads artifacts and provides beautiful GitHub summary
+1. **Single Job**: Build → Frontend Tests → Backend Tests → Upload Artifacts → Summary (all in one streamlined job)
 
 ### Typical Execution Times
 - **Build Phase**: ~1-2 minutes (SPA build, includes npm install)
 - **Frontend Tests**: ~30-45 seconds (67 tests with coverage)
 - **Backend Tests**: ~10-15 seconds (128 tests)
-- **Total Pipeline**: ~2.5-3 minutes (sequential execution, zero artifact transfer time)
+- **Total Pipeline**: ~2.5-3 minutes (single job, zero overhead, immediate summary)
 
 ### Sequential Execution
 All tests run sequentially in a single job for maximum efficiency. No job coordination overhead, no artifact transfers, no waiting between steps - just build once and test everything in the same environment!
