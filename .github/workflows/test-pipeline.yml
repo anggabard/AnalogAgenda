@@ -135,28 +135,29 @@ jobs:
         path: frontend-coverage/
         
     - name: Test Results Summary
+      shell: pwsh
       run: |
-        echo "## Test Results Summary" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "### Backend Tests" >> $GITHUB_STEP_SUMMARY
-        if [ "${{ needs.backend-tests.result }}" == "success" ]; then
-          echo "✅ Backend tests passed" >> $GITHUB_STEP_SUMMARY
-        else
-          echo "❌ Backend tests failed" >> $GITHUB_STEP_SUMMARY
-        fi
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "### Frontend Tests" >> $GITHUB_STEP_SUMMARY
-        if [ "${{ needs.frontend-tests.result }}" == "success" ]; then
-          echo "✅ Frontend tests passed" >> $GITHUB_STEP_SUMMARY
-        else
-          echo "❌ Frontend tests failed" >> $GITHUB_STEP_SUMMARY
-        fi
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "### Overall Status" >> $GITHUB_STEP_SUMMARY
-        if [ "${{ needs.backend-tests.result }}" == "success" ] && [ "${{ needs.frontend-tests.result }}" == "success" ]; then
-          echo "🎉 All tests passed!" >> $GITHUB_STEP_SUMMARY
+        "## Test Results Summary" | Add-Content $env:GITHUB_STEP_SUMMARY
+        "" | Add-Content $env:GITHUB_STEP_SUMMARY
+        "### Backend Tests" | Add-Content $env:GITHUB_STEP_SUMMARY
+        if ("${{ needs.backend-tests.result }}" -eq "success") {
+          "✅ Backend tests passed" | Add-Content $env:GITHUB_STEP_SUMMARY
+        } else {
+          "❌ Backend tests failed" | Add-Content $env:GITHUB_STEP_SUMMARY
+        }
+        "" | Add-Content $env:GITHUB_STEP_SUMMARY
+        "### Frontend Tests" | Add-Content $env:GITHUB_STEP_SUMMARY
+        if ("${{ needs.frontend-tests.result }}" -eq "success") {
+          "✅ Frontend tests passed" | Add-Content $env:GITHUB_STEP_SUMMARY
+        } else {
+          "❌ Frontend tests failed" | Add-Content $env:GITHUB_STEP_SUMMARY
+        }
+        "" | Add-Content $env:GITHUB_STEP_SUMMARY
+        "### Overall Status" | Add-Content $env:GITHUB_STEP_SUMMARY
+        if (("${{ needs.backend-tests.result }}" -eq "success") -and ("${{ needs.frontend-tests.result }}" -eq "success")) {
+          "🎉 All tests passed!" | Add-Content $env:GITHUB_STEP_SUMMARY
           exit 0
-        else
-          echo "💥 Some tests failed!" >> $GITHUB_STEP_SUMMARY
+        } else {
+          "💥 Some tests failed!" | Add-Content $env:GITHUB_STEP_SUMMARY
           exit 1
-        fi
+        }
