@@ -79,4 +79,5 @@ public class BlobUrlHelperTests
         var exception = Assert.Throws<ArgumentException>(() => BlobUrlHelper.GetImageInfoFromUrl(urlWithInvalidGuid));
         Assert.Contains("Invalid image ID format", exception.Message);
     }
+
 }

@@ -170,4 +170,5 @@ public class NotesController(Storage storageCfg, ITableService tablesService, IB
         await tablesService.DeleteTableEntriesAsync<NoteEntryEntity>(entry => entry.NoteRowKey == existingEntity.RowKey);
         return NoContent();
     }
+
 }

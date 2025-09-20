@@ -115,4 +115,5 @@ public class DevKitController(Storage storageCfg, ITableService tablesService, I
         await devKitsTable.DeleteEntityAsync(existingEntity);
         return NoContent();
     }
+
 }
