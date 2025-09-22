@@ -41,6 +41,11 @@ export class NavbarComponent {
     this.closeMobileSidebar();
   }
 
+  onFilmsClick() {
+    this.router.navigate(['/films']);
+    this.closeMobileSidebar();
+  }
+
   onChangePasswordClick() {
     this.router.navigate(['/change-password']);
     this.closeMobileSidebar();

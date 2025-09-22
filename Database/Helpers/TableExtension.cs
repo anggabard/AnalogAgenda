@@ -12,6 +12,7 @@ public static class TableExtension
             TableName.Notes => "NOTE",
             TableName.NotesEntries => "NOTEENTRY",
             TableName.DevKits => "DEVKIT",
+            TableName.Films => "FILM",
             _ => throw new Exception($"Partition key for {table} does not exist"),
         };
     }

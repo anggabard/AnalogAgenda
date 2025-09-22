@@ -1,5 +1,6 @@
 export type { IdentityDto } from './identity.dto'
 export type { DevKitDto } from './dev-kit.dto'
+export type { FilmDto } from './film.dto'
 export type { NoteDto } from './note.dto'
 export type { NoteEntryDto } from './note-entry.dto'
 export type { HasImageDto } from './subclasses/has-image.dto'

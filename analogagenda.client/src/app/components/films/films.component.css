@@ -1,0 +1,180 @@
+.add-film {
+  padding: 0.5rem;
+  background-color: rgba(37, 35, 35, 0.897);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 1rem;
+}
+
+.container {
+  display: flex;
+  flex-direction: column;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.header {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 10px;
+  margin-top: 5px;
+}
+
+.tab-container {
+  margin-bottom: 20px;
+}
+
+.tabs {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+
+.tabs button {
+  padding: 10px 20px;
+  border: 2px solid #ccc;
+  background-color: #f8f9fa;
+  color: #333;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+}
+
+.tabs button.active {
+  background-color: rgba(37, 35, 35, 0.897);
+  color: white;
+  border-color: rgba(37, 35, 35, 0.897);
+}
+
+.tabs button:hover {
+  background-color: rgba(37, 35, 35, 0.7);
+  color: white;
+}
+
+.films-container {
+  display: flex;
+  flex-direction: column;
+  margin: 5px 2px 30px 5%;
+  gap: 50px;
+}
+
+.films-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.films-title {
+  font-size: 1.2rem;
+  font-weight: bold;
+  text-align: left;
+  margin: 0 0 8px 4px;
+  color: #222;
+}
+
+.films-list {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  scroll-snap-type: x mandatory;
+}
+
+.films-list::-webkit-scrollbar {
+  display: none;
+}
+
+.card {
+  position: relative;
+  flex: 0 0 auto;
+  width: 11.875em;
+  height: 11.875em;
+  box-shadow: 0px 1px 13px rgba(0,0,0,0.1);
+  cursor: pointer;
+  transition: all 120ms;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  padding: 0.5em;
+  padding-bottom: 3.4em;
+  scroll-snap-align: start;
+  cursor: pointer;
+}
+
+.card::after {
+  content: "Edit";
+  place-self: center;
+  padding-top: 1.25em;
+  position: absolute;
+  left: 0;
+  bottom: 0px;
+  background: #00AC7C;
+  color: #fff;
+  height: 2.5em;
+  width: 100%;
+  transition: all 80ms;
+  font-weight: 600;
+  text-transform: uppercase;
+  visibility: hidden;
+}
+
+.card .title {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 0.9em;
+  position: absolute;
+  margin: 0px 15px 0px 15px;
+  bottom: 2.5em;
+  font-weight: 400;
+  color: #000;
+}
+
+.card .info {
+  font-family: Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif;
+  font-size: 0.9em;
+  position: absolute;
+  color: #000;
+}
+
+.card .info.type {
+  left: 0.625em;
+  bottom: 0.625em;
+}
+
+.card .info.iso {
+  right: 0.625em;
+  bottom: 0.625em;
+}
+
+.card .info.owner {
+  right: 0.625em;
+  top: 0.625em;
+  font-size: 0.8em;
+  background-color: rgba(0, 172, 124, 0.9);
+  color: white;
+  padding: 0.3em 0.6em;
+  border-radius: 12px;
+  font-weight: 400;
+  text-transform: capitalize;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.card:hover::after {
+  transform: translateY(-60px);
+  visibility: visible;
+}
+
+.card:active {
+  transform: scale(0.98);
+}
+
+.image {
+  background: rgb(241, 241, 241);
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+}

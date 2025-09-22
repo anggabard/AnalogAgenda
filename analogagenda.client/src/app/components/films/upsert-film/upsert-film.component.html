@@ -1,10 +1,9 @@
 <div class="container">
-
     <div class="box">
         <form [formGroup]="form" (ngSubmit)="submit()" class="form">
-            <h1 class="form-title" *ngIf="isInsert;else is_update">Add New Kit</h1>
+            <h1 class="form-title" *ngIf="isInsert;else is_update">Add New Film</h1>
             <ng-template #is_update>
-                <h1 class="form-title">Edit Kit</h1>
+                <h1 class="form-title">Edit Film</h1>
             </ng-template>
 
             <div *ngIf="errorMessage" class="error-message">
@@ -17,15 +16,25 @@
             </div>
 
             <div>
-                <label for="url">URL</label>
-                <input type="url" formControlName="url" placeholder="Url" class="input" />
+                <label for="iso">ISO</label>
+                <input type="number" formControlName="iso" placeholder="ISO" class="input" />
             </div>
 
             <div>
-                <label for="type">Type</label>
+                <label for="type">Film Type</label>
                 <select formControlName="type" class="input">
-                    <option *ngFor="let option of devKitOptions" [value]="option">{{ option }}</option>
+                    <option *ngFor="let option of filmTypeOptions" [value]="option">{{ option }}</option>
                 </select>
+            </div>
+
+            <div>
+                <label for="numberOfExposures">Number of Exposures</label>
+                <input type="number" formControlName="numberOfExposures" placeholder="Number of Exposures" class="input" />
+            </div>
+
+            <div>
+                <label for="cost">Cost</label>
+                <input type="number" formControlName="cost" placeholder="Cost" step="0.01" class="input" />
             </div>
 
             <div>
@@ -41,39 +50,25 @@
             </div>
 
             <div>
-                <label for="mixedOn">Mixed On</label>
-                <input type="date" formControlName="mixedOn" class="input" />
-            </div>
-
-            <div class="valid-for-container">
-                <label>Valid for</label>
-                <input type="number" formControlName="validForWeeks" class="input" />
-                <span>Weeks</span>
-                <span id="validForSeparator">or</span>
-                <input type="number" formControlName="validForFilms" class="input" />
-                <span>Films</span>
-                <label>Developed</label>
-                <input type="number" formControlName="filmsDeveloped" class="input" />
-                <span>Films</span>
-            </div>
-
-            <div>
-                <label for="thumbnailImage">Thumbnail</label>
+                <label for="filmImage">Thumbnail</label>
                 <input type="file" (change)="onImageSelected($event)" accept="image/*" class="input" />
             </div>
 
-            <textarea formControlName="description" rows="4" cols="40" class="input"
-                placeholder="Description"></textarea>
+            <div>
+                <label for="description">Description</label>
+                <textarea formControlName="description" rows="4" cols="40" class="input"
+                    placeholder="Description"></textarea>
+            </div>
 
-            <div *ngIf="!isInsert" class="expired-toggle-container">
-                <span style="justify-self: end;">Expired</span>
+            <div class="developed-toggle-container">
+                <span style="justify-self: end;">Not Developed</span>
                 <div class="toggle-border">
-                    <input id="toggle" type="checkbox" formControlName="expired">
+                    <input id="toggle" type="checkbox" formControlName="developed">
                     <label for="toggle">
                         <div class="handle"></div>
                     </label>
                 </div>
-                <span style="justify-self: start;">Available</span>
+                <span style="justify-self: start;">Developed</span>
             </div>
 
             <button type="submit" [disabled]="form.invalid || loading" class="submit-btn">
@@ -92,7 +87,7 @@
             <div class="delete-modal" (click)="$event.stopPropagation()">
                 <h2>Confirm Delete</h2>
                 <p>
-                    Are you sure you want to delete <strong>{{ this.originalName }}</strong> Development Kit?
+                    Are you sure you want to delete <strong>{{ this.originalName }}</strong> Film?
                 </p>
                 <div class="delete-modal-actions">
                     <button class="cancel-btn" (click)="isDeleteModalOpen = false">Cancel</button>
