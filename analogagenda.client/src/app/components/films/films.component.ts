@@ -2,6 +2,7 @@ import { Component, inject, OnInit } from "@angular/core";
 import { Router } from "@angular/router";
 import { FilmService, AccountService } from "../../services";
 import { FilmDto, IdentityDto } from "../../DTOs";
+import { parseISO, compareDesc } from 'date-fns';
 
 @Component({
   selector: 'app-films',
@@ -41,13 +42,26 @@ export class FilmsComponent implements OnInit {
         this.allFilms = films;
         this.myFilms = films.filter(film => film.purchasedBy === this.currentUsername);
         
-        // Split films into developed/not developed for all films
-        this.allDevelopedFilms = films.filter(film => film.developed);
-        this.allNotDevelopedFilms = films.filter(film => !film.developed);
+        const sortByOwnerThenDate = (a: FilmDto, b: FilmDto) => {
+          // First sort by owner (purchasedBy)
+          const ownerComparison = a.purchasedBy.localeCompare(b.purchasedBy);
+          if (ownerComparison !== 0) {
+            return ownerComparison;
+          }
+          // Then sort by purchased date (newest first)
+          return compareDesc(parseISO(a.purchasedOn), parseISO(b.purchasedOn));
+        };
+
+        const sortByDateNewestFirst = (a: FilmDto, b: FilmDto) => {
+          return compareDesc(parseISO(a.purchasedOn), parseISO(b.purchasedOn));
+        };
+
+        this.allDevelopedFilms = films.filter(film => film.developed).sort(sortByOwnerThenDate);
+        this.allNotDevelopedFilms = films.filter(film => !film.developed).sort(sortByOwnerThenDate);
         
-        // Split films into developed/not developed for my films
-        this.myDevelopedFilms = this.myFilms.filter(film => film.developed);
-        this.myNotDevelopedFilms = this.myFilms.filter(film => !film.developed);
+        // Split films into developed/not developed for my films (sorted by newest first)
+        this.myDevelopedFilms = this.myFilms.filter(film => film.developed).sort(sortByDateNewestFirst);
+        this.myNotDevelopedFilms = this.myFilms.filter(film => !film.developed).sort(sortByDateNewestFirst);
       },
       error: (err) => {
         console.error(err);
