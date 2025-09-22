@@ -34,12 +34,12 @@ public class ChangePasswordDtoValidatorTests
     [InlineData("")]
     [InlineData("   ")]
     [InlineData(null)]
-    public void Validate_WithInvalidOldPassword_ShouldHaveValidationError(string oldPassword)
+    public void Validate_WithInvalidOldPassword_ShouldHaveValidationError(string? oldPassword)
     {
         // Arrange
         var changePasswordDto = new ChangePasswordDto
         {
-            OldPassword = oldPassword,
+            OldPassword = oldPassword!,
             NewPassword = "newpassword123"
         };
 
@@ -74,13 +74,13 @@ public class ChangePasswordDtoValidatorTests
     [InlineData("")]
     [InlineData("   ")]
     [InlineData(null)]
-    public void Validate_WithInvalidNewPassword_ShouldHaveValidationError(string newPassword)
+    public void Validate_WithInvalidNewPassword_ShouldHaveValidationError(string? newPassword)
     {
         // Arrange
         var changePasswordDto = new ChangePasswordDto
         {
             OldPassword = "oldpassword123",
-            NewPassword = newPassword
+            NewPassword = newPassword!
         };
 
         // Act
@@ -103,7 +103,7 @@ public class ChangePasswordDtoValidatorTests
         var changePasswordDto = new ChangePasswordDto
         {
             OldPassword = "oldpassword123",
-            NewPassword = newPassword
+            NewPassword = newPassword!
         };
 
         // Act

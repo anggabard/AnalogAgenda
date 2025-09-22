@@ -63,10 +63,10 @@ public class TableExtensionTests
     public void IsTable_WithNullString_ReturnsFalse()
     {
         // Arrange
-        string tableName = null;
+        string? tableName = null;
 
         // Act
-        var result = tableName.IsTable();
+        var result = tableName!.IsTable();
 
         // Assert
         Assert.False(result);

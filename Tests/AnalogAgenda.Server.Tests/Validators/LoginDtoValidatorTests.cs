@@ -34,12 +34,12 @@ public class LoginDtoValidatorTests
     [InlineData("")]
     [InlineData("   ")]
     [InlineData(null)]
-    public void Validate_WithInvalidEmail_ShouldHaveValidationError(string email)
+    public void Validate_WithInvalidEmail_ShouldHaveValidationError(string? email)
     {
         // Arrange
         var loginDto = new LoginDto
         {
-            Email = email,
+            Email = email!,
             Password = "password123"
         };
 
@@ -61,7 +61,7 @@ public class LoginDtoValidatorTests
         // Arrange
         var loginDto = new LoginDto
         {
-            Email = email,
+            Email = email!,
             Password = "password123"
         };
 
@@ -96,13 +96,13 @@ public class LoginDtoValidatorTests
     [InlineData("")]
     [InlineData("   ")]
     [InlineData(null)]
-    public void Validate_WithInvalidPassword_ShouldHaveValidationError(string password)
+    public void Validate_WithInvalidPassword_ShouldHaveValidationError(string? password)
     {
         // Arrange
         var loginDto = new LoginDto
         {
             Email = "test@example.com",
-            Password = password
+            Password = password!
         };
 
         // Act
@@ -125,7 +125,7 @@ public class LoginDtoValidatorTests
         var loginDto = new LoginDto
         {
             Email = "test@example.com",
-            Password = password
+            Password = password!
         };
 
         // Act

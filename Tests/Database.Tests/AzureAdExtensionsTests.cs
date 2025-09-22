@@ -31,9 +31,9 @@ public class AzureAdExtensionsTests
         // Arrange
         var azureAd = new AzureAd
         {
-            TenantId = null,
-            ClientId = null,
-            ClientSecret = null
+            TenantId = null!,
+            ClientId = null!,
+            ClientSecret = null!
         };
 
         // Act & Assert

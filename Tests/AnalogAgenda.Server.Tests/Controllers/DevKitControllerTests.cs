@@ -48,7 +48,7 @@ public class DevKitControllerTests
             Type = "BW",
             PurchasedBy = "Angel",
             PurchasedOn = DateOnly.FromDateTime(DateTime.UtcNow),
-            ImageBase64 = null // No image
+            ImageBase64 = null! // No image
         };
 
         _mockTableClient.Setup(x => x.AddEntityAsync(It.IsAny<DevKitEntity>(), default))
@@ -73,7 +73,7 @@ public class DevKitControllerTests
             Type = "BW",
             PurchasedBy = "Angel",
             PurchasedOn = DateOnly.FromDateTime(DateTime.UtcNow),
-            ImageBase64 = null
+            ImageBase64 = null!
         };
 
         _mockTableClient.Setup(x => x.AddEntityAsync(It.IsAny<DevKitEntity>(), default))
@@ -150,14 +150,14 @@ public class DevKitControllerTests
         var rowKey = "non-existing-key";
 
         _mockTableService.Setup(x => x.GetTableEntryIfExistsAsync<DevKitEntity>(rowKey))
-                        .ReturnsAsync((DevKitEntity)null);
+                        .ReturnsAsync((DevKitEntity?)null);
 
         // Act
         var result = await _controller.GetKitByRowKey(rowKey);
 
         // Assert
         var notFoundResult = Assert.IsType<NotFoundObjectResult>(result);
-        Assert.Contains(rowKey, notFoundResult.Value.ToString());
+        Assert.Contains(rowKey, notFoundResult.Value?.ToString() ?? "");
     }
 
     [Fact]
@@ -184,7 +184,7 @@ public class DevKitControllerTests
             Type = "E6",
             PurchasedBy = "Tudor",
             PurchasedOn = DateOnly.FromDateTime(DateTime.UtcNow),
-            ImageBase64 = null
+            ImageBase64 = null!
         };
 
         _mockTableService.Setup(x => x.GetTableEntryIfExistsAsync<DevKitEntity>(rowKey))
@@ -216,7 +216,7 @@ public class DevKitControllerTests
         var rowKey = "test-row-key";
 
         // Act
-        var result = await _controller.UpdateKit(rowKey, null);
+        var result = await _controller.UpdateKit(rowKey, null!);
 
         // Assert
         var badRequestResult = Assert.IsType<BadRequestObjectResult>(result);
@@ -238,7 +238,7 @@ public class DevKitControllerTests
         };
 
         _mockTableService.Setup(x => x.GetTableEntryIfExistsAsync<DevKitEntity>(rowKey))
-                        .ReturnsAsync((DevKitEntity)null);
+                        .ReturnsAsync((DevKitEntity?)null);
 
         // Act
         var result = await _controller.UpdateKit(rowKey, updateDto);
@@ -284,7 +284,7 @@ public class DevKitControllerTests
         var rowKey = "non-existing-key";
 
         _mockTableService.Setup(x => x.GetTableEntryIfExistsAsync<DevKitEntity>(rowKey))
-                        .ReturnsAsync((DevKitEntity)null);
+                        .ReturnsAsync((DevKitEntity?)null);
 
         // Act
         var result = await _controller.DeleteKit(rowKey);

@@ -50,7 +50,7 @@ public class NotesControllerTests
         {
             Name = "Test Note",
             SideNote = "Test Description",
-            ImageBase64 = null,
+            ImageBase64 = null!,
             Entries = new List<NoteEntryDto>()
         };
 
@@ -74,7 +74,7 @@ public class NotesControllerTests
         {
             Name = "Test Note",
             SideNote = "Test Description",
-            ImageBase64 = null,
+            ImageBase64 = null!,
             Entries = new List<NoteEntryDto>()
         };
 
@@ -208,14 +208,14 @@ public class NotesControllerTests
         var rowKey = "non-existing-key";
 
         _mockTableService.Setup(x => x.GetTableEntryIfExistsAsync<NoteEntity>(rowKey))
-                        .ReturnsAsync((NoteEntity)null);
+                        .ReturnsAsync((NoteEntity?)null);
 
         // Act
         var result = await _controller.GetNoteByRowKey(rowKey);
 
         // Assert
         var notFoundResult = Assert.IsType<NotFoundObjectResult>(result);
-        Assert.Contains(rowKey, notFoundResult.Value.ToString());
+        Assert.Contains(rowKey, notFoundResult.Value?.ToString() ?? "");
     }
 
     [Fact]
@@ -237,7 +237,7 @@ public class NotesControllerTests
         {
             Name = "New Title",
             SideNote = "New Description",
-            ImageBase64 = null,
+            ImageBase64 = null!,
             Entries = new List<NoteEntryDto>()
         };
 
@@ -278,7 +278,7 @@ public class NotesControllerTests
         var rowKey = "test-row-key";
 
         // Act
-        var result = await _controller.UpdateNote(rowKey, null);
+        var result = await _controller.UpdateNote(rowKey, null!);
 
         // Assert
         var badRequestResult = Assert.IsType<BadRequestObjectResult>(result);
@@ -298,7 +298,7 @@ public class NotesControllerTests
         };
 
         _mockTableService.Setup(x => x.GetTableEntryIfExistsAsync<NoteEntity>(rowKey))
-                        .ReturnsAsync((NoteEntity)null);
+                        .ReturnsAsync((NoteEntity?)null);
 
         // Act
         var result = await _controller.UpdateNote(rowKey, updateDto);
@@ -345,7 +345,7 @@ public class NotesControllerTests
         var rowKey = "non-existing-key";
 
         _mockTableService.Setup(x => x.GetTableEntryIfExistsAsync<NoteEntity>(rowKey))
-                        .ReturnsAsync((NoteEntity)null);
+                        .ReturnsAsync((NoteEntity?)null);
 
         // Act
         var result = await _controller.DeleteNote(rowKey);
