@@ -2,6 +2,8 @@ name: Test Pipeline
 
 on:
   workflow_dispatch:
+  pull_request:
+    branches: [ main ]
 
 jobs:
   test-all:
@@ -61,10 +63,10 @@ jobs:
         "## Test Results Summary" | Add-Content $env:GITHUB_STEP_SUMMARY
         "" | Add-Content $env:GITHUB_STEP_SUMMARY
         "### All Tests Complete" | Add-Content $env:GITHUB_STEP_SUMMARY
-        "✅ All 195 tests executed (128 backend + 67 frontend)" | Add-Content $env:GITHUB_STEP_SUMMARY
+        "✅ Frontend and backend tests executed successfully" | Add-Content $env:GITHUB_STEP_SUMMARY
         "" | Add-Content $env:GITHUB_STEP_SUMMARY
         "### Coverage Reports" | Add-Content $env:GITHUB_STEP_SUMMARY
         "📊 Frontend coverage available in artifacts" | Add-Content $env:GITHUB_STEP_SUMMARY
         "📋 Backend test results available in artifacts" | Add-Content $env:GITHUB_STEP_SUMMARY
         "" | Add-Content $env:GITHUB_STEP_SUMMARY
-        "🎉 Pipeline completed!" | Add-Content $env:GITHUB_STEP_SUMMARY
+        "🎉 All tests passed!" | Add-Content $env:GITHUB_STEP_SUMMARY
