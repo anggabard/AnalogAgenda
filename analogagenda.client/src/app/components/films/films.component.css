@@ -56,7 +56,7 @@
 .films-container {
   display: flex;
   flex-direction: column;
-  margin: 5px 2px 30px 5%;
+  margin: 5px 5% 30px 5%;
   gap: 50px;
 }
 
@@ -79,12 +79,44 @@
   gap: 10px;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
   scroll-snap-type: x mandatory;
 }
 
-.films-list::-webkit-scrollbar {
-  display: none;
+/* Desktop scrollbar styling */
+@media (min-width: 768px) {
+  .films-list {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0, 0, 0, 0.3) transparent;
+  }
+  
+  .films-list::-webkit-scrollbar {
+    height: 8px;
+  }
+  
+  .films-list::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 4px;
+  }
+  
+  .films-list::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 4px;
+  }
+  
+  .films-list::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.5);
+  }
+}
+
+/* Mobile - hide scrollbars */
+@media (max-width: 767px) {
+  .films-list {
+    scrollbar-width: none;
+  }
+  
+  .films-list::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 .card {

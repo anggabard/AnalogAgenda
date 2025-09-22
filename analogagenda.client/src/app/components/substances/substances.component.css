@@ -24,7 +24,7 @@
 .devkits-container {
   display: flex;
   flex-direction: column;
-  margin: 5px 2px 30px 5%;
+  margin: 5px 5% 30px 5%;
   gap: 50px;
 }
 
@@ -45,15 +45,46 @@
 .devkit-list {
   display: flex;
   gap: 10px;
-  overflow-x: auto;          /* Enable horizontal scrolling */
-  -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
-  scrollbar-width: none;     /* Firefox */
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
   scroll-snap-type: x mandatory;
 }
 
-/* Hide scrollbar - Chrome, Safari, Edge */
-.devkit-list::-webkit-scrollbar {
-  display: none;
+/* Desktop scrollbar styling */
+@media (min-width: 768px) {
+  .devkit-list {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0, 0, 0, 0.3) transparent;
+  }
+  
+  .devkit-list::-webkit-scrollbar {
+    height: 8px;
+  }
+  
+  .devkit-list::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 4px;
+  }
+  
+  .devkit-list::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 4px;
+  }
+  
+  .devkit-list::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.5);
+  }
+}
+
+/* Mobile - hide scrollbars */
+@media (max-width: 767px) {
+  .devkit-list {
+    scrollbar-width: none;
+  }
+  
+  .devkit-list::-webkit-scrollbar {
+    display: none;
+  }
 }
 .card {
   position: relative;
