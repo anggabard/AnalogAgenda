@@ -3,5 +3,6 @@
 public enum ContainerName
 { 
     devkits,
-    notes
+    notes,
+    films
 }

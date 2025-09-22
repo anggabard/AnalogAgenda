@@ -1,0 +1,66 @@
+<div class="container">
+    <div class="header">
+        <button class="add-film" (click)="onNewFilmClick()">+ New Film +</button>
+    </div>
+
+    <div class="tab-container">
+        <div class="tabs">
+            <button [class.active]="activeTab === 'my'" (click)="setActiveTab('my')">My Films</button>
+            <button [class.active]="activeTab === 'all'" (click)="setActiveTab('all')">All Films</button>
+        </div>
+    </div>
+
+    <div class="films-container" *ngIf="activeTab === 'my'">
+        <div class="films-section">
+            <h2 class="films-title">Not Developed Films</h2>
+            <div class="films-list">
+                <div *ngFor="let film of myNotDevelopedFilms" class="card" (click)="onFilmSelected(film.rowKey)">
+                    <img class="image" [src]="film.imageUrl" />
+                    <span class="title">{{film.name}}</span>
+                    <span class="info type">{{film.type}}</span>
+                    <span class="info iso">ISO {{film.iso}}</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="films-section">
+            <h2 class="films-title">Developed Films</h2>
+            <div class="films-list">
+                <div *ngFor="let film of myDevelopedFilms" class="card" (click)="onFilmSelected(film.rowKey)">
+                    <img class="image" [src]="film.imageUrl" />
+                    <span class="title">{{film.name}}</span>
+                    <span class="info type">{{film.type}}</span>
+                    <span class="info iso">ISO {{film.iso}}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="films-container" *ngIf="activeTab === 'all'">
+        <div class="films-section">
+            <h2 class="films-title">Not Developed Films</h2>
+            <div class="films-list">
+                <div *ngFor="let film of allNotDevelopedFilms" class="card" (click)="onFilmSelected(film.rowKey)">
+                    <img class="image" [src]="film.imageUrl" />
+                    <span class="title">{{film.name}}</span>
+                    <span class="info type">{{film.type}}</span>
+                    <span class="info iso">ISO {{film.iso}}</span>
+                    <span class="info owner">{{film.purchasedBy}}</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="films-section">
+            <h2 class="films-title">Developed Films</h2>
+            <div class="films-list">
+                <div *ngFor="let film of allDevelopedFilms" class="card" (click)="onFilmSelected(film.rowKey)">
+                    <img class="image" [src]="film.imageUrl" />
+                    <span class="title">{{film.name}}</span>
+                    <span class="info type">{{film.type}}</span>
+                    <span class="info iso">ISO {{film.iso}}</span>
+                    <span class="info owner">{{film.purchasedBy}}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
