@@ -171,7 +171,7 @@ public class NotesControllerTests
         _mockTableService.Setup(x => x.GetTableEntriesPagedAsync<NoteEntity>(It.IsAny<int>(), It.IsAny<int>()))
                         .ReturnsAsync(pagedResponse);
 
-        _mockTableService.Setup(x => x.GetTableEntriesAsync<NoteEntryEntity>(It.IsAny<System.Linq.Expressions.Expression<Func<NoteEntryEntity, bool>>>()))
+        _mockTableService.Setup(x => x.GetTableEntriesAsync<NoteEntryEntity>())
                         .ReturnsAsync(noteEntryEntities);
 
         // Act
@@ -345,9 +345,6 @@ public class NotesControllerTests
         _mockTableService.Setup(x => x.GetTableEntryIfExistsAsync<NoteEntity>(rowKey))
                         .ReturnsAsync(existingEntity);
 
-        _mockTableService.Setup(x => x.DeleteTableEntryAsync<NoteEntity>(rowKey))
-                        .Returns(Task.CompletedTask);
-
         _mockTableService.Setup(x => x.DeleteTableEntriesAsync<NoteEntryEntity>(It.IsAny<System.Linq.Expressions.Expression<Func<NoteEntryEntity, bool>>>()))
                         .Returns(Task.CompletedTask);
 
@@ -356,8 +353,9 @@ public class NotesControllerTests
 
         // Assert
         Assert.IsType<NoContentResult>(result);
-        _mockTableService.Verify(x => x.DeleteTableEntryAsync<NoteEntity>(It.IsAny<string>()), Times.Once);
+        // Note: DeleteEntityWithImageAsync from base controller handles the note deletion internally
         _mockTableService.Verify(x => x.DeleteTableEntriesAsync<NoteEntryEntity>(It.IsAny<System.Linq.Expressions.Expression<Func<NoteEntryEntity, bool>>>()), Times.Once);
+        _mockTableService.Verify(x => x.GetTableEntryIfExistsAsync<NoteEntity>(rowKey), Times.Once);
     }
 
     [Fact]
