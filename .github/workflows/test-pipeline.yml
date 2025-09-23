@@ -36,10 +36,12 @@ jobs:
       working-directory: ./analogagenda.client
       run: npx ng test --watch=false --browsers=ChromeHeadless --code-coverage
       
-    - name: Run backend tests
-      run: |
-        dotnet test Tests/AnalogAgenda.Server.Tests/AnalogAgenda.Server.Tests.csproj --no-build --verbosity normal --logger trx --results-directory TestResults
-        dotnet test Tests/Database.Tests/Database.Tests.csproj --no-build --verbosity normal --logger trx --results-directory TestResults
+    - name: Run AnalogAgenda.Server tests
+      run: dotnet test Tests/AnalogAgenda.Server.Tests/AnalogAgenda.Server.Tests.csproj --no-build --verbosity normal --logger trx --results-directory TestResults
+      shell: pwsh
+      
+    - name: Run Database tests
+      run: dotnet test Tests/Database.Tests/Database.Tests.csproj --no-build --verbosity normal --logger trx --results-directory TestResults
       shell: pwsh
         
     - name: Upload backend test results
@@ -57,7 +59,7 @@ jobs:
         path: analogagenda.client/coverage/
         
     - name: Test Results Summary
-      if: always()
+      if: success()
       shell: pwsh
       run: |
         "## Test Results Summary" | Add-Content $env:GITHUB_STEP_SUMMARY
@@ -70,3 +72,18 @@ jobs:
         "📋 Backend test results available in artifacts" | Add-Content $env:GITHUB_STEP_SUMMARY
         "" | Add-Content $env:GITHUB_STEP_SUMMARY
         "🎉 All tests passed!" | Add-Content $env:GITHUB_STEP_SUMMARY
+        
+    - name: Test Failure Summary
+      if: failure()
+      shell: pwsh
+      run: |
+        "## ❌ Test Failure Summary" | Add-Content $env:GITHUB_STEP_SUMMARY
+        "" | Add-Content $env:GITHUB_STEP_SUMMARY
+        "### Tests Failed" | Add-Content $env:GITHUB_STEP_SUMMARY
+        "One or more tests have failed. Check the individual test step logs above for detailed error information." | Add-Content $env:GITHUB_STEP_SUMMARY
+        "" | Add-Content $env:GITHUB_STEP_SUMMARY
+        "### Debugging Resources" | Add-Content $env:GITHUB_STEP_SUMMARY
+        "📋 Backend test results (if available) can be found in the artifacts section" | Add-Content $env:GITHUB_STEP_SUMMARY
+        "📊 Frontend coverage (if available) can be found in the artifacts section" | Add-Content $env:GITHUB_STEP_SUMMARY
+        "" | Add-Content $env:GITHUB_STEP_SUMMARY
+        "🔍 Review the step logs above to identify which tests failed and why." | Add-Content $env:GITHUB_STEP_SUMMARY
