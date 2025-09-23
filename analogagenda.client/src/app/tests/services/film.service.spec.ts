@@ -7,7 +7,7 @@ import { FilmType, UsernameType } from '../../enums';
 describe('FilmService', () => {
   let service: FilmService;
   let httpMock: HttpTestingController;
-  const baseUrl = 'https://localhost:7018/api/Film';
+  const baseUrl = 'https://localhost:7125/api/Film';
 
   beforeEach(() => {
     TestBed.configureTestingModule({
@@ -166,7 +166,7 @@ describe('FilmService', () => {
       });
 
       // Assert HTTP call - should use page=0 for backward compatibility
-      const req = httpMock.expectOne(`${baseUrl}?page=0`);
+      const req = httpMock.expectOne(`${baseUrl}/?page=0`);
       expect(req.request.method).toBe('GET');
       req.flush(mockFilms);
     });

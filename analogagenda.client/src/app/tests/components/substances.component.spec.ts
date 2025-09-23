@@ -2,8 +2,9 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
 import { of } from 'rxjs';
 import { SubstancesComponent } from '../../components/substances/substances.component';
+import { CardListComponent } from '../../components/common/card-list/card-list.component';
 import { DevKitService } from '../../services';
-import { DevKitDto } from '../../DTOs';
+import { DevKitDto, PagedResponseDto } from '../../DTOs';
 import { DevKitType, UsernameType } from '../../enums';
 
 describe('SubstancesComponent', () => {
@@ -13,14 +14,30 @@ describe('SubstancesComponent', () => {
   let mockRouter: jasmine.SpyObj<Router>;
 
   beforeEach(async () => {
-    const devKitServiceSpy = jasmine.createSpyObj('DevKitService', ['getAllDevKits']);
+    const devKitServiceSpy = jasmine.createSpyObj('DevKitService', [
+      'getAllDevKits', 
+      'getAvailableDevKitsPaged', 
+      'getExpiredDevKitsPaged'
+    ]);
     const routerSpy = jasmine.createSpyObj('Router', ['navigate']);
 
     // Set up default return values to avoid subscription errors
+    const emptyPagedResponse: PagedResponseDto<DevKitDto> = {
+      data: [],
+      totalCount: 0,
+      pageSize: 5,
+      currentPage: 1,
+      totalPages: 0,
+      hasNextPage: false,
+      hasPreviousPage: false
+    };
+    
     devKitServiceSpy.getAllDevKits.and.returnValue(of([]));
+    devKitServiceSpy.getAvailableDevKitsPaged.and.returnValue(of(emptyPagedResponse));
+    devKitServiceSpy.getExpiredDevKitsPaged.and.returnValue(of(emptyPagedResponse));
 
     await TestBed.configureTestingModule({
-      declarations: [SubstancesComponent],
+      declarations: [SubstancesComponent, CardListComponent],
       providers: [
         { provide: DevKitService, useValue: devKitServiceSpy },
         { provide: Router, useValue: routerSpy }
@@ -63,8 +80,29 @@ describe('SubstancesComponent', () => {
       }
     ];
 
+    const availablePagedResponse: PagedResponseDto<DevKitDto> = {
+      data: mockDevKits,
+      totalCount: 1,
+      pageSize: 5,
+      currentPage: 1,
+      totalPages: 1,
+      hasNextPage: false,
+      hasPreviousPage: false
+    };
+
+    const emptyExpiredPagedResponse: PagedResponseDto<DevKitDto> = {
+      data: [],
+      totalCount: 0,
+      pageSize: 5,
+      currentPage: 1,
+      totalPages: 0,
+      hasNextPage: false,
+      hasPreviousPage: false
+    };
+
     // Set up mock BEFORE component initialization
-    mockDevKitService.getAllDevKits.and.returnValue(of(mockDevKits));
+    mockDevKitService.getAvailableDevKitsPaged.and.returnValue(of(availablePagedResponse));
+    mockDevKitService.getExpiredDevKitsPaged.and.returnValue(of(emptyExpiredPagedResponse));
     
     // Create new component instance with proper mocks
     fixture = TestBed.createComponent(SubstancesComponent);
@@ -74,7 +112,8 @@ describe('SubstancesComponent', () => {
     fixture.detectChanges(); // This triggers constructor
 
     // Assert
-    expect(mockDevKitService.getAllDevKits).toHaveBeenCalled();
+    expect(mockDevKitService.getAvailableDevKitsPaged).toHaveBeenCalledWith(1, 5);
+    expect(mockDevKitService.getExpiredDevKitsPaged).toHaveBeenCalledWith(1, 5);
     expect(component.availableDevKits.length).toBe(1);
     expect(component.expiredDevKits.length).toBe(0);
   });
@@ -98,144 +137,4 @@ describe('SubstancesComponent', () => {
     expect(mockRouter.navigate).toHaveBeenCalledWith(['/substances/' + rowKey]);
   });
 
-  it('should split dev kits into available and expired correctly', () => {
-    // Arrange
-    const mockDevKits: DevKitDto[] = [
-      {
-        rowKey: '1',
-        name: 'Available Kit 1',
-        url: 'http://example1.com',
-        type: DevKitType.C41,
-        purchasedBy: UsernameType.Angel,
-        purchasedOn: '2023-01-01',
-        mixedOn: '2023-01-01',
-        validForWeeks: 6,
-        validForFilms: 8,
-        filmsDeveloped: 0,
-        description: 'Available kit',
-        expired: false,
-        imageUrl: 'test-url-1',
-        imageBase64: ''
-      },
-      {
-        rowKey: '2',
-        name: 'Expired Kit',
-        url: 'http://example2.com',
-        type: DevKitType.E6,
-        purchasedBy: UsernameType.Tudor,
-        purchasedOn: '2022-01-01',
-        mixedOn: '2022-01-01',
-        validForWeeks: 6,
-        validForFilms: 8,
-        filmsDeveloped: 8,
-        description: 'Expired kit',
-        expired: true,
-        imageUrl: 'test-url-2',
-        imageBase64: ''
-      },
-      {
-        rowKey: '3',
-        name: 'Available Kit 2',
-        url: 'http://example3.com',
-        type: DevKitType.BW,
-        purchasedBy: UsernameType.Cristiana,
-        purchasedOn: '2023-06-01',
-        mixedOn: '2023-06-01',
-        validForWeeks: 6,
-        validForFilms: 8,
-        filmsDeveloped: 2,
-        description: 'Another available kit',
-        expired: false,
-        imageUrl: 'test-url-3',
-        imageBase64: ''
-      }
-    ];
-
-    // Set up mock BEFORE component initialization
-    mockDevKitService.getAllDevKits.and.returnValue(of(mockDevKits));
-    
-    // Create new component instance with proper mocks
-    fixture = TestBed.createComponent(SubstancesComponent);
-    component = fixture.componentInstance;
-
-    // Act
-    fixture.detectChanges(); // Properly initialize component
-
-    // Assert
-    expect(component.availableDevKits.length).toBe(2);
-    expect(component.expiredDevKits.length).toBe(1);
-    expect(component.availableDevKits.every(kit => !kit.expired)).toBeTruthy();
-    expect(component.expiredDevKits.every(kit => kit.expired)).toBeTruthy();
-  });
-
-  it('should sort dev kits by purchasedOn date', () => {
-    // Arrange
-    const mockDevKits: DevKitDto[] = [
-      {
-        rowKey: '1',
-        name: 'Kit June',
-        url: 'http://example1.com',
-        type: DevKitType.C41,
-        purchasedBy: UsernameType.Angel,
-        purchasedOn: '2023-06-01',
-        mixedOn: '2023-06-01',
-        validForWeeks: 6,
-        validForFilms: 8,
-        filmsDeveloped: 0,
-        description: 'June kit',
-        expired: false,
-        imageUrl: 'test-url-1',
-        imageBase64: ''
-      },
-      {
-        rowKey: '2',
-        name: 'Kit January',
-        url: 'http://example2.com',
-        type: DevKitType.E6,
-        purchasedBy: UsernameType.Tudor,
-        purchasedOn: '2023-01-01',
-        mixedOn: '2023-01-01',
-        validForWeeks: 6,
-        validForFilms: 8,
-        filmsDeveloped: 0,
-        description: 'January kit',
-        expired: false,
-        imageUrl: 'test-url-2',
-        imageBase64: ''
-      },
-      {
-        rowKey: '3',
-        name: 'Kit December',
-        url: 'http://example3.com',
-        type: DevKitType.BW,
-        purchasedBy: UsernameType.Cristiana,
-        purchasedOn: '2023-12-01',
-        mixedOn: '2023-12-01',
-        validForWeeks: 6,
-        validForFilms: 8,
-        filmsDeveloped: 0,
-        description: 'December kit',
-        expired: false,
-        imageUrl: 'test-url-3',
-        imageBase64: ''
-      }
-    ];
-
-    // Set up mock BEFORE component initialization
-    mockDevKitService.getAllDevKits.and.returnValue(of(mockDevKits));
-    
-    // Create new component instance with proper mocks
-    fixture = TestBed.createComponent(SubstancesComponent);
-    component = fixture.componentInstance;
-
-    // Act
-    fixture.detectChanges(); // Properly initialize component
-
-    // Assert
-    expect(component.availableDevKits.length).toBe(3);
-    // Should be sorted by purchasedOn (earliest first)
-    expect(component.availableDevKits[0].purchasedOn).toBe('2023-01-01');
-    expect(component.availableDevKits[1].purchasedOn).toBe('2023-06-01');
-    expect(component.availableDevKits[2].purchasedOn).toBe('2023-12-01');
-  });
 });

@@ -2,6 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { FilmsComponent } from '../../components/films/films.component';
+import { CardListComponent } from '../../components/common/card-list/card-list.component';
 import { FilmService, AccountService } from '../../services';
 import { FilmDto, IdentityDto, PagedResponseDto } from '../../DTOs';
 import { FilmType, UsernameType } from '../../enums';
@@ -49,7 +50,7 @@ describe('FilmsComponent', () => {
     accountServiceSpy.whoAmI.and.returnValue(of(mockIdentity));
 
     await TestConfig.configureTestBed({
-      declarations: [FilmsComponent],
+      declarations: [FilmsComponent, CardListComponent],
       providers: [
         { provide: FilmService, useValue: filmServiceSpy },
         { provide: AccountService, useValue: accountServiceSpy },
