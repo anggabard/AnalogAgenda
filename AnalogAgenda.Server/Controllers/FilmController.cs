@@ -100,7 +100,7 @@ public class FilmController(Storage storageCfg, ITableService tablesService, IBl
         // For backward compatibility, if page is 0 or negative, return all filtered films
         if (page <= 0)
         {
-            var entities = await tablesService.GetTableEntriesAsync<FilmEntity>(predicate);
+            var entities = await tablesService.GetTableEntriesAsync(predicate);
             var results = entities
                 .OrderBy(f => f.PurchasedBy) // First sort by owner
                 .ThenByDescending(f => f.PurchasedOn) // Then by date (newest first)
@@ -108,7 +108,7 @@ public class FilmController(Storage storageCfg, ITableService tablesService, IBl
             return Ok(results);
         }
 
-        var pagedEntities = await tablesService.GetTableEntriesPagedAsync<FilmEntity>(predicate, page, pageSize);
+        var pagedEntities = await tablesService.GetTableEntriesPagedAsync(predicate, page, pageSize);
         var sortedData = pagedEntities.Data
             .OrderBy(f => f.PurchasedBy) // First sort by owner
             .ThenByDescending(f => f.PurchasedOn) // Then by date (newest first)

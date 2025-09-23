@@ -31,44 +31,51 @@ public class NotesController(Storage storageCfg, ITableService tablesService, IB
     [HttpPost]
     public async Task<IActionResult> CreateNewNote([FromBody] NoteDto dto)
     {
-        var entity = dto.ToNoteEntity();
-        var entries = dto.ToNoteEntryEntities(entity.RowKey);
+        return await CreateNoteWithEntriesAsync(dto);
+    }
 
-        var imageId = Constants.DefaultNoteImageId;
+    private async Task<IActionResult> CreateNoteWithEntriesAsync(NoteDto dto)
+    {
+        // First create the note using the base controller's image handling
+        var noteCreationResult = await CreateEntityWithImageAsync(dto, dto => dto.ImageBase64);
+        
+        if (noteCreationResult is not OkResult)
+        {
+            return noteCreationResult; // Return error if note creation failed
+        }
+
+        // If note creation succeeded, create the note entries
+        var noteEntity = dto.ToNoteEntity();
+        var entries = dto.ToNoteEntryEntities(noteEntity.RowKey);
+
         try
         {
-            if (!string.IsNullOrEmpty(dto.ImageBase64))
-            {
-                imageId = Guid.NewGuid();
-                await BlobImageHelper.UploadBase64ImageWithContentTypeAsync(notesContainer, dto.ImageBase64, imageId);
-            }
-
-            entity.ImageId = imageId;
-            await notesTable.AddEntityAsync(entity);
-
             foreach (var entry in entries)
             {
                 await notesEntriesTable.AddEntityAsync(entry);
             }
+            
+            return Ok(noteEntity.RowKey);
         }
         catch (Exception ex)
         {
-            if (imageId != Constants.DefaultNoteImageId)
-                await notesContainer.GetBlobClient(imageId.ToString()).DeleteIfExistsAsync();
-
-            if (await tablesService.EntryExistsAsync(entity))
-                await notesTable.DeleteEntityAsync(entity);
-
-            foreach (var entry in entries)
-            {
-                if (await tablesService.EntryExistsAsync(entry))
-                    await notesEntriesTable.DeleteEntityAsync(entry);
-            }
-
-            return UnprocessableEntity(ex.Message);
+            // If entries creation failed, clean up the note we just created
+            await DeleteNoteAndCleanupAsync(noteEntity.RowKey);
+            return UnprocessableEntity($"Failed to create note entries: {ex.Message}");
         }
+    }
 
-        return Ok(entity.RowKey);
+    private async Task DeleteNoteAndCleanupAsync(string noteRowKey)
+    {
+        try
+        {
+            // Delete the note (this will also handle image cleanup via base controller logic)
+            await DeleteEntityWithImageAsync(noteRowKey);
+        }
+        catch
+        {
+            // Swallow cleanup errors - the original error is more important
+        }
     }
 
     [HttpGet]
@@ -158,73 +165,74 @@ public class NotesController(Storage storageCfg, ITableService tablesService, IB
     [HttpPut("{rowKey}")]
     public async Task<IActionResult> UpdateNote(string rowKey, [FromBody] NoteDto updateDto)
     {
-        if (updateDto == null)
-            return BadRequest("Invalid data.");
+        return await UpdateNoteWithEntriesAsync(rowKey, updateDto);
+    }
 
-        var existingEntity = await tablesService.GetTableEntryIfExistsAsync<NoteEntity>(rowKey);
-        if (existingEntity == null)
-            return NotFound();
-
-        var updatedNoteEntity = updateDto.ToNoteEntity();
-        updatedNoteEntity.CreatedDate = existingEntity.CreatedDate;
-
-        var imageId = existingEntity.ImageId;
-        if (!string.IsNullOrEmpty(updateDto.ImageBase64))
+    private async Task<IActionResult> UpdateNoteWithEntriesAsync(string rowKey, NoteDto updateDto)
+    {
+        // First update the note using the base controller's image handling
+        var noteUpdateResult = await UpdateEntityWithImageAsync(rowKey, updateDto, dto => dto.ImageBase64);
+        
+        if (noteUpdateResult is not NoContentResult)
         {
-            if (existingEntity.ImageId != Constants.DefaultNoteImageId)
-            {
-                await notesContainer.DeleteBlobAsync(existingEntity.ImageId.ToString());
-            }
-
-            imageId = Guid.NewGuid();
-            await BlobImageHelper.UploadBase64ImageWithContentTypeAsync(notesContainer, updateDto.ImageBase64, imageId);
+            return noteUpdateResult; // Return error if note update failed
         }
 
-        updatedNoteEntity.ImageId = imageId;
-        updatedNoteEntity.UpdatedDate = DateTime.UtcNow;
+        // If note update succeeded, update the note entries
+        return await UpdateNoteEntriesAsync(rowKey, updateDto);
 
-        await notesTable.UpdateEntityAsync(updatedNoteEntity, existingEntity.ETag, TableUpdateMode.Replace);
+    }
 
-        var existingEntryEntities = await tablesService.GetTableEntriesAsync<NoteEntryEntity>(entry => entry.NoteRowKey == rowKey);
-        foreach (var noteEntryDto in updateDto.Entries)
+    private async Task<IActionResult> UpdateNoteEntriesAsync(string rowKey, NoteDto updateDto)
+    {
+        try
         {
-            var updatedNoteEntryEntity = noteEntryDto.ToEntity(rowKey);
-
-            if (string.IsNullOrEmpty(noteEntryDto.RowKey))
-            {
-                await notesEntriesTable.AddEntityAsync(updatedNoteEntryEntity);
-                continue;
-            }
-
-            var existingEntryEntity = existingEntryEntities.FirstOrDefault(existingEntry => existingEntry.RowKey == noteEntryDto.RowKey);
-            if (existingEntryEntity == null)
-                continue;
-
-            updatedNoteEntryEntity.CreatedDate = existingEntryEntity.CreatedDate;
-            updatedNoteEntryEntity.UpdatedDate = DateTime.UtcNow;
+            var existingEntryEntities = await tablesService.GetTableEntriesAsync<NoteEntryEntity>(entry => entry.NoteRowKey == rowKey);
             
-            await notesEntriesTable.UpdateEntityAsync(updatedNoteEntryEntity, existingEntryEntity.ETag, TableUpdateMode.Replace);
-            existingEntryEntities.Remove(existingEntryEntity);
+            foreach (var noteEntryDto in updateDto.Entries)
+            {
+                var updatedNoteEntryEntity = noteEntryDto.ToEntity(rowKey);
+
+                if (string.IsNullOrEmpty(noteEntryDto.RowKey))
+                {
+                    await notesEntriesTable.AddEntityAsync(updatedNoteEntryEntity);
+                    continue;
+                }
+
+                var existingEntryEntity = existingEntryEntities.FirstOrDefault(existingEntry => existingEntry.RowKey == noteEntryDto.RowKey);
+                if (existingEntryEntity == null)
+                    continue;
+
+                updatedNoteEntryEntity.CreatedDate = existingEntryEntity.CreatedDate;
+                updatedNoteEntryEntity.UpdatedDate = DateTime.UtcNow;
+                
+                await notesEntriesTable.UpdateEntityAsync(updatedNoteEntryEntity, existingEntryEntity.ETag, TableUpdateMode.Replace);
+                existingEntryEntities.Remove(existingEntryEntity);
+            }
+
+            await tablesService.DeleteTableEntriesAsync(existingEntryEntities);
+
+            return NoContent();
         }
-
-        await tablesService.DeleteTableEntriesAsync(existingEntryEntities);
-
-        return NoContent();
+        catch (Exception ex)
+        {
+            return UnprocessableEntity($"Failed to update note entries: {ex.Message}");
+        }
     }
 
     [HttpDelete("{rowKey}")]
     public async Task<IActionResult> DeleteNote(string rowKey)
     {
-        var existingEntity = await tablesService.GetTableEntryIfExistsAsync<NoteEntity>(rowKey);
-        if (existingEntity == null)
-            return NotFound();
+        return await DeleteNoteWithEntriesAsync(rowKey);
+    }
 
-        if (existingEntity.ImageId != Constants.DefaultNoteImageId)
-            await notesContainer.DeleteBlobAsync(existingEntity.ImageId.ToString());
-
-        await tablesService.DeleteTableEntryAsync<NoteEntity>(existingEntity.RowKey);
-        await tablesService.DeleteTableEntriesAsync<NoteEntryEntity>(entry => entry.NoteRowKey == existingEntity.RowKey);
-        return NoContent();
+    private async Task<IActionResult> DeleteNoteWithEntriesAsync(string rowKey)
+    {
+        // First delete note entries
+        await tablesService.DeleteTableEntriesAsync<NoteEntryEntity>(entry => entry.NoteRowKey == rowKey);
+        
+        // Then delete the note (this will also handle image cleanup via base controller)
+        return await DeleteEntityWithImageAsync(rowKey);
     }
 
 }
