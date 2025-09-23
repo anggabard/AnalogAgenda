@@ -68,9 +68,9 @@ public class FilmController(Storage storageCfg, ITableService tablesService, IBl
             return Unauthorized();
 
         var currentUserEnum = currentUser.ToEnum<EUsernameType>();
-        
-        // Simple, direct predicate - no need for expression tree manipulation
-        return await GetFilteredFilms(f => f.Developed && f.PurchasedBy == currentUserEnum, page, pageSize);
+
+        // Azure Table Storage may have issues with compound expressions, so filter by user first
+        return await GetMyFilteredFilms(f => f.Developed, currentUserEnum, page, pageSize);
     }
 
     [HttpGet("not-developed")]
@@ -79,9 +79,22 @@ public class FilmController(Storage storageCfg, ITableService tablesService, IBl
         return await GetFilteredFilms(f => !f.Developed, page, pageSize);
     }
 
+    [HttpGet("my/not-developed")]
+    public async Task<IActionResult> GetMyNotDevelopedFilms([FromQuery] int page = 1, [FromQuery] int pageSize = 5)
+    {
+        var currentUser = User.Name();
+        if (string.IsNullOrEmpty(currentUser))
+            return Unauthorized();
+
+        var currentUserEnum = currentUser.ToEnum<EUsernameType>();
+
+        // Azure Table Storage may have issues with compound expressions, so filter by user first
+        return await GetMyFilteredFilms(f => !f.Developed, currentUserEnum, page, pageSize);
+    }
+
     private async Task<IActionResult> GetFilteredFilms(
-        Expression<Func<FilmEntity, bool>> predicate, 
-        int page = 1, 
+        Expression<Func<FilmEntity, bool>> predicate,
+        int page = 1,
         int pageSize = 5)
     {
         // For backward compatibility, if page is 0 or negative, return all filtered films
@@ -112,17 +125,46 @@ public class FilmController(Storage storageCfg, ITableService tablesService, IBl
         return Ok(pagedResults);
     }
 
-    [HttpGet("my/not-developed")]
-    public async Task<IActionResult> GetMyNotDevelopedFilms([FromQuery] int page = 1, [FromQuery] int pageSize = 5)
+    private async Task<IActionResult> GetMyFilteredFilms(
+        Expression<Func<FilmEntity, bool>> statusPredicate,
+        EUsernameType currentUserEnum,
+        int page = 1,
+        int pageSize = 5)
     {
-        var currentUser = User.Name();
-        if (string.IsNullOrEmpty(currentUser))
-            return Unauthorized();
+        if (page <= 0)
+        {
+            // Get all entities with status filter, then filter by user in memory
+            var allEntities = await tablesService.GetTableEntriesAsync(statusPredicate);
+            var myEntities = allEntities
+                .Where(f => f.PurchasedBy == currentUserEnum)
+                .OrderByDescending(f => f.PurchasedOn)
+                .Select(EntityToDto);
+            return Ok(myEntities);
+        }
 
-        var currentUserEnum = currentUser.ToEnum<EUsernameType>();
-        
-        // Simple, direct predicate - no need for expression tree manipulation
-        return await GetFilteredFilms(f => !f.Developed && f.PurchasedBy == currentUserEnum, page, pageSize);
+        // For pagination, we need to get all status-filtered entities and then page them
+        var statusFilteredEntities = await tablesService.GetTableEntriesAsync(statusPredicate);
+        var myFilms = statusFilteredEntities
+            .Where(f => f.PurchasedBy == currentUserEnum)
+            .OrderByDescending(f => f.PurchasedOn)
+            .ToList();
+
+        var totalCount = myFilms.Count;
+        var skip = (page - 1) * pageSize;
+        var pagedData = myFilms
+            .Skip(skip)
+            .Take(pageSize)
+            .ToList();
+
+        var pagedResults = new PagedResponseDto<FilmDto>
+        {
+            Data = pagedData.Select(EntityToDto),
+            TotalCount = totalCount,
+            PageSize = pageSize,
+            CurrentPage = page
+        };
+
+        return Ok(pagedResults);
     }
 
     [HttpGet("{rowKey}")]
