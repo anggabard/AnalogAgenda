@@ -2,8 +2,10 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { NotesComponent } from '../../components/notes/notes.component';
+import { CardListComponent } from '../../components/common/card-list/card-list.component';
 import { NotesService } from '../../services';
-import { NoteDto } from '../../DTOs';
+import { NoteDto, PagedResponseDto } from '../../DTOs';
+import { TestConfig } from '../test.config';
 
 describe('NotesComponent', () => {
   let component: NotesComponent;
@@ -12,11 +14,18 @@ describe('NotesComponent', () => {
   let mockRouter: jasmine.SpyObj<Router>;
 
   beforeEach(async () => {
-    const notesServiceSpy = jasmine.createSpyObj('NotesService', ['getAllNotes']);
-    const routerSpy = jasmine.createSpyObj('Router', ['navigate']);
+    const notesServiceSpy = TestConfig.createCrudServiceSpy('NotesService', ['getNotesPaged']);
+    const routerSpy = TestConfig.createRouterSpy();
 
-    await TestBed.configureTestingModule({
-      declarations: [NotesComponent],
+    // Set up default return values using TestConfig helpers
+    const emptyPagedResponse = TestConfig.createEmptyPagedResponse<NoteDto>();
+    
+    TestConfig.setupPaginatedServiceMocks(notesServiceSpy, [], {
+      getNotesPaged: emptyPagedResponse
+    });
+
+    await TestConfig.configureTestBed({
+      declarations: [NotesComponent, CardListComponent],
       providers: [
         { provide: NotesService, useValue: notesServiceSpy },
         { provide: Router, useValue: routerSpy }
@@ -55,13 +64,15 @@ describe('NotesComponent', () => {
       }
     ];
 
-    mockNotesService.getAllNotes.and.returnValue(of(mockNotes));
+    const pagedResponse = TestConfig.createPagedResponse(mockNotes);
+
+    mockNotesService.getNotesPaged.and.returnValue(of(pagedResponse));
 
     // Act
     component.ngOnInit();
 
     // Assert
-    expect(mockNotesService.getAllNotes).toHaveBeenCalled();
+    expect(mockNotesService.getNotesPaged).toHaveBeenCalledWith(1, 5);
     expect(component.notes).toEqual(mockNotes);
     expect(component.notes.length).toBe(2);
   });
@@ -70,13 +81,13 @@ describe('NotesComponent', () => {
     // Arrange
     spyOn(console, 'error');
     const errorResponse = 'Failed to load notes';
-    mockNotesService.getAllNotes.and.returnValue(throwError(() => errorResponse));
+    mockNotesService.getNotesPaged.and.returnValue(throwError(() => errorResponse));
 
     // Act
     component.ngOnInit();
 
     // Assert
-    expect(mockNotesService.getAllNotes).toHaveBeenCalled();
+    expect(mockNotesService.getNotesPaged).toHaveBeenCalledWith(1, 5);
     expect(console.error).toHaveBeenCalledWith(errorResponse);
     expect(component.notes).toEqual([]); // Should remain empty on error
   });

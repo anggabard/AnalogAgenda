@@ -106,14 +106,25 @@ public class DevKitControllerTests
 
         _mockTableService.Setup(x => x.GetTableEntriesAsync<DevKitEntity>())
                         .ReturnsAsync(devKitEntities);
+                        
+        var pagedResponse = new PagedResponseDto<DevKitEntity>
+        {
+            Data = devKitEntities,
+            TotalCount = devKitEntities.Count,
+            PageSize = 5,
+            CurrentPage = 1
+        };
+        
+        _mockTableService.Setup(x => x.GetTableEntriesPagedAsync<DevKitEntity>(It.IsAny<int>(), It.IsAny<int>()))
+                        .ReturnsAsync(pagedResponse);
 
         // Act
         var result = await _controller.GetAllKits();
 
         // Assert
         var okResult = Assert.IsType<OkObjectResult>(result);
-        var devKits = Assert.IsAssignableFrom<IEnumerable<DevKitDto>>(okResult.Value);
-        Assert.Single(devKits);
+        var pagedResult = Assert.IsType<PagedResponseDto<DevKitDto>>(okResult.Value);
+        Assert.Single(pagedResult.Data);
     }
 
     [Fact]

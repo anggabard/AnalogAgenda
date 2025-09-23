@@ -4,7 +4,7 @@ using Database.Helpers;
 
 namespace Database.Entities;
 
-public class DevKitEntity : BaseEntity
+public class DevKitEntity : BaseEntity, IImageEntity
 {
     public DevKitEntity() : base(TableName.DevKits) { }
 

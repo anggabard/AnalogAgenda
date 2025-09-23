@@ -1,31 +1,28 @@
 ﻿using Azure.Data.Tables;
 using Configuration.Sections;
 using Database.DBObjects.Enums;
+using Database.DTOs;
 using Database.Entities;
 using Database.Helpers;
 using Database.Services.Interfaces;
-using System.Collections.Concurrent;
 using System.Linq.Expressions;
 
 namespace Database.Services
 {
-    public sealed class TableService(AzureAd azureAdCfg, Storage storageCfg) : ITableService
+    public sealed class TableService(AzureAd azureAdCfg, Storage storageCfg) : BaseAzureService<TableClient>(azureAdCfg, storageCfg, "table"), ITableService
     {
-        private readonly Uri _accountUri = new($"https://{storageCfg.AccountName}.table.core.windows.net");
-        private readonly ConcurrentDictionary<string, TableClient> _cache = new();
+        public TableClient GetTable(string tableName) => GetValidatedClient(tableName);
 
-        public TableClient GetTable(string tableName)
-            => _cache.GetOrAdd(tableName, name =>
-            {
-                if (!name.IsTable()) throw new ArgumentException($"Error: '{name}' is not a valid Table.");
+        public TableClient GetTable(TableName table) => GetTable(table.ToString());
 
-                return new TableClient(_accountUri, name, azureAdCfg.GetClientSecretCredential());
-            });
-
-        public TableClient GetTable(TableName table)
+        protected override void ValidateResourceName(string resourceName)
         {
-            return GetTable(table.ToString());
+            if (!resourceName.IsTable()) 
+                throw new ArgumentException($"Error: '{resourceName}' is not a valid Table.");
         }
+
+        protected override TableClient CreateClient(string resourceName) => 
+            new(AccountUri, resourceName, Credential);
 
         private static TableName GetTableName<T>() where T : BaseEntity
         {
@@ -76,6 +73,82 @@ namespace Database.Services
 
             return entity.HasValue ? entity.Value : null;
 
+        }
+
+        public async Task<PagedResponseDto<T>> GetTableEntriesPagedAsync<T>(int page = 1, int pageSize = 10) where T : BaseEntity
+        {
+            TableName tableName = GetTableName<T>();
+            var pagedData = new List<T>();
+            
+            int skip = (page - 1) * pageSize;
+            int taken = 0;
+            int totalCount = 0;
+
+            await foreach (T entity in GetTable(tableName).QueryAsync<T>())
+            {
+                totalCount++;
+                
+                // Skip entities before our page
+                if (totalCount <= skip)
+                {
+                    continue;
+                }
+
+                // Collect entities for our page
+                if (taken < pageSize)
+                {
+                    pagedData.Add(entity);
+                    taken++;
+                }
+                
+                // Continue iterating to count remaining entities (but don't collect them)
+            }
+
+            return new PagedResponseDto<T>
+            {
+                Data = pagedData,
+                TotalCount = totalCount,
+                PageSize = pageSize,
+                CurrentPage = page
+            };
+        }
+
+        public async Task<PagedResponseDto<T>> GetTableEntriesPagedAsync<T>(Expression<Func<T, bool>> predicate, int page = 1, int pageSize = 10) where T : BaseEntity
+        {
+            TableName tableName = GetTableName<T>();
+            var pagedData = new List<T>();
+            
+            int skip = (page - 1) * pageSize;
+            int taken = 0;
+            int totalCount = 0;
+
+            await foreach (T entity in GetTable(tableName).QueryAsync(predicate))
+            {
+                totalCount++;
+                
+                // Skip entities before our page
+                if (totalCount <= skip)
+                {
+                    continue;
+                }
+
+                // Collect entities for our page
+                if (taken < pageSize)
+                {
+                    pagedData.Add(entity);
+                    taken++;
+                }
+                
+                // Continue iterating to count remaining entities (but don't collect them)
+            }
+
+            return new PagedResponseDto<T>
+            {
+                Data = pagedData,
+                TotalCount = totalCount,
+                PageSize = pageSize,
+                CurrentPage = page
+            };
         }
 
         public async Task<bool> EntryExistsAsync(BaseEntity entity)

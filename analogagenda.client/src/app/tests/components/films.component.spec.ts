@@ -2,8 +2,9 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { FilmsComponent } from '../../components/films/films.component';
+import { CardListComponent } from '../../components/common/card-list/card-list.component';
 import { FilmService, AccountService } from '../../services';
-import { FilmDto, IdentityDto } from '../../DTOs';
+import { FilmDto, IdentityDto, PagedResponseDto } from '../../DTOs';
 import { FilmType, UsernameType } from '../../enums';
 import { TestConfig } from '../test.config';
 
@@ -20,16 +21,28 @@ describe('FilmsComponent', () => {
   };
 
   beforeEach(async () => {
-    const filmServiceSpy = jasmine.createSpyObj('FilmService', ['getAllFilms']);
+    const filmServiceSpy = TestConfig.createCrudServiceSpy('FilmService', [
+      'getMyDevelopedFilmsPaged', 
+      'getMyNotDevelopedFilmsPaged',
+      'getDevelopedFilmsPaged',
+      'getNotDevelopedFilmsPaged'
+    ]);
     const accountServiceSpy = jasmine.createSpyObj('AccountService', ['whoAmI']);
     const routerSpy = TestConfig.createRouterSpy();
 
-    // Set up default return values to avoid subscription errors
-    filmServiceSpy.getAllFilms.and.returnValue(of([]));
+    // Set up default return values using TestConfig helpers
+    const emptyPagedResponse = TestConfig.createEmptyPagedResponse<FilmDto>();
+    
+    TestConfig.setupPaginatedServiceMocks(filmServiceSpy, [], {
+      getMyDevelopedFilmsPaged: emptyPagedResponse,
+      getMyNotDevelopedFilmsPaged: emptyPagedResponse,
+      getDevelopedFilmsPaged: emptyPagedResponse,
+      getNotDevelopedFilmsPaged: emptyPagedResponse
+    });
     accountServiceSpy.whoAmI.and.returnValue(of(mockIdentity));
 
     await TestConfig.configureTestBed({
-      declarations: [FilmsComponent],
+      declarations: [FilmsComponent, CardListComponent],
       providers: [
         { provide: FilmService, useValue: filmServiceSpy },
         { provide: AccountService, useValue: accountServiceSpy },
@@ -52,134 +65,130 @@ describe('FilmsComponent', () => {
     expect(component).toBeTruthy();
   });
 
-  it('should initialize with default values', () => {
-    expect(component.allFilms).toEqual([]);
-    expect(component.myFilms).toEqual([]);
+  it('should initialize with default pagination values', () => {
     expect(component.myDevelopedFilms).toEqual([]);
     expect(component.myNotDevelopedFilms).toEqual([]);
     expect(component.allDevelopedFilms).toEqual([]);
     expect(component.allNotDevelopedFilms).toEqual([]);
     expect(component.activeTab).toBe('my');
-    expect(component.currentUsername).toBe('');
+    expect(component.myDevelopedPage).toBe(1);
+    expect(component.myNotDevelopedPage).toBe(1);
+    expect(component.allDevelopedPage).toBe(1);
+    expect(component.allNotDevelopedPage).toBe(1);
+    expect(component.hasMoreMyDeveloped).toBe(false);
+    expect(component.hasMoreMyNotDeveloped).toBe(false);
+    expect(component.hasMoreAllDeveloped).toBe(false);
+    expect(component.hasMoreAllNotDeveloped).toBe(false);
   });
 
-  it('should load user identity and films on initialization', () => {
+  it('should load paginated films on initialization', () => {
     // Arrange
-    const mockFilms: FilmDto[] = [
-      createMockFilm('1', 'Test Film 1', UsernameType.Angel, false),
-      createMockFilm('2', 'Test Film 2', UsernameType.Tudor, true)
-    ];
+    const myDevelopedResponse = TestConfig.createPagedResponse(
+      [createMockFilm('1', 'My Developed Film', UsernameType.Angel, true)]
+    );
 
-    mockFilmService.getAllFilms.and.returnValue(of(mockFilms));
-    mockAccountService.whoAmI.and.returnValue(of(mockIdentity));
+    const myNotDevelopedResponse = TestConfig.createPagedResponse(
+      [createMockFilm('2', 'My Not Developed Film', UsernameType.Angel, false)]
+    );
+
+    mockFilmService.getMyDevelopedFilmsPaged.and.returnValue(of(myDevelopedResponse));
+    mockFilmService.getMyNotDevelopedFilmsPaged.and.returnValue(of(myNotDevelopedResponse));
 
     // Act
     fixture.detectChanges();
 
     // Assert
-    expect(mockAccountService.whoAmI).toHaveBeenCalled();
-    expect(mockFilmService.getAllFilms).toHaveBeenCalled();
-    expect(component.currentUsername).toBe('Angel');
-    expect(component.allFilms.length).toBe(2);
-  });
-
-  it('should filter my films correctly', () => {
-    // Arrange
-    const mockFilms: FilmDto[] = [
-      createMockFilm('1', 'My Film 1', UsernameType.Angel, false),
-      createMockFilm('2', 'Other Film', UsernameType.Tudor, false),
-      createMockFilm('3', 'My Film 2', UsernameType.Angel, true),
-      createMockFilm('4', 'Another Other Film', UsernameType.Cristiana, true)
-    ];
-
-    mockFilmService.getAllFilms.and.returnValue(of(mockFilms));
-    mockAccountService.whoAmI.and.returnValue(of(mockIdentity));
-
-    // Act
-    fixture.detectChanges();
-
-    // Assert
-    expect(component.myFilms.length).toBe(2);
-    expect(component.myFilms.every(film => film.purchasedBy === UsernameType.Angel)).toBeTruthy();
-  });
-
-  it('should split films into developed and not developed correctly', () => {
-    // Arrange
-    const mockFilms: FilmDto[] = [
-      createMockFilm('1', 'My Not Developed', UsernameType.Angel, false),
-      createMockFilm('2', 'My Developed', UsernameType.Angel, true),
-      createMockFilm('3', 'Other Not Developed', UsernameType.Tudor, false),
-      createMockFilm('4', 'Other Developed', UsernameType.Tudor, true)
-    ];
-
-    mockFilmService.getAllFilms.and.returnValue(of(mockFilms));
-    mockAccountService.whoAmI.and.returnValue(of(mockIdentity));
-
-    // Act
-    fixture.detectChanges();
-
-    // Assert
+    expect(mockFilmService.getMyDevelopedFilmsPaged).toHaveBeenCalledWith(1, 5);
+    expect(mockFilmService.getMyNotDevelopedFilmsPaged).toHaveBeenCalledWith(1, 5);
     expect(component.myDevelopedFilms.length).toBe(1);
     expect(component.myNotDevelopedFilms.length).toBe(1);
+    expect(component.hasMoreMyDeveloped).toBe(false);
+    expect(component.hasMoreMyNotDeveloped).toBe(false);
+  });
+
+  it('should load more my developed films when loadMoreMyDevelopedFilms is called', () => {
+    // Arrange
+    const initialResponse = TestConfig.createPagedResponse(
+      [createMockFilm('1', 'Film 1', UsernameType.Angel, true)],
+      1, // currentPage
+      1  // pageSize
+    );
+    // Manually adjust for specific test scenario
+    initialResponse.totalCount = 3;
+    initialResponse.totalPages = 3;
+    initialResponse.hasNextPage = true;
+
+    const nextPageResponse = TestConfig.createPagedResponse(
+      [createMockFilm('2', 'Film 2', UsernameType.Angel, true)],
+      2, // currentPage
+      1  // pageSize  
+    );
+    // Manually adjust for specific test scenario
+    nextPageResponse.totalCount = 3;
+    nextPageResponse.totalPages = 3;
+    nextPageResponse.hasNextPage = true;
+    nextPageResponse.hasPreviousPage = true;
+
+    mockFilmService.getMyDevelopedFilmsPaged.and.returnValues(of(initialResponse), of(nextPageResponse));
+    
+    fixture.detectChanges();
+
+    // Act
+    component.loadMoreMyDevelopedFilms();
+
+    // Assert
+    expect(mockFilmService.getMyDevelopedFilmsPaged).toHaveBeenCalledWith(2, 5);
+    expect(component.myDevelopedFilms.length).toBe(2);
+    expect(component.myDevelopedPage).toBe(3);
+    expect(component.hasMoreMyDeveloped).toBe(true);
+  });
+
+  it('should handle pagination correctly for all films tab', () => {
+    // Arrange
+    const allDevelopedResponse = TestConfig.createPagedResponse([
+        createMockFilm('1', 'Angel Film', UsernameType.Angel, true),
+        createMockFilm('2', 'Tudor Film', UsernameType.Tudor, true)
+      ],
+      1, // currentPage
+      2  // pageSize
+    );
+    // Manually adjust for specific test scenario
+    allDevelopedResponse.totalCount = 5;
+    allDevelopedResponse.totalPages = 3;
+    allDevelopedResponse.hasNextPage = true;
+
+    mockFilmService.getDevelopedFilmsPaged.and.returnValue(of(allDevelopedResponse));
+
+    // Act
+    fixture.detectChanges();
+
+    // Assert
+    expect(mockFilmService.getDevelopedFilmsPaged).toHaveBeenCalledWith(1, 5);
     expect(component.allDevelopedFilms.length).toBe(2);
-    expect(component.allNotDevelopedFilms.length).toBe(2);
-    
-    expect(component.myDevelopedFilms[0].developed).toBeTruthy();
-    expect(component.myNotDevelopedFilms[0].developed).toBeFalsy();
+    expect(component.hasMoreAllDeveloped).toBe(true);
   });
 
-  it('should sort all films by owner then by newest date first', () => {
+  it('should handle loading states correctly', () => {
     // Arrange
-    const mockFilms: FilmDto[] = [
-      createMockFilm('1', 'Angel Old Film', UsernameType.Angel, false, '2023-01-01'),
-      createMockFilm('2', 'Tudor New Film', UsernameType.Tudor, false, '2023-12-01'),
-      createMockFilm('3', 'Angel New Film', UsernameType.Angel, false, '2023-06-01'),
-      createMockFilm('4', 'Tudor Old Film', UsernameType.Tudor, false, '2023-03-01')
-    ];
-
-    mockFilmService.getAllFilms.and.returnValue(of(mockFilms));
-    mockAccountService.whoAmI.and.returnValue(of(mockIdentity));
-
-    // Act
     fixture.detectChanges();
 
-    // Assert
-    expect(component.allNotDevelopedFilms.length).toBe(4);
-    
-    // Should be sorted by owner first (Angel comes before Tudor alphabetically)
-    expect(component.allNotDevelopedFilms[0].purchasedBy).toBe(UsernameType.Angel);
-    expect(component.allNotDevelopedFilms[1].purchasedBy).toBe(UsernameType.Angel);
-    expect(component.allNotDevelopedFilms[2].purchasedBy).toBe(UsernameType.Tudor);
-    expect(component.allNotDevelopedFilms[3].purchasedBy).toBe(UsernameType.Tudor);
-    
-    // Within each owner group, newest films first
-    expect(component.allNotDevelopedFilms[0].purchasedOn).toBe('2023-06-01'); // Angel's newer film
-    expect(component.allNotDevelopedFilms[1].purchasedOn).toBe('2023-01-01'); // Angel's older film
-    expect(component.allNotDevelopedFilms[2].purchasedOn).toBe('2023-12-01'); // Tudor's newer film
-    expect(component.allNotDevelopedFilms[3].purchasedOn).toBe('2023-03-01'); // Tudor's older film
+    // Act & Assert
+    expect(component.loadingMyDeveloped).toBe(false);
+    expect(component.loadingMyNotDeveloped).toBe(false);
+    expect(component.loadingAllDeveloped).toBe(false);
+    expect(component.loadingAllNotDeveloped).toBe(false);
   });
 
-  it('should sort my films by newest date first', () => {
+  it('should prevent multiple simultaneous loads', () => {
     // Arrange
-    const mockFilms: FilmDto[] = [
-      createMockFilm('1', 'Old Film', UsernameType.Angel, false, '2023-01-01'),
-      createMockFilm('2', 'New Film', UsernameType.Angel, false, '2023-12-01'),
-      createMockFilm('3', 'Middle Film', UsernameType.Angel, false, '2023-06-01')
-    ];
-
-    mockFilmService.getAllFilms.and.returnValue(of(mockFilms));
-    mockAccountService.whoAmI.and.returnValue(of(mockIdentity));
+    component.loadingMyDeveloped = true;
+    const serviceCallCount = mockFilmService.getMyDevelopedFilmsPaged.calls.count();
 
     // Act
-    fixture.detectChanges();
+    component.loadMoreMyDevelopedFilms();
 
     // Assert
-    expect(component.myNotDevelopedFilms.length).toBe(3);
-    
-    // Should be sorted by newest date first
-    expect(component.myNotDevelopedFilms[0].purchasedOn).toBe('2023-12-01');
-    expect(component.myNotDevelopedFilms[1].purchasedOn).toBe('2023-06-01');
-    expect(component.myNotDevelopedFilms[2].purchasedOn).toBe('2023-01-01');
+    expect(mockFilmService.getMyDevelopedFilmsPaged.calls.count()).toBe(serviceCallCount);
   });
 
   it('should navigate to new film page when onNewFilmClick is called', () => {
@@ -210,30 +219,32 @@ describe('FilmsComponent', () => {
     expect(component.activeTab).toBe('all');
   });
 
-  it('should handle error when loading films', () => {
+  it('should handle error when loading my developed films', () => {
     // Arrange
     const consoleSpy = spyOn(console, 'error');
-    mockFilmService.getAllFilms.and.returnValue(throwError('Service error'));
-    mockAccountService.whoAmI.and.returnValue(of(mockIdentity));
+    mockFilmService.getMyDevelopedFilmsPaged.and.returnValue(throwError('Service error'));
 
     // Act
     fixture.detectChanges();
 
     // Assert
     expect(consoleSpy).toHaveBeenCalled();
+    expect(component.loadingMyDeveloped).toBe(false);
   });
 
-  it('should handle error when loading user identity', () => {
+  it('should handle error when loading more films', () => {
     // Arrange
     const consoleSpy = spyOn(console, 'error');
-    mockAccountService.whoAmI.and.returnValue(throwError('Identity error'));
-    mockFilmService.getAllFilms.and.returnValue(of([]));
+    fixture.detectChanges();
+    
+    mockFilmService.getMyDevelopedFilmsPaged.and.returnValue(throwError('Load more error'));
 
     // Act
-    fixture.detectChanges();
+    component.loadMoreMyDevelopedFilms();
 
     // Assert
     expect(consoleSpy).toHaveBeenCalled();
+    expect(component.loadingMyDeveloped).toBe(false);
   });
 
   // Helper function to create mock films

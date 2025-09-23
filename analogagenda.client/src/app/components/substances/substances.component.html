@@ -6,27 +6,36 @@
     <div class="devkits-container">
         <div class="devkit-section">
             <h2 class="devkit-title">Available Substances</h2>
-            <div class="devkit-list">
-                <div *ngFor="let kit of availableDevKits" class="card" (click)="onKitSelected(kit.rowKey)">
-                    <img class="image" [src]="kit.imageUrl" />
-                    <span class="title">{{kit.name}}</span>
-                    <span class="info type">{{kit.type}}</span>
-                    <span class="info ramaining">{{kit.filmsDeveloped}}/{{kit.validForFilms}}</span>
-                </div>
-            </div>
+            <app-card-list 
+                [items]="availableDevKits" 
+                [cardTemplate]="devKitCardTemplate"
+                [hasMore]="hasMoreAvailable" 
+                [loading]="loadingAvailable"
+                (loadMore)="loadMoreAvailableDevKits()"
+                (itemClick)="onKitSelected($event.rowKey)">
+            </app-card-list>
         </div>
-
 
         <div class="devkit-section">
             <h2 class="devkit-title">Expired Substances</h2>
-            <div class="devkit-list">
-                <div *ngFor="let kit of expiredDevKits" class="card" (click)="onKitSelected(kit.rowKey)">
-                    <img class="image" [src]="kit.imageUrl" />
-                    <span class="title">{{kit.name}}</span>
-                    <span class="info type">{{kit.type}}</span>
-                    <span class="info ramaining">{{kit.filmsDeveloped}}/{{kit.validForFilms}}</span>
-                </div>
-            </div>
+            <app-card-list 
+                [items]="expiredDevKits" 
+                [cardTemplate]="devKitCardTemplate"
+                [hasMore]="hasMoreExpired" 
+                [loading]="loadingExpired"
+                (loadMore)="loadMoreExpiredDevKits()"
+                (itemClick)="onKitSelected($event.rowKey)">
+            </app-card-list>
         </div>
     </div>
 </div>
+
+<!-- Template for dev kit cards -->
+<ng-template #devKitCardTemplate let-kit>
+    <div class="card">
+        <img class="image" [src]="kit.imageUrl" />
+        <span class="title">{{kit.name}}</span>
+        <span class="info type">{{kit.type}}</span>
+        <span class="info ramaining">{{kit.filmsDeveloped}}/{{kit.validForFilms}}</span>
+    </div>
+</ng-template>

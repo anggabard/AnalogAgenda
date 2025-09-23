@@ -1,29 +1,28 @@
 ﻿using Azure.Storage.Blobs;
 using Configuration.Sections;
 using Database.DBObjects.Enums;
-using Database.Helpers;
 using Database.Services.Interfaces;
-using System.Collections.Concurrent;
 
 namespace Database.Services;
 
-public sealed class BlobService(AzureAd azureAdCfg, Storage storageCfg) : IBlobService
+public sealed class BlobService(AzureAd azureAdCfg, Storage storageCfg) : BaseAzureService<BlobContainerClient>(azureAdCfg, storageCfg, "blob"), IBlobService
 {
-    private readonly Uri _accountUri = new($"https://{storageCfg.AccountName}.blob.core.windows.net");
-    private readonly ConcurrentDictionary<string, BlobContainerClient> _cache = new();
+    public BlobContainerClient GetBlobContainer(string containerName) => GetValidatedClient(containerName);
 
-    public BlobContainerClient GetBlobContainer(string containerName)
-        => _cache.GetOrAdd(containerName, name =>
-        {
-            var serviceClient = new BlobServiceClient(_accountUri, azureAdCfg.GetClientSecretCredential());
-            var containerClient = serviceClient.GetBlobContainerClient(name);
-            if (containerClient == null || !containerClient.Exists()) throw new ArgumentException($"Error: '{name}' is not a valid Container.");
+    public BlobContainerClient GetBlobContainer(ContainerName containerName) => 
+        GetBlobContainer(containerName.ToString());
 
-            return containerClient;
-        });
-
-    public BlobContainerClient GetBlobContainer(ContainerName containerName)
+    protected override void ValidateResourceName(string resourceName)
     {
-        return GetBlobContainer(containerName.ToString());
+        var serviceClient = new BlobServiceClient(AccountUri, Credential);
+        var containerClient = serviceClient.GetBlobContainerClient(resourceName);
+        if (containerClient == null || !containerClient.Exists()) 
+            throw new ArgumentException($"Error: '{resourceName}' is not a valid Container.");
+    }
+
+    protected override BlobContainerClient CreateClient(string resourceName)
+    {
+        var serviceClient = new BlobServiceClient(AccountUri, Credential);
+        return serviceClient.GetBlobContainerClient(resourceName);
     }
 }

@@ -6,6 +6,7 @@ import { UpsertKitComponent } from '../../components/substances/upsert-kit/upser
 import { AccountService, DevKitService } from '../../services';
 import { DevKitDto, IdentityDto } from '../../DTOs';
 import { DevKitType, UsernameType } from '../../enums';
+import { TestConfig } from '../test.config';
 
 describe('UpsertKitComponent', () => {
   let component: UpsertKitComponent;
@@ -18,7 +19,7 @@ describe('UpsertKitComponent', () => {
   beforeEach(async () => {
     const devKitServiceSpy = jasmine.createSpyObj('DevKitService', ['getKit', 'addNewKit', 'updateKit', 'deleteKit']);
     const accountServiceSpy = jasmine.createSpyObj('AccountService', ['whoAmI']);
-    const routerSpy = jasmine.createSpyObj('Router', ['navigate']);
+    const routerSpy = TestConfig.createRouterSpy();
 
     // Set up default return values to avoid subscription errors
     accountServiceSpy.whoAmI.and.returnValue(of({ username: 'testuser', email: 'test@example.com' }));
@@ -32,7 +33,7 @@ describe('UpsertKitComponent', () => {
       }
     };
 
-    await TestBed.configureTestingModule({
+    await TestConfig.configureTestBed({
       declarations: [UpsertKitComponent],
       imports: [ReactiveFormsModule],
       providers: [

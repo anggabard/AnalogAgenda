@@ -1,8 +1,7 @@
-import { Component, inject } from "@angular/core";
+import { Component, inject, OnInit, ViewChild, TemplateRef } from "@angular/core";
 import { Router } from "@angular/router";
-import { DevKitDto } from "../../DTOs";
+import { DevKitDto, PagedResponseDto } from "../../DTOs";
 import { DevKitService } from "../../services";
-import { parseISO, compareAsc } from 'date-fns';
 
 @Component({
   selector: 'app-substances',
@@ -10,19 +9,27 @@ import { parseISO, compareAsc } from 'date-fns';
   styleUrl: './substances.component.css'
 })
 
-export class SubstancesComponent {
+export class SubstancesComponent implements OnInit {
   private dk = inject(DevKitService);
-  private router = inject(Router)
+  private router = inject(Router);
+
+  @ViewChild('devKitCardTemplate') devKitCardTemplate!: TemplateRef<any>;
 
   availableDevKits: DevKitDto[] = [];
   expiredDevKits: DevKitDto[] = [];
 
-  constructor() {
-    this.dk.getAllDevKits().subscribe({
-      next: (devKits: DevKitDto[]) => {
-        this.splitAndSortDevKits(devKits);
-      }
-    });
+  // Pagination state
+  availablePage = 1;
+  expiredPage = 1;
+  pageSize = 5;
+  hasMoreAvailable = false;
+  hasMoreExpired = false;
+  loadingAvailable = false;
+  loadingExpired = false;
+
+  ngOnInit(): void {
+    this.loadAvailableDevKits();
+    this.loadExpiredDevKits();
   }
 
   onNewKitClick() {
@@ -33,25 +40,58 @@ export class SubstancesComponent {
     this.router.navigate(['/substances/' + rowKey]);
   }
 
-
-  splitAndSortDevKits(devKits: DevKitDto[]) {
-    const { availableDevKits, expiredDevKits } = devKits.reduce(
-      (acc, kit) => {
-        if (!kit.expired) {
-          acc.availableDevKits.push(kit);
-        } else {
-          acc.expiredDevKits.push(kit);
-        }
-
-        return acc;
+  loadAvailableDevKits(): void {
+    if (this.loadingAvailable) return;
+    
+    this.loadingAvailable = true;
+    this.dk.getAvailableDevKitsPaged(this.availablePage, this.pageSize).subscribe({
+      next: (response: PagedResponseDto<DevKitDto>) => {
+        const newDevKits = response.data;
+        this.availableDevKits.push(...newDevKits);
+        
+        // Update pagination state
+        this.hasMoreAvailable = response.hasNextPage;
+        this.availablePage++;
+        this.loadingAvailable = false;
+        
+        // Backend now handles sorting, no need to sort here
       },
-      { availableDevKits: [] as DevKitDto[], expiredDevKits: [] as DevKitDto[] }
-    );
-
-    const sortByPurchasedOn = (a: DevKitDto, b: DevKitDto) =>
-      compareAsc(parseISO(a.purchasedOn), parseISO(b.purchasedOn));
-
-    this.availableDevKits = availableDevKits.sort(sortByPurchasedOn);
-    this.expiredDevKits = expiredDevKits.sort(sortByPurchasedOn);
+      error: (err) => {
+        console.error(err);
+        this.loadingAvailable = false;
+      }
+    });
   }
+
+  loadExpiredDevKits(): void {
+    if (this.loadingExpired) return;
+    
+    this.loadingExpired = true;
+    this.dk.getExpiredDevKitsPaged(this.expiredPage, this.pageSize).subscribe({
+      next: (response: PagedResponseDto<DevKitDto>) => {
+        const newDevKits = response.data;
+        this.expiredDevKits.push(...newDevKits);
+        
+        // Update pagination state
+        this.hasMoreExpired = response.hasNextPage;
+        this.expiredPage++;
+        this.loadingExpired = false;
+        
+        // Backend now handles sorting, no need to sort here
+      },
+      error: (err) => {
+        console.error(err);
+        this.loadingExpired = false;
+      }
+    });
+  }
+
+  loadMoreAvailableDevKits(): void {
+    this.loadAvailableDevKits();
+  }
+
+  loadMoreExpiredDevKits(): void {
+    this.loadExpiredDevKits();
+  }
+
 }

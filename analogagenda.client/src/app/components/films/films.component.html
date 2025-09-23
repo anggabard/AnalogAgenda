@@ -13,54 +13,72 @@
     <div class="films-container" *ngIf="activeTab === 'my'">
         <div class="films-section">
             <h2 class="films-title">Not Developed Films</h2>
-            <div class="films-list">
-                <div *ngFor="let film of myNotDevelopedFilms" class="card" (click)="onFilmSelected(film.rowKey)">
-                    <img class="image" [src]="film.imageUrl" />
-                    <span class="title">{{film.name}}</span>
-                    <span class="info type">{{film.type}}</span>
-                    <span class="info iso">ISO {{film.iso}}</span>
-                </div>
-            </div>
+            <app-card-list 
+                [items]="myNotDevelopedFilms" 
+                [cardTemplate]="myFilmCardTemplate"
+                [hasMore]="hasMoreMyNotDeveloped" 
+                [loading]="loadingMyNotDeveloped"
+                (loadMore)="loadMoreMyNotDevelopedFilms()"
+                (itemClick)="onFilmSelected($event.rowKey)">
+            </app-card-list>
         </div>
 
         <div class="films-section">
             <h2 class="films-title">Developed Films</h2>
-            <div class="films-list">
-                <div *ngFor="let film of myDevelopedFilms" class="card" (click)="onFilmSelected(film.rowKey)">
-                    <img class="image" [src]="film.imageUrl" />
-                    <span class="title">{{film.name}}</span>
-                    <span class="info type">{{film.type}}</span>
-                    <span class="info iso">ISO {{film.iso}}</span>
-                </div>
-            </div>
+            <app-card-list 
+                [items]="myDevelopedFilms" 
+                [cardTemplate]="myFilmCardTemplate"
+                [hasMore]="hasMoreMyDeveloped" 
+                [loading]="loadingMyDeveloped"
+                (loadMore)="loadMoreMyDevelopedFilms()"
+                (itemClick)="onFilmSelected($event.rowKey)">
+            </app-card-list>
         </div>
     </div>
 
     <div class="films-container" *ngIf="activeTab === 'all'">
         <div class="films-section">
             <h2 class="films-title">Not Developed Films</h2>
-            <div class="films-list">
-                <div *ngFor="let film of allNotDevelopedFilms" class="card" (click)="onFilmSelected(film.rowKey)">
-                    <img class="image" [src]="film.imageUrl" />
-                    <span class="title">{{film.name}}</span>
-                    <span class="info type">{{film.type}}</span>
-                    <span class="info iso">ISO {{film.iso}}</span>
-                    <span class="info owner">{{film.purchasedBy}}</span>
-                </div>
-            </div>
+            <app-card-list 
+                [items]="allNotDevelopedFilms" 
+                [cardTemplate]="allFilmCardTemplate"
+                [hasMore]="hasMoreAllNotDeveloped" 
+                [loading]="loadingAllNotDeveloped"
+                (loadMore)="loadMoreAllNotDevelopedFilms()"
+                (itemClick)="onFilmSelected($event.rowKey)">
+            </app-card-list>
         </div>
 
         <div class="films-section">
             <h2 class="films-title">Developed Films</h2>
-            <div class="films-list">
-                <div *ngFor="let film of allDevelopedFilms" class="card" (click)="onFilmSelected(film.rowKey)">
-                    <img class="image" [src]="film.imageUrl" />
-                    <span class="title">{{film.name}}</span>
-                    <span class="info type">{{film.type}}</span>
-                    <span class="info iso">ISO {{film.iso}}</span>
-                    <span class="info owner">{{film.purchasedBy}}</span>
-                </div>
-            </div>
+            <app-card-list 
+                [items]="allDevelopedFilms" 
+                [cardTemplate]="allFilmCardTemplate"
+                [hasMore]="hasMoreAllDeveloped" 
+                [loading]="loadingAllDeveloped"
+                (loadMore)="loadMoreAllDevelopedFilms()"
+                (itemClick)="onFilmSelected($event.rowKey)">
+            </app-card-list>
         </div>
     </div>
 </div>
+
+<!-- Templates for different card types -->
+<ng-template #myFilmCardTemplate let-film>
+    <div class="card">
+        <img class="image" [src]="film.imageUrl" />
+        <span class="title">{{film.name}}</span>
+        <span class="info type">{{film.type}}</span>
+        <span class="info iso">ISO {{film.iso}}</span>
+    </div>
+</ng-template>
+
+<ng-template #allFilmCardTemplate let-film>
+    <div class="card">
+        <img class="image" [src]="film.imageUrl" />
+        <span class="title">{{film.name}}</span>
+        <span class="info type">{{film.type}}</span>
+        <span class="info iso">ISO {{film.iso}}</span>
+        <span class="info owner">{{film.purchasedBy}}</span>
+    </div>
+</ng-template>
