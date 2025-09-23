@@ -6,6 +6,7 @@ import { CardListComponent } from '../../components/common/card-list/card-list.c
 import { DevKitService } from '../../services';
 import { DevKitDto, PagedResponseDto } from '../../DTOs';
 import { DevKitType, UsernameType } from '../../enums';
+import { TestConfig } from '../test.config';
 
 describe('SubstancesComponent', () => {
   let component: SubstancesComponent;
@@ -14,29 +15,21 @@ describe('SubstancesComponent', () => {
   let mockRouter: jasmine.SpyObj<Router>;
 
   beforeEach(async () => {
-    const devKitServiceSpy = jasmine.createSpyObj('DevKitService', [
-      'getAllDevKits', 
+    const devKitServiceSpy = TestConfig.createCrudServiceSpy('DevKitService', [
       'getAvailableDevKitsPaged', 
       'getExpiredDevKitsPaged'
     ]);
-    const routerSpy = jasmine.createSpyObj('Router', ['navigate']);
+    const routerSpy = TestConfig.createRouterSpy();
 
-    // Set up default return values to avoid subscription errors
-    const emptyPagedResponse: PagedResponseDto<DevKitDto> = {
-      data: [],
-      totalCount: 0,
-      pageSize: 5,
-      currentPage: 1,
-      totalPages: 0,
-      hasNextPage: false,
-      hasPreviousPage: false
-    };
+    // Set up default return values using TestConfig helpers
+    const emptyPagedResponse = TestConfig.createEmptyPagedResponse<DevKitDto>();
     
-    devKitServiceSpy.getAllDevKits.and.returnValue(of([]));
-    devKitServiceSpy.getAvailableDevKitsPaged.and.returnValue(of(emptyPagedResponse));
-    devKitServiceSpy.getExpiredDevKitsPaged.and.returnValue(of(emptyPagedResponse));
+    TestConfig.setupPaginatedServiceMocks(devKitServiceSpy, [], {
+      getAvailableDevKitsPaged: emptyPagedResponse,
+      getExpiredDevKitsPaged: emptyPagedResponse
+    });
 
-    await TestBed.configureTestingModule({
+    await TestConfig.configureTestBed({
       declarations: [SubstancesComponent, CardListComponent],
       providers: [
         { provide: DevKitService, useValue: devKitServiceSpy },
@@ -80,25 +73,8 @@ describe('SubstancesComponent', () => {
       }
     ];
 
-    const availablePagedResponse: PagedResponseDto<DevKitDto> = {
-      data: mockDevKits,
-      totalCount: 1,
-      pageSize: 5,
-      currentPage: 1,
-      totalPages: 1,
-      hasNextPage: false,
-      hasPreviousPage: false
-    };
-
-    const emptyExpiredPagedResponse: PagedResponseDto<DevKitDto> = {
-      data: [],
-      totalCount: 0,
-      pageSize: 5,
-      currentPage: 1,
-      totalPages: 0,
-      hasNextPage: false,
-      hasPreviousPage: false
-    };
+    const availablePagedResponse = TestConfig.createPagedResponse(mockDevKits);
+    const emptyExpiredPagedResponse = TestConfig.createEmptyPagedResponse<DevKitDto>();
 
     // Set up mock BEFORE component initialization
     mockDevKitService.getAvailableDevKitsPaged.and.returnValue(of(availablePagedResponse));

@@ -21,8 +21,7 @@ describe('FilmsComponent', () => {
   };
 
   beforeEach(async () => {
-    const filmServiceSpy = jasmine.createSpyObj('FilmService', [
-      'getAllFilms', 
+    const filmServiceSpy = TestConfig.createCrudServiceSpy('FilmService', [
       'getMyDevelopedFilmsPaged', 
       'getMyNotDevelopedFilmsPaged',
       'getDevelopedFilmsPaged',
@@ -31,22 +30,15 @@ describe('FilmsComponent', () => {
     const accountServiceSpy = jasmine.createSpyObj('AccountService', ['whoAmI']);
     const routerSpy = TestConfig.createRouterSpy();
 
-    // Set up default return values to avoid subscription errors
-    const emptyPagedResponse: PagedResponseDto<FilmDto> = {
-      data: [],
-      totalCount: 0,
-      pageSize: 5,
-      currentPage: 1,
-      totalPages: 0,
-      hasNextPage: false,
-      hasPreviousPage: false
-    };
+    // Set up default return values using TestConfig helpers
+    const emptyPagedResponse = TestConfig.createEmptyPagedResponse<FilmDto>();
     
-    filmServiceSpy.getAllFilms.and.returnValue(of([]));
-    filmServiceSpy.getMyDevelopedFilmsPaged.and.returnValue(of(emptyPagedResponse));
-    filmServiceSpy.getMyNotDevelopedFilmsPaged.and.returnValue(of(emptyPagedResponse));
-    filmServiceSpy.getDevelopedFilmsPaged.and.returnValue(of(emptyPagedResponse));
-    filmServiceSpy.getNotDevelopedFilmsPaged.and.returnValue(of(emptyPagedResponse));
+    TestConfig.setupPaginatedServiceMocks(filmServiceSpy, [], {
+      getMyDevelopedFilmsPaged: emptyPagedResponse,
+      getMyNotDevelopedFilmsPaged: emptyPagedResponse,
+      getDevelopedFilmsPaged: emptyPagedResponse,
+      getNotDevelopedFilmsPaged: emptyPagedResponse
+    });
     accountServiceSpy.whoAmI.and.returnValue(of(mockIdentity));
 
     await TestConfig.configureTestBed({
@@ -91,25 +83,13 @@ describe('FilmsComponent', () => {
 
   it('should load paginated films on initialization', () => {
     // Arrange
-    const myDevelopedResponse: PagedResponseDto<FilmDto> = {
-      data: [createMockFilm('1', 'My Developed Film', UsernameType.Angel, true)],
-      totalCount: 1,
-      pageSize: 5,
-      currentPage: 1,
-      totalPages: 1,
-      hasNextPage: false,
-      hasPreviousPage: false
-    };
+    const myDevelopedResponse = TestConfig.createPagedResponse(
+      [createMockFilm('1', 'My Developed Film', UsernameType.Angel, true)]
+    );
 
-    const myNotDevelopedResponse: PagedResponseDto<FilmDto> = {
-      data: [createMockFilm('2', 'My Not Developed Film', UsernameType.Angel, false)],
-      totalCount: 1,
-      pageSize: 5,
-      currentPage: 1,
-      totalPages: 1,
-      hasNextPage: false,
-      hasPreviousPage: false
-    };
+    const myNotDevelopedResponse = TestConfig.createPagedResponse(
+      [createMockFilm('2', 'My Not Developed Film', UsernameType.Angel, false)]
+    );
 
     mockFilmService.getMyDevelopedFilmsPaged.and.returnValue(of(myDevelopedResponse));
     mockFilmService.getMyNotDevelopedFilmsPaged.and.returnValue(of(myNotDevelopedResponse));
@@ -128,25 +108,26 @@ describe('FilmsComponent', () => {
 
   it('should load more my developed films when loadMoreMyDevelopedFilms is called', () => {
     // Arrange
-    const initialResponse: PagedResponseDto<FilmDto> = {
-      data: [createMockFilm('1', 'Film 1', UsernameType.Angel, true)],
-      totalCount: 3,
-      pageSize: 1,
-      currentPage: 1,
-      totalPages: 3,
-      hasNextPage: true,
-      hasPreviousPage: false
-    };
+    const initialResponse = TestConfig.createPagedResponse(
+      [createMockFilm('1', 'Film 1', UsernameType.Angel, true)],
+      1, // currentPage
+      1  // pageSize
+    );
+    // Manually adjust for specific test scenario
+    initialResponse.totalCount = 3;
+    initialResponse.totalPages = 3;
+    initialResponse.hasNextPage = true;
 
-    const nextPageResponse: PagedResponseDto<FilmDto> = {
-      data: [createMockFilm('2', 'Film 2', UsernameType.Angel, true)],
-      totalCount: 3,
-      pageSize: 1,
-      currentPage: 2,
-      totalPages: 3,
-      hasNextPage: true,
-      hasPreviousPage: true
-    };
+    const nextPageResponse = TestConfig.createPagedResponse(
+      [createMockFilm('2', 'Film 2', UsernameType.Angel, true)],
+      2, // currentPage
+      1  // pageSize  
+    );
+    // Manually adjust for specific test scenario
+    nextPageResponse.totalCount = 3;
+    nextPageResponse.totalPages = 3;
+    nextPageResponse.hasNextPage = true;
+    nextPageResponse.hasPreviousPage = true;
 
     mockFilmService.getMyDevelopedFilmsPaged.and.returnValues(of(initialResponse), of(nextPageResponse));
     
@@ -164,18 +145,17 @@ describe('FilmsComponent', () => {
 
   it('should handle pagination correctly for all films tab', () => {
     // Arrange
-    const allDevelopedResponse: PagedResponseDto<FilmDto> = {
-      data: [
+    const allDevelopedResponse = TestConfig.createPagedResponse([
         createMockFilm('1', 'Angel Film', UsernameType.Angel, true),
         createMockFilm('2', 'Tudor Film', UsernameType.Tudor, true)
       ],
-      totalCount: 5,
-      pageSize: 2,
-      currentPage: 1,
-      totalPages: 3,
-      hasNextPage: true,
-      hasPreviousPage: false
-    };
+      1, // currentPage
+      2  // pageSize
+    );
+    // Manually adjust for specific test scenario
+    allDevelopedResponse.totalCount = 5;
+    allDevelopedResponse.totalPages = 3;
+    allDevelopedResponse.hasNextPage = true;
 
     mockFilmService.getDevelopedFilmsPaged.and.returnValue(of(allDevelopedResponse));
 

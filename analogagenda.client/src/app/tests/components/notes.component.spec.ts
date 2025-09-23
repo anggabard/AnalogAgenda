@@ -5,6 +5,7 @@ import { NotesComponent } from '../../components/notes/notes.component';
 import { CardListComponent } from '../../components/common/card-list/card-list.component';
 import { NotesService } from '../../services';
 import { NoteDto, PagedResponseDto } from '../../DTOs';
+import { TestConfig } from '../test.config';
 
 describe('NotesComponent', () => {
   let component: NotesComponent;
@@ -13,24 +14,17 @@ describe('NotesComponent', () => {
   let mockRouter: jasmine.SpyObj<Router>;
 
   beforeEach(async () => {
-    const notesServiceSpy = jasmine.createSpyObj('NotesService', ['getAllNotes', 'getNotesPaged']);
-    const routerSpy = jasmine.createSpyObj('Router', ['navigate']);
+    const notesServiceSpy = TestConfig.createCrudServiceSpy('NotesService', ['getNotesPaged']);
+    const routerSpy = TestConfig.createRouterSpy();
 
-    // Set up default return values to avoid subscription errors
-    const emptyPagedResponse: PagedResponseDto<NoteDto> = {
-      data: [],
-      totalCount: 0,
-      pageSize: 5,
-      currentPage: 1,
-      totalPages: 0,
-      hasNextPage: false,
-      hasPreviousPage: false
-    };
+    // Set up default return values using TestConfig helpers
+    const emptyPagedResponse = TestConfig.createEmptyPagedResponse<NoteDto>();
     
-    notesServiceSpy.getAllNotes.and.returnValue(of([]));
-    notesServiceSpy.getNotesPaged.and.returnValue(of(emptyPagedResponse));
+    TestConfig.setupPaginatedServiceMocks(notesServiceSpy, [], {
+      getNotesPaged: emptyPagedResponse
+    });
 
-    await TestBed.configureTestingModule({
+    await TestConfig.configureTestBed({
       declarations: [NotesComponent, CardListComponent],
       providers: [
         { provide: NotesService, useValue: notesServiceSpy },
@@ -70,15 +64,7 @@ describe('NotesComponent', () => {
       }
     ];
 
-    const pagedResponse: PagedResponseDto<NoteDto> = {
-      data: mockNotes,
-      totalCount: 2,
-      pageSize: 5,
-      currentPage: 1,
-      totalPages: 1,
-      hasNextPage: false,
-      hasPreviousPage: false
-    };
+    const pagedResponse = TestConfig.createPagedResponse(mockNotes);
 
     mockNotesService.getNotesPaged.and.returnValue(of(pagedResponse));
 

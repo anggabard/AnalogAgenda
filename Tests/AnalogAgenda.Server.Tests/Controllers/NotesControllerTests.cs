@@ -109,14 +109,25 @@ public class NotesControllerTests
 
         _mockTableService.Setup(x => x.GetTableEntriesAsync<NoteEntity>())
                         .ReturnsAsync(noteEntities);
+                        
+        var pagedResponse = new PagedResponseDto<NoteEntity>
+        {
+            Data = noteEntities,
+            TotalCount = noteEntities.Count,
+            PageSize = 5,
+            CurrentPage = 1
+        };
+        
+        _mockTableService.Setup(x => x.GetTableEntriesPagedAsync<NoteEntity>(It.IsAny<int>(), It.IsAny<int>()))
+                        .ReturnsAsync(pagedResponse);
 
         // Act
         var result = await _controller.GetAllNotes(withEntries: false);
 
         // Assert
         var okResult = Assert.IsType<OkObjectResult>(result);
-        var notes = Assert.IsAssignableFrom<IEnumerable<NoteDto>>(okResult.Value);
-        Assert.Single(notes);
+        var pagedResult = Assert.IsType<PagedResponseDto<NoteDto>>(okResult.Value);
+        Assert.Single(pagedResult.Data);
     }
 
     [Fact]
@@ -148,6 +159,17 @@ public class NotesControllerTests
 
         _mockTableService.Setup(x => x.GetTableEntriesAsync<NoteEntity>())
                         .ReturnsAsync(noteEntities);
+                        
+        var pagedResponse = new PagedResponseDto<NoteEntity>
+        {
+            Data = noteEntities,
+            TotalCount = noteEntities.Count,
+            PageSize = 5,
+            CurrentPage = 1
+        };
+        
+        _mockTableService.Setup(x => x.GetTableEntriesPagedAsync<NoteEntity>(It.IsAny<int>(), It.IsAny<int>()))
+                        .ReturnsAsync(pagedResponse);
 
         _mockTableService.Setup(x => x.GetTableEntriesAsync<NoteEntryEntity>(It.IsAny<System.Linq.Expressions.Expression<Func<NoteEntryEntity, bool>>>()))
                         .ReturnsAsync(noteEntryEntities);
@@ -157,8 +179,8 @@ public class NotesControllerTests
 
         // Assert
         var okResult = Assert.IsType<OkObjectResult>(result);
-        var notes = Assert.IsAssignableFrom<IEnumerable<NoteDto>>(okResult.Value);
-        Assert.Single(notes);
+        var pagedResult = Assert.IsType<PagedResponseDto<NoteDto>>(okResult.Value);
+        Assert.Single(pagedResult.Data);
     }
 
     [Fact]

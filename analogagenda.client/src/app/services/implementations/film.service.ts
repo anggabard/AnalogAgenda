@@ -1,51 +1,38 @@
 import { Injectable } from '@angular/core';
-import { BaseService } from '../base.service';
 import { FilmDto, PagedResponseDto } from '../../DTOs';
 import { Observable } from 'rxjs';
+import { BasePaginatedService } from '../base-paginated.service';
 
 @Injectable({
   providedIn: 'root'
 })
-export class FilmService extends BaseService {
+export class FilmService extends BasePaginatedService<FilmDto> {
   constructor() { super('Film'); }
 
-  addNewFilm(newFilm: FilmDto) {
-    return this.post('', newFilm);
+  // Specific film methods using base service patterns
+  addNewFilm(newFilm: FilmDto) { return this.add(newFilm); }
+  getAllFilms(): Observable<FilmDto[]> { return this.getAll(); }
+  getFilmsPaged(page: number = 1, pageSize: number = 5): Observable<PagedResponseDto<FilmDto>> { 
+    return this.getPaged(page, pageSize); 
   }
+  getFilm(rowKey: string): Observable<FilmDto> { return this.getById(rowKey); }
+  updateFilm(rowKey: string, updateFilm: FilmDto) { return this.update(rowKey, updateFilm); }
+  deleteFilm(rowKey: string) { return this.deleteById(rowKey); }
 
-  getAllFilms(): Observable<FilmDto[]> {
-    return this.get<FilmDto[]>('?page=0'); // page=0 for backward compatibility to get all films
-  }
-
-  getFilmsPaged(page: number = 1, pageSize: number = 5): Observable<PagedResponseDto<FilmDto>> {
-    return this.get<PagedResponseDto<FilmDto>>(`?page=${page}&pageSize=${pageSize}`);
-  }
-
+  // Film-specific filtered pagination methods
   getDevelopedFilmsPaged(page: number = 1, pageSize: number = 5): Observable<PagedResponseDto<FilmDto>> {
-    return this.get<PagedResponseDto<FilmDto>>(`developed?page=${page}&pageSize=${pageSize}`);
+    return this.getFilteredPaged('developed', page, pageSize);
   }
 
   getNotDevelopedFilmsPaged(page: number = 1, pageSize: number = 5): Observable<PagedResponseDto<FilmDto>> {
-    return this.get<PagedResponseDto<FilmDto>>(`not-developed?page=${page}&pageSize=${pageSize}`);
+    return this.getFilteredPaged('not-developed', page, pageSize);
   }
 
   getMyDevelopedFilmsPaged(page: number = 1, pageSize: number = 5): Observable<PagedResponseDto<FilmDto>> {
-    return this.get<PagedResponseDto<FilmDto>>(`my/developed?page=${page}&pageSize=${pageSize}`);
+    return this.getFilteredPaged('my/developed', page, pageSize);
   }
 
   getMyNotDevelopedFilmsPaged(page: number = 1, pageSize: number = 5): Observable<PagedResponseDto<FilmDto>> {
-    return this.get<PagedResponseDto<FilmDto>>(`my/not-developed?page=${page}&pageSize=${pageSize}`);
-  }
-
-  getFilm(rowKey: string): Observable<FilmDto> {
-    return this.get<FilmDto>(rowKey)
-  }
-
-  updateFilm(rowKey: string , updateFilm: FilmDto) {
-    return this.put(rowKey, updateFilm);
-  }
-
-  deleteFilm(rowKey: string){
-    return this.delete(rowKey);
+    return this.getFilteredPaged('my/not-developed', page, pageSize);
   }
 }

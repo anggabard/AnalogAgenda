@@ -5,28 +5,24 @@ using Database.DTOs;
 using Database.Entities;
 using Database.Helpers;
 using Database.Services.Interfaces;
-using System.Collections.Concurrent;
 using System.Linq.Expressions;
 
 namespace Database.Services
 {
-    public sealed class TableService(AzureAd azureAdCfg, Storage storageCfg) : ITableService
+    public sealed class TableService(AzureAd azureAdCfg, Storage storageCfg) : BaseAzureService<TableClient>(azureAdCfg, storageCfg, "table"), ITableService
     {
-        private readonly Uri _accountUri = new($"https://{storageCfg.AccountName}.table.core.windows.net");
-        private readonly ConcurrentDictionary<string, TableClient> _cache = new();
+        public TableClient GetTable(string tableName) => GetValidatedClient(tableName);
 
-        public TableClient GetTable(string tableName)
-            => _cache.GetOrAdd(tableName, name =>
-            {
-                if (!name.IsTable()) throw new ArgumentException($"Error: '{name}' is not a valid Table.");
+        public TableClient GetTable(TableName table) => GetTable(table.ToString());
 
-                return new TableClient(_accountUri, name, azureAdCfg.GetClientSecretCredential());
-            });
-
-        public TableClient GetTable(TableName table)
+        protected override void ValidateResourceName(string resourceName)
         {
-            return GetTable(table.ToString());
+            if (!resourceName.IsTable()) 
+                throw new ArgumentException($"Error: '{resourceName}' is not a valid Table.");
         }
+
+        protected override TableClient CreateClient(string resourceName) => 
+            new(AccountUri, resourceName, Credential);
 
         private static TableName GetTableName<T>() where T : BaseEntity
         {

@@ -1,43 +1,30 @@
 import { Injectable } from '@angular/core';
-import { BaseService } from '../base.service';
 import { DevKitDto, PagedResponseDto } from '../../DTOs';
 import { Observable } from 'rxjs';
+import { BasePaginatedService } from '../base-paginated.service';
 
 @Injectable({
   providedIn: 'root'
 })
-export class DevKitService extends BaseService {
+export class DevKitService extends BasePaginatedService<DevKitDto> {
   constructor() { super('DevKit'); }
 
-  addNewKit(newKit: DevKitDto) {
-    return this.post('', newKit);
+  // Specific dev kit methods using base service patterns
+  addNewKit(newKit: DevKitDto) { return this.add(newKit); }
+  getAllDevKits(): Observable<DevKitDto[]> { return this.getAll(); }
+  getDevKitsPaged(page: number = 1, pageSize: number = 5): Observable<PagedResponseDto<DevKitDto>> { 
+    return this.getPaged(page, pageSize); 
   }
+  getKit(rowKey: string): Observable<DevKitDto> { return this.getById(rowKey); }
+  updateKit(rowKey: string, updateKit: DevKitDto) { return this.update(rowKey, updateKit); }
+  deleteKit(rowKey: string) { return this.deleteById(rowKey); }
 
-  getAllDevKits(): Observable<DevKitDto[]> {
-    return this.get<DevKitDto[]>('?page=0'); // page=0 for backward compatibility to get all kits
-  }
-
-  getDevKitsPaged(page: number = 1, pageSize: number = 5): Observable<PagedResponseDto<DevKitDto>> {
-    return this.get<PagedResponseDto<DevKitDto>>(`?page=${page}&pageSize=${pageSize}`);
-  }
-
+  // DevKit-specific filtered pagination methods
   getAvailableDevKitsPaged(page: number = 1, pageSize: number = 5): Observable<PagedResponseDto<DevKitDto>> {
-    return this.get<PagedResponseDto<DevKitDto>>(`available?page=${page}&pageSize=${pageSize}`);
+    return this.getFilteredPaged('available', page, pageSize);
   }
 
   getExpiredDevKitsPaged(page: number = 1, pageSize: number = 5): Observable<PagedResponseDto<DevKitDto>> {
-    return this.get<PagedResponseDto<DevKitDto>>(`expired?page=${page}&pageSize=${pageSize}`);
-  }
-
-  getKit(rowKey: string): Observable<DevKitDto> {
-    return this.get<DevKitDto>(rowKey)
-  }
-
-  updateKit(rowKey: string , updateKit: DevKitDto) {
-    return this.put(rowKey, updateKit);
-  }
-
-  deleteKit(rowKey: string){
-    return this.delete(rowKey);
+    return this.getFilteredPaged('expired', page, pageSize);
   }
 }

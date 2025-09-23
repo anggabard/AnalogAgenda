@@ -3,6 +3,7 @@ import { HttpClientTestingModule, HttpTestingController } from '@angular/common/
 import { FilmService } from '../../services/implementations/film.service';
 import { FilmDto, PagedResponseDto } from '../../DTOs';
 import { FilmType, UsernameType } from '../../enums';
+import { TestConfig } from '../test.config';
 
 describe('FilmService', () => {
   let service: FilmService;
@@ -10,8 +11,7 @@ describe('FilmService', () => {
   const baseUrl = 'https://localhost:7125/api/Film';
 
   beforeEach(() => {
-    TestBed.configureTestingModule({
-      imports: [HttpClientTestingModule],
+    TestConfig.configureTestBed({
       providers: [FilmService]
     });
     service = TestBed.inject(FilmService);
@@ -29,15 +29,9 @@ describe('FilmService', () => {
   describe('My Films Pagination', () => {
     it('should call getMyDevelopedFilmsPaged with correct parameters', () => {
       // Arrange
-      const mockResponse: PagedResponseDto<FilmDto> = {
-        data: [createMockFilm('1', 'My Film', UsernameType.Angel, true)],
-        totalCount: 1,
-        pageSize: 5,
-        currentPage: 1,
-        totalPages: 1,
-        hasNextPage: false,
-        hasPreviousPage: false
-      };
+      const mockResponse = TestConfig.createPagedResponse(
+        [createMockFilm('1', 'My Film', UsernameType.Angel, true)]
+      );
 
       // Act
       service.getMyDevelopedFilmsPaged(2, 10).subscribe(response => {
@@ -53,15 +47,7 @@ describe('FilmService', () => {
 
     it('should call getMyDevelopedFilmsPaged with default parameters', () => {
       // Arrange
-      const mockResponse: PagedResponseDto<FilmDto> = {
-        data: [],
-        totalCount: 0,
-        pageSize: 5,
-        currentPage: 1,
-        totalPages: 0,
-        hasNextPage: false,
-        hasPreviousPage: false
-      };
+      const mockResponse = TestConfig.createEmptyPagedResponse<FilmDto>();
 
       // Act
       service.getMyDevelopedFilmsPaged().subscribe();
@@ -74,15 +60,15 @@ describe('FilmService', () => {
 
     it('should call getMyNotDevelopedFilmsPaged with correct parameters', () => {
       // Arrange
-      const mockResponse: PagedResponseDto<FilmDto> = {
-        data: [createMockFilm('1', 'My Not Developed Film', UsernameType.Angel, false)],
-        totalCount: 1,
-        pageSize: 3,
-        currentPage: 2,
-        totalPages: 1,
-        hasNextPage: false,
-        hasPreviousPage: true
-      };
+      const mockResponse = TestConfig.createPagedResponse(
+        [createMockFilm('1', 'My Not Developed Film', UsernameType.Angel, false)],
+        2, // currentPage
+        3  // pageSize
+      );
+      // Manually adjust specific test values
+      mockResponse.totalCount = 1;
+      mockResponse.totalPages = 1;
+      mockResponse.hasPreviousPage = true;
 
       // Act
       service.getMyNotDevelopedFilmsPaged(2, 3).subscribe(response => {
@@ -100,18 +86,15 @@ describe('FilmService', () => {
   describe('All Films Pagination', () => {
     it('should call getDevelopedFilmsPaged with correct parameters', () => {
       // Arrange
-      const mockResponse: PagedResponseDto<FilmDto> = {
-        data: [
+      const mockResponse = TestConfig.createPagedResponse([
           createMockFilm('1', 'Angel Film', UsernameType.Angel, true),
           createMockFilm('2', 'Tudor Film', UsernameType.Tudor, true)
-        ],
-        totalCount: 10,
-        pageSize: 5,
-        currentPage: 1,
-        totalPages: 2,
-        hasNextPage: true,
-        hasPreviousPage: false
-      };
+        ]
+      );
+      // Manually adjust for specific test scenario
+      mockResponse.totalCount = 10;
+      mockResponse.totalPages = 2;
+      mockResponse.hasNextPage = true;
 
       // Act
       service.getDevelopedFilmsPaged(1, 5).subscribe(response => {
@@ -128,15 +111,9 @@ describe('FilmService', () => {
 
     it('should call getNotDevelopedFilmsPaged with correct parameters', () => {
       // Arrange
-      const mockResponse: PagedResponseDto<FilmDto> = {
-        data: [createMockFilm('3', 'Not Developed Film', UsernameType.Cristiana, false)],
-        totalCount: 1,
-        pageSize: 5,
-        currentPage: 1,
-        totalPages: 1,
-        hasNextPage: false,
-        hasPreviousPage: false
-      };
+      const mockResponse = TestConfig.createPagedResponse(
+        [createMockFilm('3', 'Not Developed Film', UsernameType.Cristiana, false)]
+      );
 
       // Act
       service.getNotDevelopedFilmsPaged(1, 5).subscribe(response => {
