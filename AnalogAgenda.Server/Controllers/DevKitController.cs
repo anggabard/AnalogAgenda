@@ -1,5 +1,4 @@
-﻿using AnalogAgenda.Server.Helpers;
-using Azure.Data.Tables;
+﻿using Azure.Data.Tables;
 using Azure.Storage.Blobs;
 using Configuration.Sections;
 using Database.DBObjects;
@@ -7,23 +6,16 @@ using Database.DBObjects.Enums;
 using Database.DTOs;
 using Database.Entities;
 using Database.Services.Interfaces;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Linq.Expressions;
 
 namespace AnalogAgenda.Server.Controllers;
 
 [Route("api/[controller]")]
-public class DevKitController : BaseEntityController<DevKitEntity, DevKitDto>
+public class DevKitController(Storage storageCfg, ITableService tablesService, IBlobService blobsService) : BaseEntityController<DevKitEntity, DevKitDto>(storageCfg, tablesService, blobsService)
 {
-    private readonly TableClient devKitsTable;
-    private readonly BlobContainerClient devKitsContainer;
-
-    public DevKitController(Storage storageCfg, ITableService tablesService, IBlobService blobsService) 
-        : base(storageCfg, tablesService, blobsService)
-    {
-        devKitsTable = tablesService.GetTable(TableName.DevKits);
-        devKitsContainer = blobsService.GetBlobContainer(ContainerName.devkits);
-    }
+    private readonly TableClient devKitsTable = tablesService.GetTable(TableName.DevKits);
+    private readonly BlobContainerClient devKitsContainer = blobsService.GetBlobContainer(ContainerName.devkits);
 
     protected override TableClient GetTable() => devKitsTable;
     protected override BlobContainerClient GetBlobContainer() => devKitsContainer;
@@ -73,7 +65,7 @@ public class DevKitController : BaseEntityController<DevKitEntity, DevKitDto>
     }
 
     private async Task<IActionResult> GetFilteredKits(
-        System.Linq.Expressions.Expression<Func<DevKitEntity, bool>> predicate, 
+        Expression<Func<DevKitEntity, bool>> predicate, 
         int page = 1, 
         int pageSize = 5)
     {

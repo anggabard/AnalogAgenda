@@ -11,19 +11,12 @@ using Microsoft.AspNetCore.Mvc;
 namespace AnalogAgenda.Server.Controllers;
 
 [ApiController, Authorize]
-public abstract class BaseEntityController<TEntity, TDto> : ControllerBase 
+public abstract class BaseEntityController<TEntity, TDto>(Storage storageCfg, ITableService tablesService, IBlobService blobsService) : ControllerBase 
     where TEntity : BaseEntity, IImageEntity
 {
-    protected readonly Storage storageCfg;
-    protected readonly ITableService tablesService;
-    protected readonly IBlobService blobsService;
-
-    protected BaseEntityController(Storage storageCfg, ITableService tablesService, IBlobService blobsService)
-    {
-        this.storageCfg = storageCfg;
-        this.tablesService = tablesService;
-        this.blobsService = blobsService;
-    }
+    protected readonly Storage storageCfg = storageCfg;
+    protected readonly ITableService tablesService = tablesService;
+    protected readonly IBlobService blobsService = blobsService;
 
     protected abstract TableClient GetTable();
     protected abstract BlobContainerClient GetBlobContainer();

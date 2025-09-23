@@ -9,21 +9,15 @@ using Database.Entities;
 using Database.Helpers;
 using Database.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
+using System.Linq.Expressions;
 
 namespace AnalogAgenda.Server.Controllers;
 
 [Route("api/[controller]")]
-public class FilmController : BaseEntityController<FilmEntity, FilmDto>
+public class FilmController(Storage storageCfg, ITableService tablesService, IBlobService blobsService) : BaseEntityController<FilmEntity, FilmDto>(storageCfg, tablesService, blobsService)
 {
-    private readonly TableClient filmsTable;
-    private readonly BlobContainerClient filmsContainer;
-
-    public FilmController(Storage storageCfg, ITableService tablesService, IBlobService blobsService) 
-        : base(storageCfg, tablesService, blobsService)
-    {
-        filmsTable = tablesService.GetTable(TableName.Films);
-        filmsContainer = blobsService.GetBlobContainer(ContainerName.films);
-    }
+    private readonly TableClient filmsTable = tablesService.GetTable(TableName.Films);
+    private readonly BlobContainerClient filmsContainer = blobsService.GetBlobContainer(ContainerName.films);
 
     protected override TableClient GetTable() => filmsTable;
     protected override BlobContainerClient GetBlobContainer() => filmsContainer;
@@ -69,7 +63,14 @@ public class FilmController : BaseEntityController<FilmEntity, FilmDto>
     [HttpGet("my/developed")]
     public async Task<IActionResult> GetMyDevelopedFilms([FromQuery] int page = 1, [FromQuery] int pageSize = 5)
     {
-        return await GetMyFilteredFilms(f => f.Developed, page, pageSize);
+        var currentUser = User.Name();
+        if (string.IsNullOrEmpty(currentUser))
+            return Unauthorized();
+
+        var currentUserEnum = currentUser.ToEnum<EUsernameType>();
+        
+        // Simple, direct predicate - no need for expression tree manipulation
+        return await GetFilteredFilms(f => f.Developed && f.PurchasedBy == currentUserEnum, page, pageSize);
     }
 
     [HttpGet("not-developed")]
@@ -79,7 +80,7 @@ public class FilmController : BaseEntityController<FilmEntity, FilmDto>
     }
 
     private async Task<IActionResult> GetFilteredFilms(
-        System.Linq.Expressions.Expression<Func<FilmEntity, bool>> predicate, 
+        Expression<Func<FilmEntity, bool>> predicate, 
         int page = 1, 
         int pageSize = 5)
     {
@@ -114,50 +115,14 @@ public class FilmController : BaseEntityController<FilmEntity, FilmDto>
     [HttpGet("my/not-developed")]
     public async Task<IActionResult> GetMyNotDevelopedFilms([FromQuery] int page = 1, [FromQuery] int pageSize = 5)
     {
-        return await GetMyFilteredFilms(f => !f.Developed, page, pageSize);
-    }
-
-    private async Task<IActionResult> GetMyFilteredFilms(
-        System.Linq.Expressions.Expression<Func<FilmEntity, bool>> predicate, 
-        int page = 1, 
-        int pageSize = 5)
-    {
         var currentUser = User.Name();
         if (string.IsNullOrEmpty(currentUser))
             return Unauthorized();
 
         var currentUserEnum = currentUser.ToEnum<EUsernameType>();
-
-        if (page <= 0)
-        {
-            var allEntities = await tablesService.GetTableEntriesAsync(predicate);
-            var myEntities = allEntities.Where(f => f.PurchasedBy == currentUserEnum).ToList();
-            var results = myEntities
-                .OrderByDescending(f => f.PurchasedOn)
-                .Select(EntityToDto);
-            return Ok(results);
-        }
-
-        var allPagedEntities = await tablesService.GetTableEntriesAsync(predicate);
-        var myFilms = allPagedEntities.Where(f => f.PurchasedBy == currentUserEnum).ToList();
         
-        var totalCount = myFilms.Count;
-        var skip = (page - 1) * pageSize;
-        var pagedData = myFilms
-            .OrderByDescending(f => f.PurchasedOn)
-            .Skip(skip)
-            .Take(pageSize)
-            .ToList();
-
-        var pagedResults = new PagedResponseDto<FilmDto>
-        {
-            Data = pagedData.Select(EntityToDto),
-            TotalCount = totalCount,
-            PageSize = pageSize,
-            CurrentPage = page
-        };
-
-        return Ok(pagedResults);
+        // Simple, direct predicate - no need for expression tree manipulation
+        return await GetFilteredFilms(f => !f.Developed && f.PurchasedBy == currentUserEnum, page, pageSize);
     }
 
     [HttpGet("{rowKey}")]

@@ -78,17 +78,31 @@ namespace Database.Services
         public async Task<PagedResponseDto<T>> GetTableEntriesPagedAsync<T>(int page = 1, int pageSize = 10) where T : BaseEntity
         {
             TableName tableName = GetTableName<T>();
-            var allEntities = new List<T>();
+            var pagedData = new List<T>();
+            
+            int skip = (page - 1) * pageSize;
+            int taken = 0;
+            int totalCount = 0;
 
-            // Get all entities first (note: this could be optimized for very large datasets)
-            await foreach (var entity in GetTable(tableName).QueryAsync<T>())
+            await foreach (T entity in GetTable(tableName).QueryAsync<T>())
             {
-                allEntities.Add(entity);
-            }
+                totalCount++;
+                
+                // Skip entities before our page
+                if (totalCount <= skip)
+                {
+                    continue;
+                }
 
-            var totalCount = allEntities.Count;
-            var skip = (page - 1) * pageSize;
-            var pagedData = allEntities.Skip(skip).Take(pageSize).ToList();
+                // Collect entities for our page
+                if (taken < pageSize)
+                {
+                    pagedData.Add(entity);
+                    taken++;
+                }
+                
+                // Continue iterating to count remaining entities (but don't collect them)
+            }
 
             return new PagedResponseDto<T>
             {
@@ -102,17 +116,31 @@ namespace Database.Services
         public async Task<PagedResponseDto<T>> GetTableEntriesPagedAsync<T>(Expression<Func<T, bool>> predicate, int page = 1, int pageSize = 10) where T : BaseEntity
         {
             TableName tableName = GetTableName<T>();
-            var allEntities = new List<T>();
+            var pagedData = new List<T>();
+            
+            int skip = (page - 1) * pageSize;
+            int taken = 0;
+            int totalCount = 0;
 
-            // Get all entities that match the predicate first
             await foreach (T entity in GetTable(tableName).QueryAsync(predicate))
             {
-                allEntities.Add(entity);
-            }
+                totalCount++;
+                
+                // Skip entities before our page
+                if (totalCount <= skip)
+                {
+                    continue;
+                }
 
-            var totalCount = allEntities.Count;
-            var skip = (page - 1) * pageSize;
-            var pagedData = allEntities.Skip(skip).Take(pageSize).ToList();
+                // Collect entities for our page
+                if (taken < pageSize)
+                {
+                    pagedData.Add(entity);
+                    taken++;
+                }
+                
+                // Continue iterating to count remaining entities (but don't collect them)
+            }
 
             return new PagedResponseDto<T>
             {

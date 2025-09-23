@@ -13,19 +13,11 @@ using Microsoft.AspNetCore.Mvc;
 namespace AnalogAgenda.Server.Controllers;
 
 [Route("api/[controller]")]
-public class NotesController : BaseEntityController<NoteEntity, NoteDto>
+public class NotesController(Storage storageCfg, ITableService tablesService, IBlobService blobsService) : BaseEntityController<NoteEntity, NoteDto>(storageCfg, tablesService, blobsService)
 {
-    private readonly TableClient notesTable;
-    private readonly TableClient notesEntriesTable;
-    private readonly BlobContainerClient notesContainer;
-
-    public NotesController(Storage storageCfg, ITableService tablesService, IBlobService blobsService) 
-        : base(storageCfg, tablesService, blobsService)
-    {
-        notesTable = tablesService.GetTable(TableName.Notes);
-        notesEntriesTable = tablesService.GetTable(TableName.NotesEntries);
-        notesContainer = blobsService.GetBlobContainer(ContainerName.notes);
-    }
+    private readonly TableClient notesTable = tablesService.GetTable(TableName.Notes);
+    private readonly TableClient notesEntriesTable = tablesService.GetTable(TableName.NotesEntries);
+    private readonly BlobContainerClient notesContainer = blobsService.GetBlobContainer(ContainerName.notes);
 
     protected override TableClient GetTable() => notesTable;
     protected override BlobContainerClient GetBlobContainer() => notesContainer;
@@ -92,12 +84,19 @@ public class NotesController : BaseEntityController<NoteEntity, NoteDto>
                 return Ok(notesEntities.Select(EntityToDto));
             }
 
-            var results = await Task.WhenAll(
-                notesEntities.Select(async noteEntity =>
-                    {
-                        var entryEntities = await tablesService.GetTableEntriesAsync<NoteEntryEntity>(entry => entry.NoteRowKey == noteEntity.RowKey);
-                        return EntityToDtoWithEntries(noteEntity, entryEntities);
-                    }));
+            // Get all note entries in a single query instead of N+1 queries
+            var noteRowKeys = notesEntities.Select(n => n.RowKey).ToList();
+            var allEntryEntities = await tablesService.GetTableEntriesAsync<NoteEntryEntity>();
+            var entriesByNoteKey = allEntryEntities
+                .Where(entry => noteRowKeys.Contains(entry.NoteRowKey))
+                .GroupBy(entry => entry.NoteRowKey)
+                .ToDictionary(g => g.Key, g => g.ToList());
+
+            var results = notesEntities.Select(noteEntity =>
+                {
+                    var entryEntities = entriesByNoteKey.GetValueOrDefault(noteEntity.RowKey, new List<NoteEntryEntity>());
+                    return EntityToDtoWithEntries(noteEntity, entryEntities);
+                });
 
             return Ok(results);
         }
@@ -116,12 +115,19 @@ public class NotesController : BaseEntityController<NoteEntity, NoteDto>
             return Ok(pagedResults);
         }
 
-        var notesWithEntries = await Task.WhenAll(
-            pagedEntities.Data.Select(async noteEntity =>
-                {
-                    var entryEntities = await tablesService.GetTableEntriesAsync<NoteEntryEntity>(entry => entry.NoteRowKey == noteEntity.RowKey);
-                    return EntityToDtoWithEntries(noteEntity, entryEntities);
-                }));
+        // Get all note entries in a single query instead of N+1 queries
+        var pagedNoteRowKeys = pagedEntities.Data.Select(n => n.RowKey).ToList();
+        var pagedAllEntryEntities = await tablesService.GetTableEntriesAsync<NoteEntryEntity>();
+        var pagedEntriesByNoteKey = pagedAllEntryEntities
+            .Where(entry => pagedNoteRowKeys.Contains(entry.NoteRowKey))
+            .GroupBy(entry => entry.NoteRowKey)
+            .ToDictionary(g => g.Key, g => g.ToList());
+
+        var notesWithEntries = pagedEntities.Data.Select(noteEntity =>
+            {
+                var entryEntities = pagedEntriesByNoteKey.GetValueOrDefault(noteEntity.RowKey, new List<NoteEntryEntity>());
+                return EntityToDtoWithEntries(noteEntity, entryEntities);
+            });
 
         var pagedResultsWithEntries = new PagedResponseDto<NoteDto>
         {
