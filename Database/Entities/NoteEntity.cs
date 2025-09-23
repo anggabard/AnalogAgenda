@@ -4,7 +4,7 @@ using Database.Helpers;
 
 namespace Database.Entities;
 
-public class NoteEntity : BaseEntity
+public class NoteEntity : BaseEntity, IImageEntity
 {
     public NoteEntity() : base(TableName.Notes) { }
 

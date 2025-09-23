@@ -4,7 +4,7 @@ using Database.Helpers;
 
 namespace Database.Entities;
 
-public class FilmEntity : BaseEntity
+public class FilmEntity : BaseEntity, IImageEntity
 {
     public FilmEntity() : base(TableName.Films) { }
 

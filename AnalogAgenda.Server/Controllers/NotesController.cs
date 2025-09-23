@@ -12,12 +12,29 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace AnalogAgenda.Server.Controllers;
 
-[ApiController, Route("api/[controller]"), Authorize]
-public class NotesController(Storage storageCfg, ITableService tablesService, IBlobService blobsService) : ControllerBase
+[Route("api/[controller]")]
+public class NotesController : BaseEntityController<NoteEntity, NoteDto>
 {
-    private readonly TableClient notesTable = tablesService.GetTable(TableName.Notes);
-    private readonly TableClient notesEntriesTable = tablesService.GetTable(TableName.NotesEntries);
-    private readonly BlobContainerClient notesContainer = blobsService.GetBlobContainer(ContainerName.notes);
+    private readonly TableClient notesTable;
+    private readonly TableClient notesEntriesTable;
+    private readonly BlobContainerClient notesContainer;
+
+    public NotesController(Storage storageCfg, ITableService tablesService, IBlobService blobsService) 
+        : base(storageCfg, tablesService, blobsService)
+    {
+        notesTable = tablesService.GetTable(TableName.Notes);
+        notesEntriesTable = tablesService.GetTable(TableName.NotesEntries);
+        notesContainer = blobsService.GetBlobContainer(ContainerName.notes);
+    }
+
+    protected override TableClient GetTable() => notesTable;
+    protected override BlobContainerClient GetBlobContainer() => notesContainer;
+    protected override Guid GetDefaultImageId() => Constants.DefaultNoteImageId;
+    protected override NoteEntity DtoToEntity(NoteDto dto) => dto.ToNoteEntity();
+    protected override NoteDto EntityToDto(NoteEntity entity) => entity.ToDTO(storageCfg.AccountName);
+    
+    private NoteDto EntityToDtoWithEntries(NoteEntity entity, IEnumerable<NoteEntryEntity> entries) => 
+        entity.ToDTO(storageCfg.AccountName, entries.ToList());
 
     [HttpPost]
     public async Task<IActionResult> CreateNewNote([FromBody] NoteDto dto)
@@ -72,14 +89,14 @@ public class NotesController(Storage storageCfg, ITableService tablesService, IB
 
             if (!withEntries)
             {
-                return Ok(notesEntities.Select(note => note.ToDTO(storageCfg.AccountName)));
+                return Ok(notesEntities.Select(EntityToDto));
             }
 
             var results = await Task.WhenAll(
                 notesEntities.Select(async noteEntity =>
                     {
                         var entryEntities = await tablesService.GetTableEntriesAsync<NoteEntryEntity>(entry => entry.NoteRowKey == noteEntity.RowKey);
-                        return noteEntity.ToDTO(storageCfg.AccountName, entryEntities);
+                        return EntityToDtoWithEntries(noteEntity, entryEntities);
                     }));
 
             return Ok(results);
@@ -91,7 +108,7 @@ public class NotesController(Storage storageCfg, ITableService tablesService, IB
         {
             var pagedResults = new PagedResponseDto<NoteDto>
             {
-                Data = pagedEntities.Data.Select(note => note.ToDTO(storageCfg.AccountName)),
+                Data = pagedEntities.Data.Select(EntityToDto),
                 TotalCount = pagedEntities.TotalCount,
                 PageSize = pagedEntities.PageSize,
                 CurrentPage = pagedEntities.CurrentPage
@@ -103,7 +120,7 @@ public class NotesController(Storage storageCfg, ITableService tablesService, IB
             pagedEntities.Data.Select(async noteEntity =>
                 {
                     var entryEntities = await tablesService.GetTableEntriesAsync<NoteEntryEntity>(entry => entry.NoteRowKey == noteEntity.RowKey);
-                    return noteEntity.ToDTO(storageCfg.AccountName, entryEntities);
+                    return EntityToDtoWithEntries(noteEntity, entryEntities);
                 }));
 
         var pagedResultsWithEntries = new PagedResponseDto<NoteDto>
@@ -129,7 +146,7 @@ public class NotesController(Storage storageCfg, ITableService tablesService, IB
 
         var entryEntities = await tablesService.GetTableEntriesAsync<NoteEntryEntity>(entry => entry.NoteRowKey == noteEntity.RowKey);
 
-        return Ok(noteEntity.ToDTO(storageCfg.AccountName, entryEntities.OrderBy(entry => entry.Time).ToList()));
+        return Ok(EntityToDtoWithEntries(noteEntity, entryEntities.OrderBy(entry => entry.Time).ToList()));
     }
 
     [HttpPut("{rowKey}")]
