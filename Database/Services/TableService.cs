@@ -1,6 +1,7 @@
 ﻿using Azure.Data.Tables;
 using Configuration.Sections;
 using Database.DBObjects.Enums;
+using Database.DTOs;
 using Database.Entities;
 using Database.Helpers;
 using Database.Services.Interfaces;
@@ -76,6 +77,54 @@ namespace Database.Services
 
             return entity.HasValue ? entity.Value : null;
 
+        }
+
+        public async Task<PagedResponseDto<T>> GetTableEntriesPagedAsync<T>(int page = 1, int pageSize = 10) where T : BaseEntity
+        {
+            TableName tableName = GetTableName<T>();
+            var allEntities = new List<T>();
+
+            // Get all entities first (note: this could be optimized for very large datasets)
+            await foreach (var entity in GetTable(tableName).QueryAsync<T>())
+            {
+                allEntities.Add(entity);
+            }
+
+            var totalCount = allEntities.Count;
+            var skip = (page - 1) * pageSize;
+            var pagedData = allEntities.Skip(skip).Take(pageSize).ToList();
+
+            return new PagedResponseDto<T>
+            {
+                Data = pagedData,
+                TotalCount = totalCount,
+                PageSize = pageSize,
+                CurrentPage = page
+            };
+        }
+
+        public async Task<PagedResponseDto<T>> GetTableEntriesPagedAsync<T>(Expression<Func<T, bool>> predicate, int page = 1, int pageSize = 10) where T : BaseEntity
+        {
+            TableName tableName = GetTableName<T>();
+            var allEntities = new List<T>();
+
+            // Get all entities that match the predicate first
+            await foreach (T entity in GetTable(tableName).QueryAsync(predicate))
+            {
+                allEntities.Add(entity);
+            }
+
+            var totalCount = allEntities.Count;
+            var skip = (page - 1) * pageSize;
+            var pagedData = allEntities.Skip(skip).Take(pageSize).ToList();
+
+            return new PagedResponseDto<T>
+            {
+                Data = pagedData,
+                TotalCount = totalCount,
+                PageSize = pageSize,
+                CurrentPage = page
+            };
         }
 
         public async Task<bool> EntryExistsAsync(BaseEntity entity)

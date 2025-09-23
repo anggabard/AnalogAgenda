@@ -63,25 +63,58 @@ public class NotesController(Storage storageCfg, ITableService tablesService, IB
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetAllNotes([FromQuery] bool withEntries = false)
+    public async Task<IActionResult> GetAllNotes([FromQuery] bool withEntries = false, [FromQuery] int page = 1, [FromQuery] int pageSize = 5)
     {
-        var result = new List<NoteDto>();
-        var notesEntities = await tablesService.GetTableEntriesAsync<NoteEntity>();
-
-        if (!withEntries)
+        // For backward compatibility, if page is 0 or negative, return all notes
+        if (page <= 0)
         {
-            return Ok(notesEntities.Select(note => note.ToDTO(storageCfg.AccountName)));
+            var notesEntities = await tablesService.GetTableEntriesAsync<NoteEntity>();
+
+            if (!withEntries)
+            {
+                return Ok(notesEntities.Select(note => note.ToDTO(storageCfg.AccountName)));
+            }
+
+            var results = await Task.WhenAll(
+                notesEntities.Select(async noteEntity =>
+                    {
+                        var entryEntities = await tablesService.GetTableEntriesAsync<NoteEntryEntity>(entry => entry.NoteRowKey == noteEntity.RowKey);
+                        return noteEntity.ToDTO(storageCfg.AccountName, entryEntities);
+                    }));
+
+            return Ok(results);
         }
 
-        var results = await Task.WhenAll(
-            notesEntities.Select(async noteEntity =>
+        var pagedEntities = await tablesService.GetTableEntriesPagedAsync<NoteEntity>(page, pageSize);
+        
+        if (!withEntries)
+        {
+            var pagedResults = new PagedResponseDto<NoteDto>
+            {
+                Data = pagedEntities.Data.Select(note => note.ToDTO(storageCfg.AccountName)),
+                TotalCount = pagedEntities.TotalCount,
+                PageSize = pagedEntities.PageSize,
+                CurrentPage = pagedEntities.CurrentPage
+            };
+            return Ok(pagedResults);
+        }
+
+        var notesWithEntries = await Task.WhenAll(
+            pagedEntities.Data.Select(async noteEntity =>
                 {
                     var entryEntities = await tablesService.GetTableEntriesAsync<NoteEntryEntity>(entry => entry.NoteRowKey == noteEntity.RowKey);
-
                     return noteEntity.ToDTO(storageCfg.AccountName, entryEntities);
                 }));
 
-        return Ok(results);
+        var pagedResultsWithEntries = new PagedResponseDto<NoteDto>
+        {
+            Data = notesWithEntries,
+            TotalCount = pagedEntities.TotalCount,
+            PageSize = pagedEntities.PageSize,
+            CurrentPage = pagedEntities.CurrentPage
+        };
+
+        return Ok(pagedResultsWithEntries);
     }
 
     [HttpGet("{rowKey}")]

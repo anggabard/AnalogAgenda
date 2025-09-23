@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { BaseService } from '../base.service';
-import { DevKitDto } from '../../DTOs';
+import { DevKitDto, PagedResponseDto } from '../../DTOs';
 import { Observable } from 'rxjs';
 
 @Injectable({
@@ -14,7 +14,19 @@ export class DevKitService extends BaseService {
   }
 
   getAllDevKits(): Observable<DevKitDto[]> {
-    return this.get<DevKitDto[]>('');
+    return this.get<DevKitDto[]>('?page=0'); // page=0 for backward compatibility to get all kits
+  }
+
+  getDevKitsPaged(page: number = 1, pageSize: number = 5): Observable<PagedResponseDto<DevKitDto>> {
+    return this.get<PagedResponseDto<DevKitDto>>(`?page=${page}&pageSize=${pageSize}`);
+  }
+
+  getAvailableDevKitsPaged(page: number = 1, pageSize: number = 5): Observable<PagedResponseDto<DevKitDto>> {
+    return this.get<PagedResponseDto<DevKitDto>>(`available?page=${page}&pageSize=${pageSize}`);
+  }
+
+  getExpiredDevKitsPaged(page: number = 1, pageSize: number = 5): Observable<PagedResponseDto<DevKitDto>> {
+    return this.get<PagedResponseDto<DevKitDto>>(`expired?page=${page}&pageSize=${pageSize}`);
   }
 
   getKit(rowKey: string): Observable<DevKitDto> {

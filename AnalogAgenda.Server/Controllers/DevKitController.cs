@@ -48,12 +48,84 @@ public class DevKitController(Storage storageCfg, ITableService tablesService, I
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetAllKits()
+    public async Task<IActionResult> GetAllKits([FromQuery] int page = 1, [FromQuery] int pageSize = 5)
     {
-        var entities = await tablesService.GetTableEntriesAsync<DevKitEntity>();
-        var results = entities.Select(entity => entity.ToDTO(storageCfg.AccountName));
+        // For backward compatibility, if page is 0 or negative, return all kits
+        if (page <= 0)
+        {
+            var entities = await tablesService.GetTableEntriesAsync<DevKitEntity>();
+            var results = entities.Select(entity => entity.ToDTO(storageCfg.AccountName));
+            return Ok(results);
+        }
 
-        return Ok(results);
+        var pagedEntities = await tablesService.GetTableEntriesPagedAsync<DevKitEntity>(page, pageSize);
+        var pagedResults = new PagedResponseDto<DevKitDto>
+        {
+            Data = pagedEntities.Data.Select(entity => entity.ToDTO(storageCfg.AccountName)),
+            TotalCount = pagedEntities.TotalCount,
+            PageSize = pagedEntities.PageSize,
+            CurrentPage = pagedEntities.CurrentPage
+        };
+
+        return Ok(pagedResults);
+    }
+
+    [HttpGet("available")]
+    public async Task<IActionResult> GetAvailableKits([FromQuery] int page = 1, [FromQuery] int pageSize = 5)
+    {
+        // For backward compatibility, if page is 0 or negative, return all available kits
+        if (page <= 0)
+        {
+            var entities = await tablesService.GetTableEntriesAsync<DevKitEntity>(k => !k.Expired);
+            var results = entities
+                .OrderBy(k => k.PurchasedOn) // Sort by purchased date (oldest first)
+                .Select(entity => entity.ToDTO(storageCfg.AccountName));
+            return Ok(results);
+        }
+
+        var pagedEntities = await tablesService.GetTableEntriesPagedAsync<DevKitEntity>(k => !k.Expired, page, pageSize);
+        var sortedData = pagedEntities.Data
+            .OrderBy(k => k.PurchasedOn) // Sort by purchased date (oldest first)
+            .ToList();
+
+        var pagedResults = new PagedResponseDto<DevKitDto>
+        {
+            Data = sortedData.Select(entity => entity.ToDTO(storageCfg.AccountName)),
+            TotalCount = pagedEntities.TotalCount,
+            PageSize = pagedEntities.PageSize,
+            CurrentPage = pagedEntities.CurrentPage
+        };
+
+        return Ok(pagedResults);
+    }
+
+    [HttpGet("expired")]
+    public async Task<IActionResult> GetExpiredKits([FromQuery] int page = 1, [FromQuery] int pageSize = 5)
+    {
+        // For backward compatibility, if page is 0 or negative, return all expired kits
+        if (page <= 0)
+        {
+            var entities = await tablesService.GetTableEntriesAsync<DevKitEntity>(k => k.Expired);
+            var results = entities
+                .OrderBy(k => k.PurchasedOn) // Sort by purchased date (oldest first)
+                .Select(entity => entity.ToDTO(storageCfg.AccountName));
+            return Ok(results);
+        }
+
+        var pagedEntities = await tablesService.GetTableEntriesPagedAsync<DevKitEntity>(k => k.Expired, page, pageSize);
+        var sortedData = pagedEntities.Data
+            .OrderBy(k => k.PurchasedOn) // Sort by purchased date (oldest first)
+            .ToList();
+
+        var pagedResults = new PagedResponseDto<DevKitDto>
+        {
+            Data = sortedData.Select(entity => entity.ToDTO(storageCfg.AccountName)),
+            TotalCount = pagedEntities.TotalCount,
+            PageSize = pagedEntities.PageSize,
+            CurrentPage = pagedEntities.CurrentPage
+        };
+
+        return Ok(pagedResults);
     }
 
     [HttpGet("{rowKey}")]

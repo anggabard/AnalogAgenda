@@ -1,0 +1,115 @@
+.card-list {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x mandatory;
+  align-items: center; /* This centers the load more button vertically */
+}
+
+/* Desktop scrollbar styling */
+@media (min-width: 768px) {
+  .card-list {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0, 0, 0, 0.3) transparent;
+  }
+  
+  .card-list::-webkit-scrollbar {
+    height: 8px;
+  }
+  
+  .card-list::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 4px;
+  }
+  
+  .card-list::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 4px;
+  }
+  
+  .card-list::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.5);
+  }
+}
+
+/* Mobile - hide scrollbars */
+@media (max-width: 767px) {
+  .card-list {
+    scrollbar-width: none;
+  }
+  
+  .card-list::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+.load-more-btn {
+  position: relative;
+  flex: 0 0 auto;
+  width: 40px;
+  height: 40px;
+  background: rgba(37, 35, 35, 0.1);
+  border: 2px solid rgba(37, 35, 35, 0.3);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  scroll-snap-align: start;
+  margin-left: 10px;
+}
+
+.load-more-btn:hover {
+  background: rgba(37, 35, 35, 0.2);
+  border-color: rgba(37, 35, 35, 0.5);
+  transform: scale(1.1);
+}
+
+.load-more-btn:active {
+  transform: scale(0.95);
+}
+
+.load-more-icon {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: rgba(37, 35, 35, 0.8);
+  user-select: none;
+  line-height: 1;
+}
+
+.loading-spinner-card {
+  position: relative;
+  flex: 0 0 auto;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  scroll-snap-align: start;
+  margin-left: 10px;
+}
+
+.spinner {
+  width: 24px;
+  height: 24px;
+  animation: spin 1s linear infinite;
+}
+
+.spinner-bg {
+  fill: none;
+  stroke: rgba(37, 35, 35, 0.3);
+  opacity: 0.25;
+}
+
+.spinner-path {
+  fill: rgba(37, 35, 35, 0.8);
+  opacity: 0.75;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

@@ -4,12 +4,22 @@
     </div>
 
     <div class="notes-section">
-        <h2 class="notes-title">Available Substances</h2>
-        <div class="notes-list">
-            <div *ngFor="let note of notes" class="card" (click)="onNoteSelected(note.rowKey)">
-                <img class="image" [src]="note.imageUrl" />
-                <span class="title">{{note.name}}</span>
-            </div>
-        </div>
+        <h2 class="notes-title">Notes</h2>
+        <app-card-list 
+            [items]="notes" 
+            [cardTemplate]="noteCardTemplate"
+            [hasMore]="hasMoreNotes" 
+            [loading]="loadingNotes"
+            (loadMore)="loadMoreNotes()"
+            (itemClick)="onNoteSelected($event.rowKey)">
+        </app-card-list>
     </div>
 </div>
+
+<!-- Template for note cards -->
+<ng-template #noteCardTemplate let-note>
+    <div class="card">
+        <img class="image" [src]="note.imageUrl" />
+        <span class="title">{{note.name}}</span>
+    </div>
+</ng-template>

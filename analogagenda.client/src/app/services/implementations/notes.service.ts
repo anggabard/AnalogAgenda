@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { BaseService } from '../base.service';
-import { NoteDto } from '../../DTOs';
+import { NoteDto, PagedResponseDto } from '../../DTOs';
 import { Observable } from 'rxjs';
 
 @Injectable({
@@ -14,7 +14,15 @@ export class NotesService extends BaseService {
   }
 
   getAllNotes(withEntries: boolean = false): Observable<NoteDto[]> {
-    return this.get<NoteDto[]>(withEntries ? 'withEntries=true' : '');
+    const query = withEntries ? '?withEntries=true&page=0' : '?page=0'; // page=0 for backward compatibility
+    return this.get<NoteDto[]>(query);
+  }
+
+  getNotesPaged(page: number = 1, pageSize: number = 5, withEntries: boolean = false): Observable<PagedResponseDto<NoteDto>> {
+    const query = withEntries ? 
+      `?page=${page}&pageSize=${pageSize}&withEntries=true` : 
+      `?page=${page}&pageSize=${pageSize}`;
+    return this.get<PagedResponseDto<NoteDto>>(query);
   }
 
   getNote(rowKey: string): Observable<NoteDto> {
