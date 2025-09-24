@@ -42,7 +42,7 @@ describe('PhotoService', () => {
       });
 
       // Assert HTTP call
-      const req = httpMock.expectOne(baseUrl);
+      const req = httpMock.expectOne(`${baseUrl}/`);
       expect(req.request.method).toBe('POST');
       expect(req.request.body).toEqual(createDto);
       req.flush(mockResponse);
@@ -65,7 +65,7 @@ describe('PhotoService', () => {
       });
 
       // Assert HTTP call
-      const req = httpMock.expectOne(baseUrl);
+      const req = httpMock.expectOne(`${baseUrl}/`);
       req.flush('Film not found', { status: 404, statusText: 'Not Found' });
     });
   });
@@ -198,7 +198,7 @@ describe('PhotoService', () => {
 
       // Assert HTTP call
       const req = httpMock.expectOne(`${baseUrl}/download/${rowKey}`);
-      req.flush('Photo not found', { status: 404, statusText: 'Not Found' });
+      req.flush(null, { status: 404, statusText: 'Not Found' });
     });
   });
 
@@ -236,7 +236,7 @@ describe('PhotoService', () => {
 
       // Assert HTTP call
       const req = httpMock.expectOne(`${baseUrl}/download-all/${filmRowId}`);
-      req.flush('No photos found', { status: 404, statusText: 'Not Found' });
+      req.flush(null, { status: 404, statusText: 'Not Found' });
     });
   });
 

@@ -183,6 +183,7 @@ export class FilmPhotosComponent implements OnInit {
 
 
   private sanitizeFileName(fileName: string): string {
-    return fileName.replace(/[^a-zA-Z0-9.-_]/g, '').substring(0, 50);
+    const sanitized = fileName.replace(/[^a-zA-Z0-9.\-_]/g, '');
+    return (sanitized || 'photos').substring(0, 50);
   }
 }
