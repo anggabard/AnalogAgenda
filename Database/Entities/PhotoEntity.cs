@@ -14,7 +14,7 @@ public class PhotoEntity : BaseEntity, IImageEntity
 
     public Guid ImageId { get; set; }
 
-    protected override int RowKeyLenght() => 8;
+    protected override int RowKeyLenght() => 16;
 
     public PhotoDto ToDTO(string accountName)
     {

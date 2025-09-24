@@ -118,11 +118,60 @@
   font-size: 1rem;
   font-weight: 600;
   transition: all 0.2s ease;
+  position: relative;
+  min-width: 140px; /* Fixed width to prevent size changes */
+  height: 50px; /* Fixed height */
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.download-all-btn:hover {
+.download-all-btn:hover:not(:disabled) {
   background: #374151;
   transform: translateY(-1px);
+}
+
+.download-all-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Button content that dims when loading */
+.button-content {
+  transition: opacity 0.2s ease;
+}
+
+.button-content.loading {
+  opacity: 0.3;
+}
+
+/* Download button spinner overlaid on button */
+.button-spinner {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  animation: spin-button 1s linear infinite;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.button-spinner .spinner-bg {
+  fill: none;
+  stroke: currentColor;
+  opacity: 0.25;
+}
+
+.button-spinner .spinner-path {
+  fill: currentColor;
+  opacity: 0.75;
+}
+
+@keyframes spin-button {
+  to {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
 }
 
 .photos-grid {

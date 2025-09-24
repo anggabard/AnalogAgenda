@@ -26,9 +26,15 @@
       <div class="photos-count">
         {{ photos.length }} photo{{ photos.length !== 1 ? 's' : '' }}
       </div>
-      <button class="download-all-btn" (click)="downloadAllPhotos()">
-        📦 Download All
-      </button>
+          <button class="download-all-btn" [disabled]="downloadAllLoading" (click)="downloadAllPhotos()">
+            <span class="button-content" [class.loading]="downloadAllLoading">
+              📦 Download All
+            </span>
+            <svg *ngIf="downloadAllLoading" class="button-spinner" viewBox="0 0 24 24">
+              <circle class="spinner-bg" cx="12" cy="12" r="10" stroke-width="4"></circle>
+              <path class="spinner-path" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+            </svg>
+          </button>
     </div>
 
     <div class="photos-grid">

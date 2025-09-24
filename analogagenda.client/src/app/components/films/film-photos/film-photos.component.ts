@@ -28,6 +28,9 @@ export class FilmPhotosComponent implements OnInit {
   // Delete modal
   isDeleteModalOpen = false;
 
+  // Download all loading state
+  downloadAllLoading = false;
+
   ngOnInit() {
     this.filmId = this.route.snapshot.paramMap.get('id') || '';
     if (this.filmId) {
@@ -164,6 +167,7 @@ export class FilmPhotosComponent implements OnInit {
   }
 
   downloadAllPhotos() {
+    this.downloadAllLoading = true;
     this.photoService.downloadAllPhotos(this.filmId).subscribe({
       next: (blob) => {
         const url = window.URL.createObjectURL(blob);
@@ -174,9 +178,11 @@ export class FilmPhotosComponent implements OnInit {
         link.click();
         document.body.removeChild(link);
         window.URL.revokeObjectURL(url);
+        this.downloadAllLoading = false;
       },
       error: (err) => {
         this.errorMessage = 'Error downloading photos archive.';
+        this.downloadAllLoading = false;
       }
     });
   }

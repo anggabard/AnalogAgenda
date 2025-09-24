@@ -32,9 +32,7 @@ public class PhotoController(Storage storageCfg, ITableService tablesService, IB
         if (!await FilmExists(dto.FilmRowId))
             return NotFound("Film not found.");
 
-        // Get existing photos for this film to determine next index
-        var existingPhotos = await tablesService.GetTableEntriesAsync<PhotoEntity>(p => p.FilmRowId == dto.FilmRowId);
-        int nextIndex = existingPhotos.Count != 0 ? existingPhotos.Max(p => p.Index) + 1 : 1;
+        int nextIndex = await GetNextPhotoIndexAsync(dto.FilmRowId);
 
         return await CreateEntityWithImageAsync(new PhotoDto
         {
@@ -57,9 +55,7 @@ public class PhotoController(Storage storageCfg, ITableService tablesService, IB
         if (!await FilmExists(bulkDto.FilmRowId))
             return NotFound("Film not found.");
 
-        // Get existing photos for this film to determine next index
-        var existingPhotos = await tablesService.GetTableEntriesAsync<PhotoEntity>(p => p.FilmRowId == bulkDto.FilmRowId);
-        int nextIndex = existingPhotos.Count != 0 ? existingPhotos.Max(p => p.Index) + 1 : 1;
+        int nextIndex = await GetNextPhotoIndexAsync(bulkDto.FilmRowId);
 
         var uploadedPhotos = new List<PhotoDto>();
         var uploadedImageIds = new List<Guid>();
@@ -227,6 +223,12 @@ public class PhotoController(Storage storageCfg, ITableService tablesService, IB
             "image/tiff" => "tiff",
             _ => "jpg" // Default to jpg for unknown types
         };
+    }
+
+    private async Task<int> GetNextPhotoIndexAsync(string filmRowId)
+    {
+        var existingPhotos = await tablesService.GetTableEntriesAsync<PhotoEntity>(p => p.FilmRowId == filmRowId);
+        return existingPhotos.Count != 0 ? existingPhotos.Max(p => p.Index) + 1 : 1;
     }
 }
 

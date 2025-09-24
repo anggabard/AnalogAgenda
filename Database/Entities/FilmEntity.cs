@@ -28,7 +28,7 @@ public class FilmEntity : BaseEntity, IImageEntity
 
     public bool Developed { get; set; }
 
-    protected override int RowKeyLenght() => 8;
+    protected override int RowKeyLenght() => 12;
 
     public FilmDto ToDTO(string accountName)
     {
