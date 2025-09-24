@@ -1,6 +1,6 @@
 import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
-import { LoginComponent, HomeComponent, NotesComponent, SubstancesComponent, UpsertKitComponent, NoteTableComponent, FilmsComponent, UpsertFilmComponent, ChangePasswordComponent } from './components';
+import { LoginComponent, HomeComponent, NotesComponent, SubstancesComponent, UpsertKitComponent, NoteTableComponent, FilmsComponent, UpsertFilmComponent, FilmPhotosComponent, ChangePasswordComponent } from './components';
 import { sessionGuard, loginGuard } from './guards';
 import { MainLayoutComponent, AuthLayoutComponent } from './layouts';
 
@@ -18,6 +18,7 @@ const routes: Routes = [
       { path: 'substances/:id', component: UpsertKitComponent, canActivate: [sessionGuard] },
       { path: 'films', component: FilmsComponent, canActivate: [sessionGuard] },
       { path: 'films/new', component: UpsertFilmComponent, canActivate: [sessionGuard] },
+      { path: 'films/:id/photos', component: FilmPhotosComponent, canActivate: [sessionGuard] },
       { path: 'films/:id', component: UpsertFilmComponent, canActivate: [sessionGuard] },
       { path: 'notes/new', component: NoteTableComponent, canActivate: [sessionGuard] },
       { path: 'notes/:id', component: NoteTableComponent, canActivate: [sessionGuard] },

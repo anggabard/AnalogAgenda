@@ -1,0 +1,110 @@
+<div class="container">
+  <div class="header">
+    <div class="film-info" *ngIf="film">
+      <h1>{{ film.name }} - Photos</h1>
+      <p class="film-details">{{ film.type }} • ISO {{ film.iso }}</p>
+    </div>
+  </div>
+
+  <div *ngIf="errorMessage" class="error-message">
+    {{ errorMessage }}
+  </div>
+
+  <div *ngIf="loading" class="loading-container">
+    <div class="spinner"></div>
+    <p>Loading photos...</p>
+  </div>
+
+  <div *ngIf="!loading && photos.length === 0" class="no-photos">
+    <div class="no-photos-icon">📷</div>
+    <p>No photos found for this film.</p>
+    <p>Use the browser back button to return.</p>
+  </div>
+
+  <div *ngIf="!loading && photos.length > 0" class="photos-content">
+    <div class="actions-bar">
+      <div class="photos-count">
+        {{ photos.length }} photo{{ photos.length !== 1 ? 's' : '' }}
+      </div>
+      <button class="download-all-btn" (click)="downloadAllPhotos()">
+        📦 Download All
+      </button>
+    </div>
+
+    <div class="photos-grid">
+      <div 
+        *ngFor="let photo of photos" 
+        class="photo-item"
+        (click)="openPreview(photo)"
+      >
+        <div class="photo-thumbnail">
+          <img [src]="photo.imageUrl" [alt]="'Photo ' + photo.index" />
+        </div>
+        <div class="photo-info">
+          <span class="photo-index">#{{ photo.index.toString().padStart(3, '0') }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Preview Modal -->
+  <div class="image-preview-overlay" *ngIf="isPreviewModalOpen" (click)="closePreview()" (keydown)="onKeyDown($event)" tabindex="0">
+    <div class="preview-content" (click)="$event.stopPropagation()">
+      <!-- Previous Photo Arrow -->
+      <button 
+        class="nav-arrow prev-arrow" 
+        (click)="previousPhoto()" 
+        *ngIf="canNavigatePrevious()"
+        title="Previous photo"
+      >
+        &#8249;
+      </button>
+      
+      <!-- Next Photo Arrow -->
+      <button 
+        class="nav-arrow next-arrow" 
+        (click)="nextPhoto()" 
+        *ngIf="canNavigateNext()"
+        title="Next photo"
+      >
+        &#8250;
+      </button>
+
+      <img 
+        *ngIf="currentPreviewPhoto" 
+        [src]="currentPreviewPhoto.imageUrl" 
+        [alt]="'Photo ' + currentPreviewPhoto.index" 
+      />
+      <div class="preview-actions">
+        <button 
+          class="preview-action-btn download-preview-btn" 
+          (click)="downloadPhoto(currentPreviewPhoto!)"
+          *ngIf="currentPreviewPhoto"
+        >
+          📥 Download
+        </button>
+        <button 
+          class="preview-action-btn delete-btn" 
+          (click)="openDeleteModal()"
+          *ngIf="currentPreviewPhoto"
+        >
+          🗑️ Delete
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete Confirmation Modal -->
+  <div class="delete-modal-overlay" *ngIf="isDeleteModalOpen" (click)="closeDeleteModal()">
+    <div class="delete-modal" (click)="$event.stopPropagation()">
+      <h2>Confirm Delete</h2>
+      <p *ngIf="currentPreviewPhoto">
+        Are you sure you want to delete photo <strong>#{{ currentPreviewPhoto.index.toString().padStart(3, '0') }}</strong>?
+      </p>
+      <div class="delete-modal-actions">
+        <button class="cancel-btn" (click)="closeDeleteModal()">Cancel</button>
+        <button class="delete-confirm-btn" (click)="confirmDelete()">Delete</button>
+      </div>
+    </div>
+  </div>
+</div>
