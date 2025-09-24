@@ -61,14 +61,24 @@
             </div>
 
             <div class="developed-toggle-container">
-                <span style="justify-self: end;">Not Developed</span>
+                <span class="toggle-label">Not Developed</span>
                 <div class="toggle-border">
                     <input id="toggle" type="checkbox" formControlName="developed">
                     <label for="toggle">
                         <div class="handle"></div>
                     </label>
                 </div>
-                <span style="justify-self: start;">Developed</span>
+                <span class="toggle-label">Developed</span>
+            </div>
+
+            <!-- Photo action buttons - only show when developed and not in insert mode -->
+            <div class="photo-actions" [class.show]="form.get('developed')?.value && !isInsert">
+                <button type="button" class="photo-btn upload-btn" (click)="onUploadPhotos()">
+                    Upload Photos
+                </button>
+                <button type="button" class="photo-btn view-btn" (click)="onViewPhotos()">
+                    View Photos
+                </button>
             </div>
 
             <button type="submit" [disabled]="form.invalid || loading" class="submit-btn">

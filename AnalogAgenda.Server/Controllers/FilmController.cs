@@ -182,7 +182,31 @@ public class FilmController(Storage storageCfg, ITableService tablesService, IBl
     [HttpDelete("{rowKey}")]
     public async Task<IActionResult> DeleteFilm(string rowKey)
     {
+        // First, delete all associated photos
+        await DeleteAssociatedPhotosAsync(rowKey);
+        
+        // Then delete the film itself
         return await DeleteEntityWithImageAsync(rowKey);
+    }
+
+    private async Task DeleteAssociatedPhotosAsync(string filmRowId)
+    {
+        var photosTable = tablesService.GetTable(TableName.Photos);
+        var photosContainer = blobsService.GetBlobContainer(ContainerName.photos);
+        
+        var photos = await tablesService.GetTableEntriesAsync<PhotoEntity>(p => p.FilmRowId == filmRowId);
+        
+        foreach (var photo in photos)
+        {
+            // Delete the blob
+            if (photo.ImageId != Guid.Empty)
+            {
+                await photosContainer.GetBlobClient(photo.ImageId.ToString()).DeleteIfExistsAsync();
+            }
+            
+            // Delete the table entry
+            await photosTable.DeleteEntityAsync(photo);
+        }
     }
 
 }

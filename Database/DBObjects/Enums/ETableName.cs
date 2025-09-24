@@ -6,5 +6,6 @@ public enum TableName
     Notes,
     NotesEntries,
     DevKits,
-    Films
+    Films,
+    Photos
 }

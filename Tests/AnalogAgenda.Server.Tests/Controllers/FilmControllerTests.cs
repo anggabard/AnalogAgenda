@@ -17,8 +17,10 @@ public class FilmControllerTests
 {
     private readonly Mock<ITableService> _mockTableService;
     private readonly Mock<IBlobService> _mockBlobService;
-    private readonly Mock<TableClient> _mockTableClient;
-    private readonly Mock<BlobContainerClient> _mockContainerClient;
+    private readonly Mock<TableClient> _mockFilmsTableClient;
+    private readonly Mock<TableClient> _mockPhotosTableClient;
+    private readonly Mock<BlobContainerClient> _mockFilmsContainerClient;
+    private readonly Mock<BlobContainerClient> _mockPhotosContainerClient;
     private readonly Storage _storageConfig;
     private readonly FilmController _controller;
 
@@ -26,15 +28,23 @@ public class FilmControllerTests
     {
         _mockTableService = new Mock<ITableService>();
         _mockBlobService = new Mock<IBlobService>();
-        _mockTableClient = new Mock<TableClient>();
-        _mockContainerClient = new Mock<BlobContainerClient>();
+        _mockFilmsTableClient = new Mock<TableClient>();
+        _mockPhotosTableClient = new Mock<TableClient>();
+        _mockFilmsContainerClient = new Mock<BlobContainerClient>();
+        _mockPhotosContainerClient = new Mock<BlobContainerClient>();
         _storageConfig = new Storage { AccountName = "teststorage" };
 
         _mockTableService.Setup(x => x.GetTable(TableName.Films))
-                        .Returns(_mockTableClient.Object);
+                        .Returns(_mockFilmsTableClient.Object);
+        
+        _mockTableService.Setup(x => x.GetTable(TableName.Photos))
+                        .Returns(_mockPhotosTableClient.Object);
         
         _mockBlobService.Setup(x => x.GetBlobContainer(ContainerName.films))
-                       .Returns(_mockContainerClient.Object);
+                       .Returns(_mockFilmsContainerClient.Object);
+                       
+        _mockBlobService.Setup(x => x.GetBlobContainer(ContainerName.photos))
+                       .Returns(_mockPhotosContainerClient.Object);
 
         _controller = new FilmController(_storageConfig, _mockTableService.Object, _mockBlobService.Object);
         
@@ -183,6 +193,15 @@ public class FilmControllerTests
         var rowKey = "test-film-key";
         var existingEntity = new FilmEntity { RowKey = rowKey, Name = "Film to Delete", ImageId = Guid.NewGuid() };
         _mockTableService.Setup(x => x.GetTableEntryIfExistsAsync<FilmEntity>(rowKey)).ReturnsAsync(existingEntity);
+        
+        // Mock photo deletion dependencies
+        _mockTableService.Setup(x => x.GetTableEntriesAsync<PhotoEntity>(It.IsAny<System.Linq.Expressions.Expression<System.Func<PhotoEntity, bool>>>()))
+                        .ReturnsAsync(new List<PhotoEntity>());
+                        
+        // Mock BlobClient for photo deletion
+        var mockBlobClient = new Mock<BlobClient>();
+        _mockPhotosContainerClient.Setup(x => x.GetBlobClient(It.IsAny<string>()))
+                                 .Returns(mockBlobClient.Object);
 
         // Act
         var result = await _controller.DeleteFilm(rowKey);

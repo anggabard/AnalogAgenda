@@ -4,5 +4,6 @@ public enum ContainerName
 { 
     devkits,
     notes,
-    films
+    films,
+    photos
 }

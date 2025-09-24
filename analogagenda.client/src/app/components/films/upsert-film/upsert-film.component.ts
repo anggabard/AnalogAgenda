@@ -1,8 +1,8 @@
 import { Component, inject } from '@angular/core';
 import { FormBuilder, Validators } from '@angular/forms';
-import { AccountService, FilmService } from '../../../services';
+import { AccountService, FilmService, PhotoService } from '../../../services';
 import { FilmType, UsernameType } from '../../../enums';
-import { FilmDto, IdentityDto } from '../../../DTOs';
+import { FilmDto, IdentityDto, PhotoBulkUploadDto, PhotoUploadDto } from '../../../DTOs';
 import { ActivatedRoute, Router } from '@angular/router';
 
 @Component({
@@ -15,6 +15,7 @@ export class UpsertFilmComponent {
   private router = inject(Router);
   private route = inject(ActivatedRoute);
   private filmService = inject(FilmService);
+  private photoService = inject(PhotoService);
   private api = inject(AccountService);
 
   rowKey: string | null;
@@ -110,5 +111,65 @@ export class UpsertFilmComponent {
         this.errorMessage = 'There was an error deleting the Film.';
       }
     });
+  }
+
+  onUploadPhotos() {
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.multiple = true;
+    fileInput.accept = 'image/*';
+    
+    fileInput.onchange = (event: any) => {
+      const files = event.target.files;
+      if (files && files.length > 0) {
+        this.processPhotoUploads(files);
+      }
+    };
+    
+    fileInput.click();
+  }
+
+  private processPhotoUploads(files: FileList) {
+    this.loading = true;
+    this.errorMessage = null;
+    
+    const photos: PhotoUploadDto[] = [];
+    let processedCount = 0;
+    
+    Array.from(files).forEach((file, index) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        photos.push({
+          imageBase64: reader.result as string
+        });
+        
+        processedCount++;
+        if (processedCount === files.length) {
+          // All files processed, upload them
+          const uploadDto: PhotoBulkUploadDto = {
+            filmRowId: this.rowKey!,
+            photos: photos
+          };
+          
+          this.photoService.uploadPhotos(uploadDto).subscribe({
+            next: (uploadedPhotos) => {
+              this.loading = false;
+              // Show success message or navigate
+              console.log(`Successfully uploaded ${uploadedPhotos.length} photos`);
+            },
+            error: (err) => {
+              this.loading = false;
+              this.errorMessage = 'There was an error uploading the photos.';
+            }
+          });
+        }
+      };
+      
+      reader.readAsDataURL(file);
+    });
+  }
+
+  onViewPhotos() {
+    this.router.navigate(['/films', this.rowKey, 'photos']);
   }
 }
