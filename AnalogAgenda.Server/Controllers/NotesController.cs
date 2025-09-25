@@ -1,5 +1,4 @@
-﻿using AnalogAgenda.Server.Helpers;
-using Azure.Data.Tables;
+﻿using Azure.Data.Tables;
 using Azure.Storage.Blobs;
 using Configuration.Sections;
 using Database.DBObjects;
@@ -7,7 +6,6 @@ using Database.DBObjects.Enums;
 using Database.DTOs;
 using Database.Entities;
 using Database.Services.Interfaces;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AnalogAgenda.Server.Controllers;
