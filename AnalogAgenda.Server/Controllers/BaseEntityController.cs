@@ -24,7 +24,7 @@ public abstract class BaseEntityController<TEntity, TDto>(Storage storageCfg, IT
     protected abstract TEntity DtoToEntity(TDto dto);
     protected abstract TDto EntityToDto(TEntity entity);
 
-    protected async Task<IActionResult> CreateEntityWithImageAsync(TDto dto, Func<TDto, string?> getImageBase64)
+    protected async Task<IActionResult> CreateEntityWithImageAsync(TDto dto, Func<TDto, string?> getImageBase64, DateTime creationDate = default)
     {
         var imageId = GetDefaultImageId();
         var table = GetTable();
@@ -41,8 +41,14 @@ public abstract class BaseEntityController<TEntity, TDto>(Storage storageCfg, IT
 
             var entity = DtoToEntity(dto);
             entity.ImageId = imageId;
+            if (creationDate != default)
+            {
+                entity.CreatedDate = creationDate;
+                entity.UpdatedDate = creationDate;
+            }
 
             await table.AddEntityAsync(entity);
+            return Ok();
         }
         catch (Exception ex)
         {
@@ -51,8 +57,6 @@ public abstract class BaseEntityController<TEntity, TDto>(Storage storageCfg, IT
 
             return UnprocessableEntity(ex.Message);
         }
-
-        return Ok();
     }
 
     protected async Task<IActionResult> UpdateEntityWithImageAsync(string rowKey, TDto updateDto, Func<TDto, string?> getImageBase64)

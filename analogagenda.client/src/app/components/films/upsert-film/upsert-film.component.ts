@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { FormGroup, Validators } from '@angular/forms';
 import { Observable } from 'rxjs';
 import { BaseUpsertComponent } from '../../common/base-upsert/base-upsert.component';
@@ -14,10 +14,14 @@ import { ErrorHandlingHelper } from '../../../helpers/error-handling.helper';
   templateUrl: './upsert-film.component.html',
   styleUrl: './upsert-film.component.css'
 })
-export class UpsertFilmComponent extends BaseUpsertComponent<FilmDto> {
+export class UpsertFilmComponent extends BaseUpsertComponent<FilmDto> implements OnInit {
 
   constructor(private filmService: FilmService, private photoService: PhotoService) {
     super();
+  }
+
+  override ngOnInit(): void {
+    super.ngOnInit();
   }
 
   // Component-specific properties

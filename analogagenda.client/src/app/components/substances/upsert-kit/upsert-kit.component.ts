@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { FormGroup, Validators } from '@angular/forms';
 import { Observable } from 'rxjs';
 import { BaseUpsertComponent } from '../../common/base-upsert/base-upsert.component';
@@ -12,10 +12,14 @@ import { DateHelper } from '../../../helpers/date.helper';
   templateUrl: './upsert-kit.component.html',
   styleUrl: './upsert-kit.component.css'
 })
-export class UpsertKitComponent extends BaseUpsertComponent<DevKitDto> {
+export class UpsertKitComponent extends BaseUpsertComponent<DevKitDto> implements OnInit {
 
   constructor(private devKitService: DevKitService) {
     super();
+  }
+
+  override ngOnInit(): void {
+    super.ngOnInit();
   }
 
   // Component-specific properties

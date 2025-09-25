@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Observable } from 'rxjs';
@@ -12,7 +12,7 @@ import { ErrorHandlingHelper } from '../../../helpers/error-handling.helper';
 @Component({
   template: '' // Abstract component, no template
 })
-export abstract class BaseUpsertComponent<TDto> {
+export abstract class BaseUpsertComponent<TDto> implements OnInit {
   protected fb = inject(FormBuilder);
   protected router = inject(Router);
   protected route = inject(ActivatedRoute);
@@ -33,7 +33,9 @@ export abstract class BaseUpsertComponent<TDto> {
     
     // Initialize form first
     this.form = this.createForm();
-    
+  }
+
+  ngOnInit(): void {
     if (this.isInsert) {
       this.initializeForCreate();
     } else {
