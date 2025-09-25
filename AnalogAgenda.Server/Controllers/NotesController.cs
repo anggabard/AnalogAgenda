@@ -1,5 +1,4 @@
-﻿using AnalogAgenda.Server.Helpers;
-using Azure.Data.Tables;
+﻿using Azure.Data.Tables;
 using Azure.Storage.Blobs;
 using Configuration.Sections;
 using Database.DBObjects;
@@ -7,7 +6,6 @@ using Database.DBObjects.Enums;
 using Database.DTOs;
 using Database.Entities;
 using Database.Services.Interfaces;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AnalogAgenda.Server.Controllers;
@@ -37,7 +35,8 @@ public class NotesController(Storage storageCfg, ITableService tablesService, IB
     private async Task<IActionResult> CreateNoteWithEntriesAsync(NoteDto dto)
     {
         // First create the note using the base controller's image handling
-        var noteCreationResult = await CreateEntityWithImageAsync(dto, dto => dto.ImageBase64);
+        var creationDate = DateTime.UtcNow;
+        var noteCreationResult = await CreateEntityWithImageAsync(dto, dto => dto.ImageBase64, creationDate);
         
         if (noteCreationResult is not OkResult)
         {
@@ -46,6 +45,7 @@ public class NotesController(Storage storageCfg, ITableService tablesService, IB
 
         // If note creation succeeded, create the note entries
         var noteEntity = dto.ToNoteEntity();
+        noteEntity.CreatedDate = creationDate;
         var entries = dto.ToNoteEntryEntities(noteEntity.RowKey);
 
         try

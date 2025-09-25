@@ -40,12 +40,12 @@ export class NoteTableComponent implements OnInit {
 
   /** Simulated backend load */
   loadNoteFromBackend(rowKey: string) {
-    this.notesService.getNote(rowKey).subscribe({
+    this.notesService.getById(rowKey).subscribe({
       next: (note: NoteDto) => {
         this.note = note;
         this.originalNote = JSON.parse(JSON.stringify(this.note));
       },
-      error: (err) => {
+      error: (err: any) => {
         console.error(err);
       }
     });
@@ -90,17 +90,17 @@ export class NoteTableComponent implements OnInit {
         next: (noteRowKey: string) => {
           this.router.navigate(['/notes/' + noteRowKey]);
         },
-        error: (err) => {
+        error: (err: any) => {
           console.error(err);
         }
       });
     } else {
-      this.notesService.updateNote(this.noteRowKey!, this.note).subscribe({
+      this.notesService.update(this.noteRowKey!, this.note).subscribe({
         next: () => {
           this.originalNote = JSON.parse(JSON.stringify(this.note));
           this.isEditMode = false;
         },
-        error: (err) => {
+        error: (err: any) => {
           console.error(err);
         }
       });
@@ -166,11 +166,11 @@ export class NoteTableComponent implements OnInit {
   }
 
   onDelete() {
-    this.notesService.deleteNote(this.note.rowKey).subscribe({
+    this.notesService.deleteById(this.note.rowKey).subscribe({
       next: () => {
         this.router.navigate(['/notes']);
       },
-      error: (err) => {
+      error: (err: any) => {
         console.error(err);
       }
     });

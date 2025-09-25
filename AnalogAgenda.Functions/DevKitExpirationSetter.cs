@@ -1,4 +1,5 @@
 ﻿using AnalogAgenda.EmailSender;
+using AnalogAgenda.Functions.Helpers;
 using Azure.Data.Tables;
 using Database.DBObjects.Enums;
 using Database.Entities;
@@ -31,11 +32,10 @@ public class DevKitExpirationSetter(ILoggerFactory loggerFactory, ITableService 
             _logger.LogInformation($"Development Kit: {entity.Name} has expired");
 
             var html = EmailTemplateGenerator.GetExpiredDevKit(entity.Name, entity.Type.ToString(), entity.PurchasedOn, entity.PurchasedBy.ToString(), kitExpirationDate, entity.ValidForFilms - entity.FilmsDeveloped, entity.ImageId, entity.RowKey);
-            var receivers = (await tablesService.GetTableEntriesAsync<UserEntity>(user => user.IsSubscraibed)).Select(userEntity => userEntity.Email);
-            if (!receivers.Any()) throw new Exception("No receivers for DevKit Expiration mail!");
-
-            await emailSender.SendEmailAsync(
-                receivers,
+            
+            await EmailNotificationHelper.SendNotificationToSubscribersAsync(
+                tablesService,
+                emailSender,
                 "Your Film Development Kit has expired!",
                 html
             );

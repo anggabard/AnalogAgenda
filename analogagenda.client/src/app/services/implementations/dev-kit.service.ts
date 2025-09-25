@@ -9,15 +9,8 @@ import { BasePaginatedService } from '../base-paginated.service';
 export class DevKitService extends BasePaginatedService<DevKitDto> {
   constructor() { super('DevKit'); }
 
-  // Specific dev kit methods using base service patterns
-  addNewKit(newKit: DevKitDto) { return this.add(newKit); }
-  getAllDevKits(): Observable<DevKitDto[]> { return this.getAll(); }
-  getDevKitsPaged(page: number = 1, pageSize: number = 5): Observable<PagedResponseDto<DevKitDto>> { 
-    return this.getPaged(page, pageSize); 
-  }
-  getKit(rowKey: string): Observable<DevKitDto> { return this.getById(rowKey); }
-  updateKit(rowKey: string, updateKit: DevKitDto) { return this.update(rowKey, updateKit); }
-  deleteKit(rowKey: string) { return this.deleteById(rowKey); }
+  // Note: Basic CRUD methods are inherited from BasePaginatedService
+  // Use add(), getAll(), getPaged(), getById(), update(), deleteById() directly
 
   // DevKit-specific filtered pagination methods
   getAvailableDevKitsPaged(page: number = 1, pageSize: number = 5): Observable<PagedResponseDto<DevKitDto>> {

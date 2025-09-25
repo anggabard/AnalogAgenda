@@ -67,4 +67,28 @@ public static class BlobImageHelper
 
         return (data, contentType);
     }
+
+    public static string GetContentTypeFromBase64(string base64WithType)
+    {
+        // Extract content type from "data:image/jpeg;base64,..." format
+        var dataPart = base64WithType.Split(',')[0];
+        var contentType = dataPart.Split(';')[0].Replace("data:", "");
+        return contentType;
+    }
+
+    public static string GetFileExtensionFromBase64(string base64WithType)
+    {
+        var contentType = GetContentTypeFromBase64(base64WithType);
+        return contentType switch
+        {
+            "image/jpeg" => "jpg",
+            "image/jpg" => "jpg",
+            "image/png" => "png",
+            "image/gif" => "gif",
+            "image/webp" => "webp",
+            "image/bmp" => "bmp",
+            "image/tiff" => "tiff",
+            _ => "jpg" // Default to jpg for unknown types
+        };
+    }
 }

@@ -5,6 +5,7 @@ using Configuration.Sections;
 using Database.DBObjects.Enums;
 using Database.DTOs;
 using Database.Entities;
+using Database.Helpers;
 using Database.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using System.IO.Compression;
@@ -96,7 +97,7 @@ public class PhotoController(Storage storageCfg, ITableService tablesService, IB
     {
         var photos = await tablesService.GetTableEntriesAsync<PhotoEntity>(p => p.FilmRowId == filmRowId);
         var sortedPhotos = photos
-            .OrderBy(p => p.Index)
+            .ApplyStandardSorting()
             .Select(EntityToDto)
             .ToList();
 
@@ -118,8 +119,8 @@ public class PhotoController(Storage storageCfg, ITableService tablesService, IB
         try
         {
             var base64WithType = await BlobImageHelper.DownloadImageAsBase64WithContentTypeAsync(photosContainer, photoEntity.ImageId);
-            var contentType = GetContentTypeFromBase64(base64WithType);
-            var fileExtension = GetFileExtensionFromBase64(base64WithType);
+            var contentType = BlobImageHelper.GetContentTypeFromBase64(base64WithType);
+            var fileExtension = BlobImageHelper.GetFileExtensionFromBase64(base64WithType);
             var fileName = $"{photoEntity.Index:D3}-{SanitizeFileName(filmEntity!.Name)}.{fileExtension}";
 
             // Extract bytes from base64 data URL
@@ -156,7 +157,7 @@ public class PhotoController(Storage storageCfg, ITableService tablesService, IB
                     if (await blobClient.ExistsAsync())
                     {
                         var base64WithType = await BlobImageHelper.DownloadImageAsBase64WithContentTypeAsync(photosContainer, photo.ImageId);
-                        var fileExtension = GetFileExtensionFromBase64(base64WithType);
+                        var fileExtension = BlobImageHelper.GetFileExtensionFromBase64(base64WithType);
                         var fileName = $"{photo.Index:D3}.{fileExtension}";
 
                         var zipEntry = archive.CreateEntry(fileName);
@@ -197,30 +198,6 @@ public class PhotoController(Storage storageCfg, ITableService tablesService, IB
     private async Task<bool> FilmExists(string filmRowId)
     {
         return await tablesService.GetTableEntryIfExistsAsync<FilmEntity>(filmRowId) != null;
-    }
-
-    private static string GetContentTypeFromBase64(string base64WithType)
-    {
-        // Extract content type from "data:image/jpeg;base64,..." format
-        var dataPart = base64WithType.Split(',')[0];
-        var contentType = dataPart.Split(';')[0].Replace("data:", "");
-        return contentType;
-    }
-
-    private static string GetFileExtensionFromBase64(string base64WithType)
-    {
-        var contentType = GetContentTypeFromBase64(base64WithType);
-        return contentType switch
-        {
-            "image/jpeg" => "jpg",
-            "image/jpg" => "jpg",
-            "image/png" => "png",
-            "image/gif" => "gif",
-            "image/webp" => "webp",
-            "image/bmp" => "bmp",
-            "image/tiff" => "tiff",
-            _ => "jpg" // Default to jpg for unknown types
-        };
     }
 
     private async Task<int> GetNextPhotoIndexAsync(string filmRowId)

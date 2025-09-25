@@ -53,7 +53,7 @@ export class FilmPhotosComponent implements OnInit {
 
     // Load film details and photos in parallel
     Promise.all([
-      this.filmService.getFilm(this.filmId).toPromise(),
+      this.filmService.getById(this.filmId).toPromise(),
       this.photoService.getPhotosByFilmId(this.filmId).toPromise()
     ]).then(([film, photos]) => {
       this.film = film || null;

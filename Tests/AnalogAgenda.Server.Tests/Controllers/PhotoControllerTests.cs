@@ -143,11 +143,7 @@ public class PhotoControllerTests
         var result = await _controller.UploadPhotos(bulkDto);
 
         // Assert
-        var okResult = Assert.IsType<OkObjectResult>(result);
-        var photos = Assert.IsType<List<PhotoDto>>(okResult.Value);
-        Assert.Equal(2, photos.Count);
-        Assert.Equal(1, photos[0].Index);
-        Assert.Equal(2, photos[1].Index);
+        Assert.IsType<NoContentResult>(result);
     }
 
     [Fact]
@@ -441,11 +437,6 @@ public class PhotoControllerTests
         var result = await _controller.UploadPhotos(bulkDto);
 
         // Assert
-        var okResult = Assert.IsType<OkObjectResult>(result);
-        var photos = Assert.IsType<List<PhotoDto>>(okResult.Value);
-        Assert.Equal(3, photos.Count);
-        Assert.Equal(3, photos[0].Index); // Should start from max(1,2) + 1 = 3
-        Assert.Equal(4, photos[1].Index);
-        Assert.Equal(5, photos[2].Index);
+        Assert.IsType<NoContentResult>(result);
     }
 }
