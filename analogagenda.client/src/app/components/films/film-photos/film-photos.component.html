@@ -18,6 +18,15 @@
   <div *ngIf="!loading && photos.length === 0" class="no-photos">
     <div class="no-photos-icon">📷</div>
     <p>No photos found for this film.</p>
+    <button class="add-photos-btn" [disabled]="uploadLoading" (click)="onUploadPhotos()">
+      <span class="button-content" [class.loading]="uploadLoading">
+        📸 Add Photos
+      </span>
+      <svg *ngIf="uploadLoading" class="button-spinner" viewBox="0 0 24 24">
+        <circle class="spinner-bg" cx="12" cy="12" r="10" stroke-width="4"></circle>
+        <path class="spinner-path" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+      </svg>
+    </button>
     <p>Use the browser back button to return.</p>
   </div>
 
@@ -26,15 +35,26 @@
       <div class="photos-count">
         {{ photos.length }} photo{{ photos.length !== 1 ? 's' : '' }}
       </div>
-          <button class="download-all-btn" [disabled]="downloadAllLoading" (click)="downloadAllPhotos()">
-            <span class="button-content" [class.loading]="downloadAllLoading">
-              📦 Download All
-            </span>
-            <svg *ngIf="downloadAllLoading" class="button-spinner" viewBox="0 0 24 24">
-              <circle class="spinner-bg" cx="12" cy="12" r="10" stroke-width="4"></circle>
-              <path class="spinner-path" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
-            </svg>
-          </button>
+      <div class="action-buttons">
+        <button class="add-photos-btn" [disabled]="uploadLoading" (click)="onUploadPhotos()">
+          <span class="button-content" [class.loading]="uploadLoading">
+            📸 Add Photos
+          </span>
+          <svg *ngIf="uploadLoading" class="button-spinner" viewBox="0 0 24 24">
+            <circle class="spinner-bg" cx="12" cy="12" r="10" stroke-width="4"></circle>
+            <path class="spinner-path" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+          </svg>
+        </button>
+        <button class="download-all-btn" [disabled]="downloadAllLoading" (click)="downloadAllPhotos()">
+          <span class="button-content" [class.loading]="downloadAllLoading">
+            📦 Download All
+          </span>
+          <svg *ngIf="downloadAllLoading" class="button-spinner" viewBox="0 0 24 24">
+            <circle class="spinner-bg" cx="12" cy="12" r="10" stroke-width="4"></circle>
+            <path class="spinner-path" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+          </svg>
+        </button>
+      </div>
     </div>
 
     <div class="photos-grid">
@@ -55,7 +75,7 @@
 
   <!-- Preview Modal -->
   <div class="image-preview-overlay" *ngIf="isPreviewModalOpen" (click)="closePreview()" (keydown)="onKeyDown($event)" tabindex="0">
-    <div class="preview-content" (click)="$event.stopPropagation()">
+    <div class="preview-content" (click)="$event.stopPropagation()" (touchstart)="onTouchStart($event)" (touchend)="onTouchEnd($event)">
       <!-- Previous Photo Arrow -->
       <button 
         class="nav-arrow prev-arrow" 

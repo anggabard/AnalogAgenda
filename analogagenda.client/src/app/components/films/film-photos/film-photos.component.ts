@@ -1,7 +1,7 @@
 import { Component, inject, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { PhotoService, FilmService } from '../../../services';
-import { PhotoDto, FilmDto } from '../../../DTOs';
+import { PhotoDto, FilmDto, PhotoUploadDto, PhotoBulkUploadDto } from '../../../DTOs';
 
 @Component({
   selector: 'app-film-photos',
@@ -30,6 +30,13 @@ export class FilmPhotosComponent implements OnInit {
 
   // Download all loading state
   downloadAllLoading = false;
+  
+  // Upload loading state
+  uploadLoading = false;
+  
+  // Touch handling
+  private touchStartX = 0;
+  private touchStartY = 0;
 
   ngOnInit() {
     this.filmId = this.route.snapshot.paramMap.get('id') || '';
@@ -187,6 +194,87 @@ export class FilmPhotosComponent implements OnInit {
     });
   }
 
+  onUploadPhotos() {
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.multiple = true;
+    fileInput.accept = 'image/*';
+    
+    fileInput.onchange = (event: any) => {
+      const files = event.target.files;
+      if (files && files.length > 0) {
+        this.processPhotoUploads(files);
+      }
+    };
+    
+    fileInput.click();
+  }
+
+  private processPhotoUploads(files: FileList) {
+    this.uploadLoading = true;
+    this.errorMessage = null;
+    
+    const photos: PhotoUploadDto[] = [];
+    let processedCount = 0;
+    
+    Array.from(files).forEach((file, index) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        photos.push({
+          imageBase64: reader.result as string
+        });
+        
+        processedCount++;
+        if (processedCount === files.length) {
+          // All files processed, upload them
+          const uploadDto: PhotoBulkUploadDto = {
+            filmRowId: this.filmId,
+            photos: photos
+          };
+          
+          this.photoService.uploadPhotos(uploadDto).subscribe({
+            next: () => {
+              this.uploadLoading = false;
+              // Reload photos to show the newly uploaded ones
+              this.loadFilmAndPhotos();
+            },
+            error: (err) => {
+              this.uploadLoading = false;
+              this.errorMessage = 'There was an error uploading the photos.';
+            }
+          });
+        }
+      };
+      
+      reader.readAsDataURL(file);
+    });
+  }
+
+  onTouchStart(event: TouchEvent) {
+    this.touchStartX = event.touches[0].clientX;
+    this.touchStartY = event.touches[0].clientY;
+  }
+
+  onTouchEnd(event: TouchEvent) {
+    if (!event.changedTouches.length) return;
+
+    const touchEndX = event.changedTouches[0].clientX;
+    const touchEndY = event.changedTouches[0].clientY;
+    
+    const deltaX = touchEndX - this.touchStartX;
+    const deltaY = touchEndY - this.touchStartY;
+    
+    // Only handle horizontal swipes (not vertical scrolling)
+    if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 50) {
+      if (deltaX > 0) {
+        // Swipe right - go to previous photo
+        this.previousPhoto();
+      } else {
+        // Swipe left - go to next photo
+        this.nextPhoto();
+      }
+    }
+  }
 
   private sanitizeFileName(fileName: string): string {
     const sanitized = fileName.replace(/[^a-zA-Z0-9.\-_]/g, '');

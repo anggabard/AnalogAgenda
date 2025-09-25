@@ -152,10 +152,10 @@ export class UpsertFilmComponent {
           };
           
           this.photoService.uploadPhotos(uploadDto).subscribe({
-            next: (uploadedPhotos) => {
+            next: () => {
               this.loading = false;
-              // Show success message or navigate
-              console.log(`Successfully uploaded ${uploadedPhotos.length} photos`);
+              // Navigate to the film photos page
+              this.router.navigate(['/films', this.rowKey, 'photos']);
             },
             error: (err) => {
               this.loading = false;

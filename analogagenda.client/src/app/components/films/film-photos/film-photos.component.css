@@ -27,6 +27,10 @@
   transform: translateY(-1px);
 }
 
+.film-info {
+  text-align: left; /* Default for desktop */
+}
+
 .film-info h1 {
   color: white;
   font-size: 2rem;
@@ -103,11 +107,17 @@
   border-radius: 8px;
 }
 
+.action-buttons {
+  display: flex;
+  gap: 1rem;
+}
+
 .photos-count {
   font-size: 1.1rem;
   font-weight: 500;
 }
 
+.add-photos-btn,
 .download-all-btn {
   background: #4b5563;
   color: white;
@@ -126,11 +136,21 @@
   justify-content: center;
 }
 
+.add-photos-btn {
+  background: #10b981;
+}
+
+.add-photos-btn:hover:not(:disabled) {
+  background: #059669;
+  transform: translateY(-1px);
+}
+
 .download-all-btn:hover:not(:disabled) {
   background: #374151;
   transform: translateY(-1px);
 }
 
+.add-photos-btn:disabled,
 .download-all-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
@@ -406,8 +426,9 @@
 
   .header {
     flex-direction: column;
-    align-items: flex-start;
+    align-items: center;
     gap: 1rem;
+    text-align: center;
   }
 
   .film-info h1 {
@@ -419,6 +440,11 @@
     gap: 1rem;
   }
 
+  .action-buttons {
+    flex-direction: column;
+    width: 100%;
+  }
+
   .photos-grid {
     grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
     gap: 1rem;
@@ -428,5 +454,10 @@
     flex-direction: column;
     width: 100%;
     max-width: 200px;
+  }
+
+  /* Hide navigation arrows on mobile */
+  .nav-arrow {
+    display: none;
   }
 }

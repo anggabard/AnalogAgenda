@@ -57,7 +57,6 @@ public class PhotoController(Storage storageCfg, ITableService tablesService, IB
 
         int nextIndex = await GetNextPhotoIndexAsync(bulkDto.FilmRowId);
 
-        var uploadedPhotos = new List<PhotoDto>();
         var uploadedImageIds = new List<Guid>();
 
         try
@@ -76,10 +75,9 @@ public class PhotoController(Storage storageCfg, ITableService tablesService, IB
                 };
 
                 await photosTable.AddEntityAsync(photoEntity);
-                uploadedPhotos.Add(EntityToDto(photoEntity));
             }
 
-            return Ok(uploadedPhotos);
+            return NoContent();
         }
         catch (Exception ex)
         {

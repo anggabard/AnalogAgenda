@@ -15,8 +15,8 @@ export class PhotoService extends BaseService {
   }
 
   // Upload multiple photos for a film
-  uploadPhotos(uploadDto: PhotoBulkUploadDto): Observable<PhotoDto[]> {
-    return this.post<PhotoDto[]>('/bulk', uploadDto);
+  uploadPhotos(uploadDto: PhotoBulkUploadDto): Observable<void> {
+    return this.post<void>('/bulk', uploadDto);
   }
 
   // Get all photos for a specific film
