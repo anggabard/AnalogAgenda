@@ -2,7 +2,7 @@ using AnalogAgenda.Server.Helpers;
 using Azure.Data.Tables;
 using Azure.Storage.Blobs;
 using Configuration.Sections;
-using Database.DBObjects;
+using Database.DTOs;
 using Database.Entities;
 using Database.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
@@ -117,5 +117,68 @@ public abstract class BaseEntityController<TEntity, TDto>(Storage storageCfg, IT
         }
 
         return Ok(EntityToDto(entity));
+    }
+
+    /// <summary>
+    /// Get entities with optional pagination. For backward compatibility, if page <= 0, returns all entities.
+    /// </summary>
+    protected async Task<IActionResult> GetEntitiesWithBackwardCompatibilityAsync<TSorted>(
+        int page, 
+        int pageSize, 
+        Func<IEnumerable<TEntity>, IOrderedEnumerable<TSorted>> sortFunc,
+        Func<IEnumerable<TSorted>, IEnumerable<TDto>> selectFunc) 
+        where TSorted : TEntity
+    {
+        if (page <= 0)
+        {
+            var entities = await tablesService.GetTableEntriesAsync<TEntity>();
+            var results = selectFunc(sortFunc(entities));
+            return Ok(results);
+        }
+
+        var pagedEntities = await tablesService.GetTableEntriesPagedAsync<TEntity>(page, pageSize);
+        var sortedData = sortFunc(pagedEntities.Data).ToList();
+
+        var pagedResults = new PagedResponseDto<TDto>
+        {
+            Data = selectFunc(sortedData),
+            TotalCount = pagedEntities.TotalCount,
+            PageSize = pagedEntities.PageSize,
+            CurrentPage = pagedEntities.CurrentPage
+        };
+
+        return Ok(pagedResults);
+    }
+
+    /// <summary>
+    /// Get filtered entities with optional pagination. For backward compatibility, if page <= 0, returns all filtered entities.
+    /// </summary>
+    protected async Task<IActionResult> GetFilteredEntitiesWithBackwardCompatibilityAsync<TSorted>(
+        System.Linq.Expressions.Expression<Func<TEntity, bool>> predicate,
+        int page, 
+        int pageSize, 
+        Func<IEnumerable<TEntity>, IOrderedEnumerable<TSorted>> sortFunc,
+        Func<IEnumerable<TSorted>, IEnumerable<TDto>> selectFunc)
+        where TSorted : TEntity
+    {
+        if (page <= 0)
+        {
+            var entities = await tablesService.GetTableEntriesAsync(predicate);
+            var results = selectFunc(sortFunc(entities));
+            return Ok(results);
+        }
+
+        var pagedEntities = await tablesService.GetTableEntriesPagedAsync(predicate, page, pageSize);
+        var sortedData = sortFunc(pagedEntities.Data).ToList();
+
+        var pagedResults = new PagedResponseDto<TDto>
+        {
+            Data = selectFunc(sortedData),
+            TotalCount = pagedEntities.TotalCount,
+            PageSize = pagedEntities.PageSize,
+            CurrentPage = pagedEntities.CurrentPage
+        };
+
+        return Ok(pagedResults);
     }
 }

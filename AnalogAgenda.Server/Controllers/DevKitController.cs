@@ -5,6 +5,7 @@ using Database.DBObjects;
 using Database.DBObjects.Enums;
 using Database.DTOs;
 using Database.Entities;
+using Database.Helpers;
 using Database.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using System.Linq.Expressions;
@@ -32,24 +33,12 @@ public class DevKitController(Storage storageCfg, ITableService tablesService, I
     [HttpGet]
     public async Task<IActionResult> GetAllKits([FromQuery] int page = 1, [FromQuery] int pageSize = 5)
     {
-        // For backward compatibility, if page is 0 or negative, return all kits
-        if (page <= 0)
-        {
-            var entities = await tablesService.GetTableEntriesAsync<DevKitEntity>();
-            var results = entities.Select(EntityToDto);
-            return Ok(results);
-        }
-
-        var pagedEntities = await tablesService.GetTableEntriesPagedAsync<DevKitEntity>(page, pageSize);
-        var pagedResults = new PagedResponseDto<DevKitDto>
-        {
-            Data = pagedEntities.Data.Select(EntityToDto),
-            TotalCount = pagedEntities.TotalCount,
-            PageSize = pagedEntities.PageSize,
-            CurrentPage = pagedEntities.CurrentPage
-        };
-
-        return Ok(pagedResults);
+        return await GetEntitiesWithBackwardCompatibilityAsync(
+            page, 
+            pageSize,
+            entities => entities.ApplyStandardSorting(),
+            sorted => sorted.Select(EntityToDto)
+        );
     }
 
     [HttpGet("available")]
@@ -69,30 +58,13 @@ public class DevKitController(Storage storageCfg, ITableService tablesService, I
         int page = 1, 
         int pageSize = 5)
     {
-        // For backward compatibility, if page is 0 or negative, return all filtered kits
-        if (page <= 0)
-        {
-            var entities = await tablesService.GetTableEntriesAsync<DevKitEntity>(predicate);
-            var results = entities
-                .OrderBy(k => k.PurchasedOn) // Sort by purchased date (oldest first)
-                .Select(EntityToDto);
-            return Ok(results);
-        }
-
-        var pagedEntities = await tablesService.GetTableEntriesPagedAsync<DevKitEntity>(predicate, page, pageSize);
-        var sortedData = pagedEntities.Data
-            .OrderBy(k => k.PurchasedOn) // Sort by purchased date (oldest first)
-            .ToList();
-
-        var pagedResults = new PagedResponseDto<DevKitDto>
-        {
-            Data = sortedData.Select(EntityToDto),
-            TotalCount = pagedEntities.TotalCount,
-            PageSize = pagedEntities.PageSize,
-            CurrentPage = pagedEntities.CurrentPage
-        };
-
-        return Ok(pagedResults);
+        return await GetFilteredEntitiesWithBackwardCompatibilityAsync(
+            predicate,
+            page, 
+            pageSize,
+            entities => entities.ApplyStandardSorting(),
+            sorted => sorted.Select(EntityToDto)
+        );
     }
 
     [HttpGet("{rowKey}")]

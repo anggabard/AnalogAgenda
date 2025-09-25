@@ -13,7 +13,7 @@ describe('NoteTableComponent', () => {
   let mockActivatedRoute: any;
 
   beforeEach(async () => {
-    const notesServiceSpy = jasmine.createSpyObj('NotesService', ['getNote', 'addNewNote', 'updateNote', 'deleteNote']);
+    const notesServiceSpy = jasmine.createSpyObj('NotesService', ['getById', 'addNewNote', 'update', 'deleteById']);
     const routerSpy = jasmine.createSpyObj('Router', ['navigate']);
 
     mockActivatedRoute = {
@@ -69,14 +69,14 @@ describe('NoteTableComponent', () => {
     };
 
     mockActivatedRoute.snapshot.paramMap.get.and.returnValue(testRowKey);
-    mockNotesService.getNote.and.returnValue(of(mockNote));
+    mockNotesService.getById.and.returnValue(of(mockNote));
 
     // Act
     component.ngOnInit();
 
     // Assert
     expect(component.noteRowKey).toBe(testRowKey);
-    expect(mockNotesService.getNote).toHaveBeenCalledWith(testRowKey);
+    expect(mockNotesService.getById).toHaveBeenCalledWith(testRowKey);
     expect(component.note).toEqual(mockNote);
     expect(component.originalNote).toEqual(mockNote);
   });
@@ -86,13 +86,13 @@ describe('NoteTableComponent', () => {
     spyOn(console, 'error');
     const testRowKey = 'test-row-key';
     mockActivatedRoute.snapshot.paramMap.get.and.returnValue(testRowKey);
-    mockNotesService.getNote.and.returnValue(throwError(() => 'Load error'));
+    mockNotesService.getById.and.returnValue(throwError(() => 'Load error'));
 
     // Act
     component.ngOnInit();
 
     // Assert
-    expect(mockNotesService.getNote).toHaveBeenCalledWith(testRowKey);
+    expect(mockNotesService.getById).toHaveBeenCalledWith(testRowKey);
     expect(console.error).toHaveBeenCalledWith('Load error');
   });
 
@@ -192,13 +192,13 @@ describe('NoteTableComponent', () => {
       imageBase64: '', 
       entries: [] 
     };
-    mockNotesService.updateNote.and.returnValue(of({}));
+    mockNotesService.update.and.returnValue(of({}));
 
     // Act
     component.saveNote();
 
     // Assert
-    expect(mockNotesService.updateNote).toHaveBeenCalledWith('existing-key', component.note);
+    expect(mockNotesService.update).toHaveBeenCalledWith('existing-key', component.note);
     expect(component.originalNote).toEqual(component.note);
     expect(component.isEditMode).toBeFalse();
   });
@@ -389,13 +389,13 @@ describe('NoteTableComponent', () => {
       imageBase64: '', 
       entries: [] 
     };
-    mockNotesService.deleteNote.and.returnValue(of({}));
+    mockNotesService.deleteById.and.returnValue(of({}));
 
     // Act
     component.onDelete();
 
     // Assert
-    expect(mockNotesService.deleteNote).toHaveBeenCalledWith('test-key');
+    expect(mockNotesService.deleteById).toHaveBeenCalledWith('test-key');
     expect(mockRouter.navigate).toHaveBeenCalledWith(['/notes']);
   });
 
@@ -410,7 +410,7 @@ describe('NoteTableComponent', () => {
       imageBase64: '', 
       entries: [] 
     };
-    mockNotesService.deleteNote.and.returnValue(throwError(() => 'Delete error'));
+    mockNotesService.deleteById.and.returnValue(throwError(() => 'Delete error'));
 
     // Act
     component.onDelete();

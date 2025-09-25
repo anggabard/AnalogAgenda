@@ -9,7 +9,7 @@ import { BasePaginatedService } from '../base-paginated.service';
 export class NotesService extends BasePaginatedService<NoteDto> {
   constructor() { super('Notes'); }
 
-  // Specific notes methods using base service patterns
+  // Notes-specific methods that override or extend base functionality
   addNewNote(newNote: NoteDto): Observable<string> {
     return this.post('', newNote, { responseType: 'text' });
   }
@@ -23,7 +23,5 @@ export class NotesService extends BasePaginatedService<NoteDto> {
     return this.getFilteredPaged('', page, pageSize, withEntries ? { withEntries: 'true' } : undefined);
   }
 
-  getNote(rowKey: string): Observable<NoteDto> { return this.getById(rowKey); }
-  updateNote(rowKey: string, updateNote: NoteDto) { return this.update(rowKey, updateNote); }
-  deleteNote(rowKey: string) { return this.deleteById(rowKey); }
+  // Note: getById(), update(), deleteById() are inherited from BasePaginatedService
 }

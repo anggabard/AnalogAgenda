@@ -102,17 +102,13 @@ public class FilmController(Storage storageCfg, ITableService tablesService, IBl
         {
             var entities = await tablesService.GetTableEntriesAsync(predicate);
             var results = entities
-                .OrderBy(f => f.PurchasedBy) // First sort by owner
-                .ThenByDescending(f => f.PurchasedOn) // Then by date (newest first)
+                .ApplyStandardSorting()
                 .Select(EntityToDto);
             return Ok(results);
         }
 
         var pagedEntities = await tablesService.GetTableEntriesPagedAsync(predicate, page, pageSize);
-        var sortedData = pagedEntities.Data
-            .OrderBy(f => f.PurchasedBy) // First sort by owner
-            .ThenByDescending(f => f.PurchasedOn) // Then by date (newest first)
-            .ToList();
+        var sortedData = pagedEntities.Data.ApplyStandardSorting().ToList();
 
         var pagedResults = new PagedResponseDto<FilmDto>
         {
@@ -137,7 +133,7 @@ public class FilmController(Storage storageCfg, ITableService tablesService, IBl
             var allEntities = await tablesService.GetTableEntriesAsync(statusPredicate);
             var myEntities = allEntities
                 .Where(f => f.PurchasedBy == currentUserEnum)
-                .OrderByDescending(f => f.PurchasedOn)
+                .ApplyUserFilteredSorting()
                 .Select(EntityToDto);
             return Ok(myEntities);
         }
@@ -146,7 +142,7 @@ public class FilmController(Storage storageCfg, ITableService tablesService, IBl
         var statusFilteredEntities = await tablesService.GetTableEntriesAsync(statusPredicate);
         var myFilms = statusFilteredEntities
             .Where(f => f.PurchasedBy == currentUserEnum)
-            .OrderByDescending(f => f.PurchasedOn)
+            .ApplyUserFilteredSorting()
             .ToList();
 
         var totalCount = myFilms.Count;

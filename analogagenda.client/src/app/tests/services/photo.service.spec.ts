@@ -87,7 +87,7 @@ describe('PhotoService', () => {
       ];
 
       // Act
-      service.uploadPhotos(uploadDto).subscribe(response => {
+      service.uploadPhotos(uploadDto).subscribe((response: any) => {
         // Assert
         expect(response).toEqual(mockResponse);
         expect(response.length).toBe(2);

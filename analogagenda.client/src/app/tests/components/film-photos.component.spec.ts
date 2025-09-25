@@ -37,7 +37,7 @@ describe('FilmPhotosComponent', () => {
   ];
 
   beforeEach(async () => {
-    const filmServiceSpy = jasmine.createSpyObj('FilmService', ['getFilm']);
+    const filmServiceSpy = jasmine.createSpyObj('FilmService', ['getById']);
     const photoServiceSpy = jasmine.createSpyObj('PhotoService', [
       'getPhotosByFilmId', 'downloadPhoto', 'downloadAllPhotos', 'deletePhoto'
     ]);
@@ -70,7 +70,7 @@ describe('FilmPhotosComponent', () => {
 
   // Helper method to initialize component with mock data
   const initializeComponent = async () => {
-    mockFilmService.getFilm.and.returnValue(of(mockFilm));
+    mockFilmService.getById.and.returnValue(of(mockFilm));
     mockPhotoService.getPhotosByFilmId.and.returnValue(of(mockPhotos));
     
     // Directly set the component properties for testing

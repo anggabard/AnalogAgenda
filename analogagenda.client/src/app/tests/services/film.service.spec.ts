@@ -137,7 +137,7 @@ describe('FilmService', () => {
       ];
 
       // Act
-      service.getAllFilms().subscribe(films => {
+      service.getAll().subscribe((films: any) => {
         // Assert
         expect(films).toEqual(mockFilms);
       });

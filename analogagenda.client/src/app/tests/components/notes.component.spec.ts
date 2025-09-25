@@ -88,7 +88,7 @@ describe('NotesComponent', () => {
 
     // Assert
     expect(mockNotesService.getNotesPaged).toHaveBeenCalledWith(1, 5);
-    expect(console.error).toHaveBeenCalledWith(errorResponse);
+    expect(console.error).toHaveBeenCalledWith('Error loading items:', errorResponse);
     expect(component.notes).toEqual([]); // Should remain empty on error
   });
 
@@ -108,7 +108,7 @@ describe('NotesComponent', () => {
     component.onNoteSelected(rowKey);
 
     // Assert
-    expect(mockRouter.navigate).toHaveBeenCalledWith(['/notes/' + rowKey]);
+    expect(mockRouter.navigate).toHaveBeenCalledWith(['/notes', rowKey]);
   });
 
 
