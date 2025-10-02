@@ -25,7 +25,7 @@ public class DevKitExpirationSetter(ILoggerFactory loggerFactory, ITableService 
         foreach (var entity in entities)
         {
             var kitExpirationDate = entity.GetExpirationDate();
-            if (kitExpirationDate > now) continue;
+            if (kitExpirationDate > now || entity.FilmsDeveloped < entity.ValidForFilms) continue;
 
             entity.Expired = true;
             await devKitsTable.UpdateEntityAsync(entity, entity.ETag);
