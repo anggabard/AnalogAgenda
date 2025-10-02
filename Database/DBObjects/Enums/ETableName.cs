@@ -7,5 +7,6 @@ public enum TableName
     NotesEntries,
     DevKits,
     Films,
-    Photos
+    Photos,
+    Sessions
 }

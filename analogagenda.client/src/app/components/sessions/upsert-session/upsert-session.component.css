@@ -1,0 +1,374 @@
+/* --- General Reset for Consistent Box-Sizing --- */
+* {
+  box-sizing: border-box;
+}
+
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  width: 100%;
+  max-width: 450px;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+.box {
+  background-color: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  color: #fff;
+  width: 100%;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.form-title {
+  color: #fff;
+  text-align: center;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.error-message {
+  background-color: rgba(239, 68, 68, 0.8);
+  color: white;
+  padding: 0.75rem;
+  border-radius: 6px;
+  text-align: center;
+  font-weight: 500;
+}
+
+.success-message {
+  background-color: rgba(34, 197, 94, 0.8);
+  color: white;
+  padding: 0.75rem;
+  border-radius: 6px;
+  text-align: center;
+  font-weight: 500;
+}
+
+.input,
+select,
+textarea {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 6px;
+  font-size: 1rem;
+  background-color: rgba(0, 0, 0, 0.1);
+  color: #fff;
+  transition: border 0.2s ease;
+  resize: none;
+}
+
+.input:focus,
+select:focus,
+textarea:focus {
+  border-color: rgba(255, 255, 255, 0.7);
+  outline: none;
+}
+
+.input::placeholder {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+label {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 1.1rem;
+  font-weight: 500;
+  margin-bottom: 0.25rem;
+}
+
+.checkbox-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+  margin-top: 0.5rem;
+  justify-content: center;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  font-weight: normal;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 1rem;
+}
+
+.checkbox-label input[type="checkbox"] {
+  margin-left: 8px;
+}
+
+.checkbox-option {
+  margin-bottom: 0.75rem;
+}
+
+.items-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 10px;
+  margin-top: 0.75rem;
+  max-height: 200px;
+  overflow-y: auto;
+  padding: 0.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
+  background-color: rgba(0, 0, 0, 0.1);
+}
+
+.item-card {
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 6px;
+  padding: 8px;
+  background-color: rgba(255, 255, 255, 0.05);
+  transition: all 0.3s ease;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.item-card:hover {
+  border-color: rgba(255, 255, 255, 0.6);
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.item-card.selected {
+  border-color: #4CAF50;
+  background-color: rgba(76, 175, 80, 0.2);
+}
+
+.item-card.expired {
+  opacity: 0.7;
+  border-color: #ff9800;
+}
+
+.item-content {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  pointer-events: none;
+}
+
+.item-checkbox {
+  display: flex;
+  justify-content: flex-end;
+  pointer-events: none;
+}
+
+.item-checkbox input[type="checkbox"] {
+  margin: 0;
+  pointer-events: none;
+}
+
+.item-info {
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.item-image {
+  width: 40px;
+  height: 40px;
+  object-fit: cover;
+  border-radius: 4px;
+  margin-right: 8px;
+}
+
+.item-details {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.item-name {
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+  margin-bottom: 2px;
+  font-size: 0.9rem;
+  line-height: 1.2;
+}
+
+.item-type, .item-owner {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1.1;
+}
+
+.item-status {
+  font-size: 0.7rem;
+  color: #ff9800;
+  font-weight: bold;
+  text-transform: uppercase;
+}
+
+.image-preview {
+  margin: 0.5rem auto 0 auto;
+  max-width: 200px;
+  display: flex;
+  justify-content: center;
+}
+
+.image-preview img {
+  width: 100%;
+  height: auto;
+  border-radius: 5px;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+}
+
+.error {
+  color: rgba(239, 68, 68, 1);
+  font-size: 0.8rem;
+  margin-top: 0.25rem;
+}
+
+.error-centered {
+  text-align: center;
+}
+
+/* --- Submit Button --- */
+.submit-btn {
+  padding: 0.75rem;
+  background-color: rgba(37, 35, 35, 0.9);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 1rem;
+  width: 100%;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.submit-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.submit-btn:hover:not(:disabled) {
+  background-color: rgba(37, 35, 35, 1);
+}
+
+/* --- Loading Spinner --- */
+.spinner {
+  width: 20px;
+  height: 20px;
+  animation: spin 1s linear infinite;
+  fill: white;
+}
+
+.spinner-bg {
+  fill: none;
+  stroke: currentColor;
+  opacity: 0.25;
+}
+
+.spinner-path {
+  fill: currentColor;
+  opacity: 0.75;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.delete-btn {
+  background-color: #ef4444;
+  color: white;
+  font-size: 0.9rem;
+  font-weight: 600;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  margin-top: 15px;
+  width: 100%;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.delete-btn:hover {
+  background-color: #dc2626;
+}
+
+.cancel-btn {
+  background-color: #e5e7eb;
+  color: #374151;
+  font-size: 0.9rem;
+  font-weight: 600;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  margin-top: 15px;
+  width: 100%;
+}
+
+.cancel-btn:hover {
+  background-color: #d1d5db;
+}
+
+/* ===== delete-modal OVERLAY ===== */
+.delete-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+/* ===== delete-modal ===== */
+.delete-modal {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  max-width: 350px;
+  width: 90%;
+  text-align: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.delete-modal h2 {
+  margin-top: 0;
+  font-size: 1.2rem;
+  color: #111827;
+}
+
+.delete-modal p {
+  margin: 15px 0;
+  font-size: 1rem;
+  color: #374151;
+}
+
+/* delete-modal actions layout */
+.delete-modal-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+/* --- Mobile Optimizations --- */
+@media (max-width: 600px) {
+  .container {
+    padding: 0.75rem;
+  }
+
+  .checkbox-group {
+    flex-direction: column;
+    gap: 10px;
+  }
+}

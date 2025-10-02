@@ -1,0 +1,216 @@
+<div class="session-management-container" *ngIf="!loading">
+  <!-- Header -->
+  <div class="header">
+    <div class="header-info">
+      <h2>{{ isNewSession ? 'New Session' : (isViewMode ? 'Session Details' : 'Edit Session') }}</h2>
+      <div class="session-details" *ngIf="session">
+        <span class="location">{{ session.location || 'No location set' }}</span>
+        <span class="date">{{ session.sessionDate | date:'mediumDate' }}</span>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button *ngIf="!isNewSession" class="btn btn-secondary" (click)="toggleEditMode()">
+        {{ isEditMode ? 'View Mode' : 'Edit Mode' }}
+      </button>
+      <button *ngIf="isEditMode || isNewSession" class="btn btn-primary" (click)="saveSession()" [disabled]="saving">
+        {{ saving ? 'Saving...' : 'Save Session' }}
+      </button>
+    </div>
+  </div>
+
+  <!-- Add Items Buttons -->
+  <div class="add-items-buttons" *ngIf="isEditMode || isNewSession">
+    <button *ngIf="availableDevKits.length > 0" class="btn btn-secondary add-item-btn" (click)="showAddDevKitModal = true">
+      Add DevKit
+    </button>
+    <button *ngIf="availableUnassignedFilms.length > 0" class="btn btn-secondary add-item-btn" (click)="showAddFilmModal = true">
+      Add Film
+    </button>
+  </div>
+
+  <!-- Success/Error Messages -->
+  <div class="alert alert-success" *ngIf="successMessage">{{ successMessage }}</div>
+  <div class="alert alert-error" *ngIf="errorMessage">{{ errorMessage }}</div>
+
+  <!-- DevKit Lists -->
+  <div class="devkit-lists" *ngIf="sessionDevKits.length > 0">
+    <h3>Development Stations</h3>
+    <div class="devkit-grid">
+      <div *ngFor="let devKitWithFilms of sessionDevKits" class="devkit-container">
+        <div class="devkit-header">
+          <div class="devkit-info">
+            <h4>{{ devKitWithFilms.devKit.name }}</h4>
+            <button 
+              class="preview-btn"
+              (mouseenter)="onDevKitHover(devKitWithFilms.devKit.rowKey)"
+              (mouseleave)="onDevKitLeave()"
+              title="Preview DevKit Image">
+              ?
+            </button>
+          </div>
+          <button 
+            *ngIf="isEditMode || isNewSession"
+            class="remove-btn" 
+            (click)="removeDevKitFromSession(devKitWithFilms.devKit.rowKey)"
+            title="Remove DevKit">
+            ✕
+          </button>
+        </div>
+
+        <!-- DevKit Image Tooltip -->
+        <div 
+          class="devkit-image-tooltip" 
+          *ngIf="hoveredDevKit === devKitWithFilms.devKit.rowKey"
+          [style.background-image]="'url(' + devKitWithFilms.devKit.imageUrl + ')'">
+        </div>
+
+        <!-- Drop Zone for Films -->
+        <div 
+          class="film-drop-zone"
+          [cdkDropListDisabled]="isViewMode"
+          cdkDropList
+          [id]="'devkit-' + devKitWithFilms.devKit.rowKey"
+          [cdkDropListData]="devKitWithFilms.assignedFilms"
+          [cdkDropListConnectedTo]="getConnectedLists()"
+          (cdkDropListDropped)="onFilmDrop($event)">
+          
+          <div class="drop-zone-content">
+            <div 
+              *ngFor="let film of devKitWithFilms.assignedFilms" 
+              class="film-card removable-film"
+              [cdkDragDisabled]="isViewMode"
+              cdkDrag>
+              <button 
+                *ngIf="isEditMode || isNewSession"
+                class="remove-film-btn" 
+                (click)="removeFilmFromSession(film.rowKey)"
+                title="Remove from session">
+                ✕
+              </button>
+              <img [src]="film.imageUrl" [alt]="film.name" class="film-image" />
+              <div class="film-info">
+                <span class="film-name">{{ film.name }}</span>
+                <span class="film-details">{{ film.type }} - ISO {{ film.iso }}</span>
+              </div>
+            </div>
+            
+            <!-- Empty state -->
+            <div class="empty-drop-zone" *ngIf="devKitWithFilms.assignedFilms.length === 0">
+              <p *ngIf="isEditMode || isNewSession">Drop films here to assign them to {{ devKitWithFilms.devKit.name }}</p>
+              <p *ngIf="isViewMode">No films assigned to {{ devKitWithFilms.devKit.name }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Unassigned Films -->
+  <div class="unassigned-films-section">
+    <h3>{{ sessionDevKits.length > 0 ? (isEditMode ? 'Available Films' : 'Session Films') : 'Films Developed in Session' }}</h3>
+    <div 
+      class="film-drop-zone unassigned-zone"
+      [cdkDropListDisabled]="isViewMode"
+      cdkDropList
+      id="unassigned-films"
+      [cdkDropListData]="unassignedFilms"
+      [cdkDropListConnectedTo]="getConnectedLists()"
+      (cdkDropListDropped)="onFilmDrop($event)">
+      
+      <div class="unassigned-grid">
+        <div 
+          *ngFor="let film of unassignedFilms" 
+          class="film-card removable-film"
+          [cdkDragDisabled]="isViewMode"
+          cdkDrag>
+          <button 
+            *ngIf="isEditMode || isNewSession"
+            class="remove-film-btn" 
+            (click)="removeFilmFromSession(film.rowKey)"
+            title="Remove from session">
+            ✕
+          </button>
+          <img [src]="film.imageUrl" [alt]="film.name" class="film-image" />
+          <div class="film-info">
+            <span class="film-name">{{ film.name }}</span>
+            <span class="film-details">{{ film.type }} - ISO {{ film.iso }}</span>
+            <span class="film-owner">{{ film.purchasedBy }}</span>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Empty state -->
+      <div class="empty-drop-zone" *ngIf="unassignedFilms.length === 0">
+        <p *ngIf="isEditMode && sessionDevKits.length > 0">All available films have been assigned to development kits</p>
+        <p *ngIf="isViewMode && sessionDevKits.length > 0">All films have been assigned to development kits</p>
+        <p *ngIf="sessionDevKits.length === 0">No films selected for this session yet</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mobile Instructions -->
+  <div class="mobile-instructions">
+    <p><strong>Mobile:</strong> Tap and hold to drag films between development stations</p>
+  </div>
+</div>
+
+<!-- Add DevKit Modal -->
+<div class="modal-overlay" *ngIf="showAddDevKitModal" (click)="showAddDevKitModal = false">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3>Add Development Kit</h3>
+      <button class="modal-close" (click)="showAddDevKitModal = false">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="items-grid">
+        <div *ngFor="let devKit of availableDevKits" class="item-card" 
+             [class.expired]="devKit.expired"
+             (click)="addDevKitToSession(devKit); showAddDevKitModal = false">
+          <div class="item-content">
+            <div class="item-info">
+              <img [src]="devKit.imageUrl" alt="{{devKit.name}}" class="item-image" />
+              <div class="item-details">
+                <span class="item-name">{{devKit.name}}</span>
+                <span class="item-type">{{devKit.type}}</span>
+                <span class="item-status" *ngIf="devKit.expired">EXPIRED</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Add Film Modal -->
+<div class="modal-overlay" *ngIf="showAddFilmModal" (click)="showAddFilmModal = false">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3>Add Film</h3>
+      <button class="modal-close" (click)="showAddFilmModal = false">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="items-grid">
+        <div *ngFor="let film of availableUnassignedFilms" class="item-card"
+             (click)="addFilmToSession(film); showAddFilmModal = false">
+          <div class="item-content">
+            <div class="item-info">
+              <img [src]="film.imageUrl" alt="{{film.name}}" class="item-image" />
+              <div class="item-details">
+                <span class="item-name">{{film.name}}</span>
+                <span class="item-type">{{film.type}} - ISO {{film.iso}}</span>
+                <span class="item-owner">{{film.purchasedBy}}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Loading State -->
+<div class="loading-container" *ngIf="loading">
+  <div class="loading-spinner"></div>
+  <p>Loading session data...</p>
+</div>

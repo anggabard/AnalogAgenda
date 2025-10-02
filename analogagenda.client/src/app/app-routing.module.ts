@@ -1,6 +1,6 @@
 import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
-import { LoginComponent, HomeComponent, NotesComponent, SubstancesComponent, UpsertKitComponent, NoteTableComponent, FilmsComponent, UpsertFilmComponent, FilmPhotosComponent, ChangePasswordComponent } from './components';
+import { LoginComponent, HomeComponent, NotesComponent, SubstancesComponent, UpsertKitComponent, NoteTableComponent, FilmsComponent, UpsertFilmComponent, FilmPhotosComponent, SessionsComponent, UpsertSessionComponent, SessionManagementComponent, ChangePasswordComponent } from './components';
 import { sessionGuard, loginGuard } from './guards';
 import { MainLayoutComponent, AuthLayoutComponent } from './layouts';
 
@@ -20,6 +20,10 @@ const routes: Routes = [
       { path: 'films/new', component: UpsertFilmComponent, canActivate: [sessionGuard] },
       { path: 'films/:id/photos', component: FilmPhotosComponent, canActivate: [sessionGuard] },
       { path: 'films/:id', component: UpsertFilmComponent, canActivate: [sessionGuard] },
+      { path: 'sessions', component: SessionsComponent, canActivate: [sessionGuard] },
+      { path: 'sessions/new', component: UpsertSessionComponent, canActivate: [sessionGuard] },
+      { path: 'sessions/:id', component: SessionManagementComponent, canActivate: [sessionGuard] },
+      { path: 'sessions/:id/edit', component: UpsertSessionComponent, canActivate: [sessionGuard] },
       { path: 'notes/new', component: NoteTableComponent, canActivate: [sessionGuard] },
       { path: 'notes/:id', component: NoteTableComponent, canActivate: [sessionGuard] },
       { path: 'change-password', component: ChangePasswordComponent, canActivate: [sessionGuard] },

@@ -38,4 +38,12 @@ public static class EntitySortingExtensions
     {
         return photos.OrderBy(p => p.Index);
     }
+
+    /// <summary>
+    /// Apply standard Session sorting: by session date (newest first)
+    /// </summary>
+    public static IOrderedEnumerable<SessionEntity> ApplyStandardSorting(this IEnumerable<SessionEntity> sessions)
+    {
+        return sessions.OrderByDescending(s => s.SessionDate);
+    }
 }

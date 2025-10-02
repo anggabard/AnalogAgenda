@@ -24,7 +24,7 @@ public class NotesController(Storage storageCfg, ITableService tablesService, IB
     protected override NoteDto EntityToDto(NoteEntity entity) => entity.ToDTO(storageCfg.AccountName);
     
     private NoteDto EntityToDtoWithEntries(NoteEntity entity, IEnumerable<NoteEntryEntity> entries) => 
-        entity.ToDTO(storageCfg.AccountName, entries.ToList());
+        entity.ToDTO(storageCfg.AccountName, [.. entries]);
 
     [HttpPost]
     public async Task<IActionResult> CreateNewNote([FromBody] NoteDto dto)

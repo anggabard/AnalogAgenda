@@ -1,0 +1,30 @@
+<div class="container">
+    <div class="header">
+        <button class="add-session" (click)="onNewSessionClick()">+ New Session +</button>
+    </div>
+
+    <div class="sessions-container">
+        <div class="sessions-section">
+            <h2 class="sessions-title">Development Sessions</h2>
+            <app-card-list 
+                [items]="sessions" 
+                [cardTemplate]="sessionCardTemplate"
+                [hasMore]="hasMore" 
+                [loading]="loading"
+                (loadMore)="loadMoreSessions()"
+                (itemClick)="onSessionSelected($event.rowKey)">
+            </app-card-list>
+        </div>
+    </div>
+</div>
+
+<!-- Template for session cards -->
+<ng-template #sessionCardTemplate let-session>
+    <div class="card">
+        <img class="image" [src]="session.imageUrl" />
+        <span class="title">{{session.location}}</span>
+        <span class="info date">{{formatDate(session.sessionDate)}}</span>
+        <span class="info participants">{{parseParticipants(session.participants).join(', ')}}</span>
+        <span class="info description" *ngIf="session.description">{{session.description}}</span>
+    </div>
+</ng-template>
