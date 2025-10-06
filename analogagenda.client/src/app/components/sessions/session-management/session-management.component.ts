@@ -44,6 +44,10 @@ export class SessionManagementComponent implements OnInit {
   isEditMode = false; // New property for edit mode
   showAddDevKitModal = false;
   showAddFilmModal = false;
+  showSessionImageModal = false;
+  showExpiredDevKits = false;
+  selectedDevKitsForModal: string[] = [];
+  selectedFilmsForModal: string[] = [];
 
   ngOnInit(): void {
     this.sessionRowKey = this.route.snapshot.paramMap.get('id');
@@ -164,16 +168,21 @@ export class SessionManagementComponent implements OnInit {
 
   // Drag and drop handlers
   onFilmDrop(event: CdkDragDrop<any[]>, targetDevKitRowKey?: string): void {
+    // Only process drop if it's actually dropped in a valid container
+    if (!event.isPointerOverContainer) {
+      return; // Don't drop if not over a valid drop zone
+    }
+    
     if (event.previousContainer === event.container) {
       // Reordering within the same container
       moveItemInArray(event.container.data, event.previousIndex, event.currentIndex);
     } else {
-      // Moving between containers
+      // Moving between containers - always add to the end
       transferArrayItem(
         event.previousContainer.data,
         event.container.data,
         event.previousIndex,
-        event.currentIndex
+        event.container.data.length  // Add to the end
       );
     }
   }
@@ -235,8 +244,29 @@ export class SessionManagementComponent implements OnInit {
   }
 
   // Hover effects for devkit images
-  onDevKitHover(devKitRowKey: string): void {
+  onDevKitHover(devKitRowKey: string, event: MouseEvent): void {
     this.hoveredDevKit = devKitRowKey;
+    const button = event.target as HTMLElement;
+    const rect = button.getBoundingClientRect();
+    
+    // Position tooltip to the right or left of the button
+    setTimeout(() => {
+      const tooltip = document.querySelector('.devkit-image-tooltip') as HTMLElement;
+      if (tooltip) {
+        const tooltipWidth = 190; // Width of tooltip
+        const rightPosition = rect.right + 10 + tooltipWidth;
+        
+        // Check if tooltip would exit the screen on the right
+        if (rightPosition > window.innerWidth) {
+          // Position on the left
+          tooltip.style.left = `${rect.left - tooltipWidth - 10}px`;
+        } else {
+          // Position on the right
+          tooltip.style.left = `${rect.right + 10}px`;
+        }
+        tooltip.style.top = `${rect.top}px`;
+      }
+    }, 0);
   }
 
   onDevKitLeave(): void {
@@ -330,5 +360,84 @@ export class SessionManagementComponent implements OnInit {
       'unassigned-films',
       ...this.sessionDevKits.map(sdk => `devkit-${sdk.devKit.rowKey}`)
     ];
+  }
+
+  get filteredAvailableDevKits(): DevKitDto[] {
+    return this.showExpiredDevKits 
+      ? this.availableDevKits 
+      : this.availableDevKits.filter(dk => !dk.expired);
+  }
+
+  toggleDevKitSelection(devKitRowKey: string): void {
+    const index = this.selectedDevKitsForModal.indexOf(devKitRowKey);
+    if (index >= 0) {
+      this.selectedDevKitsForModal.splice(index, 1);
+    } else {
+      this.selectedDevKitsForModal.push(devKitRowKey);
+    }
+  }
+
+  toggleFilmSelection(filmRowKey: string): void {
+    const index = this.selectedFilmsForModal.indexOf(filmRowKey);
+    if (index >= 0) {
+      this.selectedFilmsForModal.splice(index, 1);
+    } else {
+      this.selectedFilmsForModal.push(filmRowKey);
+    }
+  }
+
+  isDevKitSelectedForModal(devKitRowKey: string): boolean {
+    return this.selectedDevKitsForModal.includes(devKitRowKey);
+  }
+
+  isFilmSelectedForModal(filmRowKey: string): boolean {
+    return this.selectedFilmsForModal.includes(filmRowKey);
+  }
+
+  addSelectedDevKits(): void {
+    this.selectedDevKitsForModal.forEach(rowKey => {
+      const devKit = this.availableDevKits.find(dk => dk.rowKey === rowKey);
+      if (devKit) {
+        this.addDevKitToSession(devKit);
+      }
+    });
+    this.selectedDevKitsForModal = [];
+    this.showAddDevKitModal = false;
+  }
+
+  addSelectedFilms(): void {
+    this.selectedFilmsForModal.forEach(rowKey => {
+      const film = this.availableUnassignedFilms.find(f => f.rowKey === rowKey);
+      if (film) {
+        this.addFilmToSession(film);
+      }
+    });
+    this.selectedFilmsForModal = [];
+    this.showAddFilmModal = false;
+  }
+
+  closeAddDevKitModal(): void {
+    this.selectedDevKitsForModal = [];
+    this.showAddDevKitModal = false;
+  }
+
+  closeAddFilmModal(): void {
+    this.selectedFilmsForModal = [];
+    this.showAddFilmModal = false;
+  }
+
+  onSessionImageSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (input.files && input.files.length > 0 && this.session) {
+      const file = input.files[0];
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => {
+        if (this.session) {
+          this.session.imageUrl = reader.result as string;
+          this.session.imageBase64 = reader.result as string;
+        }
+      };
+    }
   }
 }

@@ -9,6 +9,10 @@
       </div>
     </div>
     <div class="header-actions">
+      <button *ngIf="session?.imageUrl" class="btn btn-secondary session-image-btn" (click)="showSessionImageModal = true">
+        <span *ngIf="isViewMode">View Image</span>
+        <span *ngIf="isEditMode || isNewSession">Change Image</span>
+      </button>
       <button *ngIf="!isNewSession" class="btn btn-secondary" (click)="toggleEditMode()">
         {{ isEditMode ? 'View Mode' : 'Edit Mode' }}
       </button>
@@ -18,15 +22,6 @@
     </div>
   </div>
 
-  <!-- Add Items Buttons -->
-  <div class="add-items-buttons" *ngIf="isEditMode || isNewSession">
-    <button *ngIf="availableDevKits.length > 0" class="btn btn-secondary add-item-btn" (click)="showAddDevKitModal = true">
-      Add DevKit
-    </button>
-    <button *ngIf="availableUnassignedFilms.length > 0" class="btn btn-secondary add-item-btn" (click)="showAddFilmModal = true">
-      Add Film
-    </button>
-  </div>
 
   <!-- Success/Error Messages -->
   <div class="alert alert-success" *ngIf="successMessage">{{ successMessage }}</div>
@@ -34,7 +29,17 @@
 
   <!-- DevKit Lists -->
   <div class="devkit-lists" *ngIf="sessionDevKits.length > 0">
-    <h3>Development Stations</h3>
+    <div class="section-header">
+      <div class="section-title-wrapper">
+        <h3>Used Solutions</h3>
+        <button *ngIf="(isEditMode || isNewSession) && availableDevKits.length > 0" 
+                class="add-section-btn" 
+                (click)="showAddDevKitModal = true"
+                title="Add DevKit">
+          +
+        </button>
+      </div>
+    </div>
     <div class="devkit-grid">
       <div *ngFor="let devKitWithFilms of sessionDevKits" class="devkit-container">
         <div class="devkit-header">
@@ -42,7 +47,7 @@
             <h4>{{ devKitWithFilms.devKit.name }}</h4>
             <button 
               class="preview-btn"
-              (mouseenter)="onDevKitHover(devKitWithFilms.devKit.rowKey)"
+              (mouseenter)="onDevKitHover(devKitWithFilms.devKit.rowKey, $event)"
               (mouseleave)="onDevKitLeave()"
               title="Preview DevKit Image">
               ?
@@ -60,8 +65,13 @@
         <!-- DevKit Image Tooltip -->
         <div 
           class="devkit-image-tooltip" 
-          *ngIf="hoveredDevKit === devKitWithFilms.devKit.rowKey"
-          [style.background-image]="'url(' + devKitWithFilms.devKit.imageUrl + ')'">
+          *ngIf="hoveredDevKit === devKitWithFilms.devKit.rowKey">
+          <img [src]="devKitWithFilms.devKit.imageUrl" [alt]="devKitWithFilms.devKit.name" />
+          <div class="devkit-tooltip-title">{{ devKitWithFilms.devKit.name }}</div>
+          <div class="devkit-tooltip-info">
+            <span>{{ devKitWithFilms.devKit.type }}</span>
+            <span>{{ devKitWithFilms.devKit.filmsDeveloped }}/{{ devKitWithFilms.devKit.validForFilms }}</span>
+          </div>
         </div>
 
         <!-- Drop Zone for Films -->
@@ -69,6 +79,7 @@
           class="film-drop-zone"
           [cdkDropListDisabled]="isViewMode"
           cdkDropList
+          [cdkDropListSortingDisabled]="true"
           [id]="'devkit-' + devKitWithFilms.devKit.rowKey"
           [cdkDropListData]="devKitWithFilms.assignedFilms"
           [cdkDropListConnectedTo]="getConnectedLists()"
@@ -91,6 +102,7 @@
               <div class="film-info">
                 <span class="film-name">{{ film.name }}</span>
                 <span class="film-details">{{ film.type }} - ISO {{ film.iso }}</span>
+                <span class="film-owner">{{ film.purchasedBy }}</span>
               </div>
             </div>
             
@@ -107,11 +119,22 @@
 
   <!-- Unassigned Films -->
   <div class="unassigned-films-section">
-    <h3>{{ sessionDevKits.length > 0 ? (isEditMode ? 'Available Films' : 'Session Films') : 'Films Developed in Session' }}</h3>
-    <div 
+    <div class="section-header">
+      <div class="section-title-wrapper">
+        <h3>Developed Films</h3>
+        <button *ngIf="(isEditMode || isNewSession) && availableUnassignedFilms.length > 0" 
+                class="add-section-btn" 
+                (click)="showAddFilmModal = true"
+                title="Add Film">
+          +
+        </button>
+      </div>
+    </div>
+    <div *ngIf="unassignedFilms.length > 0" 
       class="film-drop-zone unassigned-zone"
       [cdkDropListDisabled]="isViewMode"
       cdkDropList
+      [cdkDropListSortingDisabled]="true"
       id="unassigned-films"
       [cdkDropListData]="unassignedFilms"
       [cdkDropListConnectedTo]="getConnectedLists()"
@@ -141,31 +164,41 @@
       
       <!-- Empty state -->
       <div class="empty-drop-zone" *ngIf="unassignedFilms.length === 0">
-        <p *ngIf="isEditMode && sessionDevKits.length > 0">All available films have been assigned to development kits</p>
-        <p *ngIf="isViewMode && sessionDevKits.length > 0">All films have been assigned to development kits</p>
-        <p *ngIf="sessionDevKits.length === 0">No films selected for this session yet</p>
+        <p>Drop films here or click + to add</p>
       </div>
+    </div>
+
+    <!-- Message when all films assigned -->
+    <div class="all-assigned-message" *ngIf="unassignedFilms.length === 0 && sessionDevKits.length > 0">
+      <p>All films have been assigned to solutions</p>
     </div>
   </div>
 
   <!-- Mobile Instructions -->
   <div class="mobile-instructions">
-    <p><strong>Mobile:</strong> Tap and hold to drag films between development stations</p>
+    <p><strong>Mobile:</strong> Tap and hold to drag films between solutions</p>
   </div>
 </div>
 
 <!-- Add DevKit Modal -->
-<div class="modal-overlay" *ngIf="showAddDevKitModal" (click)="showAddDevKitModal = false">
+<div class="modal-overlay" *ngIf="showAddDevKitModal" (click)="closeAddDevKitModal()">
   <div class="modal-content" (click)="$event.stopPropagation()">
     <div class="modal-header">
-      <h3>Add Development Kit</h3>
-      <button class="modal-close" (click)="showAddDevKitModal = false">✕</button>
+      <h3>Add Solution</h3>
+      <button class="modal-close" (click)="closeAddDevKitModal()">✕</button>
     </div>
     <div class="modal-body">
+      <div class="modal-options">
+        <label class="checkbox-option">
+          <input type="checkbox" [(ngModel)]="showExpiredDevKits" />
+          <span>Show expired dev kits</span>
+        </label>
+      </div>
       <div class="items-grid">
-        <div *ngFor="let devKit of availableDevKits" class="item-card" 
+        <div *ngFor="let devKit of filteredAvailableDevKits" class="item-card" 
              [class.expired]="devKit.expired"
-             (click)="addDevKitToSession(devKit); showAddDevKitModal = false">
+             [class.selected]="isDevKitSelectedForModal(devKit.rowKey)"
+             (click)="toggleDevKitSelection(devKit.rowKey)">
           <div class="item-content">
             <div class="item-info">
               <img [src]="devKit.imageUrl" alt="{{devKit.name}}" class="item-image" />
@@ -176,23 +209,34 @@
               </div>
             </div>
           </div>
+          <div class="item-checkbox">
+            <input type="checkbox" 
+                   [checked]="isDevKitSelectedForModal(devKit.rowKey)"
+                   readonly />
+          </div>
         </div>
+      </div>
+      <div class="modal-footer" *ngIf="selectedDevKitsForModal.length > 0">
+        <button class="btn btn-primary" (click)="addSelectedDevKits()">
+          Add {{ selectedDevKitsForModal.length }} Solution{{ selectedDevKitsForModal.length > 1 ? 's' : '' }}
+        </button>
       </div>
     </div>
   </div>
 </div>
 
 <!-- Add Film Modal -->
-<div class="modal-overlay" *ngIf="showAddFilmModal" (click)="showAddFilmModal = false">
+<div class="modal-overlay" *ngIf="showAddFilmModal" (click)="closeAddFilmModal()">
   <div class="modal-content" (click)="$event.stopPropagation()">
     <div class="modal-header">
       <h3>Add Film</h3>
-      <button class="modal-close" (click)="showAddFilmModal = false">✕</button>
+      <button class="modal-close" (click)="closeAddFilmModal()">✕</button>
     </div>
     <div class="modal-body">
       <div class="items-grid">
         <div *ngFor="let film of availableUnassignedFilms" class="item-card"
-             (click)="addFilmToSession(film); showAddFilmModal = false">
+             [class.selected]="isFilmSelectedForModal(film.rowKey)"
+             (click)="toggleFilmSelection(film.rowKey)">
           <div class="item-content">
             <div class="item-info">
               <img [src]="film.imageUrl" alt="{{film.name}}" class="item-image" />
@@ -203,9 +247,31 @@
               </div>
             </div>
           </div>
+          <div class="item-checkbox">
+            <input type="checkbox" 
+                   [checked]="isFilmSelectedForModal(film.rowKey)"
+                   readonly />
+          </div>
         </div>
       </div>
+      <div class="modal-footer" *ngIf="selectedFilmsForModal.length > 0">
+        <button class="btn btn-primary" (click)="addSelectedFilms()">
+          Add {{ selectedFilmsForModal.length }} Film{{ selectedFilmsForModal.length > 1 ? 's' : '' }}
+        </button>
+      </div>
     </div>
+  </div>
+</div>
+
+<!-- Session Image Modal -->
+<div class="image-preview-overlay" *ngIf="showSessionImageModal" (click)="showSessionImageModal = false">
+  <img *ngIf="session?.imageUrl" [src]="session?.imageUrl" alt="Session Image" (click)="$event.stopPropagation()" />
+  <button class="close-btn" (click)="showSessionImageModal = false; $event.stopPropagation()">✖</button>
+  <div *ngIf="isEditMode || isNewSession" class="preview-actions" (click)="$event.stopPropagation()">
+    <input type="file" accept="image/*" (change)="onSessionImageSelected($event)" #sessionImageInput style="display: none" />
+    <button class="preview-action-btn" (click)="sessionImageInput.click(); $event.stopPropagation()">
+      Choose New Image
+    </button>
   </div>
 </div>
 
