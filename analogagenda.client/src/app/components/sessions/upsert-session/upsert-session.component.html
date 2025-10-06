@@ -1,146 +1,281 @@
-<div class="container">
-  <div class="box">
-    <form [formGroup]="formGroup" (ngSubmit)="submit()" class="form">
-      <h1 class="form-title" *ngIf="!isEditMode;else is_update">Add New Session</h1>
-      <ng-template #is_update>
-        <h1 class="form-title">Edit Session</h1>
-      </ng-template>
-
-      <div *ngIf="errorMessage" class="error-message">
-        {{ errorMessage }}
+<div class="session-management-container" *ngIf="!loading">
+  <!-- Header -->
+  <div class="header">
+    <div class="header-info">
+      <h2>{{ isInsert ? 'New Session' : (isViewMode ? 'Session Details' : 'Edit Session') }}</h2>
+      <div class="session-details" *ngIf="currentItem">
+        <span class="location">{{ currentItem.location || 'No location set' }}</span>
+        <span class="date">{{ currentItem.sessionDate | date:'mediumDate' }}</span>
       </div>
-
-      <div *ngIf="successMessage" class="success-message">
-        {{ successMessage }}
-      </div>
-
-      <div>
-        <label for="sessionDate">Session Date</label>
-        <input type="date" id="sessionDate" formControlName="sessionDate" class="input" />
-        <div *ngIf="formGroup.get('sessionDate')?.invalid && formGroup.get('sessionDate')?.touched" class="error">
-          Session date is required.
-        </div>
-      </div>
-
-      <div>
-        <label for="location">Location</label>
-        <input type="text" id="location" formControlName="location" class="input" 
-               placeholder="Enter session location" />
-        <div *ngIf="formGroup.get('location')?.invalid && formGroup.get('location')?.touched" class="error">
-          Location is required.
-        </div>
-      </div>
-
-      <div>
-        <label for="description">Description</label>
-        <textarea id="description" formControlName="description" class="input" 
-                  rows="3" placeholder="Optional description of the session"></textarea>
-      </div>
-
-      <div>
-        <label>Session Photo</label>
-        <input type="file" accept="image/*" (change)="onFileSelected($event)" class="input" />
-        <div *ngIf="imagePreview" class="image-preview">
-          <img [src]="imagePreview" alt="Session preview" />
-        </div>
-      </div>
-
-      <div>
-        <label>Participants</label>
-        <div class="checkbox-group">
-          <label *ngFor="let participant of participantOptions" class="checkbox-label">
-            <input type="checkbox" 
-                   [checked]="isParticipantSelected(participant)"
-                   (change)="onParticipantChange(participant, $event)" />
-            <span>{{participant}}</span>
-          </label>
-        </div>
-        <div *ngIf="selectedParticipants.length === 0" class="error error-centered">
-          At least one participant is required.
-        </div>
-      </div>
-
-      <div>
-        <label>Used Substances</label>
-        <div class="checkbox-option">
-          <label class="checkbox-label">
-            <span>Show expired dev kits</span>
-            <input type="checkbox" [(ngModel)]="showExpiredDevKits" [ngModelOptions]="{standalone: true}" />
-          </label>
-        </div>
-        
-        <div class="items-grid">
-          <div *ngFor="let devKit of filteredDevKits" class="item-card" 
-               [class.selected]="isDevKitSelected(devKit.rowKey)"
-               [class.expired]="devKit.expired"
-               (click)="toggleDevKit(devKit.rowKey)">
-            <div class="item-content">
-              <div class="item-info">
-                <img [src]="devKit.imageUrl" alt="{{devKit.name}}" class="item-image" />
-                <div class="item-details">
-                  <span class="item-name">{{devKit.name}}</span>
-                  <span class="item-type">{{devKit.type}}</span>
-                  <span class="item-status" *ngIf="devKit.expired">EXPIRED</span>
-                </div>
-              </div>
-            </div>
-            <div class="item-checkbox">
-              <input type="checkbox" 
-                     [checked]="isDevKitSelected(devKit.rowKey)"
-                     readonly />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div>
-        <label>Films Developed</label>
-        <div class="items-grid">
-          <div *ngFor="let film of availableFilms" class="item-card" 
-               [class.selected]="isFilmSelected(film.rowKey)"
-               (click)="toggleFilm(film.rowKey)">
-            <div class="item-content">
-              <div class="item-info">
-                <img [src]="film.imageUrl" alt="{{film.name}}" class="item-image" />
-                <div class="item-details">
-                  <span class="item-name">{{film.name}}</span>
-                  <span class="item-type">{{film.type}} - ISO {{film.iso}}</span>
-                  <span class="item-owner">{{film.purchasedBy}}</span>
-                </div>
-              </div>
-            </div>
-            <div class="item-checkbox">
-              <input type="checkbox" 
-                     [checked]="isFilmSelected(film.rowKey)"
-                     readonly />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <button type="submit" [disabled]="formGroup.invalid || loading" class="submit-btn">
-        <span *ngIf="!loading">Save</span>
-        <svg *ngIf="loading" class="spinner" viewBox="0 0 24 24">
-          <circle class="spinner-bg" cx="12" cy="12" r="10" stroke-width="4"></circle>
-          <path class="spinner-path" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
-        </svg>
+    </div>
+    <div class="header-actions">
+      <button *ngIf="currentItem.imageUrl" class="btn btn-secondary session-image-btn" (click)="showSessionImageModal = true">
+        <span *ngIf="isViewMode">View Image</span>
+        <span *ngIf="!isViewMode">Change Image</span>
       </button>
-    </form>
+      <button *ngIf="!isInsert" class="btn btn-secondary" (click)="toggleEditMode()">
+        {{ isEditMode ? 'View Mode' : 'Edit Mode' }}
+      </button>
+      <button *ngIf="isEditMode || isInsert" class="btn btn-primary" (click)="submit()" [disabled]="loading">
+        {{ loading ? 'Saving...' : 'Save Session' }}
+      </button>
+    </div>
+  </div>
 
-    <!-- Delete Button -->
-    <button *ngIf="isEditMode" class="delete-btn" (click)="isDeleteModalOpen = true">Delete</button>
+  <!-- Success/Error Messages -->
+  <div class="alert alert-success" *ngIf="successMessage">{{ successMessage }}</div>
+  <div class="alert alert-error" *ngIf="errorMessage">{{ errorMessage }}</div>
 
-    <div class="delete-modal-overlay" *ngIf="isDeleteModalOpen" (click)="isDeleteModalOpen = false">
-      <div class="delete-modal" (click)="$event.stopPropagation()">
-        <h2>Confirm Delete</h2>
-        <p>
-          Are you sure you want to delete this session at <strong>{{ form.get('location')?.value }}</strong>?
-        </p>
-        <div class="delete-modal-actions">
-          <button class="cancel-btn" (click)="isDeleteModalOpen = false">Cancel</button>
-          <button class="delete-btn" (click)="onDelete()">Delete</button>
+  <!-- DevKit Lists -->
+  <div class="devkit-lists" *ngIf="sessionDevKits.length > 0">
+    <div class="section-header">
+      <div class="section-title-wrapper">
+        <h3>Used Solutions</h3>
+        <button *ngIf="(isEditMode || isInsert) && availableDevKits.length > 0" 
+                class="add-section-btn" 
+                (click)="showAddDevKitModal = true"
+                title="Add DevKit">
+          +
+        </button>
+      </div>
+    </div>
+    <div class="devkit-grid">
+      <div *ngFor="let devKitWithFilms of sessionDevKits" class="devkit-container">
+        <div class="devkit-header">
+          <div class="devkit-info">
+            <h4>{{ devKitWithFilms.devKit.name }}</h4>
+            <button 
+              class="preview-btn"
+              (mouseenter)="onDevKitHover(devKitWithFilms.devKit.rowKey, $event)"
+              (mouseleave)="onDevKitLeave()"
+              title="Preview DevKit Image">
+              ?
+            </button>
+          </div>
+          <button 
+            *ngIf="isEditMode || isInsert"
+            class="remove-btn" 
+            (click)="removeDevKitFromSession(devKitWithFilms.devKit.rowKey)"
+            title="Remove DevKit">
+            ✕
+          </button>
+        </div>
+
+        <!-- DevKit Image Tooltip -->
+        <div 
+          class="devkit-image-tooltip" 
+          *ngIf="hoveredDevKit === devKitWithFilms.devKit.rowKey">
+          <img [src]="devKitWithFilms.devKit.imageUrl" [alt]="devKitWithFilms.devKit.name" />
+          <div class="devkit-tooltip-title">{{ devKitWithFilms.devKit.name }}</div>
+          <div class="devkit-tooltip-info">
+            <span>{{ devKitWithFilms.devKit.type }}</span>
+            <span>{{ devKitWithFilms.devKit.filmsDeveloped }}/{{ devKitWithFilms.devKit.validForFilms }}</span>
+          </div>
+        </div>
+
+        <!-- Drop Zone for Films -->
+        <div 
+          class="film-drop-zone"
+          [cdkDropListDisabled]="isViewMode"
+          cdkDropList
+          [cdkDropListSortingDisabled]="true"
+          [id]="'devkit-' + devKitWithFilms.devKit.rowKey"
+          [cdkDropListData]="devKitWithFilms.assignedFilms"
+          [cdkDropListConnectedTo]="getConnectedLists()"
+          (cdkDropListDropped)="onFilmDrop($event)">
+          
+          <div class="drop-zone-content">
+            <div 
+              *ngFor="let film of devKitWithFilms.assignedFilms" 
+              class="film-card removable-film"
+              [cdkDragDisabled]="isViewMode"
+              cdkDrag>
+              <button 
+                *ngIf="isEditMode || isInsert"
+                class="remove-film-btn" 
+                (click)="removeFilmFromSession(film.rowKey)"
+                title="Remove from session">
+                ✕
+              </button>
+              <img [src]="film.imageUrl" [alt]="film.name" class="film-image" />
+              <div class="film-info">
+                <span class="film-name">{{ film.name }}</span>
+                <span class="film-details">{{ film.type }} - ISO {{ film.iso }}</span>
+                <span class="film-owner">{{ film.purchasedBy }}</span>
+              </div>
+            </div>
+            
+            <!-- Empty state -->
+            <div class="empty-drop-zone" *ngIf="devKitWithFilms.assignedFilms.length === 0">
+              <p *ngIf="isEditMode || isInsert">Drop films here to assign them to {{ devKitWithFilms.devKit.name }}</p>
+              <p *ngIf="isViewMode">No films assigned to {{ devKitWithFilms.devKit.name }}</p>
+            </div>
+          </div>
         </div>
       </div>
     </div>
   </div>
+
+  <!-- Unassigned Films -->
+  <div class="unassigned-films-section">
+    <div class="section-header">
+      <div class="section-title-wrapper">
+        <h3>Developed Films</h3>
+        <button *ngIf="(isEditMode || isInsert) && availableUnassignedFilms.length > 0" 
+                class="add-section-btn" 
+                (click)="showAddFilmModal = true"
+                title="Add Film">
+          +
+        </button>
+      </div>
+    </div>
+    <div *ngIf="unassignedFilms.length > 0" 
+      class="film-drop-zone unassigned-zone"
+      [cdkDropListDisabled]="isViewMode"
+      cdkDropList
+      [cdkDropListSortingDisabled]="true"
+      id="unassigned-films"
+      [cdkDropListData]="unassignedFilms"
+      [cdkDropListConnectedTo]="getConnectedLists()"
+      (cdkDropListDropped)="onFilmDrop($event)">
+      
+      <div class="unassigned-grid">
+        <div 
+          *ngFor="let film of unassignedFilms" 
+          class="film-card removable-film"
+          [cdkDragDisabled]="isViewMode"
+          cdkDrag>
+          <button 
+            *ngIf="isEditMode || isInsert"
+            class="remove-film-btn" 
+            (click)="removeFilmFromSession(film.rowKey)"
+            title="Remove from session">
+            ✕
+          </button>
+          <img [src]="film.imageUrl" [alt]="film.name" class="film-image" />
+          <div class="film-info">
+            <span class="film-name">{{ film.name }}</span>
+            <span class="film-details">{{ film.type }} - ISO {{ film.iso }}</span>
+            <span class="film-owner">{{ film.purchasedBy }}</span>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Empty state -->
+      <div class="empty-drop-zone" *ngIf="unassignedFilms.length === 0">
+        <p>Drop films here or click + to add</p>
+      </div>
+    </div>
+
+    <!-- Message when all films assigned -->
+    <div class="all-assigned-message" *ngIf="unassignedFilms.length === 0 && sessionDevKits.length > 0">
+      <p>All films have been assigned to solutions</p>
+    </div>
+  </div>
+
+  <!-- Mobile Instructions -->
+  <div class="mobile-instructions">
+    <p><strong>Mobile:</strong> Tap and hold to drag films between solutions</p>
+  </div>
+</div>
+
+<!-- Add DevKit Modal -->
+<div class="modal-overlay" *ngIf="showAddDevKitModal" (click)="closeAddDevKitModal()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3>Add Solution</h3>
+      <button class="modal-close" (click)="closeAddDevKitModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-options">
+        <label class="checkbox-option">
+          <input type="checkbox" [(ngModel)]="showExpiredDevKits" />
+          <span>Show expired dev kits</span>
+        </label>
+      </div>
+      <div class="items-grid">
+        <div *ngFor="let devKit of filteredAvailableDevKits" class="item-card" 
+             [class.expired]="devKit.expired"
+             [class.selected]="isDevKitSelectedForModal(devKit.rowKey)"
+             (click)="toggleDevKitSelection(devKit.rowKey)">
+          <div class="item-content">
+            <div class="item-info">
+              <img [src]="devKit.imageUrl" alt="{{devKit.name}}" class="item-image" />
+              <div class="item-details">
+                <span class="item-name">{{devKit.name}}</span>
+                <span class="item-type">{{devKit.type}}</span>
+                <span class="item-status" *ngIf="devKit.expired">EXPIRED</span>
+              </div>
+            </div>
+          </div>
+          <div class="item-checkbox">
+            <input type="checkbox" 
+                   [checked]="isDevKitSelectedForModal(devKit.rowKey)"
+                   readonly />
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer" *ngIf="selectedDevKitsForModal.length > 0">
+        <button class="btn btn-primary" (click)="addSelectedDevKits()">
+          Add {{ selectedDevKitsForModal.length }} Solution{{ selectedDevKitsForModal.length > 1 ? 's' : '' }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Add Film Modal -->
+<div class="modal-overlay" *ngIf="showAddFilmModal" (click)="closeAddFilmModal()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3>Add Film</h3>
+      <button class="modal-close" (click)="closeAddFilmModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="items-grid">
+        <div *ngFor="let film of availableUnassignedFilms" class="item-card"
+             [class.selected]="isFilmSelectedForModal(film.rowKey)"
+             (click)="toggleFilmSelection(film.rowKey)">
+          <div class="item-content">
+            <div class="item-info">
+              <img [src]="film.imageUrl" alt="{{film.name}}" class="item-image" />
+              <div class="item-details">
+                <span class="item-name">{{film.name}}</span>
+                <span class="item-type">{{film.type}} - ISO {{film.iso}}</span>
+                <span class="item-owner">{{film.purchasedBy}}</span>
+              </div>
+            </div>
+          </div>
+          <div class="item-checkbox">
+            <input type="checkbox" 
+                   [checked]="isFilmSelectedForModal(film.rowKey)"
+                   readonly />
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer" *ngIf="selectedFilmsForModal.length > 0">
+        <button class="btn btn-primary" (click)="addSelectedFilms()">
+          Add {{ selectedFilmsForModal.length }} Film{{ selectedFilmsForModal.length > 1 ? 's' : '' }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Session Image Modal -->
+<div class="image-preview-overlay" *ngIf="showSessionImageModal" (click)="showSessionImageModal = false">
+  <img *ngIf="currentItem.imageUrl" [src]="currentItem.imageUrl" alt="Session Image" (click)="$event.stopPropagation()" />
+  <button class="close-btn" (click)="showSessionImageModal = false; $event.stopPropagation()">✖</button>
+  <div *ngIf="isEditMode || isInsert" class="preview-actions" (click)="$event.stopPropagation()">
+    <input type="file" accept="image/*" (change)="onSessionImageSelected($event)" #sessionImageInput style="display: none" />
+    <button class="preview-action-btn" (click)="sessionImageInput.click(); $event.stopPropagation()">
+      Choose New Image
+    </button>
+  </div>
+</div>
+
+<!-- Loading State -->
+<div class="loading-container" *ngIf="loading">
+  <div class="loading-spinner"></div>
+  <p>Loading session data...</p>
 </div>

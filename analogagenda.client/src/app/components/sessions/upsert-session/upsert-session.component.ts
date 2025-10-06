@@ -3,9 +3,14 @@ import { FormGroup, Validators } from '@angular/forms';
 import { Observable, forkJoin } from 'rxjs';
 import { BaseUpsertComponent } from '../../common/base-upsert/base-upsert.component';
 import { SessionService, DevKitService, FilmService } from '../../../services';
-import { UsernameType } from '../../../enums';
 import { SessionDto, DevKitDto, FilmDto } from '../../../DTOs';
 import { DateHelper } from '../../../helpers/date.helper';
+import { CdkDragDrop, moveItemInArray, transferArrayItem } from '@angular/cdk/drag-drop';
+
+interface DevKitWithFilms {
+  devKit: DevKitDto;
+  assignedFilms: FilmDto[];
+}
 
 @Component({
   selector: 'app-upsert-session',
@@ -22,44 +27,49 @@ export class UpsertSessionComponent extends BaseUpsertComponent<SessionDto> impl
     super();
   }
 
-  override ngOnInit(): void {
-    super.ngOnInit();
-    this.loadAvailableItems();
-    
-    // If editing, process loaded data after base initialization
-    if (!this.isInsert && this.rowKey) {
-      // Add a small delay to ensure the base class has loaded the item
-      setTimeout(() => {
-        this.processLoadedItem();
-      }, 100);
-    }
+  // Session devkits and films
+  sessionDevKits: DevKitWithFilms[] = [];
+  unassignedFilms: FilmDto[] = [];
+  availableDevKits: DevKitDto[] = [];
+  availableUnassignedFilms: FilmDto[] = [];
+
+  // UI state
+  hoveredDevKit: string | null = null;
+  isViewMode = false;
+  isEditMode = false;
+  showAddDevKitModal = false;
+  showAddFilmModal = false;
+  showSessionImageModal = false;
+  showExpiredDevKits = false;
+  selectedDevKitsForModal: string[] = [];
+  selectedFilmsForModal: string[] = [];
+  successMessage: string | null = null;
+
+  // Expose item from base class for template
+  get currentItem(): SessionDto {
+    return this.form.value as SessionDto;
   }
 
-  // Component-specific properties
-  participantOptions = Object.values(UsernameType);
-  selectedParticipants: string[] = [];
-  successMessage: string | null = null;
-  imagePreview: string | null = null;
-  override isDeleteModalOpen: boolean = false;
-  
-  // Available items for selection
-  availableDevKits: DevKitDto[] = [];
-  availableFilms: FilmDto[] = [];
-  selectedDevKits: string[] = [];
-  selectedFilms: string[] = [];
-  
-  // Filters
-  showExpiredDevKits = false;
-
-  // Computed properties to match template expectations
-  get formGroup(): FormGroup { return this.form; }
-  get isEditMode(): boolean { return !this.isInsert; }
+  override ngOnInit(): void {
+    // Determine view/edit mode
+    this.isEditMode = !this.isInsert && this.route.snapshot.queryParams['edit'] === 'true';
+    this.isViewMode = !this.isInsert && !this.isEditMode;
+    
+    // Call parent ngOnInit which loads the item (and our getItemObservable handles devkits/films)
+    super.ngOnInit();
+    
+    // For new sessions, initialize empty and load available items
+    if (this.isInsert) {
+      this.initializeEmptySession();
+      this.loadAvailableItems();
+    }
+  }
 
   protected createForm(): FormGroup {
     return this.fb.group({
       sessionDate: [DateHelper.getTodayForInput(), Validators.required],
       location: ['', Validators.required],
-      participants: [[], Validators.required],
+      participants: [[]],
       imageUrl: [''],
       imageBase64: [''],
       description: [''],
@@ -69,12 +79,12 @@ export class UpsertSessionComponent extends BaseUpsertComponent<SessionDto> impl
   }
 
   protected getCreateObservable(item: SessionDto): Observable<any> {
-    const processedItem = this.processFormData(item);
+    const processedItem = this.processFormData();
     return this.sessionService.add(processedItem);
   }
 
   protected getUpdateObservable(rowKey: string, item: SessionDto): Observable<any> {
-    const processedItem = this.processFormData(item);
+    const processedItem = this.processFormData();
     return this.sessionService.update(rowKey, processedItem);
   }
 
@@ -83,7 +93,49 @@ export class UpsertSessionComponent extends BaseUpsertComponent<SessionDto> impl
   }
 
   protected getItemObservable(rowKey: string): Observable<SessionDto> {
-    return this.sessionService.getById(rowKey);
+    this.loading = true;
+    return new Observable(observer => {
+      this.sessionService.getById(rowKey).subscribe({
+        next: (session) => {
+          // After getting the session, load devkits and films
+          forkJoin({
+            allDevKits: this.devKitService.getAll(),
+            allFilms: this.filmService.getAll()
+          }).subscribe({
+            next: (data) => {
+              // Initialize devkits and films
+              const usedDevKitsRowKeys = session.usedSubstancesList || [];
+              const developedFilmsRowKeys = session.developedFilmsList || [];
+
+              this.sessionDevKits = usedDevKitsRowKeys.map((devKitRowKey: string) => {
+                const devKit = data.allDevKits.find(dk => dk.rowKey === devKitRowKey);
+                return {
+                  devKit: devKit!,
+                  assignedFilms: []
+                };
+              }).filter((item: DevKitWithFilms) => item.devKit);
+
+              this.unassignedFilms = data.allFilms.filter(f => 
+                developedFilmsRowKeys.includes(f.rowKey)
+              );
+
+              this.updateAvailableItems(data.allDevKits, data.allFilms);
+              this.loading = false;
+              observer.next(session);
+              observer.complete();
+            },
+            error: (err) => {
+              this.loading = false;
+              observer.error(err);
+            }
+          });
+        },
+        error: (err) => {
+          this.loading = false;
+          observer.error(err);
+        }
+      });
+    });
   }
 
   protected getBaseRoute(): string {
@@ -95,32 +147,39 @@ export class UpsertSessionComponent extends BaseUpsertComponent<SessionDto> impl
   }
 
   // Process form data before submission
-  private processFormData(formValue: any): SessionDto {
+  private processFormData(): SessionDto {
+    const formValue = this.form.value;
     return {
       ...formValue,
-      participants: JSON.stringify(this.selectedParticipants),
-      usedSubstances: JSON.stringify(this.selectedDevKits),
-      developedFilms: JSON.stringify(this.selectedFilms)
+      usedSubstances: JSON.stringify(this.sessionDevKits.map(sdk => sdk.devKit.rowKey)),
+      developedFilms: JSON.stringify([
+        ...this.unassignedFilms.map(f => f.rowKey),
+        ...this.sessionDevKits.flatMap(sdk => sdk.assignedFilms.map(f => f.rowKey))
+      ]),
+      usedSubstancesList: this.sessionDevKits.map(sdk => sdk.devKit.rowKey),
+      developedFilmsList: [
+        ...this.unassignedFilms.map(f => f.rowKey),
+        ...this.sessionDevKits.flatMap(sdk => sdk.assignedFilms.map(f => f.rowKey))
+      ]
     };
   }
 
-  // Override submit to handle custom redirection
+  // Override submit to handle custom flow
   override submit(): void {
     if (this.form.invalid) return;
 
-    const formData = this.processFormData(this.form.value);
     this.loading = true;
     this.errorMessage = null;
 
     const operation$ = this.isInsert 
-      ? this.getCreateObservable(formData)
-      : this.getUpdateObservable(this.rowKey!, formData);
+      ? this.getCreateObservable(this.form.value)
+      : this.getUpdateObservable(this.rowKey!, this.form.value);
 
     operation$.subscribe({
       next: (response: any) => {
         this.loading = false;
         if (this.isInsert) {
-          // For new sessions, redirect to the session management view
+          // For new sessions, redirect to view mode
           const createdSession = response as SessionDto;
           if (createdSession && createdSession.rowKey) {
             this.router.navigate(['/sessions', createdSession.rowKey]);
@@ -128,7 +187,7 @@ export class UpsertSessionComponent extends BaseUpsertComponent<SessionDto> impl
             this.router.navigate(['/sessions']);
           }
         } else {
-          // For updates, stay on the same page
+          // For updates, show success message
           this.successMessage = 'Session updated successfully!';
           setTimeout(() => this.successMessage = null, 3000);
         }
@@ -140,25 +199,22 @@ export class UpsertSessionComponent extends BaseUpsertComponent<SessionDto> impl
     });
   }
 
-  // Handle loaded item for editing
-  private processLoadedItem(): void {
-    // Get current form values to parse JSON fields
-    const formValue = this.form.value;
-    
-    try {
-      this.selectedParticipants = JSON.parse(formValue.participants || '[]');
-      this.selectedDevKits = JSON.parse(formValue.usedSubstances || '[]');
-      this.selectedFilms = JSON.parse(formValue.developedFilms || '[]');
-      
-      if (formValue.imageUrl) {
-        this.imagePreview = formValue.imageUrl;
-      }
-    } catch (error) {
-      console.error('Error parsing session data:', error);
-      this.selectedParticipants = [];
-      this.selectedDevKits = [];
-      this.selectedFilms = [];
-    }
+  private initializeEmptySession(): void {
+    this.sessionDevKits = [];
+    this.unassignedFilms = [];
+  }
+
+  private updateAvailableItems(allDevKits: DevKitDto[], allFilms: FilmDto[]): void {
+    const usedDevKitRowKeys = this.sessionDevKits.map(sdk => sdk.devKit.rowKey);
+    const sessionFilmRowKeys = [
+      ...this.unassignedFilms.map(f => f.rowKey),
+      ...this.sessionDevKits.flatMap(sdk => sdk.assignedFilms.map(f => f.rowKey))
+    ];
+
+    this.availableDevKits = allDevKits.filter(dk => !usedDevKitRowKeys.includes(dk.rowKey));
+    this.availableUnassignedFilms = allFilms.filter(f => 
+      !sessionFilmRowKeys.includes(f.rowKey)
+    );
   }
 
   private loadAvailableItems(): void {
@@ -167,8 +223,10 @@ export class UpsertSessionComponent extends BaseUpsertComponent<SessionDto> impl
       films: this.filmService.getAll()
     }).subscribe({
       next: (data) => {
-        this.availableDevKits = data.devKits;
-        this.availableFilms = data.films.filter(f => !f.developed); // Only show undeveloped films
+        if (this.isInsert) {
+          this.availableDevKits = data.devKits;
+          this.availableUnassignedFilms = data.films;
+        }
       },
       error: (err) => {
         console.error('Error loading available items:', err);
@@ -176,128 +234,203 @@ export class UpsertSessionComponent extends BaseUpsertComponent<SessionDto> impl
     });
   }
 
-  get filteredDevKits(): DevKitDto[] {
+  // Drag and drop handlers
+  onFilmDrop(event: CdkDragDrop<any[]>): void {
+    if (!event.isPointerOverContainer) {
+      return;
+    }
+    
+    if (event.previousContainer === event.container) {
+      moveItemInArray(event.container.data, event.previousIndex, event.currentIndex);
+    } else {
+      transferArrayItem(
+        event.previousContainer.data,
+        event.container.data,
+        event.previousIndex,
+        event.container.data.length
+      );
+    }
+  }
+
+  // DevKit management
+  addDevKitToSession(devKit: DevKitDto): void {
+    const existing = this.sessionDevKits.find(sdk => sdk.devKit.rowKey === devKit.rowKey);
+    if (!existing) {
+      this.sessionDevKits.push({
+        devKit: devKit,
+        assignedFilms: []
+      });
+      this.availableDevKits = this.availableDevKits.filter(dk => dk.rowKey !== devKit.rowKey);
+    }
+  }
+
+  removeDevKitFromSession(devKitRowKey: string): void {
+    const devKitIndex = this.sessionDevKits.findIndex(sdk => sdk.devKit.rowKey === devKitRowKey);
+    if (devKitIndex >= 0) {
+      const devKitWithFilms = this.sessionDevKits[devKitIndex];
+      this.unassignedFilms.push(...devKitWithFilms.assignedFilms);
+      this.availableDevKits.push(devKitWithFilms.devKit);
+      this.sessionDevKits.splice(devKitIndex, 1);
+    }
+  }
+
+  // Film management
+  addFilmToSession(film: FilmDto): void {
+    if (!this.unassignedFilms.find(f => f.rowKey === film.rowKey)) {
+      this.unassignedFilms.push(film);
+      this.availableUnassignedFilms = this.availableUnassignedFilms.filter(f => f.rowKey !== film.rowKey);
+    }
+  }
+
+  removeFilmFromSession(filmRowKey: string): void {
+    const filmIndex = this.unassignedFilms.findIndex(f => f.rowKey === filmRowKey);
+    if (filmIndex >= 0) {
+      const removedFilm = this.unassignedFilms.splice(filmIndex, 1)[0];
+      this.availableUnassignedFilms.push(removedFilm);
+      return;
+    }
+    
+    for (const devKitWithFilms of this.sessionDevKits) {
+      const assignedIndex = devKitWithFilms.assignedFilms.findIndex(f => f.rowKey === filmRowKey);
+      if (assignedIndex >= 0) {
+        const removedFilm = devKitWithFilms.assignedFilms.splice(assignedIndex, 1)[0];
+        this.availableUnassignedFilms.push(removedFilm);
+        break;
+      }
+    }
+  }
+
+  // Hover effects
+  onDevKitHover(devKitRowKey: string, event: MouseEvent): void {
+    this.hoveredDevKit = devKitRowKey;
+    const button = event.target as HTMLElement;
+    const rect = button.getBoundingClientRect();
+    
+    setTimeout(() => {
+      const tooltip = document.querySelector('.devkit-image-tooltip') as HTMLElement;
+      if (tooltip) {
+        const tooltipWidth = 190;
+        const rightPosition = rect.right + 10 + tooltipWidth;
+        
+        if (rightPosition > window.innerWidth) {
+          tooltip.style.left = `${rect.left - tooltipWidth - 10}px`;
+        } else {
+          tooltip.style.left = `${rect.right + 10}px`;
+        }
+        tooltip.style.top = `${rect.top}px`;
+      }
+    }, 0);
+  }
+
+  onDevKitLeave(): void {
+    this.hoveredDevKit = null;
+  }
+
+  // Toggle between view and edit mode
+  toggleEditMode(): void {
+    this.isEditMode = !this.isEditMode;
+    this.isViewMode = !this.isEditMode;
+    
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { edit: this.isEditMode ? 'true' : null },
+      queryParamsHandling: 'merge'
+    });
+    
+    // Reload data by calling getItemObservable
+    if (this.rowKey) {
+      this.getItemObservable(this.rowKey).subscribe({
+        next: (session) => {
+          this.form.patchValue(session);
+        }
+      });
+    }
+  }
+
+  // Utility methods
+  getConnectedLists(): string[] {
+    return [
+      'unassigned-films',
+      ...this.sessionDevKits.map(sdk => `devkit-${sdk.devKit.rowKey}`)
+    ];
+  }
+
+  get filteredAvailableDevKits(): DevKitDto[] {
     return this.showExpiredDevKits 
       ? this.availableDevKits 
       : this.availableDevKits.filter(dk => !dk.expired);
   }
 
-  onParticipantChange(participant: string, event: Event): void {
-    const target = event.target as HTMLInputElement;
-    const checked = target.checked;
-    
-    if (checked) {
-      if (!this.selectedParticipants.includes(participant)) {
-        this.selectedParticipants.push(participant);
+  toggleDevKitSelection(devKitRowKey: string): void {
+    const index = this.selectedDevKitsForModal.indexOf(devKitRowKey);
+    if (index >= 0) {
+      this.selectedDevKitsForModal.splice(index, 1);
+    } else {
+      this.selectedDevKitsForModal.push(devKitRowKey);
+    }
+  }
+
+  toggleFilmSelection(filmRowKey: string): void {
+    const index = this.selectedFilmsForModal.indexOf(filmRowKey);
+    if (index >= 0) {
+      this.selectedFilmsForModal.splice(index, 1);
+    } else {
+      this.selectedFilmsForModal.push(filmRowKey);
+    }
+  }
+
+  isDevKitSelectedForModal(devKitRowKey: string): boolean {
+    return this.selectedDevKitsForModal.includes(devKitRowKey);
+  }
+
+  isFilmSelectedForModal(filmRowKey: string): boolean {
+    return this.selectedFilmsForModal.includes(filmRowKey);
+  }
+
+  addSelectedDevKits(): void {
+    this.selectedDevKitsForModal.forEach(rowKey => {
+      const devKit = this.availableDevKits.find(dk => dk.rowKey === rowKey);
+      if (devKit) {
+        this.addDevKitToSession(devKit);
       }
-    } else {
-      this.selectedParticipants = this.selectedParticipants.filter(p => p !== participant);
-    }
-    
-    // Update the form control to trigger validation
-    this.form.patchValue({
-      participants: this.selectedParticipants
     });
+    this.selectedDevKitsForModal = [];
+    this.showAddDevKitModal = false;
   }
 
-  onDevKitChange(devKitRowKey: string, event: Event): void {
-    const target = event.target as HTMLInputElement;
-    const checked = target.checked;
-    
-    if (checked) {
-      if (!this.selectedDevKits.includes(devKitRowKey)) {
-        this.selectedDevKits.push(devKitRowKey);
+  addSelectedFilms(): void {
+    this.selectedFilmsForModal.forEach(rowKey => {
+      const film = this.availableUnassignedFilms.find(f => f.rowKey === rowKey);
+      if (film) {
+        this.addFilmToSession(film);
       }
-    } else {
-      this.selectedDevKits = this.selectedDevKits.filter(dk => dk !== devKitRowKey);
-    }
-  }
-
-  onFilmChange(filmRowKey: string, event: Event): void {
-    const target = event.target as HTMLInputElement;
-    const checked = target.checked;
-    
-    if (checked) {
-      if (!this.selectedFilms.includes(filmRowKey)) {
-        this.selectedFilms.push(filmRowKey);
-      }
-    } else {
-      this.selectedFilms = this.selectedFilms.filter(f => f !== filmRowKey);
-    }
-  }
-
-  toggleDevKit(devKitRowKey: string): void {
-    if (this.selectedDevKits.includes(devKitRowKey)) {
-      this.selectedDevKits = this.selectedDevKits.filter(dk => dk !== devKitRowKey);
-    } else {
-      this.selectedDevKits.push(devKitRowKey);
-    }
-    
-    // Update the form control
-    this.form.patchValue({
-      usedSubstances: this.selectedDevKits
     });
+    this.selectedFilmsForModal = [];
+    this.showAddFilmModal = false;
   }
 
-  toggleFilm(filmRowKey: string): void {
-    if (this.selectedFilms.includes(filmRowKey)) {
-      this.selectedFilms = this.selectedFilms.filter(f => f !== filmRowKey);
-    } else {
-      this.selectedFilms.push(filmRowKey);
-    }
-    
-    // Update the form control
-    this.form.patchValue({
-      developedFilms: this.selectedFilms
-    });
+  closeAddDevKitModal(): void {
+    this.selectedDevKitsForModal = [];
+    this.showAddDevKitModal = false;
   }
 
-  isParticipantSelected(participant: string): boolean {
-    return this.selectedParticipants.includes(participant);
+  closeAddFilmModal(): void {
+    this.selectedFilmsForModal = [];
+    this.showAddFilmModal = false;
   }
 
-  isDevKitSelected(devKitRowKey: string): boolean {
-    return this.selectedDevKits.includes(devKitRowKey);
-  }
-
-  isFilmSelected(filmRowKey: string): boolean {
-    return this.selectedFilms.includes(filmRowKey);
-  }
-
-  // Handle file selection with proper typing
-  onFileSelected(event: Event): void {
-    this.onImageSelected(event);
-    
-    // Also set image preview
+  onSessionImageSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
     if (input.files && input.files.length > 0) {
       const file = input.files[0];
       const reader = new FileReader();
       reader.readAsDataURL(file);
       reader.onload = () => {
-        this.imagePreview = reader.result as string;
+        this.form.patchValue({
+          imageUrl: reader.result as string,
+          imageBase64: reader.result as string
+        });
       };
-    }
-  }
-
-  // Add cancel method
-  onCancel(): void {
-    this.router.navigate([this.getBaseRoute()]);
-  }
-
-  // Add delete method
-  override onDelete(): void {
-    if (this.rowKey && confirm('Are you sure you want to delete this session?')) {
-      this.loading = true;
-      this.getDeleteObservable(this.rowKey).subscribe({
-        next: () => {
-          this.router.navigate([this.getBaseRoute()]);
-        },
-        error: (err) => {
-          this.loading = false;
-          this.errorMessage = `Error deleting session: ${err.message || 'Unknown error'}`;
-        }
-      });
     }
   }
 }
