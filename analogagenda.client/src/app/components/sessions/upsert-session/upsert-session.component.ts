@@ -44,6 +44,10 @@ export class UpsertSessionComponent extends BaseUpsertComponent<SessionDto> impl
   selectedDevKitsForModal: string[] = [];
   selectedFilmsForModal: string[] = [];
   successMessage: string | null = null;
+  
+  // Participants management
+  participants: string[] = [];
+  newParticipant: string = '';
 
   // Expose item from base class for template
   get currentItem(): SessionDto {
@@ -106,20 +110,33 @@ export class UpsertSessionComponent extends BaseUpsertComponent<SessionDto> impl
               // Initialize devkits and films
               const usedDevKitsRowKeys = session.usedSubstancesList || [];
               const developedFilmsRowKeys = session.developedFilmsList || [];
+              const filmToDevKitMapping = session.filmToDevKitMapping || {};
 
+              // Initialize devkits with their assigned films based on the mapping
               this.sessionDevKits = usedDevKitsRowKeys.map((devKitRowKey: string) => {
                 const devKit = data.allDevKits.find(dk => dk.rowKey === devKitRowKey);
+                const filmRowKeys = filmToDevKitMapping[devKitRowKey] || [];
+                const assignedFilms = filmRowKeys
+                  .map(filmRowKey => data.allFilms.find(f => f.rowKey === filmRowKey))
+                  .filter(f => f !== undefined) as FilmDto[];
+                
                 return {
                   devKit: devKit!,
-                  assignedFilms: []
+                  assignedFilms: assignedFilms
                 };
               }).filter((item: DevKitWithFilms) => item.devKit);
 
+              // Unassigned films are those in the session but not in any devkit
+              const assignedFilmRowKeys = Object.values(filmToDevKitMapping).flat();
               this.unassignedFilms = data.allFilms.filter(f => 
-                developedFilmsRowKeys.includes(f.rowKey)
+                developedFilmsRowKeys.includes(f.rowKey) && !assignedFilmRowKeys.includes(f.rowKey)
               );
 
               this.updateAvailableItems(data.allDevKits, data.allFilms);
+              
+              // Load participants
+              this.participants = session.participantsList || [];
+              
               this.loading = false;
               observer.next(session);
               observer.complete();
@@ -149,19 +166,31 @@ export class UpsertSessionComponent extends BaseUpsertComponent<SessionDto> impl
   // Process form data before submission
   private processFormData(): SessionDto {
     const formValue = this.form.value;
-    return {
-      ...formValue,
+    
+    // Build filmToDevKitMapping
+    const filmToDevKitMapping: { [devKitRowKey: string]: string[] } = {};
+    for (const devKitWithFilms of this.sessionDevKits) {
+      filmToDevKitMapping[devKitWithFilms.devKit.rowKey] = devKitWithFilms.assignedFilms.map(f => f.rowKey);
+    }
+    
+    // Build the DTO with only the properties the backend expects
+    const dto: any = {
+      rowKey: formValue.rowKey || '',
+      sessionDate: formValue.sessionDate,
+      location: formValue.location,
+      participants: JSON.stringify(this.participants),
+      description: formValue.description || '',
       usedSubstances: JSON.stringify(this.sessionDevKits.map(sdk => sdk.devKit.rowKey)),
       developedFilms: JSON.stringify([
         ...this.unassignedFilms.map(f => f.rowKey),
         ...this.sessionDevKits.flatMap(sdk => sdk.assignedFilms.map(f => f.rowKey))
       ]),
-      usedSubstancesList: this.sessionDevKits.map(sdk => sdk.devKit.rowKey),
-      developedFilmsList: [
-        ...this.unassignedFilms.map(f => f.rowKey),
-        ...this.sessionDevKits.flatMap(sdk => sdk.assignedFilms.map(f => f.rowKey))
-      ]
+      imageUrl: formValue.imageUrl || '',
+      imageBase64: formValue.imageBase64 || '',
+      filmToDevKitMapping: filmToDevKitMapping
     };
+    
+    return dto as SessionDto;
   }
 
   // Override submit to handle custom flow
@@ -250,6 +279,9 @@ export class UpsertSessionComponent extends BaseUpsertComponent<SessionDto> impl
         event.container.data.length
       );
     }
+    
+    // Mark form as dirty when films are moved
+    this.form.markAsDirty();
   }
 
   // DevKit management
@@ -261,6 +293,7 @@ export class UpsertSessionComponent extends BaseUpsertComponent<SessionDto> impl
         assignedFilms: []
       });
       this.availableDevKits = this.availableDevKits.filter(dk => dk.rowKey !== devKit.rowKey);
+      this.form.markAsDirty();
     }
   }
 
@@ -271,6 +304,7 @@ export class UpsertSessionComponent extends BaseUpsertComponent<SessionDto> impl
       this.unassignedFilms.push(...devKitWithFilms.assignedFilms);
       this.availableDevKits.push(devKitWithFilms.devKit);
       this.sessionDevKits.splice(devKitIndex, 1);
+      this.form.markAsDirty();
     }
   }
 
@@ -279,6 +313,7 @@ export class UpsertSessionComponent extends BaseUpsertComponent<SessionDto> impl
     if (!this.unassignedFilms.find(f => f.rowKey === film.rowKey)) {
       this.unassignedFilms.push(film);
       this.availableUnassignedFilms = this.availableUnassignedFilms.filter(f => f.rowKey !== film.rowKey);
+      this.form.markAsDirty();
     }
   }
 
@@ -287,6 +322,7 @@ export class UpsertSessionComponent extends BaseUpsertComponent<SessionDto> impl
     if (filmIndex >= 0) {
       const removedFilm = this.unassignedFilms.splice(filmIndex, 1)[0];
       this.availableUnassignedFilms.push(removedFilm);
+      this.form.markAsDirty();
       return;
     }
     
@@ -295,6 +331,7 @@ export class UpsertSessionComponent extends BaseUpsertComponent<SessionDto> impl
       if (assignedIndex >= 0) {
         const removedFilm = devKitWithFilms.assignedFilms.splice(assignedIndex, 1)[0];
         this.availableUnassignedFilms.push(removedFilm);
+        this.form.markAsDirty();
         break;
       }
     }
@@ -432,5 +469,29 @@ export class UpsertSessionComponent extends BaseUpsertComponent<SessionDto> impl
         });
       };
     }
+  }
+
+  // Participants management
+  addParticipant(): void {
+    const participant = this.newParticipant.trim();
+    if (participant && !this.participants.includes(participant)) {
+      this.participants.push(participant);
+      this.newParticipant = '';
+      this.form.patchValue({ participants: this.participants });
+      this.form.markAsDirty();
+    }
+  }
+
+  removeParticipant(participant: string): void {
+    this.participants = this.participants.filter(p => p !== participant);
+    this.form.patchValue({ participants: this.participants });
+    this.form.markAsDirty();
+  }
+
+  // Helper method to calculate total films count for delete modal
+  getTotalFilmsCount(): number {
+    const unassignedCount = this.unassignedFilms.length;
+    const assignedCount = this.sessionDevKits.reduce((sum, sdk) => sum + sdk.assignedFilms.length, 0);
+    return unassignedCount + assignedCount;
   }
 }

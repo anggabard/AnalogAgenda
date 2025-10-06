@@ -13,4 +13,7 @@ export interface SessionDto extends HasImageDto {
   participantsList: string[];
   usedSubstancesList: string[];
   developedFilmsList: string[];
+  
+  // Dictionary mapping DevKit RowKey to list of Film RowKeys developed with that DevKit
+  filmToDevKitMapping?: { [devKitRowKey: string]: string[] };
 }

@@ -28,6 +28,10 @@ public class FilmEntity : BaseEntity, IImageEntity
 
     public bool Developed { get; set; }
 
+    public string? DevelopedInSessionRowKey { get; set; }
+
+    public string? DevelopedWithDevKitRowKey { get; set; }
+
     protected override int RowKeyLenght() => 12;
 
     public FilmDto ToDTO(string accountName)
@@ -44,7 +48,9 @@ public class FilmEntity : BaseEntity, IImageEntity
             PurchasedOn = DateOnly.FromDateTime(PurchasedOn),
             ImageUrl = ImageId == Guid.Empty ? string.Empty : BlobUrlHelper.GetUrlFromImageImageInfo(accountName, ContainerName.films.ToString(), ImageId),
             Description = Description,
-            Developed = Developed
+            Developed = Developed,
+            DevelopedInSessionRowKey = DevelopedInSessionRowKey,
+            DevelopedWithDevKitRowKey = DevelopedWithDevKitRowKey
         };
     }
 }

@@ -27,6 +27,10 @@ public class FilmDto : HasImage
 
     public bool Developed { get; set; }
 
+    public string? DevelopedInSessionRowKey { get; set; }
+
+    public string? DevelopedWithDevKitRowKey { get; set; }
+
     public FilmEntity ToEntity()
     {
         return new FilmEntity
@@ -41,7 +45,9 @@ public class FilmDto : HasImage
             PurchasedOn = new DateTime(PurchasedOn, TimeOnly.MinValue, DateTimeKind.Utc),
             ImageId = string.IsNullOrEmpty(ImageUrl) ? Guid.Empty : BlobUrlHelper.GetImageInfoFromUrl(ImageUrl).ImageId,
             Description = Description,
-            Developed = Developed
+            Developed = Developed,
+            DevelopedInSessionRowKey = DevelopedInSessionRowKey,
+            DevelopedWithDevKitRowKey = DevelopedWithDevKitRowKey
         };
     }
 }

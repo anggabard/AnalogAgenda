@@ -12,4 +12,6 @@ export interface FilmDto extends HasImageDto{
   purchasedOn: string;
   description: string;
   developed: boolean;
+  developedInSessionRowKey?: string | null;
+  developedWithDevKitRowKey?: string | null;
 }

@@ -19,7 +19,7 @@ public class SessionController(Storage storageCfg, ITableService tablesService, 
 
     protected override TableClient GetTable() => sessionsTable;
     protected override BlobContainerClient GetBlobContainer() => sessionsContainer;
-    protected override Guid GetDefaultImageId() => Constants.DefaultSessionImageId; // Reuse film default image for now
+    protected override Guid GetDefaultImageId() => Constants.DefaultSessionImageId;
     protected override SessionEntity DtoToEntity(SessionDto dto) => dto.ToEntity();
     protected override SessionDto EntityToDto(SessionEntity entity) => entity.ToDTO(storageCfg.AccountName);
 
@@ -34,6 +34,8 @@ public class SessionController(Storage storageCfg, ITableService tablesService, 
             var createdSession = createdResult.Value as SessionDto;
             if (createdSession != null)
             {
+                // Copy the filmToDevKitMapping from the original DTO
+                createdSession.FilmToDevKitMapping = dto.FilmToDevKitMapping;
                 await ProcessSessionBusinessLogic(createdSession, null);
             }
         }
@@ -55,7 +57,41 @@ public class SessionController(Storage storageCfg, ITableService tablesService, 
     [HttpGet("{rowKey}")]
     public async Task<IActionResult> GetSessionByRowKey(string rowKey)
     {
-        return await GetEntityByRowKeyAsync(rowKey);
+        var sessionEntity = await tablesService.GetTableEntryIfExistsAsync<SessionEntity>(rowKey);
+        if (sessionEntity == null)
+            return NotFound($"No Session found with RowKey: {rowKey}");
+
+        var sessionDto = EntityToDto(sessionEntity);
+        
+        // Populate FilmToDevKitMapping based on films' DevelopedWithDevKitRowKey
+        await PopulateFilmToDevKitMapping(sessionDto);
+        
+        return Ok(sessionDto);
+    }
+    
+    private async Task PopulateFilmToDevKitMapping(SessionDto sessionDto)
+    {
+        sessionDto.FilmToDevKitMapping = new Dictionary<string, List<string>>();
+        
+        var developedFilms = sessionDto.DevelopedFilmsList ?? [];
+        if (developedFilms.Count == 0)
+            return;
+        
+        // Get all films for this session
+        var filmsTable = tablesService.GetTable(TableName.Films);
+        foreach (var filmRowKey in developedFilms)
+        {
+            var film = await tablesService.GetTableEntryIfExistsAsync<FilmEntity>(filmRowKey);
+            if (film != null && !string.IsNullOrEmpty(film.DevelopedWithDevKitRowKey))
+            {
+                // Add film to the devkit's list
+                if (!sessionDto.FilmToDevKitMapping.ContainsKey(film.DevelopedWithDevKitRowKey))
+                {
+                    sessionDto.FilmToDevKitMapping[film.DevelopedWithDevKitRowKey] = new List<string>();
+                }
+                sessionDto.FilmToDevKitMapping[film.DevelopedWithDevKitRowKey].Add(filmRowKey);
+            }
+        }
     }
 
     [HttpPut("{rowKey}")]
@@ -68,7 +104,7 @@ public class SessionController(Storage storageCfg, ITableService tablesService, 
         var result = await UpdateEntityWithImageAsync(rowKey, updateDto, dto => dto.ImageBase64);
         
         // If update was successful, process the business logic
-        if (result is OkResult)
+        if (result is NoContentResult)
         {
             await ProcessSessionBusinessLogic(updateDto, originalDto);
         }
@@ -96,76 +132,142 @@ public class SessionController(Storage storageCfg, ITableService tablesService, 
     
     /// <summary>
     /// Handles the business logic when a session is created or updated:
-    /// - Mark films as developed when assigned to devkits
+    /// - Mark films as developed and set their session/devkit references
     /// - Increment devkit FilmsDeveloped count
     /// </summary>
     private async Task ProcessSessionBusinessLogic(SessionDto newSession, SessionDto? originalSession)
     {
         try
         {
+            var filmsTable = tablesService.GetTable(TableName.Films);
+            var devKitsTable = tablesService.GetTable(TableName.DevKits);
+            
             var newDevelopedFilms = newSession.DevelopedFilmsList ?? [];
             var originalDevelopedFilms = originalSession?.DevelopedFilmsList ?? [];
-            var newUsedSubstances = newSession.UsedSubstancesList ?? [];
-            var originalUsedSubstances = originalSession?.UsedSubstancesList ?? [];
             
             // Films that were added in this update
             var addedFilms = newDevelopedFilms.Except(originalDevelopedFilms).ToList();
             // Films that were removed in this update
             var removedFilms = originalDevelopedFilms.Except(newDevelopedFilms).ToList();
             
-            // Mark newly added films as developed
-            var filmsTable = tablesService.GetTable(TableName.Films);
+            // Process newly added films
             foreach (var filmRowKey in addedFilms)
             {
                 var film = await tablesService.GetTableEntryIfExistsAsync<FilmEntity>(filmRowKey);
-                if (film != null && !film.Developed)
+                if (film != null)
                 {
+                    // Find which devkit this film belongs to
+                    string? devKitRowKey = null;
+                    foreach (var mapping in newSession.FilmToDevKitMapping)
+                    {
+                        if (mapping.Value.Contains(filmRowKey))
+                        {
+                            devKitRowKey = mapping.Key;
+                            break;
+                        }
+                    }
+                    
+                    // Update film properties
                     film.Developed = true;
+                    film.DevelopedInSessionRowKey = newSession.RowKey;
+                    film.DevelopedWithDevKitRowKey = devKitRowKey; // Can be null if film is unassigned
                     film.UpdatedDate = DateTime.UtcNow;
                     await filmsTable.UpdateEntityAsync(film, film.ETag, TableUpdateMode.Replace);
+                    
+                    // Increment devkit count if film is assigned to a devkit
+                    if (!string.IsNullOrEmpty(devKitRowKey))
+                    {
+                        var devKit = await tablesService.GetTableEntryIfExistsAsync<DevKitEntity>(devKitRowKey);
+                        if (devKit != null)
+                        {
+                            devKit.FilmsDeveloped++;
+                            devKit.UpdatedDate = DateTime.UtcNow;
+                            await devKitsTable.UpdateEntityAsync(devKit, devKit.ETag, TableUpdateMode.Replace);
+                        }
+                    }
                 }
             }
             
-            // Mark removed films as not developed (revert)
+            // Process removed films (revert their state)
             foreach (var filmRowKey in removedFilms)
             {
                 var film = await tablesService.GetTableEntryIfExistsAsync<FilmEntity>(filmRowKey);
                 if (film != null && film.Developed)
                 {
+                    // Decrement devkit count if film was assigned to one
+                    if (!string.IsNullOrEmpty(film.DevelopedWithDevKitRowKey))
+                    {
+                        var devKit = await tablesService.GetTableEntryIfExistsAsync<DevKitEntity>(film.DevelopedWithDevKitRowKey);
+                        if (devKit != null)
+                        {
+                            devKit.FilmsDeveloped = Math.Max(0, devKit.FilmsDeveloped - 1);
+                            devKit.UpdatedDate = DateTime.UtcNow;
+                            await devKitsTable.UpdateEntityAsync(devKit, devKit.ETag, TableUpdateMode.Replace);
+                        }
+                    }
+                    
+                    // Clear film references
                     film.Developed = false;
+                    film.DevelopedInSessionRowKey = null;
+                    film.DevelopedWithDevKitRowKey = null;
                     film.UpdatedDate = DateTime.UtcNow;
                     await filmsTable.UpdateEntityAsync(film, film.ETag, TableUpdateMode.Replace);
                 }
             }
             
-            // Update devkit film counts for newly used substances
-            var addedSubstances = newUsedSubstances.Except(originalUsedSubstances).ToList();
-            var removedSubstances = originalUsedSubstances.Except(newUsedSubstances).ToList();
-            
-            var devKitsTable = tablesService.GetTable(TableName.DevKits);
-            foreach (var devKitRowKey in addedSubstances)
+            // Handle films that changed devkits (in updates only)
+            if (originalSession != null)
             {
-                var devKit = await tablesService.GetTableEntryIfExistsAsync<DevKitEntity>(devKitRowKey);
-                if (devKit != null)
+                var unchangedFilms = newDevelopedFilms.Intersect(originalDevelopedFilms).ToList();
+                foreach (var filmRowKey in unchangedFilms)
                 {
-                    // Count how many films from this session were developed with this devkit
-                    var filmsForThisDevKit = newDevelopedFilms.Count; // In this simplified version, all films in session are counted
-                    devKit.FilmsDeveloped += filmsForThisDevKit;
-                    devKit.UpdatedDate = DateTime.UtcNow;
-                    await devKitsTable.UpdateEntityAsync(devKit, devKit.ETag, TableUpdateMode.Replace);
-                }
-            }
-            
-            // Revert devkit film counts for removed substances
-            foreach (var devKitRowKey in removedSubstances)
-            {
-                var devKit = await tablesService.GetTableEntryIfExistsAsync<DevKitEntity>(devKitRowKey);
-                if (devKit != null)
-                {
-                    var filmsForThisDevKit = originalDevelopedFilms.Count;
-                    devKit.FilmsDeveloped = Math.Max(0, devKit.FilmsDeveloped - filmsForThisDevKit);
-                    devKit.UpdatedDate = DateTime.UtcNow;
-                    await devKitsTable.UpdateEntityAsync(devKit, devKit.ETag, TableUpdateMode.Replace);
+                    var film = await tablesService.GetTableEntryIfExistsAsync<FilmEntity>(filmRowKey);
+                    if (film != null)
+                    {
+                        // Find new devkit for this film
+                        string? newDevKitRowKey = null;
+                        foreach (var mapping in newSession.FilmToDevKitMapping)
+                        {
+                            if (mapping.Value.Contains(filmRowKey))
+                            {
+                                newDevKitRowKey = mapping.Key;
+                                break;
+                            }
+                        }
+                        
+                        // Check if devkit changed
+                        if (film.DevelopedWithDevKitRowKey != newDevKitRowKey)
+                        {
+                            // Decrement old devkit count
+                            if (!string.IsNullOrEmpty(film.DevelopedWithDevKitRowKey))
+                            {
+                                var oldDevKit = await tablesService.GetTableEntryIfExistsAsync<DevKitEntity>(film.DevelopedWithDevKitRowKey);
+                                if (oldDevKit != null)
+                                {
+                                    oldDevKit.FilmsDeveloped = Math.Max(0, oldDevKit.FilmsDeveloped - 1);
+                                    oldDevKit.UpdatedDate = DateTime.UtcNow;
+                                    await devKitsTable.UpdateEntityAsync(oldDevKit, oldDevKit.ETag, TableUpdateMode.Replace);
+                                }
+                            }
+                            
+                            // Increment new devkit count
+                            if (!string.IsNullOrEmpty(newDevKitRowKey))
+                            {
+                                var newDevKit = await tablesService.GetTableEntryIfExistsAsync<DevKitEntity>(newDevKitRowKey);
+                                if (newDevKit != null)
+                                {
+                                    newDevKit.FilmsDeveloped++;
+                                    newDevKit.UpdatedDate = DateTime.UtcNow;
+                                    await devKitsTable.UpdateEntityAsync(newDevKit, newDevKit.ETag, TableUpdateMode.Replace);
+                                }
+                            }
+                            
+                            // Update film's devkit reference
+                            film.DevelopedWithDevKitRowKey = newDevKitRowKey;
+                            film.UpdatedDate = DateTime.UtcNow;
+                            await filmsTable.UpdateEntityAsync(film, film.ETag, TableUpdateMode.Replace);
+                        }
+                    }
                 }
             }
         }
@@ -185,31 +287,33 @@ public class SessionController(Storage storageCfg, ITableService tablesService, 
         try
         {
             var developedFilms = deletedSession.DevelopedFilmsList ?? [];
-            var usedSubstances = deletedSession.UsedSubstancesList ?? [];
-            
-            // Mark films as not developed
             var filmsTable = tablesService.GetTable(TableName.Films);
+            var devKitsTable = tablesService.GetTable(TableName.DevKits);
+            
+            // Revert each film's state
             foreach (var filmRowKey in developedFilms)
             {
                 var film = await tablesService.GetTableEntryIfExistsAsync<FilmEntity>(filmRowKey);
                 if (film != null && film.Developed)
                 {
+                    // Decrement devkit count if film was assigned to one
+                    if (!string.IsNullOrEmpty(film.DevelopedWithDevKitRowKey))
+                    {
+                        var devKit = await tablesService.GetTableEntryIfExistsAsync<DevKitEntity>(film.DevelopedWithDevKitRowKey);
+                        if (devKit != null)
+                        {
+                            devKit.FilmsDeveloped = Math.Max(0, devKit.FilmsDeveloped - 1);
+                            devKit.UpdatedDate = DateTime.UtcNow;
+                            await devKitsTable.UpdateEntityAsync(devKit, devKit.ETag, TableUpdateMode.Replace);
+                        }
+                    }
+                    
+                    // Clear film references
                     film.Developed = false;
+                    film.DevelopedInSessionRowKey = null;
+                    film.DevelopedWithDevKitRowKey = null;
                     film.UpdatedDate = DateTime.UtcNow;
                     await filmsTable.UpdateEntityAsync(film, film.ETag, TableUpdateMode.Replace);
-                }
-            }
-            
-            // Decrement devkit film counts
-            var devKitsTable = tablesService.GetTable(TableName.DevKits);
-            foreach (var devKitRowKey in usedSubstances)
-            {
-                var devKit = await tablesService.GetTableEntryIfExistsAsync<DevKitEntity>(devKitRowKey);
-                if (devKit != null)
-                {
-                    devKit.FilmsDeveloped = Math.Max(0, devKit.FilmsDeveloped - developedFilms.Count);
-                    devKit.UpdatedDate = DateTime.UtcNow;
-                    await devKitsTable.UpdateEntityAsync(devKit, devKit.ETag, TableUpdateMode.Replace);
                 }
             }
         }

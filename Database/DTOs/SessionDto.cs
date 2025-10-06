@@ -41,12 +41,15 @@ public class SessionDto : HasImage
         set => DevelopedFilms = JsonSerializer.Serialize(value);
     }
 
+    // Dictionary mapping DevKit RowKey to list of Film RowKeys developed with that DevKit
+    public Dictionary<string, List<string>> FilmToDevKitMapping { get; set; } = new();
+
     public SessionEntity ToEntity()
     {
         return new SessionEntity
         {
             RowKey = RowKey,
-            SessionDate = new DateTime(SessionDate, TimeOnly.MinValue, DateTimeKind.Utc),
+            SessionDate = SessionDate.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc),
             Location = Location,
             Participants = Participants,
             ImageId = string.IsNullOrEmpty(ImageUrl) ? Guid.Empty : BlobUrlHelper.GetImageInfoFromUrl(ImageUrl).ImageId,
