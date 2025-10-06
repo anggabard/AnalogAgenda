@@ -35,7 +35,10 @@ describe('SessionService', () => {
       usedSubstances: '["devkit1"]',
       developedFilms: '["film1"]',
       imageUrl: '',
-      imageBase64: ''
+      imageBase64: '',
+      participantsList: ['Angel', 'Tudor'],
+      usedSubstancesList: ['devkit1'],
+      developedFilmsList: ['film1']
     };
 
     const expectedResponse: SessionDto = {
@@ -51,7 +54,7 @@ describe('SessionService', () => {
     });
 
     // Assert HTTP request
-    const req = httpMock.expectOne('api/Session');
+    const req = httpMock.expectOne(req => req.url.includes('/api/Session'));
     expect(req.request.method).toBe('POST');
     expect(req.request.body).toEqual(mockSession);
     req.flush(expectedResponse);
@@ -69,7 +72,10 @@ describe('SessionService', () => {
       usedSubstances: '["devkit1"]',
       developedFilms: '["film1"]',
       imageUrl: '',
-      imageBase64: ''
+      imageBase64: '',
+      participantsList: ['Angel'],
+      usedSubstancesList: ['devkit1'],
+      developedFilmsList: ['film1']
     };
 
     // Act
@@ -79,7 +85,7 @@ describe('SessionService', () => {
     });
 
     // Assert HTTP request
-    const req = httpMock.expectOne(`api/Session/${sessionId}`);
+    const req = httpMock.expectOne(req => req.url.includes(`/api/Session/${sessionId}`));
     expect(req.request.method).toBe('GET');
     req.flush(mockSession);
   });
@@ -96,7 +102,10 @@ describe('SessionService', () => {
       usedSubstances: '["devkit1", "devkit2"]',
       developedFilms: '["film1", "film2"]',
       imageUrl: '',
-      imageBase64: ''
+      imageBase64: '',
+      participantsList: ['Angel', 'Tudor'],
+      usedSubstancesList: ['devkit1', 'devkit2'],
+      developedFilmsList: ['film1', 'film2']
     };
 
     // Act
@@ -106,7 +115,7 @@ describe('SessionService', () => {
     });
 
     // Assert HTTP request
-    const req = httpMock.expectOne(`api/Session/${sessionId}`);
+    const req = httpMock.expectOne(req => req.url.includes(`/api/Session/${sessionId}`));
     expect(req.request.method).toBe('PUT');
     expect(req.request.body).toEqual(updatedSession);
     req.flush({});
@@ -123,7 +132,7 @@ describe('SessionService', () => {
     });
 
     // Assert HTTP request
-    const req = httpMock.expectOne(`api/Session/${sessionId}`);
+    const req = httpMock.expectOne(req => req.url.includes(`/api/Session/${sessionId}`));
     expect(req.request.method).toBe('DELETE');
     req.flush({});
   });
@@ -159,7 +168,7 @@ describe('SessionService', () => {
     });
 
     // Assert HTTP request
-    const req = httpMock.expectOne(`api/Session?page=${page}&pageSize=${pageSize}`);
+    const req = httpMock.expectOne(req => req.url.includes(`/api/Session/`) && req.url.includes(`page=${page}`) && req.url.includes(`pageSize=${pageSize}`));
     expect(req.request.method).toBe('GET');
     req.flush(mockResponse);
   });
