@@ -35,12 +35,20 @@ public class PhotoController(Storage storageCfg, ITableService tablesService, IB
 
         int nextIndex = await GetNextPhotoIndexAsync(dto.FilmRowId);
 
-        return await CreateEntityWithImageAsync(new PhotoDto
+        var result = await CreateEntityWithImageAsync(new PhotoDto
         {
             FilmRowId = dto.FilmRowId,
             Index = nextIndex,
             ImageBase64 = dto.ImageBase64
         }, photoDto => photoDto.ImageBase64);
+
+        // Auto-mark film as developed when photo is uploaded
+        if (result is CreatedResult)
+        {
+            await MarkFilmAsDeveloped(dto.FilmRowId);
+        }
+
+        return result;
     }
 
     [HttpPost("bulk")]
@@ -77,6 +85,9 @@ public class PhotoController(Storage storageCfg, ITableService tablesService, IB
 
                 await photosTable.AddEntityAsync(photoEntity);
             }
+
+            // Auto-mark film as developed when photos are uploaded
+            await MarkFilmAsDeveloped(bulkDto.FilmRowId);
 
             return NoContent();
         }
@@ -204,6 +215,17 @@ public class PhotoController(Storage storageCfg, ITableService tablesService, IB
     {
         var existingPhotos = await tablesService.GetTableEntriesAsync<PhotoEntity>(p => p.FilmRowId == filmRowId);
         return existingPhotos.Count != 0 ? existingPhotos.Max(p => p.Index) + 1 : 1;
+    }
+
+    private async Task MarkFilmAsDeveloped(string filmRowId)
+    {
+        var filmEntity = await tablesService.GetTableEntryIfExistsAsync<FilmEntity>(filmRowId);
+        if (filmEntity != null && !filmEntity.Developed)
+        {
+            filmEntity.Developed = true;
+            var filmsTable = tablesService.GetTable(TableName.Films);
+            await filmsTable.UpdateEntityAsync(filmEntity, filmEntity.ETag, TableUpdateMode.Replace);
+        }
     }
 }
 
