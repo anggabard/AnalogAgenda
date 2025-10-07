@@ -58,7 +58,7 @@ public class DevKitControllerTests
         var result = await _controller.CreateNewKit(devKitDto);
 
         // Assert
-        Assert.IsType<OkResult>(result);
+        Assert.IsType<CreatedResult>(result);
         _mockTableClient.Verify(x => x.AddEntityAsync(It.IsAny<DevKitEntity>(), default), Times.Once);
     }
 
