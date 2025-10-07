@@ -128,9 +128,22 @@ export class UpsertSessionComponent extends BaseUpsertComponent<SessionDto> impl
 
               // Unassigned films are those in the session but not in any devkit
               const assignedFilmRowKeys = Object.values(filmToDevKitMapping).flat();
-              this.unassignedFilms = data.allFilms.filter(f => 
+              
+              // Get films that are in the session's developedFilmsList but not assigned to any DevKit
+              const sessionFilmsWithoutDevKit = data.allFilms.filter(f => 
                 developedFilmsRowKeys.includes(f.rowKey) && !assignedFilmRowKeys.includes(f.rowKey)
               );
+              
+              // Get films that have this session assigned but no DevKit assigned
+              const filmsWithSessionButNoDevKit = data.allFilms.filter(f => 
+                f.developedInSessionRowKey === session.rowKey && !f.developedWithDevKitRowKey
+              );
+              
+              // Combine both lists and remove duplicates
+              this.unassignedFilms = [...sessionFilmsWithoutDevKit, ...filmsWithSessionButNoDevKit]
+                .filter((film, index, self) => 
+                  index === self.findIndex(f => f.rowKey === film.rowKey)
+                );
 
               this.updateAvailableItems(data.allDevKits, data.allFilms);
               
@@ -242,7 +255,8 @@ export class UpsertSessionComponent extends BaseUpsertComponent<SessionDto> impl
 
     this.availableDevKits = allDevKits.filter(dk => !usedDevKitRowKeys.includes(dk.rowKey));
     this.availableUnassignedFilms = allFilms.filter(f => 
-      !sessionFilmRowKeys.includes(f.rowKey)
+      !sessionFilmRowKeys.includes(f.rowKey) && 
+      f.developedInSessionRowKey !== this.rowKey // Don't show films already assigned to this session
     );
   }
 

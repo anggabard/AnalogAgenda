@@ -10,6 +10,10 @@
                 {{ errorMessage }}
             </div>
 
+            <div *ngIf="successMessage" class="success-message">
+                {{ successMessage }}
+            </div>
+
             <div>
                 <label for="name">Name</label>
                 <input type="text" formControlName="name" placeholder="Name" class="input" />
@@ -71,12 +75,18 @@
                 <span class="toggle-label">Developed</span>
             </div>
 
-            <!-- Photo action buttons - only show when developed and not in insert mode -->
-            <div class="photo-actions" [class.show]="form.get('developed')?.value && !isInsert">
-                <button type="button" class="photo-btn upload-btn" (click)="onUploadPhotos()">
+            <!-- Action buttons - only show when developed and not in insert mode -->
+            <div class="action-buttons" [class.show]="form.get('developed')?.value && !isInsert">
+                <button type="button" class="photo-btn" (click)="onAssignSession()">
+                    Assign Session
+                </button>
+                <button type="button" class="photo-btn" (click)="onAssignDevKit()">
+                    Assign DevKit
+                </button>
+                <button type="button" class="photo-btn" (click)="onUploadPhotos()">
                     Upload Photos
                 </button>
-                <button type="button" class="photo-btn view-btn" (click)="onViewPhotos()">
+                <button type="button" class="photo-btn" (click)="onViewPhotos()">
                     View Photos
                 </button>
             </div>
@@ -102,6 +112,102 @@
                 <div class="delete-modal-actions">
                     <button class="cancel-btn" (click)="isDeleteModalOpen = false">Cancel</button>
                     <button class="delete-btn" (click)="onDelete()">Delete</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Session Assignment Modal -->
+    <div class="modal-overlay" *ngIf="showSessionModal" (click)="closeSessionModal()">
+        <div class="modal-content" (click)="$event.stopPropagation()">
+            <div class="modal-header">
+                <div></div>
+                <h3>Assign Session</h3>
+                <button class="modal-close" (click)="closeSessionModal()">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="items-grid">
+                    <div *ngFor="let session of availableSessions" class="item-card"
+                         [class.selected]="selectedSessionRowKey === session.rowKey"
+                         (click)="selectSession(session.rowKey)">
+                        <div class="item-content">
+                            <div class="item-info">
+                                <div class="item-details">
+                                    <span class="item-name">{{session.location}}</span>
+                                    <span class="item-type">{{session.sessionDate | date:'short'}}</span>
+                                    <span class="item-owner">{{session.participantsList && session.participantsList.length > 0 ? session.participantsList.join(', ') : 'No participants'}}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="item-radio">
+                            <input type="radio" 
+                                   [checked]="selectedSessionRowKey === session.rowKey"
+                                   readonly />
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer" *ngIf="selectedSessionRowKey">
+                    <button class="btn btn-primary" (click)="assignSession()">
+                        Assign Session
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- DevKit Assignment Modal -->
+    <div class="modal-overlay" *ngIf="showDevKitModal" (click)="closeDevKitModal()">
+        <div class="modal-content" (click)="$event.stopPropagation()">
+            <div class="modal-header">
+                <div></div>
+                <div>
+                    <h3>Assign DevKit</h3>
+                    <p class="modal-subtitle" *ngIf="form.get('developedInSessionRowKey')?.value">
+                        Showing DevKits from the selected session
+                    </p>
+                    <p class="modal-subtitle" *ngIf="!form.get('developedInSessionRowKey')?.value">
+                        Showing all available DevKits
+                    </p>
+                </div>
+                <button class="modal-close" (click)="closeDevKitModal()">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-options" *ngIf="hasExpiredDevKits">
+                    <label class="checkbox-option">
+                        <input type="checkbox" [(ngModel)]="showExpiredDevKits" />
+                        <span>Show expired dev kits</span>
+                    </label>
+                </div>
+                <div class="items-grid" *ngIf="filteredAvailableDevKits.length > 0">
+                    <div *ngFor="let devKit of filteredAvailableDevKits" class="item-card"
+                         [class.expired]="devKit.expired"
+                         [class.selected]="selectedDevKitRowKey === devKit.rowKey"
+                         (click)="selectDevKit(devKit.rowKey)">
+                        <div class="item-content">
+                            <div class="item-info">
+                                <img [src]="devKit.imageUrl" alt="{{devKit.name}}" class="item-image" />
+                                <div class="item-details">
+                                    <span class="item-name">{{devKit.name}}</span>
+                                    <span class="item-type">{{devKit.type}}</span>
+                                    <span class="item-status" *ngIf="devKit.expired">EXPIRED</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="item-radio">
+                            <input type="radio" 
+                                   [checked]="selectedDevKitRowKey === devKit.rowKey"
+                                   readonly />
+                        </div>
+                    </div>
+                </div>
+                <div *ngIf="filteredAvailableDevKits.length === 0" class="no-items-message">
+                    <p *ngIf="form.get('developedInSessionRowKey')?.value">No DevKits available for the selected session. The session may not have any DevKits assigned to it yet.</p>
+                    <p *ngIf="!form.get('developedInSessionRowKey')?.value">No DevKits available. Try assigning a session first.</p>
+                </div>
+                <div class="modal-footer" *ngIf="selectedDevKitRowKey">
+                    <button class="btn btn-primary" (click)="assignDevKit()">
+                        Assign DevKit
+                    </button>
                 </div>
             </div>
         </div>

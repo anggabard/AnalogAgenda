@@ -63,6 +63,10 @@
   font-size: 14px;
   font-weight: 600;
   transition: all 0.3s ease;
+  min-width: 140px;
+  width: 140px;
+  text-align: center;
+  white-space: nowrap;
 }
 
 .btn-primary {
@@ -76,12 +80,14 @@
 }
 
 .btn-secondary {
-  background-color: #f1f1f1;
-  color: #333;
+  background-color: #f8f9fa;
+  color: #495057;
+  border: 1px solid #dee2e6;
 }
 
 .btn-secondary:hover {
-  background-color: #e0e0e0;
+  background-color: #e9ecef;
+  border-color: #adb5bd;
 }
 
 .btn:disabled {
@@ -89,6 +95,7 @@
   cursor: not-allowed;
   transform: none;
 }
+
 
 
 /* Alerts */
@@ -886,6 +893,7 @@ body .session-management-container .cdk-drop-list-receiving {
   width: 260px;
   max-width: 260px;
   overflow: hidden;
+  min-height: 80px;
 }
 
 .modal-body .item-card:hover {
@@ -905,12 +913,17 @@ body .session-management-container .cdk-drop-list-receiving {
   display: flex;
   align-items: center;
   pointer-events: none;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .modal-body .item-checkbox {
   display: flex;
   align-items: center;
   pointer-events: none;
+  flex-shrink: 0;
+  width: 20px;
+  justify-content: center;
 }
 
 .modal-body .item-checkbox input[type="checkbox"] {
@@ -943,6 +956,7 @@ body .session-management-container .cdk-drop-list-receiving {
   flex-direction: column;
   flex: 1;
   min-width: 0;
+  overflow: hidden;
 }
 
 .modal-body .item-name {
@@ -954,6 +968,7 @@ body .session-management-container .cdk-drop-list-receiving {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  max-width: 180px;
 }
 
 .modal-body .item-type, 
@@ -961,6 +976,10 @@ body .session-management-container .cdk-drop-list-receiving {
   font-size: 0.8rem;
   color: #666;
   line-height: 1.1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 180px;
 }
 
 .modal-body .item-status {
