@@ -1,6 +1,8 @@
 import { TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
+import { DragDropModule } from '@angular/cdk/drag-drop';
+import { ReactiveFormsModule, FormsModule } from '@angular/forms';
 import { of } from 'rxjs';
 import { PagedResponseDto } from '../DTOs';
 
@@ -25,7 +27,7 @@ export class TestConfig {
     providers?: any[];
   }) {
     return TestBed.configureTestingModule({
-      imports: [HttpClientTestingModule, ...(config.imports || [])],
+      imports: [HttpClientTestingModule, DragDropModule, ReactiveFormsModule, FormsModule, ...(config.imports || [])],
       declarations: config.declarations || [],
       providers: config.providers || []
     });

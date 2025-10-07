@@ -5,5 +5,6 @@ public enum ContainerName
     devkits,
     notes,
     films,
-    photos
+    photos,
+    sessions
 }

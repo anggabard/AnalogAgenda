@@ -51,7 +51,7 @@ public class NotesControllerTests
             Name = "Test Note",
             SideNote = "Test Description",
             ImageBase64 = null!,
-            Entries = new List<NoteEntryDto>()
+            Entries = []
         };
 
         _mockNotesTableClient.Setup(x => x.AddEntityAsync(It.IsAny<NoteEntity>(), default))
@@ -61,8 +61,8 @@ public class NotesControllerTests
         var result = await _controller.CreateNewNote(noteDto);
 
         // Assert
-        var okResult = Assert.IsType<OkObjectResult>(result);
-        Assert.IsType<string>(okResult.Value);
+        var createdResult = Assert.IsType<CreatedResult>(result);
+        Assert.IsType<NoteDto>(createdResult.Value);
         _mockNotesTableClient.Verify(x => x.AddEntityAsync(It.IsAny<NoteEntity>(), default), Times.Once);
     }
 

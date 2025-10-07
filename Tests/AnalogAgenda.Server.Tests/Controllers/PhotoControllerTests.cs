@@ -76,7 +76,7 @@ public class PhotoControllerTests
         var result = await _controller.CreatePhoto(photoDto);
 
         // Assert
-        Assert.IsType<OkResult>(result);
+        Assert.IsType<CreatedResult>(result);
     }
 
     [Fact]

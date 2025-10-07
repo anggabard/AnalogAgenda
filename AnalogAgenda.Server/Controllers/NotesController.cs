@@ -24,7 +24,7 @@ public class NotesController(Storage storageCfg, ITableService tablesService, IB
     protected override NoteDto EntityToDto(NoteEntity entity) => entity.ToDTO(storageCfg.AccountName);
     
     private NoteDto EntityToDtoWithEntries(NoteEntity entity, IEnumerable<NoteEntryEntity> entries) => 
-        entity.ToDTO(storageCfg.AccountName, entries.ToList());
+        entity.ToDTO(storageCfg.AccountName, [.. entries]);
 
     [HttpPost]
     public async Task<IActionResult> CreateNewNote([FromBody] NoteDto dto)
@@ -38,15 +38,18 @@ public class NotesController(Storage storageCfg, ITableService tablesService, IB
         var creationDate = DateTime.UtcNow;
         var noteCreationResult = await CreateEntityWithImageAsync(dto, dto => dto.ImageBase64, creationDate);
         
-        if (noteCreationResult is not OkResult)
+        if (noteCreationResult is not CreatedResult createdResult)
         {
             return noteCreationResult; // Return error if note creation failed
         }
 
         // If note creation succeeded, create the note entries
-        var noteEntity = dto.ToNoteEntity();
-        noteEntity.CreatedDate = creationDate;
-        var entries = dto.ToNoteEntryEntities(noteEntity.RowKey);
+        if (createdResult.Value is not NoteDto createdNote)
+        {
+            return UnprocessableEntity("Failed to retrieve created note.");
+        }
+
+        var entries = dto.ToNoteEntryEntities(createdNote.RowKey);
 
         try
         {
@@ -55,12 +58,12 @@ public class NotesController(Storage storageCfg, ITableService tablesService, IB
                 await notesEntriesTable.AddEntityAsync(entry);
             }
             
-            return Ok(noteEntity.RowKey);
+            return Created(string.Empty, createdNote);
         }
         catch (Exception ex)
         {
             // If entries creation failed, clean up the note we just created
-            await DeleteNoteAndCleanupAsync(noteEntity.RowKey);
+            await DeleteNoteAndCleanupAsync(createdNote.RowKey);
             return UnprocessableEntity($"Failed to create note entries: {ex.Message}");
         }
     }

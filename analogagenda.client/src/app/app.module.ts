@@ -3,7 +3,7 @@ import { NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 import { SharedModule } from '../shared.module';
 import { AppRoutingModule } from './app-routing.module';
-import { AppComponent, LoginComponent, NavbarComponent, HomeComponent, NotesComponent, SubstancesComponent, UpsertKitComponent, NoteTableComponent, FilmsComponent, UpsertFilmComponent, FilmPhotosComponent, ChangePasswordComponent } from './components';
+import { AppComponent, LoginComponent, NavbarComponent, HomeComponent, NotesComponent, SubstancesComponent, UpsertKitComponent, NoteTableComponent, FilmsComponent, UpsertFilmComponent, FilmPhotosComponent, SessionsComponent, UpsertSessionComponent, ChangePasswordComponent } from './components';
 import { CardListComponent } from './components/common/card-list/card-list.component';
 import { MainLayoutComponent, AuthLayoutComponent} from './layouts';
 import { errorInterceptor } from './interceptors/error.interceptor';
@@ -19,6 +19,8 @@ import { errorInterceptor } from './interceptors/error.interceptor';
     FilmsComponent,
     UpsertFilmComponent,
     FilmPhotosComponent,
+    SessionsComponent,
+    UpsertSessionComponent,
     MainLayoutComponent,
     AuthLayoutComponent,
     UpsertKitComponent,

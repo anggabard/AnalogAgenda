@@ -48,7 +48,10 @@ public abstract class BaseEntityController<TEntity, TDto>(Storage storageCfg, IT
             }
 
             await table.AddEntityAsync(entity);
-            return Ok();
+            
+            // Return the created entity as DTO
+            var createdDto = EntityToDto(entity);
+            return Created(string.Empty, createdDto);
         }
         catch (Exception ex)
         {

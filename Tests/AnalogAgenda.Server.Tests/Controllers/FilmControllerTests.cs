@@ -78,7 +78,7 @@ public class FilmControllerTests
         var result = await _controller.CreateNewFilm(filmDto);
 
         // Assert
-        Assert.IsType<OkResult>(result);
+        Assert.IsType<CreatedResult>(result);
     }
 
 
