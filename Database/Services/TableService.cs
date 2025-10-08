@@ -17,11 +17,11 @@ namespace Database.Services
 
         protected override void ValidateResourceName(string resourceName)
         {
-            if (!resourceName.IsTable()) 
+            if (!resourceName.IsTable())
                 throw new ArgumentException($"Error: '{resourceName}' is not a valid Table.");
         }
 
-        protected override TableClient CreateClient(string resourceName) => 
+        protected override TableClient CreateClient(string resourceName) =>
             new(AccountUri, resourceName, Credential);
 
         private static TableName GetTableName<T>() where T : BaseEntity
@@ -77,75 +77,25 @@ namespace Database.Services
 
         public async Task<PagedResponseDto<T>> GetTableEntriesPagedAsync<T>(int page = 1, int pageSize = 10) where T : BaseEntity
         {
-            TableName tableName = GetTableName<T>();
-            var pagedData = new List<T>();
-            
-            int skip = (page - 1) * pageSize;
-            int taken = 0;
-            int totalCount = 0;
-
-            await foreach (T entity in GetTable(tableName).QueryAsync<T>())
-            {
-                totalCount++;
-                
-                // Skip entities before our page
-                if (totalCount <= skip)
-                {
-                    continue;
-                }
-
-                // Collect entities for our page
-                if (taken < pageSize)
-                {
-                    pagedData.Add(entity);
-                    taken++;
-                }
-                
-                // Continue iterating to count remaining entities (but don't collect them)
-            }
-
-            return new PagedResponseDto<T>
-            {
-                Data = pagedData,
-                TotalCount = totalCount,
-                PageSize = pageSize,
-                CurrentPage = page
-            };
+            var allEntities = await GetTableEntriesAsync<T>();
+            return GetTableEntriesPagedInternal(allEntities, page, pageSize);
         }
 
         public async Task<PagedResponseDto<T>> GetTableEntriesPagedAsync<T>(Expression<Func<T, bool>> predicate, int page = 1, int pageSize = 10) where T : BaseEntity
         {
-            TableName tableName = GetTableName<T>();
-            var pagedData = new List<T>();
-            
+            var allEntities = await GetTableEntriesAsync(predicate);
+            return GetTableEntriesPagedInternal(allEntities, page, pageSize);
+        }
+
+        private PagedResponseDto<T> GetTableEntriesPagedInternal<T>(List<T> allEntities, int page, int pageSize) where T : BaseEntity
+        {
             int skip = (page - 1) * pageSize;
-            int taken = 0;
-            int totalCount = 0;
-
-            await foreach (T entity in GetTable(tableName).QueryAsync(predicate))
-            {
-                totalCount++;
-                
-                // Skip entities before our page
-                if (totalCount <= skip)
-                {
-                    continue;
-                }
-
-                // Collect entities for our page
-                if (taken < pageSize)
-                {
-                    pagedData.Add(entity);
-                    taken++;
-                }
-                
-                // Continue iterating to count remaining entities (but don't collect them)
-            }
+            var pagedData = allEntities.Skip(skip).Take(pageSize).ToList();
 
             return new PagedResponseDto<T>
             {
                 Data = pagedData,
-                TotalCount = totalCount,
+                TotalCount = allEntities.Count,
                 PageSize = pageSize,
                 CurrentPage = page
             };
