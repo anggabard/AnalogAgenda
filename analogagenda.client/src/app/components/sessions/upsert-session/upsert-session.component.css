@@ -471,34 +471,16 @@ textarea.form-input {
   overflow: visible;
 }
 
-.film-drop-zone.cdk-drop-list-receiving {
-  background-color: rgba(76, 175, 80, 0.25) !important;
-  outline: 2px solid rgba(76, 175, 80, 0.5) !important;
-  outline-offset: -2px !important;
-}
-
 .devkit-container .film-drop-zone {
   background-color: #f9f9f9;
   border: 1px solid transparent;
 }
 
-/* Show green tint on ALL drop zones when ANY drag is happening */
+/* Film drop zone drag styles - consolidated */
 body:has(.cdk-drag-dragging) .film-drop-zone,
-body:has(.cdk-drag-dragging) .devkit-container .film-drop-zone {
-  background-color: rgba(76, 175, 80, 0.25) !important;
-  outline: 2px solid rgba(76, 175, 80, 0.5) !important;
-  outline-offset: -2px !important;
-}
-
-/* Keep green during the entire drag operation */
+body:has(.cdk-drag-dragging) .devkit-container .film-drop-zone,
 .cdk-drop-list-dragging .film-drop-zone,
-.devkit-container .film-drop-zone.cdk-drop-list-dragging {
-  background-color: rgba(76, 175, 80, 0.25) !important;
-  outline: 2px solid rgba(76, 175, 80, 0.5) !important;
-  outline-offset: -2px !important;
-}
-
-/* Keep green when receiving */
+.devkit-container .film-drop-zone.cdk-drop-list-dragging,
 .film-drop-zone.cdk-drop-list-receiving,
 .devkit-container .film-drop-zone.cdk-drop-list-receiving {
   background-color: rgba(76, 175, 80, 0.25) !important;
@@ -520,6 +502,13 @@ body:has(.cdk-drag-dragging) .devkit-container .film-drop-zone {
   min-width: 200px;
   box-sizing: border-box;
   contain: layout style;
+}
+
+/* Common drag styles */
+.drag-active {
+  background-color: rgba(76, 175, 80, 0.25) !important;
+  outline: 2px solid rgba(76, 175, 80, 0.5) !important;
+  outline-offset: -2px !important;
 }
 
 /* Green tint for Developed Films when dragging */
@@ -548,11 +537,6 @@ body:has(.cdk-drag-dragging) .unassigned-zone,
   outline-offset: -2px !important;
 }
 
-.unassigned-zone.cdk-drop-list.cdk-drop-list-receiving {
-  background-color: rgba(76, 175, 80, 0.25) !important;
-  outline: 2px solid rgba(76, 175, 80, 0.5) !important;
-  outline-offset: -2px !important;
-}
 
 .drop-zone-content {
   display: grid;
