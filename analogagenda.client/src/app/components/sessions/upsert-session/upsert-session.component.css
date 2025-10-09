@@ -223,6 +223,8 @@ textarea.form-input {
   display: flex;
   gap: 10px;
   align-items: flex-start;
+  flex-wrap: wrap;
+  width: 100%;
 }
 
 .participant-input {
@@ -232,6 +234,8 @@ textarea.form-input {
 .add-participant-btn {
   white-space: nowrap;
   padding: 12px 20px;
+  flex-shrink: 0;
+  min-width: 80px;
 }
 
 /* Empty State */
@@ -469,7 +473,8 @@ textarea.form-input {
 
 .film-drop-zone.cdk-drop-list-receiving {
   background-color: rgba(76, 175, 80, 0.25) !important;
-  border: 2px solid rgba(76, 175, 80, 0.5) !important;
+  outline: 2px solid rgba(76, 175, 80, 0.5) !important;
+  outline-offset: -2px !important;
 }
 
 .devkit-container .film-drop-zone {
@@ -481,21 +486,24 @@ textarea.form-input {
 body:has(.cdk-drag-dragging) .film-drop-zone,
 body:has(.cdk-drag-dragging) .devkit-container .film-drop-zone {
   background-color: rgba(76, 175, 80, 0.25) !important;
-  border: 2px solid rgba(76, 175, 80, 0.5) !important;
+  outline: 2px solid rgba(76, 175, 80, 0.5) !important;
+  outline-offset: -2px !important;
 }
 
 /* Keep green during the entire drag operation */
 .cdk-drop-list-dragging .film-drop-zone,
 .devkit-container .film-drop-zone.cdk-drop-list-dragging {
   background-color: rgba(76, 175, 80, 0.25) !important;
-  border: 2px solid rgba(76, 175, 80, 0.5) !important;
+  outline: 2px solid rgba(76, 175, 80, 0.5) !important;
+  outline-offset: -2px !important;
 }
 
 /* Keep green when receiving */
 .film-drop-zone.cdk-drop-list-receiving,
 .devkit-container .film-drop-zone.cdk-drop-list-receiving {
   background-color: rgba(76, 175, 80, 0.25) !important;
-  border: 2px solid rgba(76, 175, 80, 0.5) !important;
+  outline: 2px solid rgba(76, 175, 80, 0.5) !important;
+  outline-offset: -2px !important;
 }
 
 .unassigned-zone {
@@ -508,8 +516,10 @@ body:has(.cdk-drag-dragging) .devkit-container .film-drop-zone {
   padding: 15px;
   width: fit-content;
   max-width: 100%;
-  min-height: 134px;
-  min-width: 170px;
+  min-height: 160px;
+  min-width: 200px;
+  box-sizing: border-box;
+  contain: layout style;
 }
 
 /* Green tint for Developed Films when dragging */
@@ -518,7 +528,8 @@ body:has(.cdk-drag-dragging) .unassigned-zone,
 .unassigned-zone.cdk-drop-list-dragging,
 .unassigned-zone.cdk-drop-list-receiving {
   background-color: rgba(76, 175, 80, 0.25) !important;
-  border: 2px solid rgba(76, 175, 80, 0.5) !important;
+  outline: 2px solid rgba(76, 175, 80, 0.5) !important;
+  outline-offset: -2px !important;
 }
 
 /* Override CDK default styles that cause prominent borders */
@@ -533,12 +544,14 @@ body:has(.cdk-drag-dragging) .unassigned-zone,
 /* More specific overrides for CDK drag styles */
 .film-drop-zone.cdk-drop-list.cdk-drop-list-receiving {
   background-color: rgba(76, 175, 80, 0.25) !important;
-  border: 2px solid rgba(76, 175, 80, 0.5) !important;
+  outline: 2px solid rgba(76, 175, 80, 0.5) !important;
+  outline-offset: -2px !important;
 }
 
 .unassigned-zone.cdk-drop-list.cdk-drop-list-receiving {
   background-color: rgba(76, 175, 80, 0.25) !important;
-  border: 2px solid rgba(76, 175, 80, 0.5) !important;
+  outline: 2px solid rgba(76, 175, 80, 0.5) !important;
+  outline-offset: -2px !important;
 }
 
 .drop-zone-content {
@@ -548,12 +561,19 @@ body:has(.cdk-drag-dragging) .unassigned-zone,
   gap: 12px;
   align-content: start;
   min-height: 110px;
+  justify-items: center;
+  align-items: center;
 }
 
 .unassigned-grid {
   display: flex;
   gap: 12px;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
+  overflow-x: auto;
+  max-width: 100%;
+  width: 100%;
+  justify-content: center;
+  align-items: center;
 }
 
 .film-card {
@@ -565,9 +585,12 @@ body:has(.cdk-drag-dragging) .unassigned-zone,
   transition: all 0.3s ease;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
   position: relative;
+  width: 140px;
   min-width: 140px;
   max-width: 140px;
   flex-shrink: 0;
+  transform: scale(1);
+  overflow: hidden;
 }
 
 .removable-film {
@@ -600,9 +623,13 @@ body:has(.cdk-drag-dragging) .unassigned-zone,
 }
 
 .film-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-  border-color: #4CAF50;
+  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.2);
+  border: 1px solid #4CAF50;
+  background-color: #f8fff8;
+}
+
+.film-card:hover .film-image {
+  transform: scale(1.05);
 }
 
 .film-card.cdk-drag-dragging {
@@ -615,8 +642,13 @@ body:has(.cdk-drag-dragging) .unassigned-zone,
   width: 100%;
   height: 60px;
   object-fit: cover;
+  object-position: center;
   border-radius: 4px;
   margin-bottom: 6px;
+  transition: transform 0.3s ease;
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
+  image-rendering: pixelated;
 }
 
 .film-info {
@@ -647,7 +679,6 @@ body:has(.cdk-drag-dragging) .unassigned-zone,
 }
 
 .empty-drop-zone {
-  grid-column: 1 / -1;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -657,6 +688,10 @@ body:has(.cdk-drag-dragging) .unassigned-zone,
   pointer-events: none;
   font-size: 14px;
   min-height: 110px;
+  width: 140px;
+  max-width: 140px;
+  margin: 0 auto;
+  grid-column: 1 / -1;
 }
 
 .drop-zone-content {
@@ -667,10 +702,6 @@ body:has(.cdk-drag-dragging) .unassigned-zone,
   display: none;
 }
 
-/* Hide empty text when any drag is active */
-.cdk-drop-list-dragging .empty-drop-zone {
-  display: none !important;
-}
 
 /* Override any CDK container styles during drag */
 .cdk-drop-list.cdk-drop-list-dragging .cdk-drag {
@@ -1063,7 +1094,7 @@ body .session-management-container .cdk-drop-list-receiving {
   border: 1px solid #ffeaa7;
   border-radius: 6px;
   padding: 10px 15px;
-  margin-top: 20px;
+  margin: 20px 0 30px 0;
   text-align: center;
   display: none;
 }
@@ -1151,12 +1182,24 @@ body .session-management-container .cdk-drop-list-receiving {
   }
 
   .drop-zone-content {
-    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(94px, 1fr));
     gap: 8px;
+    justify-items: center;
+    align-items: center;
+  }
+
+  .unassigned-zone {
+    width: 100%;
+    max-width: 100%;
+    min-height: 160px;
   }
 
   .unassigned-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(94px, 1fr));
     gap: 8px;
+    justify-items: center;
+    align-items: center;
   }
 
   .devkit-container .film-drop-zone {
@@ -1184,11 +1227,46 @@ body .session-management-container .cdk-drop-list-receiving {
     display: block;
   }
 
+  .add-participant-section {
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  .participant-input {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+  
+  .participants-container {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  .add-participant-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .empty-drop-zone {
+    width: 100%;
+    max-width: 100%;
+    grid-column: 1 / -1;
+    text-align: center;
+  }
+
   .devkit-image-tooltip {
-    width: 150px;
-    height: 150px;
-    left: calc(100% + 5px);
-    top: 10px;
+    width: 90vw;
+    max-width: 300px;
+    height: 200px;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    position: fixed;
   }
 
   .section-header {
@@ -1235,12 +1313,12 @@ body .session-management-container .cdk-drop-list-receiving {
   }
 
   .drop-zone-content {
-    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(94px, 1fr));
   }
 
   .film-card {
-    min-width: 100px;
-    max-width: 100px;
+    min-width: 94px;
+    max-width: 94px;
   }
 
   .film-image {
