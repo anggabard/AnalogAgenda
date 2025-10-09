@@ -60,10 +60,6 @@ export class NavbarComponent {
     this.api.logout().subscribe({ next: () => this.router.navigate(['/login']), error: () => this.router.navigate(['/login']) });
   }
 
-  getToggleArrow() {
-    return this.isSidebarOpen ? '<' : '>'
-  }
-
   private closeMobileSidebar() {
     this.isSidebarOpen = false;
     this.isOpenEvent.emit(this.isSidebarOpen);
