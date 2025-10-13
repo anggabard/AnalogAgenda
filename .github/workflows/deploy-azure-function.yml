@@ -35,7 +35,7 @@ jobs:
         run: dotnet build ${{ env.FUNCTIONS_SLN }} --configuration ${{ env.CONFIGURATION }} --no-restore
 
       - name: Publish project
-        run: dotnet publish ${{ env.FUNCTIONS_SLN }} --configuration ${{ env.CONFIGURATION }} --no-build --output ${{ env.PUBLISH_DIR }}
+        run: dotnet publish ./AnalogAgenda.Functions/AnalogAgenda.Functions.csproj --configuration ${{ env.CONFIGURATION }} --no-build --output ${{ env.PUBLISH_DIR }}
 
       - name: Zip publish output
         run: Compress-Archive -Path "${{ env.PUBLISH_DIR }}\*" -DestinationPath "${{ env.PUBLISH_DIR }}.zip"
