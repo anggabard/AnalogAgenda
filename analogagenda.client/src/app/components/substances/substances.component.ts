@@ -4,9 +4,10 @@ import { DevKitDto, PagedResponseDto } from "../../DTOs";
 import { DevKitService } from "../../services";
 
 @Component({
-  selector: 'app-substances',
-  templateUrl: './substances.component.html',
-  styleUrl: './substances.component.css'
+    selector: 'app-substances',
+    templateUrl: './substances.component.html',
+    styleUrl: './substances.component.css',
+    standalone: false
 })
 
 export class SubstancesComponent implements OnInit {

@@ -4,9 +4,10 @@ import { AccountService } from '../../services';
 import { IdentityDto } from '../../DTOs';
 
 @Component({
-  selector: 'app-navbar',
-  templateUrl: './navbar.component.html',
-  styleUrl: './navbar.component.css'
+    selector: 'app-navbar',
+    templateUrl: './navbar.component.html',
+    styleUrl: './navbar.component.css',
+    standalone: false
 })
 export class NavbarComponent {
   @Output() isOpenEvent = new EventEmitter<boolean>();

@@ -4,9 +4,10 @@ import { NoteDto } from '../../../DTOs';
 import { NotesService } from '../../../services';
 
 @Component({
-  selector: 'app-note-table',
-  templateUrl: './note-table.component.html',
-  styleUrls: ['./note-table.component.css']
+    selector: 'app-note-table',
+    templateUrl: './note-table.component.html',
+    styleUrls: ['./note-table.component.css'],
+    standalone: false
 })
 export class NoteTableComponent implements OnInit {
   private router = inject(Router);

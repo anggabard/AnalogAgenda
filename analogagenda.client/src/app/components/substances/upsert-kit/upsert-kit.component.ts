@@ -8,9 +8,10 @@ import { DevKitDto } from '../../../DTOs';
 import { DateHelper } from '../../../helpers/date.helper';
 
 @Component({
-  selector: 'app-upsert-kit',
-  templateUrl: './upsert-kit.component.html',
-  styleUrl: './upsert-kit.component.css'
+    selector: 'app-upsert-kit',
+    templateUrl: './upsert-kit.component.html',
+    styleUrl: './upsert-kit.component.css',
+    standalone: false
 })
 export class UpsertKitComponent extends BaseUpsertComponent<DevKitDto> implements OnInit {
 

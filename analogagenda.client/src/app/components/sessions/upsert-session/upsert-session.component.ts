@@ -13,9 +13,10 @@ interface DevKitWithFilms {
 }
 
 @Component({
-  selector: 'app-upsert-session',
-  templateUrl: './upsert-session.component.html',
-  styleUrl: './upsert-session.component.css'
+    selector: 'app-upsert-session',
+    templateUrl: './upsert-session.component.html',
+    styleUrl: './upsert-session.component.css',
+    standalone: false
 })
 export class UpsertSessionComponent extends BaseUpsertComponent<SessionDto> implements OnInit {
 
@@ -256,7 +257,8 @@ export class UpsertSessionComponent extends BaseUpsertComponent<SessionDto> impl
     this.availableDevKits = allDevKits.filter(dk => !usedDevKitRowKeys.includes(dk.rowKey));
     this.availableUnassignedFilms = allFilms.filter(f => 
       !sessionFilmRowKeys.includes(f.rowKey) && 
-      f.developedInSessionRowKey !== this.rowKey // Don't show films already assigned to this session
+      f.developedInSessionRowKey !== this.rowKey && // Don't show films already assigned to this session
+      !f.developed // Only show NOT developed films
     );
   }
 
@@ -268,7 +270,7 @@ export class UpsertSessionComponent extends BaseUpsertComponent<SessionDto> impl
       next: (data) => {
         if (this.isInsert) {
           this.availableDevKits = data.devKits;
-          this.availableUnassignedFilms = data.films;
+          this.availableUnassignedFilms = data.films.filter(f => !f.developed); // Only show NOT developed films
         }
       },
       error: (err) => {

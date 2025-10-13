@@ -7,7 +7,9 @@ import { PagedResponseDto } from '../../../DTOs';
  * Abstract base component for paginated list views with common patterns
  */
 @Component({
-  template: '' // Abstract component, no template
+    template: '' // Abstract component, no template
+    ,
+    standalone: false
 })
 export abstract class BasePaginatedListComponent<TDto> {
   protected router = inject(Router);

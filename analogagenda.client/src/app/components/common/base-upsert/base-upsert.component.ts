@@ -10,7 +10,9 @@ import { ErrorHandlingHelper } from '../../../helpers/error-handling.helper';
  * Abstract base component for CRUD (Create/Update/Delete) forms with common patterns
  */
 @Component({
-  template: '' // Abstract component, no template
+    template: '' // Abstract component, no template
+    ,
+    standalone: false
 })
 export abstract class BaseUpsertComponent<TDto> implements OnInit {
   protected fb = inject(FormBuilder);
