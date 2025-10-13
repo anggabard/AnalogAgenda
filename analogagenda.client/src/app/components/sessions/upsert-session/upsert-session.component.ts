@@ -188,7 +188,7 @@ export class UpsertSessionComponent extends BaseUpsertComponent<SessionDto> impl
     
     // Build the DTO with only the properties the backend expects
     const dto: any = {
-      rowKey: formValue.rowKey || '',
+      rowKey: this.rowKey || '',
       sessionDate: formValue.sessionDate,
       location: formValue.location,
       participants: JSON.stringify(this.participants),

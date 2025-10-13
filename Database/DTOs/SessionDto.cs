@@ -42,7 +42,7 @@ public class SessionDto : HasImage
     }
 
     // Dictionary mapping DevKit RowKey to list of Film RowKeys developed with that DevKit
-    public Dictionary<string, List<string>> FilmToDevKitMapping { get; set; } = new();
+    public Dictionary<string, List<string>> FilmToDevKitMapping { get; set; } = [];
 
     public SessionEntity ToEntity()
     {
