@@ -4,9 +4,10 @@ import { SessionService, AccountService } from "../../services";
 import { SessionDto, IdentityDto, PagedResponseDto } from "../../DTOs";
 
 @Component({
-  selector: 'app-sessions',
-  templateUrl: './sessions.component.html',
-  styleUrl: './sessions.component.css'
+    selector: 'app-sessions',
+    templateUrl: './sessions.component.html',
+    styleUrl: './sessions.component.css',
+    standalone: false
 })
 export class SessionsComponent implements OnInit {
   private router = inject(Router);

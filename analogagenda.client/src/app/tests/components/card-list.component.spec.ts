@@ -5,7 +5,7 @@ import { FilmDto } from '../../DTOs';
 import { FilmType, UsernameType } from '../../enums';
 
 @Component({
-  template: `
+    template: `
     <app-card-list 
       [items]="items" 
       [cardTemplate]="cardTemplate"
@@ -20,7 +20,8 @@ import { FilmType, UsernameType } from '../../enums';
         <span>{{item.name}}</span>
       </div>
     </ng-template>
-  `
+  `,
+    standalone: false
 })
 class TestHostComponent {
   @ViewChild('cardTemplate') cardTemplate!: TemplateRef<any>;

@@ -11,9 +11,10 @@ import { DateHelper } from '../../../helpers/date.helper';
 import { ErrorHandlingHelper } from '../../../helpers/error-handling.helper';
 
 @Component({
-  selector: 'app-upsert-film',
-  templateUrl: './upsert-film.component.html',
-  styleUrl: './upsert-film.component.css'
+    selector: 'app-upsert-film',
+    templateUrl: './upsert-film.component.html',
+    styleUrl: './upsert-film.component.css',
+    standalone: false
 })
 export class UpsertFilmComponent extends BaseUpsertComponent<FilmDto> implements OnInit {
 

@@ -5,9 +5,10 @@ import { NotesService } from "../../services";
 import { NoteDto, PagedResponseDto } from "../../DTOs";
 
 @Component({
-  selector: 'app-notes',
-  templateUrl: './notes.component.html',
-  styleUrl: './notes.component.css'
+    selector: 'app-notes',
+    templateUrl: './notes.component.html',
+    styleUrl: './notes.component.css',
+    standalone: false
 })
 export class NotesComponent extends BasePaginatedListComponent<NoteDto> {
 

@@ -13,9 +13,10 @@ interface DevKitWithFilms {
 }
 
 @Component({
-  selector: 'app-upsert-session',
-  templateUrl: './upsert-session.component.html',
-  styleUrl: './upsert-session.component.css'
+    selector: 'app-upsert-session',
+    templateUrl: './upsert-session.component.html',
+    styleUrl: './upsert-session.component.css',
+    standalone: false
 })
 export class UpsertSessionComponent extends BaseUpsertComponent<SessionDto> implements OnInit {
 

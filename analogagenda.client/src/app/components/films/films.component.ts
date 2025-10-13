@@ -4,9 +4,10 @@ import { FilmService, AccountService } from "../../services";
 import { FilmDto, IdentityDto, PagedResponseDto } from "../../DTOs";
 
 @Component({
-  selector: 'app-films',
-  templateUrl: './films.component.html',
-  styleUrl: './films.component.css'
+    selector: 'app-films',
+    templateUrl: './films.component.html',
+    styleUrl: './films.component.css',
+    standalone: false
 })
 
 export class FilmsComponent implements OnInit {

@@ -4,9 +4,10 @@ import { PhotoService, FilmService } from '../../../services';
 import { PhotoDto, FilmDto, PhotoUploadDto, PhotoBulkUploadDto } from '../../../DTOs';
 
 @Component({
-  selector: 'app-film-photos',
-  templateUrl: './film-photos.component.html',
-  styleUrl: './film-photos.component.css'
+    selector: 'app-film-photos',
+    templateUrl: './film-photos.component.html',
+    styleUrl: './film-photos.component.css',
+    standalone: false
 })
 export class FilmPhotosComponent implements OnInit {
   private route = inject(ActivatedRoute);

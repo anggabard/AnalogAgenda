@@ -1,9 +1,10 @@
 import { Component, Input, Output, EventEmitter, TemplateRef } from '@angular/core';
 
 @Component({
-  selector: 'app-card-list',
-  templateUrl: './card-list.component.html',
-  styleUrl: './card-list.component.css'
+    selector: 'app-card-list',
+    templateUrl: './card-list.component.html',
+    styleUrl: './card-list.component.css',
+    standalone: false
 })
 export class CardListComponent {
   @Input() items: any[] = [];
