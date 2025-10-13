@@ -9,6 +9,8 @@
       require('karma-coverage'),
       require('@angular-devkit/build-angular/plugins/karma')
     ],
+    files: [],
+    exclude: [],
     client: {
       jasmine: {
         // you can add configuration options for Jasmine here
