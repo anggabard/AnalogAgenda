@@ -9,17 +9,23 @@
       require('karma-coverage'),
       require('@angular-devkit/build-angular/plugins/karma')
     ],
-    files: [],
-    exclude: [],
     client: {
       jasmine: {
         // you can add configuration options for Jasmine here
         // the possible options are listed at https://jasmine.github.io/api/edge/Configuration.html
         // for example, you can disable the random execution with `random: false`
         // or set a specific seed with `seed: 4321`
+        timeoutInterval: 10000
       },
       clearContext: false // leave Jasmine Spec Runner output visible in browser
     },
+    browserNoActivityTimeout: 60000,
+    browserDisconnectTimeout: 10000,
+    browserDisconnectTolerance: 3,
+    captureTimeout: 210000,
+    preprocessors: {},
+    files: [],
+    exclude: [],
     jasmineHtmlReporter: {
       suppressAll: true // removes the duplicated traces
     },
@@ -45,13 +51,15 @@
           '--headless',
           '--disable-gpu',
           '--no-sandbox',
+          '--disable-dev-shm-usage',
           '--remote-debugging-port=9222'
         ]
       }
     },
     restartOnFileChange: true,
     listenAddress: 'localhost',
-    hostname: 'localhost'
+    hostname: 'localhost',
+    processKillTimeout: 10000
   });
 };
 
