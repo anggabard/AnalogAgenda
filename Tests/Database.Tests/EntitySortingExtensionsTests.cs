@@ -33,10 +33,10 @@ public class EntitySortingExtensionsTests
         // Arrange
         var entities = new List<FilmEntity>
         {
-            new() { RowKey = "1", Name = "Film 1", PurchasedBy = EUsernameType.Tudor, PurchasedOn = DateTime.Parse("2023-01-15") },
-            new() { RowKey = "2", Name = "Film 2", PurchasedBy = EUsernameType.Angel, PurchasedOn = DateTime.Parse("2023-01-20") },
-            new() { RowKey = "3", Name = "Film 3", PurchasedBy = EUsernameType.Angel, PurchasedOn = DateTime.Parse("2023-01-10") },
-            new() { RowKey = "4", Name = "Film 4", PurchasedBy = EUsernameType.Tudor, PurchasedOn = DateTime.Parse("2023-01-25") }
+            new() { RowKey = "1", Name = "Film 1", Iso = "400", PurchasedBy = EUsernameType.Tudor, PurchasedOn = DateTime.Parse("2023-01-15") },
+            new() { RowKey = "2", Name = "Film 2", Iso = "400", PurchasedBy = EUsernameType.Angel, PurchasedOn = DateTime.Parse("2023-01-20") },
+            new() { RowKey = "3", Name = "Film 3", Iso = "400", PurchasedBy = EUsernameType.Angel, PurchasedOn = DateTime.Parse("2023-01-10") },
+            new() { RowKey = "4", Name = "Film 4", Iso = "400", PurchasedBy = EUsernameType.Tudor, PurchasedOn = DateTime.Parse("2023-01-25") }
         };
 
         // Act
@@ -59,9 +59,9 @@ public class EntitySortingExtensionsTests
         // Arrange
         var entities = new List<FilmEntity>
         {
-            new() { RowKey = "2", Name = "Film A", PurchasedOn = DateTime.Parse("2023-01-10") },
-            new() { RowKey = "1", Name = "Film B", PurchasedOn = DateTime.Parse("2023-01-20") },
-            new() { RowKey = "3", Name = "Film C", PurchasedOn = DateTime.Parse("2023-01-15") }
+            new() { RowKey = "2", Name = "Film A", Iso = "400", PurchasedOn = DateTime.Parse("2023-01-10") },
+            new() { RowKey = "1", Name = "Film B", Iso = "400", PurchasedOn = DateTime.Parse("2023-01-20") },
+            new() { RowKey = "3", Name = "Film C", Iso = "400", PurchasedOn = DateTime.Parse("2023-01-15") }
         };
 
         // Act
@@ -112,7 +112,7 @@ public class EntitySortingExtensionsTests
         // Arrange
         var entities = new List<FilmEntity>
         {
-            new() { RowKey = "single", Name = "Single Film", PurchasedBy = EUsernameType.Angel, PurchasedOn = DateTime.Parse("2023-01-01") }
+            new() { RowKey = "single", Name = "Single Film", Iso = "400", PurchasedBy = EUsernameType.Angel, PurchasedOn = DateTime.Parse("2023-01-01") }
         };
 
         // Act

@@ -21,12 +21,13 @@
 
             <div>
                 <label for="iso">ISO</label>
-                <input type="number" formControlName="iso" placeholder="ISO" class="input" />
+                <input type="text" formControlName="iso" placeholder="e.g., 400 or 100-400" class="input" />
             </div>
 
             <div>
                 <label for="type">Film Type</label>
                 <select formControlName="type" class="input">
+                    <option value="" disabled selected hidden>Select a film type</option>
                     <option *ngFor="let option of filmTypeOptions" [value]="option">{{ option }}</option>
                 </select>
             </div>
@@ -44,6 +45,7 @@
             <div>
                 <label for="purchasedBy">Purchased by</label>
                 <select formControlName="purchasedBy" class="input">
+                    <option value="" disabled selected hidden>Select a purchaser</option>
                     <option *ngFor="let option of purchasedByOptions" [value]="option">{{ option }}</option>
                 </select>
             </div>

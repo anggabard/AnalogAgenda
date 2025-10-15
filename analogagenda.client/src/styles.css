@@ -207,4 +207,32 @@ button:hover:not(:disabled) {
   text-align: center;
 }
 
+/* ===== FORM VALIDATION STYLES ===== */
+
+/* Invalid field styling - red border when field is invalid and touched */
+.input.ng-invalid.ng-touched,
+.form-input.ng-invalid.ng-touched,
+select.ng-invalid.ng-touched,
+textarea.ng-invalid.ng-touched {
+  border-color: #ef4444 !important;
+  border-width: 2px !important;
+}
+
+/* Invalid field styling on focus - darker red with shadow */
+.input.ng-invalid.ng-touched:focus,
+.form-input.ng-invalid.ng-touched:focus,
+select.ng-invalid.ng-touched:focus,
+textarea.ng-invalid.ng-touched:focus {
+  border-color: #dc2626 !important;
+  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2) !important;
+}
+
+/* Validation error message text */
+.validation-error {
+  color: #ef4444;
+  font-size: 0.875rem;
+  margin-top: 0.25rem;
+  font-weight: 500;
+}
+
 

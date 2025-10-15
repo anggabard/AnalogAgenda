@@ -4,7 +4,7 @@ import { FilmType, UsernameType } from "../enums";
 export interface FilmDto extends HasImageDto{
   rowKey: string;
   name: string;
-  iso: number;
+  iso: string;
   type: FilmType;
   numberOfExposures: number;
   cost: number;

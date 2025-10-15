@@ -59,7 +59,7 @@ public class PhotoControllerTests
     {
         // Arrange
         var filmRowId = "test-film-id";
-        var filmEntity = new FilmEntity { RowKey = filmRowId, Name = "Test Film" };
+        var filmEntity = new FilmEntity { RowKey = filmRowId, Name = "Test Film", Iso = "400" };
         var photoDto = new PhotoCreateDto
         {
             FilmRowId = filmRowId,
@@ -122,7 +122,7 @@ public class PhotoControllerTests
     {
         // Arrange
         var filmRowId = "test-film-id";
-        var filmEntity = new FilmEntity { RowKey = filmRowId, Name = "Test Film" };
+        var filmEntity = new FilmEntity { RowKey = filmRowId, Name = "Test Film", Iso = "400" };
         var bulkDto = new PhotoBulkUploadDto
         {
             FilmRowId = filmRowId,
@@ -238,7 +238,7 @@ public class PhotoControllerTests
         var rowKey = "test-photo-key";
         var filmRowId = "test-film-id";
         var photoEntity = new PhotoEntity { RowKey = rowKey, FilmRowId = filmRowId, Index = 1, ImageId = Guid.NewGuid() };
-        var filmEntity = new FilmEntity { RowKey = filmRowId, Name = "Test Film" };
+        var filmEntity = new FilmEntity { RowKey = filmRowId, Name = "Test Film", Iso = "400" };
 
         _mockTableService.Setup(x => x.GetTableEntryIfExistsAsync<PhotoEntity>(rowKey))
                         .ReturnsAsync(photoEntity);
@@ -279,7 +279,7 @@ public class PhotoControllerTests
     {
         // Arrange
         var filmRowId = "test-film-id";
-        var filmEntity = new FilmEntity { RowKey = filmRowId, Name = "Test Film" };
+        var filmEntity = new FilmEntity { RowKey = filmRowId, Name = "Test Film", Iso = "400" };
         var photoEntities = new List<PhotoEntity>
         {
             new PhotoEntity { FilmRowId = filmRowId, Index = 1, RowKey = "photo1", ImageId = Guid.NewGuid() },
@@ -324,7 +324,7 @@ public class PhotoControllerTests
     {
         // Arrange
         var filmRowId = "test-film-id";
-        var filmEntity = new FilmEntity { RowKey = filmRowId, Name = "Test Film" };
+        var filmEntity = new FilmEntity { RowKey = filmRowId, Name = "Test Film", Iso = "400" };
 
         _mockTableService.Setup(x => x.GetTableEntryIfExistsAsync<FilmEntity>(filmRowId))
                         .ReturnsAsync(filmEntity);
@@ -377,7 +377,7 @@ public class PhotoControllerTests
     {
         // Arrange
         var filmRowId = "test-film-id";
-        var filmEntity = new FilmEntity { RowKey = filmRowId, Name = "Test Film" };
+        var filmEntity = new FilmEntity { RowKey = filmRowId, Name = "Test Film", Iso = "400" };
         var existingPhotos = new List<PhotoEntity>
         {
             new PhotoEntity { FilmRowId = filmRowId, Index = 1, RowKey = "photo1", ImageId = Guid.NewGuid() },
@@ -409,7 +409,7 @@ public class PhotoControllerTests
     {
         // Arrange
         var filmRowId = "test-film-id";
-        var filmEntity = new FilmEntity { RowKey = filmRowId, Name = "Test Film" };
+        var filmEntity = new FilmEntity { RowKey = filmRowId, Name = "Test Film", Iso = "400" };
         var existingPhotos = new List<PhotoEntity>
         {
             new PhotoEntity { FilmRowId = filmRowId, Index = 1, RowKey = "photo1" },

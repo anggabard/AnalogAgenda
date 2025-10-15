@@ -1,5 +1,5 @@
 import { Component, OnInit } from '@angular/core';
-import { FormGroup, Validators } from '@angular/forms';
+import { FormGroup, Validators, AbstractControl, ValidationErrors } from '@angular/forms';
 import { Observable, forkJoin } from 'rxjs';
 import { switchMap } from 'rxjs/operators';
 import { BaseUpsertComponent } from '../../common/base-upsert/base-upsert.component';
@@ -68,7 +68,7 @@ export class UpsertFilmComponent extends BaseUpsertComponent<FilmDto> implements
   protected createForm(): FormGroup {
     return this.fb.group({
       name: ['', Validators.required],
-      iso: [400, [Validators.required, Validators.min(1)]],
+      iso: ['400', [Validators.required, this.isoValidator]],
       type: [FilmType.ColorNegative, Validators.required],
       numberOfExposures: [36, [Validators.required, Validators.min(1)]],
       cost: [0, [Validators.required, Validators.min(0)]],
@@ -81,6 +81,66 @@ export class UpsertFilmComponent extends BaseUpsertComponent<FilmDto> implements
       developedInSessionRowKey: [null],
       developedWithDevKitRowKey: [null]
     });
+  }
+
+  // Custom ISO validator
+  private isoValidator(control: AbstractControl): ValidationErrors | null {
+    const value = control.value;
+    
+    if (!value) {
+      return null; // Let required validator handle empty values
+    }
+
+    const iso = value.toString();
+
+    // Check if it contains spaces (not allowed) - before trim!
+    if (iso.includes(' ')) {
+      return { invalidIso: 'ISO cannot contain spaces' };
+    }
+
+    // Check if it's a range (contains dash)
+    if (iso.includes('-')) {
+      const parts = iso.split('-');
+      
+      // Must have exactly 2 parts
+      if (parts.length !== 2) {
+        return { invalidIso: 'ISO range must be in format: number-number (e.g., 100-400)' };
+      }
+
+      // Both parts must be valid positive integers and exactly match the parsed value (no trailing chars)
+      const first = parseInt(parts[0], 10);
+      const second = parseInt(parts[1], 10);
+
+      if (isNaN(first) || isNaN(second) || parts[0] !== first.toString() || parts[1] !== second.toString()) {
+        return { invalidIso: 'ISO range values must be numbers' };
+      }
+
+      // Both must be greater than 0
+      if (first <= 0 || second <= 0) {
+        return { invalidIso: 'ISO values must be greater than 0' };
+      }
+
+      // First must be less than second
+      if (first >= second) {
+        return { invalidIso: 'First ISO value must be less than the second (e.g., 100-400)' };
+      }
+
+      return null;
+    } else {
+      // Single number case - must be exactly a number with no other characters
+      const parsedValue = parseInt(iso, 10);
+
+      if (isNaN(parsedValue) || iso !== parsedValue.toString()) {
+        return { invalidIso: 'ISO must be a number or a range (e.g., 400 or 100-400)' };
+      }
+
+      // Must be greater than 0
+      if (parsedValue <= 0) {
+        return { invalidIso: 'ISO must be greater than 0' };
+      }
+
+      return null;
+    }
   }
 
   protected getCreateObservable(item: FilmDto): Observable<any> {

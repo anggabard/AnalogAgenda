@@ -63,7 +63,7 @@ public class FilmControllerTests
         var filmDto = new FilmDto
         {
             Name = "Kodak Portra 400",
-            Iso = 400,
+            Iso = "400",
             Type = "Color Negative",
             NumberOfExposures = 36,
             Cost = 12.50,
@@ -91,7 +91,7 @@ public class FilmControllerTests
             new FilmEntity
             {
                 Name = "Kodak Portra 400",
-                Iso = 400,
+                Iso = "400",
                 Type = EFilmType.ColorNegative,
                 NumberOfExposures = 36,
                 Cost = 12.50,
@@ -133,7 +133,7 @@ public class FilmControllerTests
         {
             RowKey = rowKey,
             Name = "Kodak Portra 400",
-            Iso = 400,
+            Iso = "400",
             Type = EFilmType.ColorNegative,
             NumberOfExposures = 36,
             Cost = 12.50,
@@ -165,7 +165,7 @@ public class FilmControllerTests
         var updateDto = new FilmDto
         {
             Name = "Updated Film",
-            Iso = 800,
+            Iso = "800",
             Type = "Black and White",
             NumberOfExposures = 24,
             Cost = 15.00,
@@ -176,7 +176,7 @@ public class FilmControllerTests
             ImageBase64 = ""
         };
 
-        var existingEntity = new FilmEntity { RowKey = rowKey, Name = "Existing Film", ImageId = Guid.NewGuid() };
+        var existingEntity = new FilmEntity { RowKey = rowKey, Name = "Existing Film", Iso = "800", ImageId = Guid.NewGuid() };
         _mockTableService.Setup(x => x.GetTableEntryIfExistsAsync<FilmEntity>(rowKey)).ReturnsAsync(existingEntity);
 
         // Act
@@ -191,12 +191,12 @@ public class FilmControllerTests
     {
         // Arrange
         var rowKey = "test-film-key";
-        var existingEntity = new FilmEntity { RowKey = rowKey, Name = "Film to Delete", ImageId = Guid.NewGuid() };
+        var existingEntity = new FilmEntity { RowKey = rowKey, Name = "Film to Delete", Iso = "400", ImageId = Guid.NewGuid() };
         _mockTableService.Setup(x => x.GetTableEntryIfExistsAsync<FilmEntity>(rowKey)).ReturnsAsync(existingEntity);
         
         // Mock photo deletion dependencies
         _mockTableService.Setup(x => x.GetTableEntriesAsync<PhotoEntity>(It.IsAny<System.Linq.Expressions.Expression<System.Func<PhotoEntity, bool>>>()))
-                        .ReturnsAsync(new List<PhotoEntity>());
+                        .ReturnsAsync([]);
                         
         // Mock BlobClient for photo deletion
         var mockBlobClient = new Mock<BlobClient>();
@@ -220,9 +220,9 @@ public class FilmControllerTests
 
         var allFilms = new List<FilmEntity>
         {
-            new FilmEntity { Name = "Angel's Film 1", PurchasedBy = EUsernameType.Angel, Developed = true, PurchasedOn = DateTime.UtcNow.AddDays(-1), RowKey = "key1" },
-            new FilmEntity { Name = "Tudor's Film", PurchasedBy = EUsernameType.Tudor, Developed = true, PurchasedOn = DateTime.UtcNow.AddDays(-2), RowKey = "key2" },
-            new FilmEntity { Name = "Angel's Film 2", PurchasedBy = EUsernameType.Angel, Developed = true, PurchasedOn = DateTime.UtcNow, RowKey = "key3" }
+            new FilmEntity { Name = "Angel's Film 1", Iso = "400", PurchasedBy = EUsernameType.Angel, Developed = true, PurchasedOn = DateTime.UtcNow.AddDays(-1), RowKey = "key1" },
+            new FilmEntity { Name = "Tudor's Film", Iso = "400", PurchasedBy = EUsernameType.Tudor, Developed = true, PurchasedOn = DateTime.UtcNow.AddDays(-2), RowKey = "key2" },
+            new FilmEntity { Name = "Angel's Film 2", Iso = "400", PurchasedBy = EUsernameType.Angel, Developed = true, PurchasedOn = DateTime.UtcNow, RowKey = "key3" }
         };
 
         _mockTableService.Setup(x => x.GetTableEntriesAsync<FilmEntity>(It.IsAny<System.Linq.Expressions.Expression<System.Func<FilmEntity, bool>>>()))
@@ -253,6 +253,7 @@ public class FilmControllerTests
             allDevelopedFilms.Add(new FilmEntity 
             { 
                 Name = $"Angel's Film {i}", 
+                Iso = "400",
                 PurchasedBy = EUsernameType.Angel, 
                 Developed = true, 
                 PurchasedOn = DateTime.UtcNow.AddDays(-i),
@@ -286,9 +287,9 @@ public class FilmControllerTests
 
         var allFilms = new List<FilmEntity>
         {
-            new FilmEntity { Name = "Tudor's Film 1", PurchasedBy = EUsernameType.Tudor, Developed = false, PurchasedOn = DateTime.UtcNow.AddDays(-1), RowKey = "key1" },
-            new FilmEntity { Name = "Angel's Film", PurchasedBy = EUsernameType.Angel, Developed = false, PurchasedOn = DateTime.UtcNow.AddDays(-2), RowKey = "key2" },
-            new FilmEntity { Name = "Tudor's Film 2", PurchasedBy = EUsernameType.Tudor, Developed = false, PurchasedOn = DateTime.UtcNow, RowKey = "key3" }
+            new FilmEntity { Name = "Tudor's Film 1", Iso = "400", PurchasedBy = EUsernameType.Tudor, Developed = false, PurchasedOn = DateTime.UtcNow.AddDays(-1), RowKey = "key1" },
+            new FilmEntity { Name = "Angel's Film", Iso = "400", PurchasedBy = EUsernameType.Angel, Developed = false, PurchasedOn = DateTime.UtcNow.AddDays(-2), RowKey = "key2" },
+            new FilmEntity { Name = "Tudor's Film 2", Iso = "400", PurchasedBy = EUsernameType.Tudor, Developed = false, PurchasedOn = DateTime.UtcNow, RowKey = "key3" }
         };
 
         _mockTableService.Setup(x => x.GetTableEntriesAsync<FilmEntity>(It.IsAny<System.Linq.Expressions.Expression<System.Func<FilmEntity, bool>>>()))
@@ -379,8 +380,8 @@ public class FilmControllerTests
 
         var allDevelopedFilms = new List<FilmEntity>
         {
-            new FilmEntity { Name = "Film 1", PurchasedBy = EUsernameType.Angel, Developed = true, PurchasedOn = DateTime.UtcNow, RowKey = "key1" },
-            new FilmEntity { Name = "Film 2", PurchasedBy = EUsernameType.Angel, Developed = true, PurchasedOn = DateTime.UtcNow, RowKey = "key2" }
+            new FilmEntity { Name = "Film 1", Iso = "400", PurchasedBy = EUsernameType.Angel, Developed = true, PurchasedOn = DateTime.UtcNow, RowKey = "key1" },
+            new FilmEntity { Name = "Film 2", Iso = "400", PurchasedBy = EUsernameType.Angel, Developed = true, PurchasedOn = DateTime.UtcNow, RowKey = "key2" }
         };
 
         _mockTableService.Setup(x => x.GetTableEntriesAsync<FilmEntity>(It.IsAny<System.Linq.Expressions.Expression<System.Func<FilmEntity, bool>>>()))

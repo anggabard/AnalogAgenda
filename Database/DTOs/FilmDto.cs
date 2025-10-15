@@ -11,7 +11,7 @@ public class FilmDto : HasImage
 
     public required string Name { get; set; }
 
-    public int Iso { get; set; }
+    public required string Iso { get; set; }
 
     public required string Type { get; set; }
 
