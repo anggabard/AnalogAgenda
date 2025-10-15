@@ -91,9 +91,9 @@ export class UpsertFilmComponent extends BaseUpsertComponent<FilmDto> implements
       return null; // Let required validator handle empty values
     }
 
-    const iso = value.toString().trim();
+    const iso = value.toString();
 
-    // Check if it contains spaces (not allowed)
+    // Check if it contains spaces (not allowed) - before trim!
     if (iso.includes(' ')) {
       return { invalidIso: 'ISO cannot contain spaces' };
     }
@@ -107,11 +107,11 @@ export class UpsertFilmComponent extends BaseUpsertComponent<FilmDto> implements
         return { invalidIso: 'ISO range must be in format: number-number (e.g., 100-400)' };
       }
 
-      // Both parts must be valid positive integers
+      // Both parts must be valid positive integers and exactly match the parsed value (no trailing chars)
       const first = parseInt(parts[0], 10);
       const second = parseInt(parts[1], 10);
 
-      if (isNaN(first) || isNaN(second)) {
+      if (isNaN(first) || isNaN(second) || parts[0] !== first.toString() || parts[1] !== second.toString()) {
         return { invalidIso: 'ISO range values must be numbers' };
       }
 
@@ -127,15 +127,15 @@ export class UpsertFilmComponent extends BaseUpsertComponent<FilmDto> implements
 
       return null;
     } else {
-      // Single number case
-      const value = parseInt(iso, 10);
+      // Single number case - must be exactly a number with no other characters
+      const parsedValue = parseInt(iso, 10);
 
-      if (isNaN(value)) {
+      if (isNaN(parsedValue) || iso !== parsedValue.toString()) {
         return { invalidIso: 'ISO must be a number or a range (e.g., 400 or 100-400)' };
       }
 
       // Must be greater than 0
-      if (value <= 0) {
+      if (parsedValue <= 0) {
         return { invalidIso: 'ISO must be greater than 0' };
       }
 
