@@ -10,7 +10,7 @@ public class FilmEntity : BaseEntity, IImageEntity
 
     public required string Name { get; set; }
 
-    public int Iso { get; set; }
+    public required string Iso { get; set; }
 
     public EFilmType Type { get; set; }
 

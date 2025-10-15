@@ -18,6 +18,7 @@ builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddFluentValidationClientsideAdapters();
 builder.Services.AddScoped<IValidator<Database.DTOs.LoginDto>, LoginDtoValidator>();
 builder.Services.AddScoped<IValidator<Database.DTOs.ChangePasswordDto>, ChangePasswordDtoValidator>();
+builder.Services.AddScoped<IValidator<Database.DTOs.FilmDto>, FilmDtoValidator>();
 builder.Services.AddAzureAdConfigBinding();
 builder.Services.AddStorageConfigBinding();
 
