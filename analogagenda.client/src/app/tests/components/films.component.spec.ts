@@ -258,7 +258,7 @@ describe('FilmsComponent', () => {
     return {
       rowKey,
       name,
-      iso: 400,
+      iso: '400',
       type: FilmType.ColorNegative,
       numberOfExposures: 36,
       cost: 12.50,

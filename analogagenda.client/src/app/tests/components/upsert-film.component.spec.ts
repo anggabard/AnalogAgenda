@@ -153,4 +153,121 @@ describe('UpsertFilmComponent', () => {
 
     expect(component.hasExpiredDevKits).toBeFalsy();
   });
+
+  describe('ISO Validator', () => {
+    it('should accept valid single ISO values', () => {
+      const validIsos = ['100', '200', '400', '800', '1600', '3200'];
+      
+      validIsos.forEach(iso => {
+        component.form.patchValue({ iso });
+        const isoControl = component.form.get('iso');
+        expect(isoControl?.valid).toBeTruthy(`ISO ${iso} should be valid`);
+      });
+    });
+
+    it('should accept valid ISO ranges', () => {
+      const validRanges = ['100-400', '200-800', '50-200', '400-1600'];
+      
+      validRanges.forEach(iso => {
+        component.form.patchValue({ iso });
+        const isoControl = component.form.get('iso');
+        expect(isoControl?.valid).toBeTruthy(`ISO range ${iso} should be valid`);
+      });
+    });
+
+    it('should reject ISO values with spaces', () => {
+      const invalidIsos = ['100 - 400', '100 -400', '100- 400', ' 400', '400 '];
+      
+      invalidIsos.forEach(iso => {
+        component.form.patchValue({ iso });
+        const isoControl = component.form.get('iso');
+        expect(isoControl?.invalid).toBeTruthy(`ISO ${iso} should be invalid`);
+        expect(isoControl?.errors?.['invalidIso']).toBeTruthy();
+      });
+    });
+
+    it('should reject zero or negative ISO values', () => {
+      const invalidIsos = ['0', '-100', '-400'];
+      
+      invalidIsos.forEach(iso => {
+        component.form.patchValue({ iso });
+        const isoControl = component.form.get('iso');
+        expect(isoControl?.invalid).toBeTruthy(`ISO ${iso} should be invalid`);
+        expect(isoControl?.errors?.['invalidIso']).toBeTruthy();
+      });
+    });
+
+    it('should reject invalid ISO ranges where first >= second', () => {
+      const invalidRanges = ['400-100', '800-200', '400-400'];
+      
+      invalidRanges.forEach(iso => {
+        component.form.patchValue({ iso });
+        const isoControl = component.form.get('iso');
+        expect(isoControl?.invalid).toBeTruthy(`ISO range ${iso} should be invalid`);
+        expect(isoControl?.errors?.['invalidIso']).toBeTruthy();
+      });
+    });
+
+    it('should reject ISO ranges with zero or negative values', () => {
+      const invalidRanges = ['0-400', '100-0', '-100-400'];
+      
+      invalidRanges.forEach(iso => {
+        component.form.patchValue({ iso });
+        const isoControl = component.form.get('iso');
+        expect(isoControl?.invalid).toBeTruthy(`ISO range ${iso} should be invalid`);
+        expect(isoControl?.errors?.['invalidIso']).toBeTruthy();
+      });
+    });
+
+    it('should reject non-numeric ISO values', () => {
+      const invalidIsos = ['abc', 'ISO400', '400ISO', 'one hundred'];
+      
+      invalidIsos.forEach(iso => {
+        component.form.patchValue({ iso });
+        const isoControl = component.form.get('iso');
+        expect(isoControl?.invalid).toBeTruthy(`ISO ${iso} should be invalid`);
+        expect(isoControl?.errors?.['invalidIso']).toBeTruthy();
+      });
+    });
+
+    it('should reject ISO ranges with invalid separators', () => {
+      const invalidRanges = ['100/400', '100to400', '100_400'];
+      
+      invalidRanges.forEach(iso => {
+        component.form.patchValue({ iso });
+        const isoControl = component.form.get('iso');
+        expect(isoControl?.invalid).toBeTruthy(`ISO range ${iso} should be invalid`);
+        expect(isoControl?.errors?.['invalidIso']).toBeTruthy();
+      });
+    });
+
+    it('should reject ISO ranges with multiple dashes', () => {
+      const invalidRanges = ['100-200-400', '100-200-400-800'];
+      
+      invalidRanges.forEach(iso => {
+        component.form.patchValue({ iso });
+        const isoControl = component.form.get('iso');
+        expect(isoControl?.invalid).toBeTruthy(`ISO range ${iso} should be invalid`);
+        expect(isoControl?.errors?.['invalidIso']).toBeTruthy();
+      });
+    });
+
+    it('should reject ISO ranges with non-numeric parts', () => {
+      const invalidRanges = ['100-abc', 'abc-400'];
+      
+      invalidRanges.forEach(iso => {
+        component.form.patchValue({ iso });
+        const isoControl = component.form.get('iso');
+        expect(isoControl?.invalid).toBeTruthy(`ISO range ${iso} should be invalid`);
+        expect(isoControl?.errors?.['invalidIso']).toBeTruthy();
+      });
+    });
+
+    it('should require ISO field', () => {
+      component.form.patchValue({ iso: '' });
+      const isoControl = component.form.get('iso');
+      expect(isoControl?.invalid).toBeTruthy('Empty ISO should be invalid');
+      expect(isoControl?.errors?.['required']).toBeTruthy();
+    });
+  });
 });

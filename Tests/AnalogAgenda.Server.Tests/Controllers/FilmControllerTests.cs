@@ -63,7 +63,7 @@ public class FilmControllerTests
         var filmDto = new FilmDto
         {
             Name = "Kodak Portra 400",
-            Iso = 400,
+            Iso = "400",
             Type = "Color Negative",
             NumberOfExposures = 36,
             Cost = 12.50,
@@ -91,7 +91,7 @@ public class FilmControllerTests
             new FilmEntity
             {
                 Name = "Kodak Portra 400",
-                Iso = 400,
+                Iso = "400",
                 Type = EFilmType.ColorNegative,
                 NumberOfExposures = 36,
                 Cost = 12.50,
@@ -133,7 +133,7 @@ public class FilmControllerTests
         {
             RowKey = rowKey,
             Name = "Kodak Portra 400",
-            Iso = 400,
+            Iso = "400",
             Type = EFilmType.ColorNegative,
             NumberOfExposures = 36,
             Cost = 12.50,
@@ -165,7 +165,7 @@ public class FilmControllerTests
         var updateDto = new FilmDto
         {
             Name = "Updated Film",
-            Iso = 800,
+            Iso = "800",
             Type = "Black and White",
             NumberOfExposures = 24,
             Cost = 15.00,

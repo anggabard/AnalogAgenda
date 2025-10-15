@@ -18,7 +18,7 @@ describe('FilmPhotosComponent', () => {
   const mockFilm: FilmDto = {
     rowKey: 'test-film-id',
     name: 'Test Film',
-    iso: 400,
+    iso: '400',
     type: FilmType.ColorNegative,
     numberOfExposures: 36,
     cost: 12.50,
