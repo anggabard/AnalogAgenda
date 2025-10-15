@@ -220,7 +220,7 @@ public class FilmDtoValidatorTests
             RowKey = "",
             Name = "Test Film",
             Iso = iso,
-            Type = EFilmType.ColorNegative.ToDisplayString(),
+            Type = EFilmType.ColorNegative.ToString(),
             NumberOfExposures = 36,
             Cost = 10.0,
             PurchasedBy = EUsernameType.Angel.ToString(),
