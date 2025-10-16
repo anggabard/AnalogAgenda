@@ -46,7 +46,7 @@ describe('UsedFilmThumbnailService', () => {
       expect(thumbnails).toEqual(mockThumbnails);
     });
 
-    const req = httpMock.expectOne('/api/UsedFilmThumbnail/search?filmName=Kodak');
+    const req = httpMock.expectOne('https://localhost:7125/api/UsedFilmThumbnail/search?filmName=Kodak');
     expect(req.request.method).toBe('GET');
     req.flush(mockThumbnails);
   });
@@ -66,7 +66,7 @@ describe('UsedFilmThumbnailService', () => {
       expect(thumbnails).toEqual(mockThumbnails);
     });
 
-    const req = httpMock.expectOne('/api/UsedFilmThumbnail/search?filmName=');
+    const req = httpMock.expectOne('https://localhost:7125/api/UsedFilmThumbnail/search?filmName=');
     expect(req.request.method).toBe('GET');
     req.flush(mockThumbnails);
   });
@@ -92,7 +92,7 @@ describe('UsedFilmThumbnailService', () => {
       expect(thumbnail).toEqual(mockUploadedThumbnail);
     });
 
-    const req = httpMock.expectOne('/api/UsedFilmThumbnail');
+    const req = httpMock.expectOne('https://localhost:7125/api/UsedFilmThumbnail/');
     expect(req.request.method).toBe('POST');
     expect(req.request.body).toEqual(uploadDto);
     req.flush(mockUploadedThumbnail);
@@ -106,7 +106,7 @@ describe('UsedFilmThumbnailService', () => {
       }
     });
 
-    const req = httpMock.expectOne('/api/UsedFilmThumbnail/search?filmName=Kodak');
+    const req = httpMock.expectOne('https://localhost:7125/api/UsedFilmThumbnail/search?filmName=Kodak');
     req.flush('Server Error', { status: 500, statusText: 'Internal Server Error' });
   });
 
@@ -118,7 +118,7 @@ describe('UsedFilmThumbnailService', () => {
       }
     });
 
-    const req = httpMock.expectOne('/api/UsedFilmThumbnail');
+    const req = httpMock.expectOne('https://localhost:7125/api/UsedFilmThumbnail/');
     req.flush('Bad Request', { status: 400, statusText: 'Bad Request' });
   });
 });

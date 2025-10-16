@@ -40,6 +40,9 @@ public class FilmControllerTests
         _mockTableService.Setup(x => x.GetTable(TableName.Photos))
                         .Returns(_mockPhotosTableClient.Object);
         
+        _mockTableService.Setup(x => x.GetTable(TableName.UsedFilmThumbnails))
+                        .Returns(_mockFilmsTableClient.Object);
+        
         _mockBlobService.Setup(x => x.GetBlobContainer(ContainerName.films))
                        .Returns(_mockFilmsContainerClient.Object);
                        
@@ -74,7 +77,7 @@ public class FilmControllerTests
             ImageUrl = "" // No image - will use default
         };
 
-        _mockTableClient.Setup(x => x.AddEntityAsync(It.IsAny<FilmEntity>(), default))
+        _mockFilmsTableClient.Setup(x => x.AddEntityAsync(It.IsAny<FilmEntity>(), default))
                        .Returns(Task.FromResult(It.IsAny<Azure.Response>()));
 
         // Act
@@ -82,7 +85,7 @@ public class FilmControllerTests
 
         // Assert
         Assert.IsType<CreatedResult>(result);
-        _mockTableClient.Verify(x => x.AddEntityAsync(It.IsAny<FilmEntity>(), default), Times.Once);
+        _mockFilmsTableClient.Verify(x => x.AddEntityAsync(It.IsAny<FilmEntity>(), default), Times.Once);
     }
 
     [Fact]
@@ -100,10 +103,10 @@ public class FilmControllerTests
             PurchasedOn = DateOnly.FromDateTime(DateTime.UtcNow),
             Description = "Professional color negative film",
             Developed = false,
-            ImageUrl = "https://teststorage.blob.core.windows.net/films/test-image-id"
+            ImageUrl = "https://teststorage.blob.core.windows.net/films/12345678-1234-1234-1234-123456789012"
         };
 
-        _mockTableClient.Setup(x => x.AddEntityAsync(It.IsAny<FilmEntity>(), default))
+        _mockFilmsTableClient.Setup(x => x.AddEntityAsync(It.IsAny<FilmEntity>(), default))
                        .Returns(Task.FromResult(It.IsAny<Azure.Response>()));
 
         // Act
@@ -111,7 +114,7 @@ public class FilmControllerTests
 
         // Assert
         Assert.IsType<CreatedResult>(result);
-        _mockTableClient.Verify(x => x.AddEntityAsync(It.IsAny<FilmEntity>(), default), Times.Once);
+        _mockFilmsTableClient.Verify(x => x.AddEntityAsync(It.IsAny<FilmEntity>(), default), Times.Once);
     }
 
 

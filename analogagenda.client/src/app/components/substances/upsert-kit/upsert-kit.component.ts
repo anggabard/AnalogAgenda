@@ -76,6 +76,7 @@ export class UpsertKitComponent extends BaseUpsertComponent<DevKitDto> implement
       validForFilms: [8, Validators.required],
       filmsDeveloped: [0, Validators.required],
       imageUrl: [''],
+      imageId: [''],
       description: [''],
       expired: [false, Validators.required]
     });

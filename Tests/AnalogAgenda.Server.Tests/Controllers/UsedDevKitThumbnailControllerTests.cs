@@ -155,6 +155,11 @@ public class UsedDevKitThumbnailControllerTests
         _mockThumbnailsTableClient.Setup(x => x.AddEntityAsync(It.IsAny<UsedDevKitThumbnailEntity>(), default))
                                  .Returns(Task.FromResult(It.IsAny<Azure.Response>()));
 
+        // Mock BlobClient for image upload
+        var mockBlobClient = new Mock<BlobClient>();
+        _mockDevKitsContainerClient.Setup(x => x.GetBlobClient(It.IsAny<string>()))
+                                 .Returns(mockBlobClient.Object);
+
         // Act
         var result = await _controller.CreateThumbnailEntry(dto);
 
@@ -214,6 +219,13 @@ public class UsedDevKitThumbnailControllerTests
 
         _mockThumbnailsTableClient.Setup(x => x.AddEntityAsync(It.IsAny<UsedDevKitThumbnailEntity>(), default))
                                  .ThrowsAsync(new Exception("Database error"));
+
+        // Mock BlobClient for image upload to throw exception
+        var mockBlobClient = new Mock<BlobClient>();
+        mockBlobClient.Setup(x => x.UploadAsync(It.IsAny<Stream>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()))
+                     .ThrowsAsync(new Exception("Database error"));
+        _mockDevKitsContainerClient.Setup(x => x.GetBlobClient(It.IsAny<string>()))
+                                 .Returns(mockBlobClient.Object);
 
         // Act
         var result = await _controller.CreateThumbnailEntry(dto);

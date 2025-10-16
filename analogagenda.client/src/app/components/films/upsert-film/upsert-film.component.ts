@@ -114,6 +114,7 @@ export class UpsertFilmComponent extends BaseUpsertComponent<FilmDto> implements
       purchasedBy: ['', Validators.required],
       purchasedOn: [DateHelper.getTodayForInput(), Validators.required],
       imageUrl: [''],
+      imageId: [''],
       description: [''],
       developed: [false, Validators.required],
       developedInSessionRowKey: [null],

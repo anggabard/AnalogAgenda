@@ -1,4 +1,4 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { of } from 'rxjs';
@@ -350,10 +350,23 @@ describe('UpsertFilmComponent', () => {
         }
       } as any;
 
+      // Mock FileReader
+      const mockFileReader = {
+        readAsDataURL: jasmine.createSpy('readAsDataURL'),
+        result: 'data:image/jpeg;base64,testdata',
+        onload: null as any
+      };
+      spyOn(window, 'FileReader').and.returnValue(mockFileReader as any);
+
       component.onThumbnailFileSelected(mockEvent);
 
       expect(component.newThumbnailFile).toBe(mockFile);
-      expect(component.newThumbnailPreview).toBeTruthy();
+      expect(mockFileReader.readAsDataURL).toHaveBeenCalledWith(mockFile);
+      
+      // Simulate FileReader onload
+      mockFileReader.onload();
+      
+      expect(component.newThumbnailPreview).toBe('data:image/jpeg;base64,testdata');
     });
 
     it('should upload thumbnail when onUploadThumbnail is called', () => {
@@ -370,7 +383,20 @@ describe('UpsertFilmComponent', () => {
       };
       mockThumbnailService.uploadThumbnail.and.returnValue(of(mockUploadedThumbnail));
 
+      // Mock FileReader
+      const mockFileReader = {
+        readAsDataURL: jasmine.createSpy('readAsDataURL'),
+        result: 'data:image/jpeg;base64,testdata',
+        onload: null as any
+      };
+      spyOn(window, 'FileReader').and.returnValue(mockFileReader as any);
+
       component.onUploadThumbnail();
+
+      expect(mockFileReader.readAsDataURL).toHaveBeenCalledWith(mockFile);
+      
+      // Simulate FileReader onload
+      mockFileReader.onload();
 
       expect(mockThumbnailService.uploadThumbnail).toHaveBeenCalled();
       expect(component.form.get('imageUrl')?.value).toBe('url1');

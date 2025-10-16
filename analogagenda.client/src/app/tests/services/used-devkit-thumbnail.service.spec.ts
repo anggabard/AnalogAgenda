@@ -46,7 +46,7 @@ describe('UsedDevKitThumbnailService', () => {
       expect(thumbnails).toEqual(mockThumbnails);
     });
 
-    const req = httpMock.expectOne('/api/UsedDevKitThumbnail/search?devKitName=Bellini');
+    const req = httpMock.expectOne('https://localhost:7125/api/UsedDevKitThumbnail/search?devKitName=Bellini');
     expect(req.request.method).toBe('GET');
     req.flush(mockThumbnails);
   });
@@ -66,7 +66,7 @@ describe('UsedDevKitThumbnailService', () => {
       expect(thumbnails).toEqual(mockThumbnails);
     });
 
-    const req = httpMock.expectOne('/api/UsedDevKitThumbnail/search?devKitName=');
+    const req = httpMock.expectOne('https://localhost:7125/api/UsedDevKitThumbnail/search?devKitName=');
     expect(req.request.method).toBe('GET');
     req.flush(mockThumbnails);
   });
@@ -92,7 +92,7 @@ describe('UsedDevKitThumbnailService', () => {
       expect(thumbnail).toEqual(mockUploadedThumbnail);
     });
 
-    const req = httpMock.expectOne('/api/UsedDevKitThumbnail');
+    const req = httpMock.expectOne('https://localhost:7125/api/UsedDevKitThumbnail/');
     expect(req.request.method).toBe('POST');
     expect(req.request.body).toEqual(uploadDto);
     req.flush(mockUploadedThumbnail);
@@ -106,7 +106,7 @@ describe('UsedDevKitThumbnailService', () => {
       }
     });
 
-    const req = httpMock.expectOne('/api/UsedDevKitThumbnail/search?devKitName=Bellini');
+    const req = httpMock.expectOne('https://localhost:7125/api/UsedDevKitThumbnail/search?devKitName=Bellini');
     req.flush('Server Error', { status: 500, statusText: 'Internal Server Error' });
   });
 
@@ -118,7 +118,7 @@ describe('UsedDevKitThumbnailService', () => {
       }
     });
 
-    const req = httpMock.expectOne('/api/UsedDevKitThumbnail');
+    const req = httpMock.expectOne('https://localhost:7125/api/UsedDevKitThumbnail/');
     req.flush('Bad Request', { status: 400, statusText: 'Bad Request' });
   });
 });
