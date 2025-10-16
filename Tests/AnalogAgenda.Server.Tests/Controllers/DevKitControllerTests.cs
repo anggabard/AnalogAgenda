@@ -47,8 +47,7 @@ public class DevKitControllerTests
             Url = "https://example.com",
             Type = "BW",
             PurchasedBy = "Angel",
-            PurchasedOn = DateOnly.FromDateTime(DateTime.UtcNow),
-            ImageBase64 = null! // No image
+            PurchasedOn = DateOnly.FromDateTime(DateTime.UtcNow)
         };
 
         _mockTableClient.Setup(x => x.AddEntityAsync(It.IsAny<DevKitEntity>(), default))
@@ -72,8 +71,7 @@ public class DevKitControllerTests
             Url = "https://example.com",
             Type = "BW",
             PurchasedBy = "Angel",
-            PurchasedOn = DateOnly.FromDateTime(DateTime.UtcNow),
-            ImageBase64 = null!
+            PurchasedOn = DateOnly.FromDateTime(DateTime.UtcNow)
         };
 
         _mockTableClient.Setup(x => x.AddEntityAsync(It.IsAny<DevKitEntity>(), default))
@@ -194,8 +192,7 @@ public class DevKitControllerTests
             Url = "https://updated.com",
             Type = "E6",
             PurchasedBy = "Tudor",
-            PurchasedOn = DateOnly.FromDateTime(DateTime.UtcNow),
-            ImageBase64 = null!
+            PurchasedOn = DateOnly.FromDateTime(DateTime.UtcNow)
         };
 
         _mockTableService.Setup(x => x.GetTableEntryIfExistsAsync<DevKitEntity>(rowKey))

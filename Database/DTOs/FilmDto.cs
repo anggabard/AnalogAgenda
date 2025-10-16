@@ -1,11 +1,10 @@
 using Database.DBObjects.Enums;
-using Database.DTOs.Subclasses;
 using Database.Entities;
 using Database.Helpers;
 
 namespace Database.DTOs;
 
-public class FilmDto : HasImage
+public class FilmDto
 {
     public string RowKey { get; set; } = string.Empty;
 
@@ -22,6 +21,8 @@ public class FilmDto : HasImage
     public required string PurchasedBy { get; set; }
 
     public DateOnly PurchasedOn { get; set; }
+
+    public string ImageUrl { get; set; } = string.Empty;
 
     public string Description { get; set; } = string.Empty;
 

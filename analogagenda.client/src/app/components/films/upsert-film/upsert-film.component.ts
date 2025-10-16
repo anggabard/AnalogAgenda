@@ -1,11 +1,11 @@
 import { Component, OnInit } from '@angular/core';
 import { FormGroup, Validators, AbstractControl, ValidationErrors } from '@angular/forms';
-import { Observable, forkJoin } from 'rxjs';
-import { switchMap } from 'rxjs/operators';
+import { Observable, forkJoin, Subject } from 'rxjs';
+import { switchMap, debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { BaseUpsertComponent } from '../../common/base-upsert/base-upsert.component';
-import { FilmService, PhotoService, SessionService, DevKitService } from '../../../services';
+import { FilmService, PhotoService, SessionService, DevKitService, UsedFilmThumbnailService } from '../../../services';
 import { FilmType, UsernameType } from '../../../enums';
-import { FilmDto, PhotoBulkUploadDto, PhotoUploadDto, SessionDto, DevKitDto } from '../../../DTOs';
+import { FilmDto, PhotoBulkUploadDto, PhotoUploadDto, SessionDto, DevKitDto, UsedFilmThumbnailDto } from '../../../DTOs';
 import { FileUploadHelper } from '../../../helpers/file-upload.helper';
 import { DateHelper } from '../../../helpers/date.helper';
 import { ErrorHandlingHelper } from '../../../helpers/error-handling.helper';
@@ -22,7 +22,8 @@ export class UpsertFilmComponent extends BaseUpsertComponent<FilmDto> implements
     private filmService: FilmService, 
     private photoService: PhotoService,
     private sessionService: SessionService,
-    private devKitService: DevKitService
+    private devKitService: DevKitService,
+    private thumbnailService: UsedFilmThumbnailService
   ) {
     super();
   }
@@ -41,6 +42,27 @@ export class UpsertFilmComponent extends BaseUpsertComponent<FilmDto> implements
           developedInSessionRowKey: null,
           developedWithDevKitRowKey: null
         });
+      }
+    });
+    
+    // Set up debounced thumbnail search
+    this.searchSubject.pipe(
+      debounceTime(300),
+      distinctUntilChanged()
+    ).subscribe(searchQuery => {
+      this.performThumbnailSearch(searchQuery);
+    });
+  }
+
+  private performThumbnailSearch(searchQuery: string): void {
+    // Search for all thumbnails if query is empty, or filter by query
+    this.thumbnailService.searchByFilmName(searchQuery || '').subscribe({
+      next: (results) => {
+        this.thumbnailSearchResults = results;
+        this.showThumbnailDropdown = true;
+      },
+      error: (err) => {
+        this.errorMessage = ErrorHandlingHelper.handleError(err, 'searching thumbnails');
       }
     });
   }
@@ -64,6 +86,23 @@ export class UpsertFilmComponent extends BaseUpsertComponent<FilmDto> implements
   
   // Success message
   successMessage: string | null = null;
+  
+  // Thumbnail search state
+  thumbnailSearchQuery: string = '';
+  thumbnailSearchResults: UsedFilmThumbnailDto[] = [];
+  showThumbnailDropdown: boolean = false;
+  
+  // Add thumbnail modal state
+  showAddThumbnailModal: boolean = false;
+  newThumbnailFile: File | null = null;
+  newThumbnailFilmName: string = '';
+  newThumbnailPreview: string = '';
+  uploadingThumbnail: boolean = false;
+  
+  // Thumbnail preview modal
+  showThumbnailPreview: boolean = false;
+  
+  private searchSubject = new Subject<string>();
 
   protected createForm(): FormGroup {
     return this.fb.group({
@@ -75,7 +114,6 @@ export class UpsertFilmComponent extends BaseUpsertComponent<FilmDto> implements
       purchasedBy: ['', Validators.required],
       purchasedOn: [DateHelper.getTodayForInput(), Validators.required],
       imageUrl: [''],
-      imageBase64: [''],
       description: [''],
       developed: [false, Validators.required],
       developedInSessionRowKey: [null],
@@ -506,5 +544,128 @@ export class UpsertFilmComponent extends BaseUpsertComponent<FilmDto> implements
         setTimeout(() => this.successMessage = null, 3000);
       }
     }
+  }
+
+  // Thumbnail search methods
+  onThumbnailSearchClick(): void {
+    // Show all thumbnails when clicking on search box
+    this.performThumbnailSearch('');
+  }
+
+  onThumbnailSearchChange(): void {
+    this.searchSubject.next(this.thumbnailSearchQuery);
+  }
+
+  onSelectThumbnail(thumbnail: UsedFilmThumbnailDto): void {
+    // Set the imageUrl and imageId from the selected thumbnail
+    this.form.patchValue({ 
+      imageUrl: thumbnail.imageUrl,
+      imageId: thumbnail.imageId
+    });
+    this.thumbnailSearchQuery = thumbnail.filmName;
+    this.showThumbnailDropdown = false;
+  }
+
+  onThumbnailSearchBlur(): void {
+    // Delay closing to allow click events on dropdown items to fire
+    setTimeout(() => {
+      this.closeThumbnailDropdown();
+    }, 200);
+  }
+
+  closeThumbnailDropdown(): void {
+    this.showThumbnailDropdown = false;
+  }
+
+  // Add new thumbnail methods
+  get canAddThumbnail(): boolean {
+    const filmName = this.form.get('name')?.value;
+    return filmName && filmName.trim().length > 0;
+  }
+
+  onAddNewThumbnail(): void {
+    if (!this.canAddThumbnail) return;
+    
+    const filmName = this.form.get('name')?.value;
+    const iso = this.form.get('iso')?.value;
+    // Include ISO in the film name for better identification
+    this.newThumbnailFilmName = iso ? `${filmName} ${iso}` : filmName;
+    this.showAddThumbnailModal = true;
+  }
+
+  onThumbnailFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (input.files && input.files.length > 0) {
+      const file = input.files[0];
+      this.newThumbnailFile = file;
+      
+      // Create preview
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => {
+        this.newThumbnailPreview = reader.result as string;
+      };
+    }
+  }
+
+  onUploadThumbnail(): void {
+    if (!this.newThumbnailFile || !this.newThumbnailFilmName.trim()) {
+      this.errorMessage = 'Please select a file and provide a film name.';
+      return;
+    }
+
+    this.uploadingThumbnail = true;
+    this.errorMessage = null;
+
+    const reader = new FileReader();
+    reader.readAsDataURL(this.newThumbnailFile);
+    reader.onload = () => {
+      const imageBase64 = reader.result as string;
+      
+      this.thumbnailService.uploadThumbnail(this.newThumbnailFilmName, imageBase64).subscribe({
+        next: (uploadedThumbnail) => {
+          this.uploadingThumbnail = false;
+          
+          // Auto-select the newly uploaded thumbnail
+          this.form.patchValue({ 
+            imageUrl: uploadedThumbnail.imageUrl,
+            imageId: uploadedThumbnail.imageId
+          });
+          
+          // Set the search query to show the uploaded film name
+          this.thumbnailSearchQuery = uploadedThumbnail.filmName;
+          
+          // Close modal and reset
+          this.closeAddThumbnailModal();
+        },
+        error: (err) => {
+          this.uploadingThumbnail = false;
+          this.errorMessage = ErrorHandlingHelper.handleError(err, 'uploading thumbnail');
+        }
+      });
+    };
+  }
+
+  closeAddThumbnailModal(): void {
+    this.showAddThumbnailModal = false;
+    this.newThumbnailFile = null;
+    this.newThumbnailFilmName = '';
+    this.newThumbnailPreview = '';
+  }
+
+  // Thumbnail preview methods
+  get hasThumbnailSelected(): boolean {
+    const imageUrl = this.form.get('imageUrl')?.value;
+    return imageUrl && imageUrl.trim().length > 0;
+  }
+
+  openThumbnailPreview(): void {
+    if (this.hasThumbnailSelected) {
+      this.showThumbnailPreview = true;
+    }
+  }
+
+  closeThumbnailPreview(): void {
+    this.showThumbnailPreview = false;
   }
 }

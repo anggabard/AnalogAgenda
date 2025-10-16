@@ -15,6 +15,8 @@ public static class TableExtension
             TableName.Films => "FILM",
             TableName.Photos => "PHOTO",
             TableName.Sessions => "SESSION",
+            TableName.UsedFilmThumbnails => "USEDFT",
+            TableName.UsedDevKitThumbnails => "USEDDKT",
             _ => throw new Exception($"Partition key for {table} does not exist"),
         };
     }

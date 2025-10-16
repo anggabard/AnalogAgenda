@@ -1,7 +1,6 @@
-import { HasImageDto } from ".";
 import { FilmType, UsernameType } from "../enums";
 
-export interface FilmDto extends HasImageDto{
+export interface FilmDto {
   rowKey: string;
   name: string;
   iso: string;
@@ -10,6 +9,7 @@ export interface FilmDto extends HasImageDto{
   cost: number;
   purchasedBy: UsernameType;
   purchasedOn: string;
+  imageUrl: string;
   description: string;
   developed: boolean;
   developedInSessionRowKey?: string | null;

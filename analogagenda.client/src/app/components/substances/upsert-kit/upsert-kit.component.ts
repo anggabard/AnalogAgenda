@@ -1,11 +1,13 @@
 import { Component, OnInit } from '@angular/core';
 import { FormGroup, Validators } from '@angular/forms';
-import { Observable } from 'rxjs';
+import { Observable, Subject } from 'rxjs';
+import { debounceTime, distinctUntilChanged, switchMap } from 'rxjs/operators';
 import { BaseUpsertComponent } from '../../common/base-upsert/base-upsert.component';
-import { DevKitService } from '../../../services';
+import { DevKitService, UsedDevKitThumbnailService } from '../../../services';
 import { DevKitType, UsernameType } from '../../../enums';
-import { DevKitDto } from '../../../DTOs';
+import { DevKitDto, UsedDevKitThumbnailDto } from '../../../DTOs';
 import { DateHelper } from '../../../helpers/date.helper';
+import { ErrorHandlingHelper } from '../../../helpers/error-handling.helper';
 
 @Component({
     selector: 'app-upsert-kit',
@@ -15,17 +17,52 @@ import { DateHelper } from '../../../helpers/date.helper';
 })
 export class UpsertKitComponent extends BaseUpsertComponent<DevKitDto> implements OnInit {
 
-  constructor(private devKitService: DevKitService) {
+  constructor(
+    private devKitService: DevKitService,
+    private thumbnailService: UsedDevKitThumbnailService
+  ) {
     super();
   }
 
   override ngOnInit(): void {
     super.ngOnInit();
+    
+    // Setup thumbnail search with debounce
+    this.searchSubject.pipe(
+      debounceTime(500),
+      distinctUntilChanged(),
+      switchMap(query => this.performThumbnailSearch(query))
+    ).subscribe({
+      next: (results) => {
+        this.thumbnailSearchResults = results;
+        this.showThumbnailDropdown = true;
+      },
+      error: (err) => {
+        this.errorMessage = ErrorHandlingHelper.handleError(err, 'searching thumbnails');
+      }
+    });
   }
 
   // Component-specific properties
   devKitOptions = Object.values(DevKitType);
   purchasedByOptions = Object.values(UsernameType);
+
+  // Thumbnail search state
+  thumbnailSearchQuery: string = '';
+  thumbnailSearchResults: UsedDevKitThumbnailDto[] = [];
+  showThumbnailDropdown: boolean = false;
+  
+  // Add thumbnail modal state
+  showAddThumbnailModal: boolean = false;
+  newThumbnailFile: File | null = null;
+  newThumbnailDevKitName: string = '';
+  newThumbnailPreview: string = '';
+  uploadingThumbnail: boolean = false;
+  
+  // Thumbnail preview modal
+  showThumbnailPreview: boolean = false;
+  
+  private searchSubject = new Subject<string>();
 
   protected createForm(): FormGroup {
     return this.fb.group({
@@ -39,7 +76,6 @@ export class UpsertKitComponent extends BaseUpsertComponent<DevKitDto> implement
       validForFilms: [8, Validators.required],
       filmsDeveloped: [0, Validators.required],
       imageUrl: [''],
-      imageBase64: [''],
       description: [''],
       expired: [false, Validators.required]
     });
@@ -67,5 +103,136 @@ export class UpsertKitComponent extends BaseUpsertComponent<DevKitDto> implement
 
   protected getEntityName(): string {
     return 'Kit';
+  }
+
+  // Thumbnail search methods
+  performThumbnailSearch(query: string): Observable<UsedDevKitThumbnailDto[]> {
+    return this.thumbnailService.searchByDevKitName(query);
+  }
+
+  onThumbnailSearchClick(): void {
+    this.performThumbnailSearch('').subscribe({
+      next: (results) => {
+        this.thumbnailSearchResults = results;
+        this.showThumbnailDropdown = true;
+      },
+      error: (err) => {
+        this.errorMessage = ErrorHandlingHelper.handleError(err, 'loading thumbnails');
+      }
+    });
+  }
+
+  onThumbnailSearchChange(): void {
+    this.searchSubject.next(this.thumbnailSearchQuery);
+  }
+
+  onSelectThumbnail(thumbnail: UsedDevKitThumbnailDto): void {
+    // Set the imageUrl and imageId from the selected thumbnail
+    this.form.patchValue({ 
+      imageUrl: thumbnail.imageUrl,
+      imageId: thumbnail.imageId
+    });
+    this.thumbnailSearchQuery = thumbnail.devKitName;
+    this.showThumbnailDropdown = false;
+  }
+
+  onThumbnailSearchBlur(): void {
+    // Delay closing to allow click events on dropdown items to fire
+    setTimeout(() => {
+      this.closeThumbnailDropdown();
+    }, 200);
+  }
+
+  closeThumbnailDropdown(): void {
+    this.showThumbnailDropdown = false;
+  }
+
+  // Add new thumbnail methods
+  get canAddThumbnail(): boolean {
+    const devKitName = this.form.get('name')?.value;
+    return devKitName && devKitName.trim().length > 0;
+  }
+
+  onAddNewThumbnail(): void {
+    if (!this.canAddThumbnail) return;
+    
+    const devKitName = this.form.get('name')?.value;
+    const devKitType = this.form.get('type')?.value;
+    // Include type in the devkit name for better identification
+    this.newThumbnailDevKitName = devKitType ? `${devKitName} ${devKitType}` : devKitName;
+    this.showAddThumbnailModal = true;
+  }
+
+  onThumbnailFileSelected(event: Event): void {
+    const file = (event.target as HTMLInputElement).files?.[0];
+    if (file) {
+      this.newThumbnailFile = file;
+      const reader = new FileReader();
+      reader.onload = () => {
+        this.newThumbnailPreview = reader.result as string;
+      };
+      reader.readAsDataURL(file);
+    }
+  }
+
+  onUploadThumbnail(): void {
+    if (!this.newThumbnailFile || !this.newThumbnailDevKitName) {
+      this.errorMessage = 'Please select a file and enter a devkit name.';
+      return;
+    }
+
+    this.uploadingThumbnail = true;
+    this.errorMessage = null;
+
+    const reader = new FileReader();
+    reader.readAsDataURL(this.newThumbnailFile);
+    reader.onload = () => {
+      const imageBase64 = reader.result as string;
+      
+      this.thumbnailService.uploadThumbnail(this.newThumbnailDevKitName, imageBase64).subscribe({
+        next: (uploadedThumbnail) => {
+          this.uploadingThumbnail = false;
+          
+          // Auto-select the newly uploaded thumbnail
+          this.form.patchValue({ 
+            imageUrl: uploadedThumbnail.imageUrl,
+            imageId: uploadedThumbnail.imageId
+          });
+          
+          // Set the search query to show the uploaded devkit name
+          this.thumbnailSearchQuery = uploadedThumbnail.devKitName;
+          
+          // Close modal and reset
+          this.closeAddThumbnailModal();
+        },
+        error: (err) => {
+          this.uploadingThumbnail = false;
+          this.errorMessage = ErrorHandlingHelper.handleError(err, 'uploading thumbnail');
+        }
+      });
+    };
+  }
+
+  closeAddThumbnailModal(): void {
+    this.showAddThumbnailModal = false;
+    this.newThumbnailFile = null;
+    this.newThumbnailDevKitName = '';
+    this.newThumbnailPreview = '';
+  }
+
+  // Thumbnail preview methods
+  get hasThumbnailSelected(): boolean {
+    const imageUrl = this.form.get('imageUrl')?.value;
+    return imageUrl && imageUrl.trim().length > 0;
+  }
+
+  openThumbnailPreview(): void {
+    if (this.hasThumbnailSelected) {
+      this.showThumbnailPreview = true;
+    }
+  }
+
+  closeThumbnailPreview(): void {
+    this.showThumbnailPreview = false;
   }
 }

@@ -8,5 +8,7 @@ public enum TableName
     DevKits,
     Films,
     Photos,
-    Sessions
+    Sessions,
+    UsedFilmThumbnails,
+    UsedDevKitThumbnails
 }
