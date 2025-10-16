@@ -55,9 +55,62 @@
                 <input type="date" formControlName="purchasedOn" class="input" />
             </div>
 
-            <div>
-                <label for="filmImage">Thumbnail</label>
-                <input type="file" (change)="onImageSelected($event)" accept="image/*" class="input" />
+            <!-- Thumbnail Section -->
+            <div class="thumbnail-section">
+                <label>Thumbnail</label>
+
+                <!-- Search Box with Preview Button -->
+                <div class="thumbnail-search-row">
+                    <div class="thumbnail-search-container">
+                        <input 
+                            type="text" 
+                            [(ngModel)]="thumbnailSearchQuery"
+                            [ngModelOptions]="{standalone: true}"
+                            (click)="onThumbnailSearchClick()"
+                            (ngModelChange)="onThumbnailSearchChange()"
+                            placeholder="Search existing thumbnails..." 
+                            class="input" 
+                            (blur)="onThumbnailSearchBlur()"
+                        />
+                        <div class="thumbnail-dropdown" *ngIf="showThumbnailDropdown && thumbnailSearchResults.length > 0">
+                            <div 
+                                *ngFor="let thumbnail of thumbnailSearchResults.slice(0, 10)" 
+                                class="thumbnail-result"
+                                (click)="onSelectThumbnail(thumbnail)"
+                            >
+                                <img [src]="thumbnail.imageUrl" [alt]="thumbnail.filmName" class="thumbnail-preview" />
+                                <span class="thumbnail-name">{{ thumbnail.filmName }}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Preview Button -->
+                    <button 
+                        *ngIf="hasThumbnailSelected"
+                        type="button" 
+                        class="preview-thumbnail-btn" 
+                        (click)="openThumbnailPreview()"
+                        title="Preview thumbnail"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" class="eye-icon" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M1.5 12s4.5-7.5 10.5-7.5S22.5 12 22.5 12s-4.5 7.5-10.5 7.5S1.5 12 1.5 12z" />
+                            <circle cx="12" cy="12" r="3" />
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Add New Thumbnail Button -->
+                <button 
+                    type="button" 
+                    class="add-thumbnail-btn" 
+                    (click)="onAddNewThumbnail()"
+                    [disabled]="!canAddThumbnail"
+                    [title]="!canAddThumbnail ? 'Please enter a film name first' : 'Add new thumbnail'"
+                >
+                    + Add New Thumbnail +
+                </button>
             </div>
 
             <div>
@@ -212,6 +265,69 @@
                     </button>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <!-- Add Thumbnail Modal -->
+    <div class="modal-overlay" *ngIf="showAddThumbnailModal" (click)="closeAddThumbnailModal()">
+        <div class="modal-content" (click)="$event.stopPropagation()">
+            <div class="modal-header">
+                <div></div>
+                <h3>Add New Thumbnail</h3>
+                <button class="modal-close" (click)="closeAddThumbnailModal()">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="add-thumbnail-form">
+                    <div>
+                        <label for="thumbnailFilmName">Film Name</label>
+                        <input 
+                            type="text" 
+                            [(ngModel)]="newThumbnailFilmName"
+                            [ngModelOptions]="{standalone: true}"
+                            class="input"
+                            placeholder="Film name"
+                        />
+                    </div>
+
+                    <div>
+                        <label for="thumbnailFile">Select Image</label>
+                        <input 
+                            type="file" 
+                            (change)="onThumbnailFileSelected($event)" 
+                            accept="image/*" 
+                            class="input"
+                        />
+                    </div>
+
+                    <!-- Preview -->
+                    <div class="thumbnail-preview-container" *ngIf="newThumbnailPreview">
+                        <label>Preview</label>
+                        <img [src]="newThumbnailPreview" alt="Preview" class="thumbnail-upload-preview" />
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button 
+                        class="btn btn-primary" 
+                        (click)="onUploadThumbnail()"
+                        [disabled]="uploadingThumbnail || !newThumbnailFile"
+                    >
+                        <span *ngIf="!uploadingThumbnail">Upload Thumbnail</span>
+                        <svg *ngIf="uploadingThumbnail" class="spinner" viewBox="0 0 24 24">
+                            <circle class="spinner-bg" cx="12" cy="12" r="10" stroke-width="4"></circle>
+                            <path class="spinner-path" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Thumbnail Preview Modal -->
+    <div class="image-preview-overlay" *ngIf="showThumbnailPreview" (click)="closeThumbnailPreview()">
+        <div class="image-preview-content" (click)="$event.stopPropagation()">
+            <img [src]="form.get('imageUrl')?.value" alt="Thumbnail Preview" />
+            <button class="close-btn" (click)="closeThumbnailPreview()">✖</button>
         </div>
     </div>
 </div>

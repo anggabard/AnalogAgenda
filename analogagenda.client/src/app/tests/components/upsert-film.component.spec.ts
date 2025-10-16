@@ -1,9 +1,9 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { of } from 'rxjs';
 import { UpsertFilmComponent } from '../../components/films/upsert-film/upsert-film.component';
-import { FilmService, SessionService, DevKitService, PhotoService } from '../../services';
+import { FilmService, SessionService, DevKitService, PhotoService, UsedFilmThumbnailService } from '../../services';
 import { DevKitType, UsernameType } from '../../enums';
 import { TestConfig } from '../test.config';
 
@@ -14,6 +14,7 @@ describe('UpsertFilmComponent', () => {
   let mockSessionService: jasmine.SpyObj<SessionService>;
   let mockDevKitService: jasmine.SpyObj<DevKitService>;
   let mockPhotoService: jasmine.SpyObj<PhotoService>;
+  let mockThumbnailService: jasmine.SpyObj<UsedFilmThumbnailService>;
   let mockRouter: jasmine.SpyObj<Router>;
   let mockActivatedRoute: any;
 
@@ -22,6 +23,7 @@ describe('UpsertFilmComponent', () => {
     const sessionServiceSpy = jasmine.createSpyObj('SessionService', ['getById', 'update', 'getAll']);
     const devKitServiceSpy = jasmine.createSpyObj('DevKitService', ['getById', 'update', 'getAll']);
     const photoServiceSpy = jasmine.createSpyObj('PhotoService', ['getAll', 'upload']);
+    const thumbnailServiceSpy = jasmine.createSpyObj('UsedFilmThumbnailService', ['searchByFilmName', 'uploadThumbnail']);
     const routerSpy = jasmine.createSpyObj('Router', ['navigate']);
 
     mockActivatedRoute = {
@@ -40,6 +42,7 @@ describe('UpsertFilmComponent', () => {
         { provide: SessionService, useValue: sessionServiceSpy },
         { provide: DevKitService, useValue: devKitServiceSpy },
         { provide: PhotoService, useValue: photoServiceSpy },
+        { provide: UsedFilmThumbnailService, useValue: thumbnailServiceSpy },
         { provide: Router, useValue: routerSpy },
         { provide: ActivatedRoute, useValue: mockActivatedRoute }
       ]
@@ -51,6 +54,7 @@ describe('UpsertFilmComponent', () => {
     mockSessionService = TestBed.inject(SessionService) as jasmine.SpyObj<SessionService>;
     mockDevKitService = TestBed.inject(DevKitService) as jasmine.SpyObj<DevKitService>;
     mockPhotoService = TestBed.inject(PhotoService) as jasmine.SpyObj<PhotoService>;
+    mockThumbnailService = TestBed.inject(UsedFilmThumbnailService) as jasmine.SpyObj<UsedFilmThumbnailService>;
     mockRouter = TestBed.inject(Router) as jasmine.SpyObj<Router>;
   });
 
@@ -268,6 +272,175 @@ describe('UpsertFilmComponent', () => {
       const isoControl = component.form.get('iso');
       expect(isoControl?.invalid).toBeTruthy('Empty ISO should be invalid');
       expect(isoControl?.errors?.['required']).toBeTruthy();
+    });
+  });
+
+  describe('Thumbnail Functionality', () => {
+    it('should initialize thumbnail search properties', () => {
+      expect(component.thumbnailSearchQuery).toBe('');
+      expect(component.thumbnailSearchResults).toEqual([]);
+      expect(component.showThumbnailDropdown).toBeFalsy();
+    });
+
+    it('should initialize add thumbnail modal properties', () => {
+      expect(component.showAddThumbnailModal).toBeFalsy();
+      expect(component.newThumbnailFile).toBeNull();
+      expect(component.newThumbnailFilmName).toBe('');
+      expect(component.newThumbnailPreview).toBe('');
+      expect(component.uploadingThumbnail).toBeFalsy();
+    });
+
+    it('should initialize thumbnail preview properties', () => {
+      expect(component.showThumbnailPreview).toBeFalsy();
+    });
+
+    it('should perform thumbnail search when onThumbnailSearchClick is called', () => {
+      const mockThumbnails = [
+        { rowKey: 'thumb1', filmName: 'Kodak Portra 400', imageId: 'img1', imageUrl: 'url1', imageBase64: '' },
+        { rowKey: 'thumb2', filmName: 'Fuji Superia 200', imageId: 'img2', imageUrl: 'url2', imageBase64: '' }
+      ];
+      mockThumbnailService.searchByFilmName.and.returnValue(of(mockThumbnails));
+
+      component.onThumbnailSearchClick();
+
+      expect(mockThumbnailService.searchByFilmName).toHaveBeenCalledWith('');
+      expect(component.thumbnailSearchResults).toEqual(mockThumbnails);
+      expect(component.showThumbnailDropdown).toBeTruthy();
+    });
+
+    it('should select thumbnail when onSelectThumbnail is called', () => {
+      const mockThumbnail = { 
+        rowKey: 'thumb1', 
+        filmName: 'Kodak Portra 400', 
+        imageId: 'img1', 
+        imageUrl: 'url1', 
+        imageBase64: '' 
+      };
+
+      component.onSelectThumbnail(mockThumbnail);
+
+      expect(component.form.get('imageUrl')?.value).toBe('url1');
+      expect(component.form.get('imageId')?.value).toBe('img1');
+      expect(component.thumbnailSearchQuery).toBe('Kodak Portra 400');
+      expect(component.showThumbnailDropdown).toBeFalsy();
+    });
+
+    it('should determine canAddThumbnail based on film name', () => {
+      component.form.patchValue({ name: 'Test Film' });
+      expect(component.canAddThumbnail).toBeTruthy();
+
+      component.form.patchValue({ name: '' });
+      expect(component.canAddThumbnail).toBeFalsy();
+    });
+
+    it('should open add thumbnail modal when onAddNewThumbnail is called', () => {
+      component.form.patchValue({ name: 'Test Film', iso: '400' });
+      
+      component.onAddNewThumbnail();
+
+      expect(component.showAddThumbnailModal).toBeTruthy();
+      expect(component.newThumbnailFilmName).toBe('Test Film 400');
+    });
+
+    it('should handle thumbnail file selection', () => {
+      const mockFile = new File(['test'], 'test.jpg', { type: 'image/jpeg' });
+      const mockEvent = {
+        target: {
+          files: [mockFile]
+        }
+      } as any;
+
+      // Mock FileReader
+      const mockFileReader = {
+        readAsDataURL: jasmine.createSpy('readAsDataURL'),
+        result: 'data:image/jpeg;base64,testdata',
+        onload: null as any
+      };
+      spyOn(window, 'FileReader').and.returnValue(mockFileReader as any);
+
+      component.onThumbnailFileSelected(mockEvent);
+
+      expect(component.newThumbnailFile).toBe(mockFile);
+      expect(mockFileReader.readAsDataURL).toHaveBeenCalledWith(mockFile);
+      
+      // Simulate FileReader onload
+      mockFileReader.onload();
+      
+      expect(component.newThumbnailPreview).toBe('data:image/jpeg;base64,testdata');
+    });
+
+    it('should upload thumbnail when onUploadThumbnail is called', () => {
+      const mockFile = new File(['test'], 'test.jpg', { type: 'image/jpeg' });
+      component.newThumbnailFile = mockFile;
+      component.newThumbnailFilmName = 'Test Film 400';
+      
+      const mockUploadedThumbnail = {
+        rowKey: 'thumb1',
+        filmName: 'Test Film 400',
+        imageId: 'img1',
+        imageUrl: 'url1',
+        imageBase64: ''
+      };
+      mockThumbnailService.uploadThumbnail.and.returnValue(of(mockUploadedThumbnail));
+
+      // Mock FileReader
+      const mockFileReader = {
+        readAsDataURL: jasmine.createSpy('readAsDataURL'),
+        result: 'data:image/jpeg;base64,testdata',
+        onload: null as any
+      };
+      spyOn(window, 'FileReader').and.returnValue(mockFileReader as any);
+
+      component.onUploadThumbnail();
+
+      expect(mockFileReader.readAsDataURL).toHaveBeenCalledWith(mockFile);
+      
+      // Simulate FileReader onload
+      mockFileReader.onload();
+
+      expect(mockThumbnailService.uploadThumbnail).toHaveBeenCalled();
+      expect(component.form.get('imageUrl')?.value).toBe('url1');
+      expect(component.form.get('imageId')?.value).toBe('img1');
+      expect(component.thumbnailSearchQuery).toBe('Test Film 400');
+      expect(component.showAddThumbnailModal).toBeFalsy();
+    });
+
+    it('should close add thumbnail modal when closeAddThumbnailModal is called', () => {
+      component.showAddThumbnailModal = true;
+      component.newThumbnailFile = new File(['test'], 'test.jpg');
+      component.newThumbnailFilmName = 'Test Film';
+      component.newThumbnailPreview = 'preview';
+
+      component.closeAddThumbnailModal();
+
+      expect(component.showAddThumbnailModal).toBeFalsy();
+      expect(component.newThumbnailFile).toBeNull();
+      expect(component.newThumbnailFilmName).toBe('');
+      expect(component.newThumbnailPreview).toBe('');
+    });
+
+    it('should determine hasThumbnailSelected based on imageUrl', () => {
+      component.form.patchValue({ imageUrl: 'test-url' });
+      expect(component.hasThumbnailSelected).toBeTruthy();
+
+      component.form.patchValue({ imageUrl: '' });
+      expect(component.hasThumbnailSelected).toBeFalsy();
+    });
+
+    it('should open thumbnail preview when openThumbnailPreview is called', () => {
+      component.form.patchValue({ imageUrl: 'test-url' });
+      
+      component.openThumbnailPreview();
+
+      expect(component.showThumbnailPreview).toBeTruthy();
+    });
+
+    it('should close thumbnail preview when closeThumbnailPreview is called', () => {
+      component.showThumbnailPreview = true;
+      
+      component.closeThumbnailPreview();
+
+      expect(component.showThumbnailPreview).toBeFalsy();
     });
   });
 });

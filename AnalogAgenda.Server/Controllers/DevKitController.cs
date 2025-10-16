@@ -27,7 +27,25 @@ public class DevKitController(Storage storageCfg, ITableService tablesService, I
     [HttpPost]
     public async Task<IActionResult> CreateNewKit([FromBody] DevKitDto dto)
     {
-        return await CreateEntityWithImageAsync(dto, dto => dto.ImageBase64);
+        try
+        {
+            var entity = dto.ToEntity();
+            
+            // If no ImageUrl provided, use default image
+            if (entity.ImageId == Guid.Empty)
+            {
+                entity.ImageId = Constants.DefaultDevKitImageId;
+            }
+            
+            await devKitsTable.AddEntityAsync(entity);
+            
+            var createdDto = entity.ToDTO(storageCfg.AccountName);
+            return Created(string.Empty, createdDto);
+        }
+        catch (Exception ex)
+        {
+            return UnprocessableEntity(ex.Message);
+        }
     }
 
     [HttpGet]
@@ -76,7 +94,32 @@ public class DevKitController(Storage storageCfg, ITableService tablesService, I
     [HttpPut("{rowKey}")]
     public async Task<IActionResult> UpdateKit(string rowKey, [FromBody] DevKitDto updateDto)
     {
-        return await UpdateEntityWithImageAsync(rowKey, updateDto, dto => dto.ImageBase64);
+        if (updateDto == null)
+            return BadRequest("Invalid data.");
+
+        var existingEntity = await tablesService.GetTableEntryIfExistsAsync<DevKitEntity>(rowKey);
+        if (existingEntity == null)
+            return NotFound();
+
+        try
+        {
+            var updatedEntity = updateDto.ToEntity();
+            updatedEntity.CreatedDate = existingEntity.CreatedDate;
+            updatedEntity.UpdatedDate = DateTime.UtcNow;
+            
+            // If no ImageUrl provided, keep existing ImageId
+            if (updatedEntity.ImageId == Guid.Empty)
+            {
+                updatedEntity.ImageId = existingEntity.ImageId;
+            }
+            
+            await devKitsTable.UpdateEntityAsync(updatedEntity, existingEntity.ETag, TableUpdateMode.Replace);
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            return UnprocessableEntity(ex.Message);
+        }
     }
 
     [HttpDelete("{rowKey}")]

@@ -40,6 +40,9 @@ public class FilmControllerTests
         _mockTableService.Setup(x => x.GetTable(TableName.Photos))
                         .Returns(_mockPhotosTableClient.Object);
         
+        _mockTableService.Setup(x => x.GetTable(TableName.UsedFilmThumbnails))
+                        .Returns(_mockFilmsTableClient.Object);
+        
         _mockBlobService.Setup(x => x.GetBlobContainer(ContainerName.films))
                        .Returns(_mockFilmsContainerClient.Object);
                        
@@ -71,14 +74,47 @@ public class FilmControllerTests
             PurchasedOn = DateOnly.FromDateTime(DateTime.UtcNow),
             Description = "Professional color negative film",
             Developed = false,
-            ImageBase64 = "" // No image
+            ImageUrl = "" // No image - will use default
         };
+
+        _mockFilmsTableClient.Setup(x => x.AddEntityAsync(It.IsAny<FilmEntity>(), default))
+                       .Returns(Task.FromResult(It.IsAny<Azure.Response>()));
 
         // Act
         var result = await _controller.CreateNewFilm(filmDto);
 
         // Assert
         Assert.IsType<CreatedResult>(result);
+        _mockFilmsTableClient.Verify(x => x.AddEntityAsync(It.IsAny<FilmEntity>(), default), Times.Once);
+    }
+
+    [Fact]
+    public async Task CreateNewFilm_WithImageUrl_ReturnsOk()
+    {
+        // Arrange
+        var filmDto = new FilmDto
+        {
+            Name = "Kodak Portra 400",
+            Iso = "400",
+            Type = "Color Negative",
+            NumberOfExposures = 36,
+            Cost = 12.50,
+            PurchasedBy = "Angel",
+            PurchasedOn = DateOnly.FromDateTime(DateTime.UtcNow),
+            Description = "Professional color negative film",
+            Developed = false,
+            ImageUrl = "https://teststorage.blob.core.windows.net/films/12345678-1234-1234-1234-123456789012"
+        };
+
+        _mockFilmsTableClient.Setup(x => x.AddEntityAsync(It.IsAny<FilmEntity>(), default))
+                       .Returns(Task.FromResult(It.IsAny<Azure.Response>()));
+
+        // Act
+        var result = await _controller.CreateNewFilm(filmDto);
+
+        // Assert
+        Assert.IsType<CreatedResult>(result);
+        _mockFilmsTableClient.Verify(x => x.AddEntityAsync(It.IsAny<FilmEntity>(), default), Times.Once);
     }
 
 
@@ -173,7 +209,7 @@ public class FilmControllerTests
             PurchasedOn = DateOnly.FromDateTime(DateTime.UtcNow),
             Description = "Updated description",
             Developed = true,
-            ImageBase64 = ""
+            ImageUrl = ""
         };
 
         var existingEntity = new FilmEntity { RowKey = rowKey, Name = "Existing Film", Iso = "800", ImageId = Guid.NewGuid() };

@@ -549,10 +549,11 @@ label {
 }
 
 .modal-footer {
-  padding: 1.5rem 1.5rem 0 1.5rem;
+  padding: 1.5rem;
   border-top: 1px solid #e5e7eb;
   display: flex;
   justify-content: center;
+  align-items: center;
   gap: 0.75rem;
 }
 
@@ -587,6 +588,263 @@ label {
   font-style: italic;
 }
 
+/* Thumbnail Section */
+.thumbnail-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* Thumbnail search row with preview button */
+.thumbnail-search-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-start;
+}
+
+/* Thumbnail search autocomplete */
+.thumbnail-search-container {
+  position: relative;
+  flex: 1;
+}
+
+.thumbnail-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: white;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 6px;
+  max-height: 300px;
+  overflow-y: auto;
+  z-index: 100;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  margin-top: 4px;
+}
+
+.thumbnail-result {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  border-bottom: 1px solid rgba(229, 231, 235, 0.5);
+}
+
+.thumbnail-result:last-child {
+  border-bottom: none;
+}
+
+.thumbnail-result:hover {
+  background-color: rgba(59, 130, 246, 0.1);
+}
+
+.thumbnail-preview {
+  width: 50px;
+  height: 50px;
+  object-fit: cover;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.thumbnail-name {
+  font-weight: 500;
+  color: #111827;
+  font-size: 0.9rem;
+}
+
+/* Add Thumbnail Button */
+.add-thumbnail-btn {
+  padding: 0.75rem 1.5rem;
+  background-color: rgba(59, 130, 246, 0.8);
+  color: white;
+  border: 1px solid rgba(59, 130, 246, 1);
+  border-radius: 6px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: center;
+}
+
+.add-thumbnail-btn:hover:not(:disabled) {
+  background-color: rgba(59, 130, 246, 1);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.add-thumbnail-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Add Thumbnail Modal */
+.add-thumbnail-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.add-thumbnail-form label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  color: #374151;
+  font-size: 0.95rem;
+}
+
+.add-thumbnail-form .input {
+  background-color: #ffffff;
+  color: #111827;
+  border: 1px solid #d1d5db;
+}
+
+.add-thumbnail-form .input:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.add-thumbnail-form .input::placeholder {
+  color: #9ca3af;
+}
+
+.add-thumbnail-form input[type="file"] {
+  padding: 0.5rem;
+  cursor: pointer;
+}
+
+.thumbnail-preview-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.thumbnail-preview-container label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  color: #374151;
+  font-size: 0.95rem;
+}
+
+.thumbnail-upload-preview {
+  width: 100%;
+  max-width: 300px;
+  height: auto;
+  max-height: 300px;
+  object-fit: contain;
+  border-radius: 8px;
+  border: 2px solid #e5e7eb;
+  margin: 0 auto;
+  display: block;
+}
+
+.btn-secondary {
+  background-color: #6b7280;
+  color: white;
+}
+
+.btn-secondary:hover {
+  background-color: #4b5563;
+}
+
+/* Preview Thumbnail Button */
+.preview-thumbnail-btn {
+  width: 42px;
+  height: 42px;
+  min-width: 42px;
+  min-height: 42px;
+  padding: 0;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-radius: 6px;
+  background-color: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.preview-thumbnail-btn:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.7);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.preview-thumbnail-btn .eye-icon {
+  width: 20px;
+  height: 20px;
+  color: rgba(255, 255, 255, 0.9);
+  transition: color 0.2s ease;
+}
+
+.preview-thumbnail-btn:hover .eye-icon {
+  color: rgba(255, 255, 255, 1);
+}
+
+/* Image Preview Modal */
+.image-preview-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1001;
+}
+
+.image-preview-content {
+  position: relative;
+  background: white;
+  padding: 10px;
+  border-radius: 8px;
+  max-width: 90%;
+  max-height: 90%;
+}
+
+.image-preview-content img {
+  max-width: 100%;
+  max-height: 80vh;
+  width: auto;
+  height: auto;
+  border-radius: 8px;
+  display: block;
+  object-fit: contain;
+}
+
+/* Close button for preview modal */
+.close-btn {
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  background: #ef4444;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  cursor: pointer;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s ease;
+  padding: 0;
+  line-height: 1;
+}
+
+.close-btn:hover {
+  background: #dc2626;
+}
+
 /* --- Mobile Optimizations --- */
 @media (max-width: 600px) {
   .container {
@@ -618,5 +876,43 @@ label {
   .photo-btn {
     padding: 0.6rem 1rem;
     font-size: 0.9rem;
+  }
+
+  .add-thumbnail-btn {
+    padding: 0.6rem 1rem;
+    font-size: 0.9rem;
+  }
+
+  .thumbnail-upload-preview {
+    max-width: 100%;
+    max-height: 200px;
+  }
+
+  /* Mobile adjustments for thumbnail search row */
+  .thumbnail-search-row {
+    flex-direction: row;
+    gap: 0.5rem;
+  }
+
+  .preview-thumbnail-btn {
+    width: 42px;
+    height: 42px;
+    min-width: 42px;
+    min-height: 42px;
+  }
+
+  .preview-thumbnail-btn .eye-icon {
+    width: 18px;
+    height: 18px;
+  }
+
+  /* Modal adjustments for mobile */
+  .image-preview-content {
+    max-width: 95%;
+    max-height: 95%;
+  }
+
+  .image-preview-content img {
+    max-height: 70vh;
   }
 }

@@ -1,9 +1,9 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { UpsertKitComponent } from '../../components/substances/upsert-kit/upsert-kit.component';
-import { AccountService, DevKitService } from '../../services';
+import { AccountService, DevKitService, UsedDevKitThumbnailService } from '../../services';
 import { DevKitDto, IdentityDto } from '../../DTOs';
 import { DevKitType, UsernameType } from '../../enums';
 import { TestConfig } from '../test.config';
@@ -13,12 +13,14 @@ describe('UpsertKitComponent', () => {
   let fixture: ComponentFixture<UpsertKitComponent>;
   let mockDevKitService: jasmine.SpyObj<DevKitService>;
   let mockAccountService: jasmine.SpyObj<AccountService>;
+  let mockThumbnailService: jasmine.SpyObj<UsedDevKitThumbnailService>;
   let mockRouter: jasmine.SpyObj<Router>;
   let mockActivatedRoute: any;
 
   beforeEach(async () => {
     const devKitServiceSpy = jasmine.createSpyObj('DevKitService', ['getById', 'add', 'update', 'deleteById']);
     const accountServiceSpy = jasmine.createSpyObj('AccountService', ['whoAmI']);
+    const thumbnailServiceSpy = jasmine.createSpyObj('UsedDevKitThumbnailService', ['searchByDevKitName', 'uploadThumbnail']);
     const routerSpy = TestConfig.createRouterSpy();
 
     // Set up default return values to avoid subscription errors
@@ -40,6 +42,7 @@ describe('UpsertKitComponent', () => {
         FormBuilder,
         { provide: DevKitService, useValue: devKitServiceSpy },
         { provide: AccountService, useValue: accountServiceSpy },
+        { provide: UsedDevKitThumbnailService, useValue: thumbnailServiceSpy },
         { provide: Router, useValue: routerSpy },
         { provide: ActivatedRoute, useValue: mockActivatedRoute }
       ]
@@ -47,6 +50,7 @@ describe('UpsertKitComponent', () => {
 
     mockDevKitService = devKitServiceSpy;
     mockAccountService = accountServiceSpy;
+    mockThumbnailService = thumbnailServiceSpy;
     mockRouter = routerSpy;
     
     // Override the component to ensure proper dependency injection
@@ -104,7 +108,6 @@ describe('UpsertKitComponent', () => {
       description: 'Test kit description',
       expired: false,
       imageUrl: 'test-url',
-      imageBase64: ''
     };
 
     // Set up mocks without route parameter to avoid constructor issues
@@ -247,33 +250,6 @@ describe('UpsertKitComponent', () => {
     expect(mockRouter.navigate).not.toHaveBeenCalled();
   });
 
-  it('should handle image selection', () => {
-    // Arrange
-    mockActivatedRoute.snapshot.paramMap.get.and.returnValue(null);
-    fixture.detectChanges(); // Initialize component in insert mode
-    
-    const mockFile = new File(['test'], 'test.jpg', { type: 'image/jpeg' });
-    const mockFileReader = {
-      readAsDataURL: jasmine.createSpy('readAsDataURL'),
-      result: 'data:image/jpeg;base64,testdata',
-      onload: null as any
-    };
-    spyOn(window, 'FileReader').and.returnValue(mockFileReader as any);
-
-    const mockEvent = {
-      target: {
-        files: [mockFile]
-      }
-    } as any;
-
-    // Act
-    component.onImageSelected(mockEvent);
-    mockFileReader.onload(); // Simulate FileReader onload
-
-    // Assert
-    expect(mockFileReader.readAsDataURL).toHaveBeenCalledWith(mockFile);
-    expect(component.form.get('imageBase64')?.value).toBe('data:image/jpeg;base64,testdata');
-  });
 
 
   it('should delete kit successfully', () => {
@@ -319,5 +295,172 @@ describe('UpsertKitComponent', () => {
     expect(mockRouter.navigate).not.toHaveBeenCalled();
   });
 
+  describe('Thumbnail Functionality', () => {
+    it('should initialize thumbnail search properties', () => {
+      expect(component.thumbnailSearchQuery).toBe('');
+      expect(component.thumbnailSearchResults).toEqual([]);
+      expect(component.showThumbnailDropdown).toBeFalsy();
+    });
+
+    it('should initialize add thumbnail modal properties', () => {
+      expect(component.showAddThumbnailModal).toBeFalsy();
+      expect(component.newThumbnailFile).toBeNull();
+      expect(component.newThumbnailDevKitName).toBe('');
+      expect(component.newThumbnailPreview).toBe('');
+      expect(component.uploadingThumbnail).toBeFalsy();
+    });
+
+    it('should initialize thumbnail preview properties', () => {
+      expect(component.showThumbnailPreview).toBeFalsy();
+    });
+
+    it('should perform thumbnail search when onThumbnailSearchClick is called', () => {
+      const mockThumbnails = [
+        { rowKey: 'thumb1', devKitName: 'Bellini E6', imageId: 'img1', imageUrl: 'url1', imageBase64: '' },
+        { rowKey: 'thumb2', devKitName: 'Bellini C41', imageId: 'img2', imageUrl: 'url2', imageBase64: '' }
+      ];
+      mockThumbnailService.searchByDevKitName.and.returnValue(of(mockThumbnails));
+
+      component.onThumbnailSearchClick();
+
+      expect(mockThumbnailService.searchByDevKitName).toHaveBeenCalledWith('');
+      expect(component.thumbnailSearchResults).toEqual(mockThumbnails);
+      expect(component.showThumbnailDropdown).toBeTruthy();
+    });
+
+    it('should select thumbnail when onSelectThumbnail is called', () => {
+      const mockThumbnail = { 
+        rowKey: 'thumb1', 
+        devKitName: 'Bellini E6', 
+        imageId: 'img1', 
+        imageUrl: 'url1', 
+      };
+
+      component.onSelectThumbnail(mockThumbnail);
+
+      expect(component.form.get('imageUrl')?.value).toBe('url1');
+      expect(component.form.get('imageId')?.value).toBe('img1');
+      expect(component.thumbnailSearchQuery).toBe('Bellini E6');
+      expect(component.showThumbnailDropdown).toBeFalsy();
+    });
+
+    it('should determine canAddThumbnail based on devkit name', () => {
+      component.form.patchValue({ name: 'Test DevKit' });
+      expect(component.canAddThumbnail).toBeTruthy();
+
+      component.form.patchValue({ name: '' });
+      expect(component.canAddThumbnail).toBeFalsy();
+    });
+
+    it('should open add thumbnail modal when onAddNewThumbnail is called', () => {
+      component.form.patchValue({ name: 'Test DevKit', type: DevKitType.E6 });
+      
+      component.onAddNewThumbnail();
+
+      expect(component.showAddThumbnailModal).toBeTruthy();
+      expect(component.newThumbnailDevKitName).toBe('Test DevKit E6');
+    });
+
+    it('should handle thumbnail file selection', () => {
+      const mockFile = new File(['test'], 'test.jpg', { type: 'image/jpeg' });
+      const mockEvent = {
+        target: {
+          files: [mockFile]
+        }
+      } as any;
+
+      // Mock FileReader
+      const mockFileReader = {
+        readAsDataURL: jasmine.createSpy('readAsDataURL'),
+        result: 'data:image/jpeg;base64,testdata',
+        onload: null as any
+      };
+      spyOn(window, 'FileReader').and.returnValue(mockFileReader as any);
+
+      component.onThumbnailFileSelected(mockEvent);
+
+      expect(component.newThumbnailFile).toBe(mockFile);
+      expect(mockFileReader.readAsDataURL).toHaveBeenCalledWith(mockFile);
+      
+      // Simulate FileReader onload
+      mockFileReader.onload();
+      
+      expect(component.newThumbnailPreview).toBe('data:image/jpeg;base64,testdata');
+    });
+
+    it('should upload thumbnail when onUploadThumbnail is called', () => {
+      const mockFile = new File(['test'], 'test.jpg', { type: 'image/jpeg' });
+      component.newThumbnailFile = mockFile;
+      component.newThumbnailDevKitName = 'Test DevKit E6';
+      
+      const mockUploadedThumbnail = {
+        rowKey: 'thumb1',
+        devKitName: 'Test DevKit E6',
+        imageId: 'img1',
+        imageUrl: 'url1',
+        imageBase64: ''
+      };
+      mockThumbnailService.uploadThumbnail.and.returnValue(of(mockUploadedThumbnail));
+
+      // Mock FileReader
+      const mockFileReader = {
+        readAsDataURL: jasmine.createSpy('readAsDataURL'),
+        result: 'data:image/jpeg;base64,testdata',
+        onload: null as any
+      };
+      spyOn(window, 'FileReader').and.returnValue(mockFileReader as any);
+
+      component.onUploadThumbnail();
+
+      expect(mockFileReader.readAsDataURL).toHaveBeenCalledWith(mockFile);
+      
+      // Simulate FileReader onload
+      mockFileReader.onload();
+
+      expect(mockThumbnailService.uploadThumbnail).toHaveBeenCalled();
+      expect(component.form.get('imageUrl')?.value).toBe('url1');
+      expect(component.form.get('imageId')?.value).toBe('img1');
+      expect(component.thumbnailSearchQuery).toBe('Test DevKit E6');
+      expect(component.showAddThumbnailModal).toBeFalsy();
+    });
+
+    it('should close add thumbnail modal when closeAddThumbnailModal is called', () => {
+      component.showAddThumbnailModal = true;
+      component.newThumbnailFile = new File(['test'], 'test.jpg');
+      component.newThumbnailDevKitName = 'Test DevKit';
+      component.newThumbnailPreview = 'preview';
+
+      component.closeAddThumbnailModal();
+
+      expect(component.showAddThumbnailModal).toBeFalsy();
+      expect(component.newThumbnailFile).toBeNull();
+      expect(component.newThumbnailDevKitName).toBe('');
+      expect(component.newThumbnailPreview).toBe('');
+    });
+
+    it('should determine hasThumbnailSelected based on imageUrl', () => {
+      component.form.patchValue({ imageUrl: 'test-url' });
+      expect(component.hasThumbnailSelected).toBeTruthy();
+
+      component.form.patchValue({ imageUrl: '' });
+      expect(component.hasThumbnailSelected).toBeFalsy();
+    });
+
+    it('should open thumbnail preview when openThumbnailPreview is called', () => {
+      component.form.patchValue({ imageUrl: 'test-url' });
+      
+      component.openThumbnailPreview();
+
+      expect(component.showThumbnailPreview).toBeTruthy();
+    });
+
+    it('should close thumbnail preview when closeThumbnailPreview is called', () => {
+      component.showThumbnailPreview = true;
+      
+      component.closeThumbnailPreview();
+
+      expect(component.showThumbnailPreview).toBeFalsy();
+    });
+  });
 
 });

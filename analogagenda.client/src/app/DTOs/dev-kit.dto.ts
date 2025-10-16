@@ -1,7 +1,6 @@
-import { HasImageDto } from ".";
 import { DevKitType, UsernameType } from "../enums";
 
-export interface DevKitDto extends HasImageDto{
+export interface DevKitDto {
   rowKey: string;
   name: string;
   url: string;
@@ -12,6 +11,7 @@ export interface DevKitDto extends HasImageDto{
   validForWeeks: number;
   validForFilms: number;
   filmsDeveloped: number;
+  imageUrl: string;
   description: string;
   expired: boolean
 }

@@ -226,7 +226,6 @@ public class FilmDtoValidatorTests
             PurchasedBy = EUsernameType.Angel.ToString(),
             PurchasedOn = DateOnly.FromDateTime(DateTime.UtcNow),
             ImageUrl = "",
-            ImageBase64 = "",
             Description = "Test description",
             Developed = false,
         };
