@@ -359,7 +359,7 @@ describe('UpsertFilmComponent', () => {
     it('should upload thumbnail when onUploadThumbnail is called', () => {
       const mockFile = new File(['test'], 'test.jpg', { type: 'image/jpeg' });
       component.newThumbnailFile = mockFile;
-      component.newThumbnailDevKitName = 'Test Film 400';
+      component.newThumbnailFilmName = 'Test Film 400';
       
       const mockUploadedThumbnail = {
         rowKey: 'thumb1',

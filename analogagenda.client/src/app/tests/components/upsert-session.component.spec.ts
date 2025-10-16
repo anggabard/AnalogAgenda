@@ -149,7 +149,6 @@ describe('UpsertSessionComponent', () => {
       description: 'Test devkit',
       expired: false,
       imageUrl: 'test-url',
-      imageBase64: ''
     };
     const expiredDevKit: DevKitDto = {
       rowKey: 'devkit-2',
@@ -165,7 +164,6 @@ describe('UpsertSessionComponent', () => {
       description: 'Expired devkit',
       expired: true,
       imageUrl: 'test-url',
-      imageBase64: ''
     };
     component.availableDevKits = [mockDevKit, expiredDevKit];
     component.showExpiredDevKits = false;
@@ -190,7 +188,6 @@ describe('UpsertSessionComponent', () => {
       description: 'Test devkit',
       expired: false,
       imageUrl: 'test-url',
-      imageBase64: ''
     };
     const expiredDevKit: DevKitDto = {
       rowKey: 'devkit-2',
@@ -206,7 +203,6 @@ describe('UpsertSessionComponent', () => {
       description: 'Expired devkit',
       expired: true,
       imageUrl: 'test-url',
-      imageBase64: ''
     };
     component.availableDevKits = [mockDevKit, expiredDevKit];
     component.showExpiredDevKits = true;

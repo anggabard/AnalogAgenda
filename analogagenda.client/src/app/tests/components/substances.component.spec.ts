@@ -69,7 +69,6 @@ describe('SubstancesComponent', () => {
         description: 'Test description',
         expired: false,
         imageUrl: 'test-url',
-        imageBase64: ''
       }
     ];
 

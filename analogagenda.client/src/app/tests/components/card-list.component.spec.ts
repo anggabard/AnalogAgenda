@@ -229,7 +229,6 @@ describe('CardListComponent', () => {
       description: 'Test film description',
       developed: false,
       imageUrl: 'test-image-url',
-      imageBase64: ''
     };
   }
 });

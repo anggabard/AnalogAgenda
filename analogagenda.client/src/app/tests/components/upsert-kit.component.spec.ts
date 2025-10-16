@@ -108,7 +108,6 @@ describe('UpsertKitComponent', () => {
       description: 'Test kit description',
       expired: false,
       imageUrl: 'test-url',
-      imageBase64: ''
     };
 
     // Set up mocks without route parameter to avoid constructor issues
@@ -362,7 +361,6 @@ describe('UpsertKitComponent', () => {
         devKitName: 'Bellini E6', 
         imageId: 'img1', 
         imageUrl: 'url1', 
-        imageBase64: '' 
       };
 
       component.onSelectThumbnail(mockThumbnail);
@@ -414,7 +412,6 @@ describe('UpsertKitComponent', () => {
         devKitName: 'Test DevKit E6',
         imageId: 'img1',
         imageUrl: 'url1',
-        imageBase64: ''
       };
       mockThumbnailService.uploadThumbnail.and.returnValue(of(mockUploadedThumbnail));
 

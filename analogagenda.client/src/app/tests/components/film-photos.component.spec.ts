@@ -27,7 +27,6 @@ describe('FilmPhotosComponent', () => {
     description: 'Test film',
     developed: true,
     imageUrl: 'test-image-url',
-    imageBase64: ''
   };
 
   const mockPhotos: PhotoDto[] = [

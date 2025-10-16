@@ -201,7 +201,6 @@ describe('FilmService', () => {
       description: 'Test film description',
       developed,
       imageUrl: 'test-image-url',
-      imageBase64: ''
     };
   }
 });
