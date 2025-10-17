@@ -63,7 +63,8 @@ public class FilmControllerTests
             PurchasedOn = DateOnly.FromDateTime(DateTime.UtcNow),
             ImageUrl = "",
             Description = "Test Description",
-            Developed = false
+            Developed = false,
+            ExposureDates = string.Empty
         };
 
         _mockTableClient.Setup(x => x.AddEntityAsync(It.IsAny<FilmEntity>(), It.IsAny<CancellationToken>()))
@@ -92,7 +93,8 @@ public class FilmControllerTests
             PurchasedOn = DateOnly.FromDateTime(DateTime.UtcNow),
             ImageUrl = "",
             Description = "Test Description",
-            Developed = false
+            Developed = false,
+            ExposureDates = string.Empty
         };
 
         _mockTableClient.Setup(x => x.AddEntityAsync(It.IsAny<FilmEntity>(), It.IsAny<CancellationToken>()))
@@ -121,7 +123,8 @@ public class FilmControllerTests
             PurchasedOn = DateOnly.FromDateTime(DateTime.UtcNow),
             ImageUrl = "",
             Description = "Test Description",
-            Developed = false
+            Developed = false,
+            ExposureDates = string.Empty
         };
 
         var addEntityCallCount = 0;
@@ -153,7 +156,8 @@ public class FilmControllerTests
             PurchasedOn = DateOnly.FromDateTime(DateTime.UtcNow),
             ImageUrl = "",
             Description = "Test Description",
-            Developed = false
+            Developed = false,
+            ExposureDates = string.Empty
         };
 
         // Act
@@ -179,7 +183,8 @@ public class FilmControllerTests
             PurchasedOn = DateOnly.FromDateTime(DateTime.UtcNow),
             ImageUrl = "",
             Description = "Test Description",
-            Developed = false
+            Developed = false,
+            ExposureDates = string.Empty
         };
 
         // Act
@@ -205,7 +210,8 @@ public class FilmControllerTests
             PurchasedOn = DateOnly.FromDateTime(DateTime.UtcNow),
             ImageUrl = "",
             Description = "Test Description",
-            Developed = false
+            Developed = false,
+            ExposureDates = string.Empty
         };
 
         var addEntityCallCount = 0;
@@ -237,7 +243,8 @@ public class FilmControllerTests
             PurchasedOn = DateOnly.FromDateTime(DateTime.UtcNow),
             ImageUrl = "",
             Description = "Test Description",
-            Developed = false
+            Developed = false,
+            ExposureDates = string.Empty
         };
 
         _mockTableClient.Setup(x => x.AddEntityAsync(It.IsAny<FilmEntity>(), It.IsAny<CancellationToken>()))
@@ -266,7 +273,8 @@ public class FilmControllerTests
             PurchasedOn = DateOnly.FromDateTime(DateTime.UtcNow),
             ImageUrl = "",
             Description = "Test Description",
-            Developed = false
+            Developed = false,
+            ExposureDates = string.Empty
         };
 
         var capturedEntities = new List<FilmEntity>();

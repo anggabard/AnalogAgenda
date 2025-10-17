@@ -5,7 +5,7 @@ import { switchMap, debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { BaseUpsertComponent } from '../../common/base-upsert/base-upsert.component';
 import { FilmService, PhotoService, SessionService, DevKitService, UsedFilmThumbnailService } from '../../../services';
 import { FilmType, UsernameType } from '../../../enums';
-import { FilmDto, PhotoBulkUploadDto, PhotoUploadDto, SessionDto, DevKitDto, UsedFilmThumbnailDto } from '../../../DTOs';
+import { FilmDto, PhotoBulkUploadDto, PhotoUploadDto, SessionDto, DevKitDto, UsedFilmThumbnailDto, ExposureDateEntry } from '../../../DTOs';
 import { FileUploadHelper } from '../../../helpers/file-upload.helper';
 import { DateHelper } from '../../../helpers/date.helper';
 import { ErrorHandlingHelper } from '../../../helpers/error-handling.helper';
@@ -52,6 +52,7 @@ export class UpsertFilmComponent extends BaseUpsertComponent<FilmDto> implements
     ).subscribe(searchQuery => {
       this.performThumbnailSearch(searchQuery);
     });
+
   }
 
   private performThumbnailSearch(searchQuery: string): void {
@@ -97,6 +98,10 @@ export class UpsertFilmComponent extends BaseUpsertComponent<FilmDto> implements
   newThumbnailFile: File | null = null;
   newThumbnailFilmName: string = '';
   newThumbnailPreview: string = '';
+
+  // Exposure dates modal state
+  isExposureDatesModalOpen = false;
+  exposureDates: ExposureDateEntry[] = [];
   uploadingThumbnail: boolean = false;
   
   // Thumbnail preview modal
@@ -121,7 +126,8 @@ export class UpsertFilmComponent extends BaseUpsertComponent<FilmDto> implements
       description: [''],
       developed: [false, Validators.required],
       developedInSessionRowKey: [null],
-      developedWithDevKitRowKey: [null]
+      developedWithDevKitRowKey: [null],
+      exposureDates: [[]]
     });
   }
 
@@ -690,4 +696,54 @@ export class UpsertFilmComponent extends BaseUpsertComponent<FilmDto> implements
   getBulkSaveButtonText(): string {
     return this.bulkCount === 1 ? 'Save' : `Save ${this.bulkCount} Films`;
   }
+
+  // Exposure dates methods
+  openExposureDatesModal(): void {
+    this.isExposureDatesModalOpen = true;
+    
+    // Load existing exposure dates from form if editing
+    if (!this.isInsert && this.form.get('exposureDates')?.value) {
+      this.exposureDates = this.form.get('exposureDates')?.value || [];
+    }
+    
+    // Initialize with one empty row if no data exists
+    if (this.exposureDates.length === 0) {
+      this.exposureDates = [{ date: '', description: '' }];
+    }
+  }
+
+  closeExposureDatesModal(): void {
+    this.isExposureDatesModalOpen = false;
+  }
+
+  addExposureDateRow(): void {
+    this.exposureDates.push({ date: '', description: '' });
+  }
+
+  removeExposureDateRow(index: number): void {
+    if (this.exposureDates.length > 1) {
+      this.exposureDates.splice(index, 1);
+    } else {
+      // If it's the last row, clear the values but keep the row
+      this.exposureDates[0] = { date: '', description: '' };
+    }
+  }
+
+  // Save exposure dates when Save button is clicked in modal
+  saveExposureDates(): void {
+    // Filter out empty entries and trim whitespace
+    const validExposureDates = this.exposureDates.filter(entry => 
+      entry.date && entry.date.trim() !== ''
+    ).map(entry => ({
+      date: entry.date.trim(),
+      description: entry.description.trim()
+    }));
+    
+    // Update the form control with the filtered and trimmed data
+    this.form.patchValue({ exposureDates: validExposureDates });
+    
+    // Close the modal
+    this.closeExposureDatesModal();
+  }
+
 }
