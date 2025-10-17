@@ -1,4 +1,5 @@
 import { FilmType, UsernameType } from "../enums";
+import { ExposureDateEntry } from "./exposure-date-entry.dto";
 
 export interface FilmDto {
   rowKey: string;
@@ -14,4 +15,5 @@ export interface FilmDto {
   developed: boolean;
   developedInSessionRowKey?: string | null;
   developedWithDevKitRowKey?: string | null;
+  exposureDates?: string;
 }

@@ -26,7 +26,7 @@ describe('UpsertFilmComponent', () => {
     const thumbnailServiceSpy = jasmine.createSpyObj('UsedFilmThumbnailService', ['searchByFilmName', 'uploadThumbnail']);
     
     // Set up default return values for the spies
-    filmServiceSpy.getById.and.returnValue(of({}));
+    filmServiceSpy.getById.and.returnValue(of({ exposureDates: [] }));
     sessionServiceSpy.getAll.and.returnValue(of([]));
     devKitServiceSpy.getAll.and.returnValue(of([]));
     photoServiceSpy.getAll.and.returnValue(of([]));
@@ -468,7 +468,8 @@ describe('UpsertFilmComponent', () => {
         purchasedOn: '2023-01-01',
         imageUrl: '',
         description: 'Test Description',
-        developed: false
+        developed: false,
+        exposureDates: ''
       }));
       mockSessionService.getAll.and.returnValue(of([]));
       mockDevKitService.getAll.and.returnValue(of([]));
@@ -616,6 +617,204 @@ describe('UpsertFilmComponent', () => {
       component.bulkCount = 7;
       component.ngOnInit();
       expect(component.bulkCount).toBe(7);
+    });
+  });
+
+  describe('Exposure Dates Functionality', () => {
+    beforeEach(() => {
+      // Set up for insert mode (no rowKey)
+      mockActivatedRoute.snapshot.paramMap.get.and.returnValue(null);
+      
+      // Set up mock return values for services
+      mockFilmService.getById.and.returnValue(of({
+        rowKey: 'test-id',
+        name: 'Test Film',
+        iso: '400',
+        type: FilmType.ColorNegative,
+        numberOfExposures: 36,
+        cost: 10.50,
+        purchasedBy: UsernameType.Angel,
+        purchasedOn: '2023-01-01',
+        imageUrl: '',
+        description: 'Test Description',
+        developed: false,
+        exposureDates: ''
+      }));
+      mockSessionService.getAll.and.returnValue(of([]));
+      mockDevKitService.getAll.and.returnValue(of([]));
+      mockThumbnailService.searchByFilmName.and.returnValue(of([]));
+      
+      // Force insert mode first
+      component.isInsert = true;
+      component.rowKey = null;
+      
+      // Initialize component
+      component.ngOnInit();
+    });
+
+    it('should initialize with empty exposure dates array', () => {
+      expect(component.exposureDates).toEqual([]);
+      expect(component.isExposureDatesModalOpen).toBeFalsy();
+    });
+
+    it('should open exposure dates modal and initialize with one empty row', () => {
+      component.openExposureDatesModal();
+      
+      expect(component.isExposureDatesModalOpen).toBeTruthy();
+      expect(component.exposureDates).toEqual([{ date: '', description: '' }]);
+    });
+
+    it('should close exposure dates modal without updating form control', () => {
+      component.exposureDates = [{ date: '2023-01-01', description: 'Test exposure' }];
+      component.isExposureDatesModalOpen = true;
+      
+      component.closeExposureDatesModal();
+      
+      expect(component.isExposureDatesModalOpen).toBeFalsy();
+      // Form should not be updated when just closing the modal
+      expect(component.form.get('exposureDates')?.value).toEqual('');
+    });
+
+    it('should save exposure dates and update form control', () => {
+      component.exposureDates = [
+        { date: '2023-01-01', description: 'Valid exposure' },
+        { date: '', description: 'Empty date' },
+        { date: '2023-01-03', description: 'Another valid exposure' }
+      ];
+      component.isExposureDatesModalOpen = true;
+      
+      component.saveExposureDates();
+      
+      expect(component.isExposureDatesModalOpen).toBeFalsy();
+      // Should filter out empty entries and serialize to JSON string
+      const expectedJson = JSON.stringify([
+        { date: '2023-01-01', description: 'Valid exposure' },
+        { date: '2023-01-03', description: 'Another valid exposure' }
+      ]);
+      expect(component.form.get('exposureDates')?.value).toEqual(expectedJson);
+    });
+
+    it('should save empty string when no valid exposure dates', () => {
+      component.exposureDates = [
+        { date: '', description: 'Empty date' },
+        { date: '', description: 'Another empty date' }
+      ];
+      component.isExposureDatesModalOpen = true;
+      
+      component.saveExposureDates();
+      
+      expect(component.isExposureDatesModalOpen).toBeFalsy();
+      // Should save empty string when no valid dates
+      expect(component.form.get('exposureDates')?.value).toEqual('');
+    });
+
+    it('should add new exposure date row', () => {
+      component.exposureDates = [{ date: '2023-01-01', description: 'First exposure' }];
+      
+      component.addExposureDateRow();
+      
+      expect(component.exposureDates.length).toBe(2);
+      expect(component.exposureDates[1]).toEqual({ date: '', description: '' });
+    });
+
+    it('should remove exposure date row when more than one exists', () => {
+      component.exposureDates = [
+        { date: '2023-01-01', description: 'First exposure' },
+        { date: '2023-01-02', description: 'Second exposure' }
+      ];
+      
+      component.removeExposureDateRow(1);
+      
+      expect(component.exposureDates.length).toBe(1);
+      expect(component.exposureDates[0]).toEqual({ date: '2023-01-01', description: 'First exposure' });
+    });
+
+    it('should clear values but keep row when removing the last exposure date', () => {
+      component.exposureDates = [{ date: '2023-01-01', description: 'Only exposure' }];
+      
+      component.removeExposureDateRow(0);
+      
+      expect(component.exposureDates.length).toBe(1);
+      expect(component.exposureDates[0]).toEqual({ date: '', description: '' });
+    });
+
+    it('should filter out empty exposure dates when submitting', () => {
+      // First, save the exposure dates to the form (simulating Save button click)
+      component.exposureDates = [
+        { date: '2023-01-01', description: 'Valid exposure' },
+        { date: '', description: 'Empty date' },
+        { date: '2023-01-03', description: 'Another valid exposure' }
+      ];
+      
+      // Save the exposure dates to the form (this simulates clicking Save in the modal)
+      component.saveExposureDates();
+      
+      // Make the form valid
+      component.form.patchValue({
+        name: 'Test Film',
+        iso: '400',
+        type: FilmType.ColorNegative,
+        numberOfExposures: 36,
+        cost: 10.50,
+        purchasedBy: UsernameType.Angel,
+        purchasedOn: '2023-01-01',
+        description: 'Test Description',
+        developed: false
+      });
+      
+      // Mock the service methods
+      mockFilmService.add.and.returnValue(of({}));
+      
+      component.submit();
+      
+      // Verify that the service was called with filtered exposure dates as JSON string
+      const expectedJson = JSON.stringify([
+        { date: '2023-01-01', description: 'Valid exposure' },
+        { date: '2023-01-03', description: 'Another valid exposure' }
+      ]);
+      expect(mockFilmService.add).toHaveBeenCalledWith(
+        jasmine.objectContaining({
+          exposureDates: expectedJson
+        }),
+        undefined
+      );
+    });
+
+    it('should load existing exposure dates when opening modal for editing', () => {
+      const filmWithExposureDates = {
+        rowKey: 'test-id',
+        name: 'Test Film',
+        iso: '400',
+        type: FilmType.ColorNegative,
+        numberOfExposures: 36,
+        cost: 10.50,
+        purchasedBy: UsernameType.Angel,
+        purchasedOn: '2023-01-01',
+        imageUrl: '',
+        description: 'Test Description',
+        developed: false,
+        exposureDates: JSON.stringify([
+          { date: '2023-01-01', description: 'First exposure' },
+          { date: '2023-01-02', description: 'Second exposure' }
+        ])
+      };
+      
+      mockFilmService.getById.and.returnValue(of(filmWithExposureDates));
+      component.isInsert = false;
+      component.rowKey = 'test-id';
+      
+      component.ngOnInit();
+      
+      // Simulate form being patched with film data (this happens in the base component)
+      component.form.patchValue(filmWithExposureDates);
+      
+      // Now open the modal - this should load the exposure dates
+      component.openExposureDatesModal();
+      
+      expect(component.exposureDates).toEqual([
+        { date: '2023-01-01', description: 'First exposure' },
+        { date: '2023-01-02', description: 'Second exposure' }
+      ]);
     });
   });
 });

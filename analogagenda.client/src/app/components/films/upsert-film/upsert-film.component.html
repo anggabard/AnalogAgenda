@@ -115,8 +115,15 @@
 
             <div>
                 <label for="description">Description</label>
-                <textarea formControlName="description" rows="4" cols="40" class="input"
+                <textarea formControlName="description" rows="4" cols="40" class="input description-textarea"
                     placeholder="Description"></textarea>
+            </div>
+
+            <!-- Edit Exposure Dates Button -->
+            <div>
+                <button type="button" class="edit-exposure-dates-btn" (click)="openExposureDatesModal()">
+                    Edit Exposure Dates
+                </button>
             </div>
 
             <div class="developed-toggle-container">
@@ -339,4 +346,25 @@
             <button class="close-btn" (click)="closeThumbnailPreview()">✖</button>
         </div>
     </div>
+
+    <!-- Exposure Dates Modal -->
+    <div class="modal-overlay" *ngIf="isExposureDatesModalOpen" (click)="closeExposureDatesModal()">
+        <div class="modal-content exposure-dates-modal" (click)="$event.stopPropagation()">
+            <div class="modal-header">
+                <div></div>
+                <h3>Edit Exposure Dates</h3>
+                <button class="modal-close" (click)="closeExposureDatesModal()">✕</button>
+            </div>
+            <div class="modal-body">
+                <div *ngFor="let entry of exposureDates; let i = index" class="exposure-date-row">
+                    <input type="date" [(ngModel)]="entry.date" [ngModelOptions]="{standalone: true}" class="input date-input" />
+                    <input type="text" [(ngModel)]="entry.description" [ngModelOptions]="{standalone: true}" 
+                           placeholder="Description" class="input description-input" />
+                    <button type="button" class="delete-row-btn" (click)="removeExposureDateRow(i)">✕</button>
+                </div>
+            <button type="button" class="add-row-btn" (click)="addExposureDateRow()">Add Exposure Date</button>
+            <button type="button" class="save-exposure-dates-btn" (click)="saveExposureDates()">Save</button>
+        </div>
+    </div>
+</div>
 </div>

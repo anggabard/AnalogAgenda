@@ -32,6 +32,8 @@ public class FilmEntity : BaseEntity, IImageEntity
 
     public string? DevelopedWithDevKitRowKey { get; set; }
 
+    public string ExposureDates { get; set; } = string.Empty;
+
     protected override int RowKeyLenght() => 12;
 
     public FilmDto ToDTO(string accountName)
@@ -50,7 +52,8 @@ public class FilmEntity : BaseEntity, IImageEntity
             Description = Description,
             Developed = Developed,
             DevelopedInSessionRowKey = DevelopedInSessionRowKey,
-            DevelopedWithDevKitRowKey = DevelopedWithDevKitRowKey
+            DevelopedWithDevKitRowKey = DevelopedWithDevKitRowKey,
+            ExposureDates = ExposureDates
         };
     }
 }
