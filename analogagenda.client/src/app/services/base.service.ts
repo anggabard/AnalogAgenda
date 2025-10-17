@@ -46,9 +46,23 @@ export class BaseService {
 
     private ensureLeadingSlash(input: string): string {
         const trimmed = input.trim();
+        if (trimmed === '') {
+            return '';
+        }
         if (trimmed.startsWith('/')) {
             return trimmed;
         }
         return '/' + trimmed;
+    }
+
+    // Helper method to build query parameters
+    protected buildQueryParams(params: Record<string, any>): string {
+        const urlParams = new URLSearchParams();
+        Object.entries(params).forEach(([key, value]) => {
+            if (value !== null && value !== undefined) {
+                urlParams.append(key, value.toString());
+            }
+        });
+        return urlParams.toString();
     }
 }

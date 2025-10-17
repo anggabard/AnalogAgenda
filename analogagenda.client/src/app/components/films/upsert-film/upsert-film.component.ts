@@ -102,6 +102,9 @@ export class UpsertFilmComponent extends BaseUpsertComponent<FilmDto> implements
   // Thumbnail preview modal
   showThumbnailPreview: boolean = false;
   
+  // Bulk upload state
+  bulkCount: number = 1;
+  
   private searchSubject = new Subject<string>();
 
   protected createForm(): FormGroup {
@@ -183,7 +186,8 @@ export class UpsertFilmComponent extends BaseUpsertComponent<FilmDto> implements
   }
 
   protected getCreateObservable(item: FilmDto): Observable<any> {
-    return this.filmService.add(item);
+    const queryParams = this.bulkCount > 1 ? { bulkCount: this.bulkCount } : undefined;
+    return this.filmService.add(item, queryParams);
   }
 
   protected getUpdateObservable(rowKey: string, item: FilmDto): Observable<any> {
@@ -668,5 +672,22 @@ export class UpsertFilmComponent extends BaseUpsertComponent<FilmDto> implements
 
   closeThumbnailPreview(): void {
     this.showThumbnailPreview = false;
+  }
+
+  // Bulk upload methods
+  incrementBulkCount(): void {
+    if (this.bulkCount < 10) {
+      this.bulkCount++;
+    }
+  }
+
+  decrementBulkCount(): void {
+    if (this.bulkCount > 1) {
+      this.bulkCount--;
+    }
+  }
+
+  getBulkSaveButtonText(): string {
+    return this.bulkCount === 1 ? 'Save' : `Save ${this.bulkCount} Films`;
   }
 }
