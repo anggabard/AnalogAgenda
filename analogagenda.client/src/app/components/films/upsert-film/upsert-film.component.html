@@ -146,13 +146,22 @@
                 </button>
             </div>
 
-            <button type="submit" [disabled]="form.invalid || loading" class="submit-btn">
-                <span *ngIf="!loading">Save</span>
-                <svg *ngIf="loading" class="spinner" viewBox="0 0 24 24">
-                    <circle class="spinner-bg" cx="12" cy="12" r="10" stroke-width="4"></circle>
-                    <path class="spinner-path" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
-                </svg>
-            </button>
+            <div class="submit-section">
+                <button type="submit" [disabled]="form.invalid || loading" class="submit-btn">
+                    <span *ngIf="!loading">{{ getBulkSaveButtonText() }}</span>
+                    <svg *ngIf="loading" class="spinner" viewBox="0 0 24 24">
+                        <circle class="spinner-bg" cx="12" cy="12" r="10" stroke-width="4"></circle>
+                        <path class="spinner-path" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                    </svg>
+                </button>
+                
+                <!-- Bulk count controls - only show in insert mode -->
+                <div class="bulk-controls" *ngIf="isInsert">
+                    <button type="button" class="bulk-btn bulk-decrement" (click)="decrementBulkCount()" [disabled]="bulkCount <= 1">-1</button>
+                    <span class="bulk-count">{{ bulkCount }}</span>
+                    <button type="button" class="bulk-btn bulk-increment" (click)="incrementBulkCount()" [disabled]="bulkCount >= 10">+1</button>
+                </div>
+            </div>
         </form>
 
         <!-- Delete Button -->

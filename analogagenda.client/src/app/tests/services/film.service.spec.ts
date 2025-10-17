@@ -149,6 +149,99 @@ describe('FilmService', () => {
     });
   });
 
+  describe('Bulk Upload', () => {
+    it('should call add with bulkCount query parameter when bulkCount > 1', () => {
+      // Arrange
+      const filmDto = createMockFilm('1', 'Test Film', UsernameType.Angel, false);
+      const mockResponse = createMockFilm('1', 'Test Film', UsernameType.Angel, false);
+
+      // Act
+      service.add(filmDto, { bulkCount: 5 }).subscribe(response => {
+        // Assert
+        expect(response).toEqual(mockResponse);
+      });
+
+      // Assert HTTP call
+      const req = httpMock.expectOne(`${baseUrl}/?bulkCount=5`);
+      expect(req.request.method).toBe('POST');
+      expect(req.request.body).toEqual(filmDto);
+      req.flush(mockResponse);
+    });
+
+    it('should call add without query parameters when bulkCount = 1', () => {
+      // Arrange
+      const filmDto = createMockFilm('1', 'Test Film', UsernameType.Angel, false);
+      const mockResponse = createMockFilm('1', 'Test Film', UsernameType.Angel, false);
+
+      // Act
+      service.add(filmDto, { bulkCount: 1 }).subscribe(response => {
+        // Assert
+        expect(response).toEqual(mockResponse);
+      });
+
+      // Assert HTTP call
+      const req = httpMock.expectOne(`${baseUrl}/?bulkCount=1`);
+      expect(req.request.method).toBe('POST');
+      expect(req.request.body).toEqual(filmDto);
+      req.flush(mockResponse);
+    });
+
+    it('should call add without query parameters when not provided', () => {
+      // Arrange
+      const filmDto = createMockFilm('1', 'Test Film', UsernameType.Angel, false);
+      const mockResponse = createMockFilm('1', 'Test Film', UsernameType.Angel, false);
+
+      // Act
+      service.add(filmDto).subscribe(response => {
+        // Assert
+        expect(response).toEqual(mockResponse);
+      });
+
+      // Assert HTTP call
+      const req = httpMock.expectOne(`${baseUrl}`);
+      expect(req.request.method).toBe('POST');
+      expect(req.request.body).toEqual(filmDto);
+      req.flush(mockResponse);
+    });
+
+    it('should handle HTTP errors for bulk upload', () => {
+      // Arrange
+      const filmDto = createMockFilm('1', 'Test Film', UsernameType.Angel, false);
+
+      // Act
+      service.add(filmDto, { bulkCount: 3 }).subscribe({
+        next: () => fail('Should have failed'),
+        error: (error) => {
+          // Assert
+          expect(error.status).toBe(400);
+        }
+      });
+
+      // Assert HTTP call
+      const req = httpMock.expectOne(`${baseUrl}/?bulkCount=3`);
+      req.flush('Bad Request', { status: 400, statusText: 'Bad Request' });
+    });
+
+    it('should support custom query parameters', () => {
+      // Arrange
+      const filmDto = createMockFilm('1', 'Test Film', UsernameType.Angel, false);
+      const mockResponse = createMockFilm('1', 'Test Film', UsernameType.Angel, false);
+      const customParams = { customParam: 'value', anotherParam: 123 };
+
+      // Act
+      service.add(filmDto, customParams).subscribe(response => {
+        // Assert
+        expect(response).toEqual(mockResponse);
+      });
+
+      // Assert HTTP call
+      const req = httpMock.expectOne(`${baseUrl}/?customParam=value&anotherParam=123`);
+      expect(req.request.method).toBe('POST');
+      expect(req.request.body).toEqual(filmDto);
+      req.flush(mockResponse);
+    });
+  });
+
   describe('Error Handling', () => {
     it('should handle HTTP errors for getMyDevelopedFilmsPaged', () => {
       // Act

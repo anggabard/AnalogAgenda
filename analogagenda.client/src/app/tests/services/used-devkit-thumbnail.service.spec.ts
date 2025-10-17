@@ -92,7 +92,7 @@ describe('UsedDevKitThumbnailService', () => {
       expect(thumbnail).toEqual(mockUploadedThumbnail);
     });
 
-    const req = httpMock.expectOne('https://localhost:7125/api/UsedDevKitThumbnail/');
+    const req = httpMock.expectOne('https://localhost:7125/api/UsedDevKitThumbnail');
     expect(req.request.method).toBe('POST');
     expect(req.request.body).toEqual(uploadDto);
     req.flush(mockUploadedThumbnail);
@@ -118,7 +118,7 @@ describe('UsedDevKitThumbnailService', () => {
       }
     });
 
-    const req = httpMock.expectOne('https://localhost:7125/api/UsedDevKitThumbnail/');
+    const req = httpMock.expectOne('https://localhost:7125/api/UsedDevKitThumbnail');
     req.flush('Bad Request', { status: 400, statusText: 'Bad Request' });
   });
 });

@@ -27,22 +27,41 @@ public class FilmController(Storage storageCfg, ITableService tablesService, IBl
     protected override FilmDto EntityToDto(FilmEntity entity) => entity.ToDTO(storageCfg.AccountName);
 
     [HttpPost]
-    public async Task<IActionResult> CreateNewFilm([FromBody] FilmDto dto)
+    public async Task<IActionResult> CreateNewFilm([FromBody] FilmDto dto, [FromQuery] int bulkCount = 1)
     {
         try
         {
-            var entity = dto.ToEntity();
-            
-            // If no ImageUrl provided, use default image
-            if (entity.ImageId == Guid.Empty)
+            // Validate bulkCount
+            if (bulkCount < 1 || bulkCount > 10)
             {
-                entity.ImageId = Constants.DefaultFilmImageId;
+                return BadRequest("bulkCount must be between 1 and 10");
+            }
+
+            var createdDtos = new List<FilmDto>();
+
+            for (int i = 0; i < bulkCount; i++)
+            {
+                // Create entity directly from the original DTO
+                var entity = dto.ToEntity();
+                
+                // Add milliseconds offset to ensure unique dates
+                entity.CreatedDate = entity.CreatedDate.AddMilliseconds(i);
+                entity.UpdatedDate = entity.UpdatedDate.AddMilliseconds(i);
+                
+                // If no ImageUrl provided, use default image
+                if (entity.ImageId == Guid.Empty)
+                {
+                    entity.ImageId = Constants.DefaultFilmImageId;
+                }
+                
+                await filmsTable.AddEntityAsync(entity);
+                
+                var createdDto = entity.ToDTO(storageCfg.AccountName);
+                createdDtos.Add(createdDto);
             }
             
-            await filmsTable.AddEntityAsync(entity);
-            
-            var createdDto = entity.ToDTO(storageCfg.AccountName);
-            return Created(string.Empty, createdDto);
+            // Return the first created film DTO for consistency with single creation
+            return Created(string.Empty, createdDtos.First());
         }
         catch (Exception ex)
         {

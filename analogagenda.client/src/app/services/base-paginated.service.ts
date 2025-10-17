@@ -12,8 +12,9 @@ export abstract class BasePaginatedService<TDto> extends BaseService {
     }
 
     // Common CRUD operations
-    add(item: TDto): Observable<any> {
-        return this.post('', item);
+    add(item: TDto, queryParams?: Record<string, any>): Observable<any> {
+        const path = queryParams ? `?${this.buildQueryParams(queryParams)}` : '';
+        return this.post(path, item);
     }
 
     getAll(): Observable<TDto[]> {

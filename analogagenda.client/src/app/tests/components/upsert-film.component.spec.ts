@@ -1,10 +1,10 @@
 import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
 import { UpsertFilmComponent } from '../../components/films/upsert-film/upsert-film.component';
 import { FilmService, SessionService, DevKitService, PhotoService, UsedFilmThumbnailService } from '../../services';
-import { DevKitType, UsernameType } from '../../enums';
+import { DevKitType, UsernameType, FilmType } from '../../enums';
 import { TestConfig } from '../test.config';
 
 describe('UpsertFilmComponent', () => {
@@ -19,11 +19,18 @@ describe('UpsertFilmComponent', () => {
   let mockActivatedRoute: any;
 
   beforeEach(async () => {
-    const filmServiceSpy = jasmine.createSpyObj('FilmService', ['getById', 'update', 'create']);
+    const filmServiceSpy = jasmine.createSpyObj('FilmService', ['getById', 'update', 'add']);
     const sessionServiceSpy = jasmine.createSpyObj('SessionService', ['getById', 'update', 'getAll']);
     const devKitServiceSpy = jasmine.createSpyObj('DevKitService', ['getById', 'update', 'getAll']);
     const photoServiceSpy = jasmine.createSpyObj('PhotoService', ['getAll', 'upload']);
     const thumbnailServiceSpy = jasmine.createSpyObj('UsedFilmThumbnailService', ['searchByFilmName', 'uploadThumbnail']);
+    
+    // Set up default return values for the spies
+    filmServiceSpy.getById.and.returnValue(of({}));
+    sessionServiceSpy.getAll.and.returnValue(of([]));
+    devKitServiceSpy.getAll.and.returnValue(of([]));
+    photoServiceSpy.getAll.and.returnValue(of([]));
+    thumbnailServiceSpy.searchByFilmName.and.returnValue(of([]));
     const routerSpy = jasmine.createSpyObj('Router', ['navigate']);
 
     mockActivatedRoute = {
@@ -441,6 +448,174 @@ describe('UpsertFilmComponent', () => {
       component.closeThumbnailPreview();
 
       expect(component.showThumbnailPreview).toBeFalsy();
+    });
+  });
+
+  describe('Bulk Upload Functionality', () => {
+    beforeEach(() => {
+      // Set up for insert mode (no rowKey)
+      mockActivatedRoute.snapshot.paramMap.get.and.returnValue(null);
+      
+      // Set up mock return values for services
+      mockFilmService.getById.and.returnValue(of({
+        rowKey: 'test-id',
+        name: 'Test Film',
+        iso: '400',
+        type: FilmType.ColorNegative,
+        numberOfExposures: 36,
+        cost: 10.50,
+        purchasedBy: UsernameType.Angel,
+        purchasedOn: '2023-01-01',
+        imageUrl: '',
+        description: 'Test Description',
+        developed: false
+      }));
+      mockSessionService.getAll.and.returnValue(of([]));
+      mockDevKitService.getAll.and.returnValue(of([]));
+      mockThumbnailService.searchByFilmName.and.returnValue(of([]));
+      
+      // Initialize component
+      component.ngOnInit();
+      
+      // Force insert mode
+      component.isInsert = true;
+      component.rowKey = null;
+    });
+
+    it('should initialize with bulkCount of 1', () => {
+      expect(component.bulkCount).toBe(1);
+    });
+
+    it('should increment bulkCount when incrementBulkCount is called', () => {
+      component.incrementBulkCount();
+      expect(component.bulkCount).toBe(2);
+
+      component.incrementBulkCount();
+      expect(component.bulkCount).toBe(3);
+    });
+
+    it('should not increment bulkCount beyond 10', () => {
+      component.bulkCount = 10;
+      component.incrementBulkCount();
+      expect(component.bulkCount).toBe(10);
+    });
+
+    it('should decrement bulkCount when decrementBulkCount is called', () => {
+      component.bulkCount = 5;
+      component.decrementBulkCount();
+      expect(component.bulkCount).toBe(4);
+    });
+
+    it('should not decrement bulkCount below 1', () => {
+      component.bulkCount = 1;
+      component.decrementBulkCount();
+      expect(component.bulkCount).toBe(1);
+    });
+
+    it('should return "Save" when bulkCount is 1', () => {
+      component.bulkCount = 1;
+      expect(component.getBulkSaveButtonText()).toBe('Save');
+    });
+
+    it('should return "Save X Films" when bulkCount is greater than 1', () => {
+      component.bulkCount = 3;
+      expect(component.getBulkSaveButtonText()).toBe('Save 3 Films');
+
+      component.bulkCount = 10;
+      expect(component.getBulkSaveButtonText()).toBe('Save 10 Films');
+    });
+
+    it('should call filmService.add with bulkCount parameter', () => {
+      // Arrange
+      const mockFilmDto = {
+        name: 'Test Film',
+        iso: '400',
+        type: FilmType.ColorNegative,
+        numberOfExposures: 36,
+        cost: 10.50,
+        purchasedBy: UsernameType.Angel,
+        purchasedOn: '2023-01-01',
+        imageUrl: '',
+        description: 'Test Description',
+        developed: false
+      };
+      
+      component.form.patchValue(mockFilmDto);
+      component.bulkCount = 5;
+      mockFilmService.add.and.returnValue(of({}));
+
+
+      // Act
+      component.submit();
+
+      // Assert
+      expect(mockFilmService.add).toHaveBeenCalledWith(jasmine.any(Object), { bulkCount: 5 });
+    });
+
+    it('should call filmService.add with bulkCount 1 when bulkCount is 1', () => {
+      // Arrange
+      const mockFilmDto = {
+        name: 'Test Film',
+        iso: '400',
+        type: 'ColorNegative',
+        numberOfExposures: 36,
+        cost: 10.50,
+        purchasedBy: 'Angel',
+        purchasedOn: '2023-01-01',
+        imageUrl: '',
+        description: 'Test Description',
+        developed: false
+      };
+      
+      component.form.patchValue(mockFilmDto);
+      component.bulkCount = 1;
+      mockFilmService.add.and.returnValue(of({}));
+
+      // Act
+      component.submit();
+
+      // Assert
+      expect(mockFilmService.add).toHaveBeenCalledWith(jasmine.any(Object), undefined);
+    });
+
+    it('should handle bulk upload errors', () => {
+      // Arrange
+      const mockFilmDto = {
+        name: 'Test Film',
+        iso: '400',
+        type: 'ColorNegative',
+        numberOfExposures: 36,
+        cost: 10.50,
+        purchasedBy: 'Angel',
+        purchasedOn: '2023-01-01',
+        imageUrl: '',
+        description: 'Test Description',
+        developed: false
+      };
+      
+      component.form.patchValue(mockFilmDto);
+      component.bulkCount = 3;
+      mockFilmService.add.and.returnValue(throwError(() => new Error('Bulk upload failed')));
+
+      // Act
+      component.submit();
+
+      // Assert
+      expect(mockFilmService.add).toHaveBeenCalledWith(jasmine.any(Object), { bulkCount: 3 });
+      expect(component.errorMessage).toBeTruthy();
+      expect(component.loading).toBeFalsy();
+    });
+
+    it('should reset bulkCount to 1 when form is reset', () => {
+      component.bulkCount = 5;
+      component.form.reset();
+      expect(component.bulkCount).toBe(5); // bulkCount should not be reset by form reset
+    });
+
+    it('should maintain bulkCount state during component lifecycle', () => {
+      component.bulkCount = 7;
+      component.ngOnInit();
+      expect(component.bulkCount).toBe(7);
     });
   });
 });
