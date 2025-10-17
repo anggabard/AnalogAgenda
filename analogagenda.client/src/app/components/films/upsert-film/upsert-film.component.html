@@ -55,13 +55,6 @@
                 <input type="date" formControlName="purchasedOn" class="input" />
             </div>
 
-        <!-- Edit Exposure Dates Button -->
-        <div>
-            <button type="button" class="edit-exposure-dates-btn" (click)="openExposureDatesModal()">
-                Edit Exposure Dates
-            </button>
-        </div>
-
             <!-- Thumbnail Section -->
             <div class="thumbnail-section">
                 <label>Thumbnail</label>
@@ -122,8 +115,15 @@
 
             <div>
                 <label for="description">Description</label>
-                <textarea formControlName="description" rows="4" cols="40" class="input"
+                <textarea formControlName="description" rows="4" cols="40" class="input description-textarea"
                     placeholder="Description"></textarea>
+            </div>
+
+            <!-- Edit Exposure Dates Button -->
+            <div>
+                <button type="button" class="edit-exposure-dates-btn" (click)="openExposureDatesModal()">
+                    Edit Exposure Dates
+                </button>
             </div>
 
             <div class="developed-toggle-container">

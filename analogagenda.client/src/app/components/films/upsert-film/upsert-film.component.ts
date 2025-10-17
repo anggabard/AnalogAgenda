@@ -127,7 +127,7 @@ export class UpsertFilmComponent extends BaseUpsertComponent<FilmDto> implements
       developed: [false, Validators.required],
       developedInSessionRowKey: [null],
       developedWithDevKitRowKey: [null],
-      exposureDates: [[]]
+      exposureDates: ['']
     });
   }
 
@@ -703,7 +703,19 @@ export class UpsertFilmComponent extends BaseUpsertComponent<FilmDto> implements
     
     // Load existing exposure dates from form if editing
     if (!this.isInsert && this.form.get('exposureDates')?.value) {
-      this.exposureDates = this.form.get('exposureDates')?.value || [];
+      const exposureDatesValue = this.form.get('exposureDates')?.value;
+      if (typeof exposureDatesValue === 'string' && exposureDatesValue.trim() !== '') {
+        try {
+          this.exposureDates = JSON.parse(exposureDatesValue);
+        } catch (e) {
+          console.error('Error parsing exposure dates JSON:', e);
+          this.exposureDates = [];
+        }
+      } else if (Array.isArray(exposureDatesValue)) {
+        this.exposureDates = exposureDatesValue;
+      } else {
+        this.exposureDates = [];
+      }
     }
     
     // Initialize with one empty row if no data exists
@@ -739,8 +751,11 @@ export class UpsertFilmComponent extends BaseUpsertComponent<FilmDto> implements
       description: entry.description.trim()
     }));
     
-    // Update the form control with the filtered and trimmed data
-    this.form.patchValue({ exposureDates: validExposureDates });
+    // Serialize to JSON string for backend, or empty string if no valid dates
+    const exposureDatesJson = validExposureDates.length > 0 ? JSON.stringify(validExposureDates) : '';
+    
+    // Update the form control with the JSON string
+    this.form.patchValue({ exposureDates: exposureDatesJson });
     
     // Close the modal
     this.closeExposureDatesModal();

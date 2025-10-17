@@ -15,5 +15,5 @@ export interface FilmDto {
   developed: boolean;
   developedInSessionRowKey?: string | null;
   developedWithDevKitRowKey?: string | null;
-  exposureDates?: ExposureDateEntry[];
+  exposureDates?: string;
 }

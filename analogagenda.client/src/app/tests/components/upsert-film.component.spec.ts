@@ -469,7 +469,7 @@ describe('UpsertFilmComponent', () => {
         imageUrl: '',
         description: 'Test Description',
         developed: false,
-        exposureDates: []
+        exposureDates: ''
       }));
       mockSessionService.getAll.and.returnValue(of([]));
       mockDevKitService.getAll.and.returnValue(of([]));
@@ -638,7 +638,7 @@ describe('UpsertFilmComponent', () => {
         imageUrl: '',
         description: 'Test Description',
         developed: false,
-        exposureDates: []
+        exposureDates: ''
       }));
       mockSessionService.getAll.and.returnValue(of([]));
       mockDevKitService.getAll.and.returnValue(of([]));
@@ -672,7 +672,7 @@ describe('UpsertFilmComponent', () => {
       
       expect(component.isExposureDatesModalOpen).toBeFalsy();
       // Form should not be updated when just closing the modal
-      expect(component.form.get('exposureDates')?.value).toEqual([]);
+      expect(component.form.get('exposureDates')?.value).toEqual('');
     });
 
     it('should save exposure dates and update form control', () => {
@@ -686,11 +686,26 @@ describe('UpsertFilmComponent', () => {
       component.saveExposureDates();
       
       expect(component.isExposureDatesModalOpen).toBeFalsy();
-      // Should filter out empty entries and trim whitespace
-      expect(component.form.get('exposureDates')?.value).toEqual([
+      // Should filter out empty entries and serialize to JSON string
+      const expectedJson = JSON.stringify([
         { date: '2023-01-01', description: 'Valid exposure' },
         { date: '2023-01-03', description: 'Another valid exposure' }
       ]);
+      expect(component.form.get('exposureDates')?.value).toEqual(expectedJson);
+    });
+
+    it('should save empty string when no valid exposure dates', () => {
+      component.exposureDates = [
+        { date: '', description: 'Empty date' },
+        { date: '', description: 'Another empty date' }
+      ];
+      component.isExposureDatesModalOpen = true;
+      
+      component.saveExposureDates();
+      
+      expect(component.isExposureDatesModalOpen).toBeFalsy();
+      // Should save empty string when no valid dates
+      expect(component.form.get('exposureDates')?.value).toEqual('');
     });
 
     it('should add new exposure date row', () => {
@@ -752,13 +767,14 @@ describe('UpsertFilmComponent', () => {
       
       component.submit();
       
-      // Verify that the service was called with filtered exposure dates
+      // Verify that the service was called with filtered exposure dates as JSON string
+      const expectedJson = JSON.stringify([
+        { date: '2023-01-01', description: 'Valid exposure' },
+        { date: '2023-01-03', description: 'Another valid exposure' }
+      ]);
       expect(mockFilmService.add).toHaveBeenCalledWith(
         jasmine.objectContaining({
-          exposureDates: [
-            { date: '2023-01-01', description: 'Valid exposure' },
-            { date: '2023-01-03', description: 'Another valid exposure' }
-          ]
+          exposureDates: expectedJson
         }),
         undefined
       );
@@ -777,10 +793,10 @@ describe('UpsertFilmComponent', () => {
         imageUrl: '',
         description: 'Test Description',
         developed: false,
-        exposureDates: [
+        exposureDates: JSON.stringify([
           { date: '2023-01-01', description: 'First exposure' },
           { date: '2023-01-02', description: 'Second exposure' }
-        ]
+        ])
       };
       
       mockFilmService.getById.and.returnValue(of(filmWithExposureDates));
