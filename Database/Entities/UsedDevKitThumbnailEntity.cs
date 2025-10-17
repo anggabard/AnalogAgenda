@@ -4,7 +4,7 @@ using Database.Helpers;
 
 namespace Database.Entities;
 
-public class UsedDevKitThumbnailEntity : BaseEntity
+public class UsedDevKitThumbnailEntity : BaseEntity, IImageEntity
 {
     public UsedDevKitThumbnailEntity() : base(TableName.UsedDevKitThumbnails) { }
 

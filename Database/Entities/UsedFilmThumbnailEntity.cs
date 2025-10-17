@@ -4,7 +4,7 @@ using Database.Helpers;
 
 namespace Database.Entities;
 
-public class UsedFilmThumbnailEntity : BaseEntity
+public class UsedFilmThumbnailEntity : BaseEntity, IImageEntity
 {
     public UsedFilmThumbnailEntity() : base(TableName.UsedFilmThumbnails) { }
 

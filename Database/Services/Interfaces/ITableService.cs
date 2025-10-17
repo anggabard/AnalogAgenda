@@ -16,6 +16,7 @@ public interface ITableService
     Task<PagedResponseDto<T>> GetTableEntriesPagedAsync<T>(Expression<Func<T, bool>> predicate, int page = 1, int pageSize = 10) where T : BaseEntity;
     Task<T?> GetTableEntryIfExistsAsync<T>(string rowKey) where T : BaseEntity;
     Task<bool> EntryExistsAsync(BaseEntity entity);
+    Task<bool> EntryExistsAsync<T>(Expression<Func<T, bool>> predicate) where T : BaseEntity;
     Task DeleteTableEntryAsync<T>(string rowKey) where T : BaseEntity;
     Task DeleteTableEntriesAsync<T>(IEnumerable<T> entities) where T : BaseEntity;
     Task DeleteTableEntriesAsync<T>(Expression<Func<T, bool>> predicate) where T : BaseEntity;

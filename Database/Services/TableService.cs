@@ -24,7 +24,7 @@ namespace Database.Services
         protected override TableClient CreateClient(string resourceName) =>
             new(AccountUri, resourceName, Credential);
 
-        private static TableName GetTableName<T>() where T : BaseEntity
+        public static TableName GetTableName<T>() where T : BaseEntity
         {
             var method = typeof(T).GetMethod("GetTable") ?? throw new InvalidOperationException($"Method 'GetTable' not found on type {typeof(T).Name}");
 
@@ -108,6 +108,18 @@ namespace Database.Services
             var entry = await table.GetEntityIfExistsAsync<BaseEntity>(entity.PartitionKey, entity.RowKey);
 
             return entry.HasValue;
+        }
+
+        public async Task<bool> EntryExistsAsync<T>(Expression<Func<T, bool>> predicate) where T : BaseEntity
+        {
+            var tableName = GetTableName<T>();
+
+            await foreach (var _ in GetTable(tableName).QueryAsync(predicate))
+            {
+                return true;
+            }
+
+            return false;
         }
 
         public async Task DeleteTableEntryAsync<T>(string rowKey) where T : BaseEntity

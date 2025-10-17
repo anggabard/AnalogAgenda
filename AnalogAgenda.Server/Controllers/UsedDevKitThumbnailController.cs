@@ -2,7 +2,6 @@ using AnalogAgenda.Server.Helpers;
 using Azure.Data.Tables;
 using Azure.Storage.Blobs;
 using Configuration.Sections;
-using Database.DBObjects;
 using Database.DBObjects.Enums;
 using Database.DTOs;
 using Database.Entities;
@@ -18,7 +17,6 @@ public class UsedDevKitThumbnailController(Storage storageCfg, ITableService tab
 {
     private readonly Storage storageCfg = storageCfg;
     private readonly ITableService tablesService = tablesService;
-    private readonly IBlobService blobsService = blobsService;
     private readonly TableClient thumbnailsTable = tablesService.GetTable(TableName.UsedDevKitThumbnails);
     private readonly BlobContainerClient devKitsContainer = blobsService.GetBlobContainer(ContainerName.devkits);
 
