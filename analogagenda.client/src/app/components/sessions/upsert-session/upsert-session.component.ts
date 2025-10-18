@@ -480,7 +480,6 @@ export class UpsertSessionComponent extends BaseUpsertComponent<SessionDto> impl
       reader.readAsDataURL(file);
       reader.onload = () => {
         this.form.patchValue({
-          imageUrl: reader.result as string,
           imageBase64: reader.result as string
         });
       };
