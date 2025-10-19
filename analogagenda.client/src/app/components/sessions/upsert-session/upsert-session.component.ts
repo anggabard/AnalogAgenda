@@ -288,12 +288,20 @@ export class UpsertSessionComponent extends BaseUpsertComponent<SessionDto> impl
     if (event.previousContainer === event.container) {
       moveItemInArray(event.container.data, event.previousIndex, event.currentIndex);
     } else {
-      transferArrayItem(
-        event.previousContainer.data,
-        event.container.data,
-        event.previousIndex,
-        event.container.data.length
-      );
+      // Use the explicit drag data to find the correct item
+      const draggedItem = event.item.data;
+      const sourceArray = event.previousContainer.data;
+      const targetArray = event.container.data;
+      
+      // Find the actual index of the dragged item in the source array
+      const actualIndex = sourceArray.findIndex(item => item.rowKey === draggedItem.rowKey);
+      
+      if (actualIndex !== -1) {
+        // Remove from source array
+        const [movedItem] = sourceArray.splice(actualIndex, 1);
+        // Add to target array
+        targetArray.push(movedItem);
+      }
     }
     
     // Mark form as dirty when films are moved
@@ -508,5 +516,18 @@ export class UpsertSessionComponent extends BaseUpsertComponent<SessionDto> impl
     const unassignedCount = this.unassignedFilms.length;
     const assignedCount = this.sessionDevKits.reduce((sum, sdk) => sum + sdk.assignedFilms.length, 0);
     return unassignedCount + assignedCount;
+  }
+
+  // TrackBy functions for ngFor loops
+  trackByFilmRowKey(index: number, film: FilmDto): string {
+    return film.rowKey;
+  }
+
+  trackByDevKitRowKey(index: number, devKitWithFilms: DevKitWithFilms): string {
+    return devKitWithFilms.devKit.rowKey;
+  }
+
+  trackByDevKitDtoRowKey(index: number, devKit: DevKitDto): string {
+    return devKit.rowKey;
   }
 }

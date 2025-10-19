@@ -2,10 +2,11 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { of } from 'rxjs';
+import { CdkDragDrop } from '@angular/cdk/drag-drop';
 import { UpsertSessionComponent } from '../../components/sessions/upsert-session/upsert-session.component';
 import { SessionService, DevKitService, FilmService } from '../../services';
-import { DevKitDto } from '../../DTOs';
-import { DevKitType, UsernameType } from '../../enums';
+import { DevKitDto, FilmDto, SessionDto } from '../../DTOs';
+import { DevKitType, UsernameType, FilmType } from '../../enums';
 import { TestConfig } from '../test.config';
 
 describe('UpsertSessionComponent', () => {
@@ -210,5 +211,278 @@ describe('UpsertSessionComponent', () => {
     const result = component.filteredAvailableDevKits;
 
     expect(result).toEqual([mockDevKit, expiredDevKit]);
+  });
+
+  describe('Drag and Drop Functionality', () => {
+    let mockFilm1: FilmDto;
+    let mockFilm2: FilmDto;
+    let mockFilm3: FilmDto;
+    let mockDevKit: DevKitDto;
+
+    // Helper function to create CdkDragDrop events
+    function createDragDropEvent(
+      previousContainerId: string,
+      previousData: any[],
+      containerId: string,
+      containerData: any[],
+      previousIndex: number,
+      currentIndex: number,
+      draggedItem: any,
+      isPointerOverContainer: boolean = true
+    ): CdkDragDrop<any[]> {
+      return {
+        previousContainer: { id: previousContainerId, data: previousData } as any,
+        container: { id: containerId, data: containerData } as any,
+        previousIndex,
+        currentIndex,
+        isPointerOverContainer,
+        item: { data: draggedItem } as any,
+        distance: { x: 0, y: 0 },
+        dropPoint: { x: 0, y: 0 },
+        event: new MouseEvent('drop')
+      };
+    }
+
+    beforeEach(() => {
+      // Create test films
+      mockFilm1 = {
+        rowKey: 'film-1',
+        name: 'Film 1',
+        iso: '400',
+        type: FilmType.ColorNegative,
+        numberOfExposures: 36,
+        cost: 10,
+        purchasedBy: UsernameType.Angel,
+        purchasedOn: '2023-01-01',
+        imageUrl: 'film1.jpg',
+        description: 'Test film 1',
+        developed: true,
+        developedInSessionRowKey: 'session-1'
+      };
+
+      mockFilm2 = {
+        rowKey: 'film-2',
+        name: 'Film 2',
+        iso: '400',
+        type: FilmType.ColorNegative,
+        numberOfExposures: 36,
+        cost: 10,
+        purchasedBy: UsernameType.Angel,
+        purchasedOn: '2023-01-01',
+        imageUrl: 'film2.jpg',
+        description: 'Test film 2',
+        developed: true,
+        developedInSessionRowKey: 'session-1'
+      };
+
+      mockFilm3 = {
+        rowKey: 'film-3',
+        name: 'Film 3',
+        iso: '400',
+        type: FilmType.ColorNegative,
+        numberOfExposures: 36,
+        cost: 10,
+        purchasedBy: UsernameType.Angel,
+        purchasedOn: '2023-01-01',
+        imageUrl: 'film3.jpg',
+        description: 'Test film 3',
+        developed: true,
+        developedInSessionRowKey: 'session-1'
+      };
+
+      mockDevKit = {
+        rowKey: 'devkit-1',
+        name: 'Test DevKit',
+        url: 'http://example.com',
+        type: DevKitType.C41,
+        purchasedBy: UsernameType.Angel,
+        purchasedOn: '2023-01-01',
+        mixedOn: '2023-01-01',
+        validForWeeks: 6,
+        validForFilms: 8,
+        filmsDeveloped: 0,
+        description: 'Test devkit',
+        expired: false,
+        imageUrl: 'devkit.jpg'
+      };
+
+      // Setup component with test data
+      component.sessionDevKits = [{
+        devKit: mockDevKit,
+        assignedFilms: []
+      }];
+      component.unassignedFilms = [mockFilm1, mockFilm2, mockFilm3];
+    });
+
+    describe('onFilmDrop - Same Container (Reordering)', () => {
+      it('should reorder films within the same container', () => {
+        const event = createDragDropEvent(
+          'unassigned-films', component.unassignedFilms,
+          'unassigned-films', component.unassignedFilms,
+          0, 2, mockFilm1
+        );
+
+        component.onFilmDrop(event);
+
+        expect(component.unassignedFilms[0]).toBe(mockFilm2);
+        expect(component.unassignedFilms[1]).toBe(mockFilm3);
+        expect(component.unassignedFilms[2]).toBe(mockFilm1);
+      });
+    });
+
+    describe('onFilmDrop - Different Containers (Transfer)', () => {
+      it('should transfer film from unassigned to devkit using explicit drag data', () => {
+        const event = createDragDropEvent(
+          'unassigned-films', component.unassignedFilms,
+          'devkit-devkit-1', component.sessionDevKits[0].assignedFilms,
+          1, 0, mockFilm2
+        );
+
+        component.onFilmDrop(event);
+
+        // Film 2 should be moved to devkit
+        expect(component.sessionDevKits[0].assignedFilms).toContain(mockFilm2);
+        expect(component.unassignedFilms).not.toContain(mockFilm2);
+        
+        // Other films should remain in unassigned
+        expect(component.unassignedFilms).toContain(mockFilm1);
+        expect(component.unassignedFilms).toContain(mockFilm3);
+      });
+
+      it('should transfer film from devkit back to unassigned using explicit drag data', () => {
+        // First, add a film to the devkit
+        component.sessionDevKits[0].assignedFilms.push(mockFilm1);
+        component.unassignedFilms = [mockFilm2, mockFilm3];
+
+        const event = createDragDropEvent(
+          'devkit-devkit-1', component.sessionDevKits[0].assignedFilms,
+          'unassigned-films', component.unassignedFilms,
+          0, 2, mockFilm1
+        );
+
+        component.onFilmDrop(event);
+
+        // Film 1 should be moved back to unassigned
+        expect(component.unassignedFilms).toContain(mockFilm1);
+        expect(component.sessionDevKits[0].assignedFilms).not.toContain(mockFilm1);
+      });
+
+      it('should handle the specific bug scenario: drag Film 3, ensure Film 3 is transferred', () => {
+        // Setup: Film 1 already in devkit, Films 2 and 3 in unassigned
+        component.sessionDevKits[0].assignedFilms.push(mockFilm1);
+        component.unassignedFilms = [mockFilm2, mockFilm3];
+
+        const event = createDragDropEvent(
+          'unassigned-films', component.unassignedFilms,
+          'devkit-devkit-1', component.sessionDevKits[0].assignedFilms,
+          1, 1, mockFilm3
+        );
+
+        component.onFilmDrop(event);
+
+        // Film 3 should be transferred (not Film 2)
+        expect(component.sessionDevKits[0].assignedFilms).toContain(mockFilm3);
+        expect(component.sessionDevKits[0].assignedFilms).not.toContain(mockFilm2);
+        expect(component.unassignedFilms).not.toContain(mockFilm3);
+        expect(component.unassignedFilms).toContain(mockFilm2);
+      });
+
+      it('should handle the reverse bug scenario: drag Film 2 from devkit, ensure Film 2 is transferred back', () => {
+        // Setup: Films 1 and 2 in devkit, Film 3 in unassigned
+        component.sessionDevKits[0].assignedFilms.push(mockFilm1, mockFilm2);
+        component.unassignedFilms = [mockFilm3];
+
+        const event = createDragDropEvent(
+          'devkit-devkit-1', component.sessionDevKits[0].assignedFilms,
+          'unassigned-films', component.unassignedFilms,
+          1, 1, mockFilm2
+        );
+
+        component.onFilmDrop(event);
+
+        // Film 2 should be transferred back (not Film 1)
+        expect(component.unassignedFilms).toContain(mockFilm2);
+        expect(component.unassignedFilms).not.toContain(mockFilm1);
+        expect(component.sessionDevKits[0].assignedFilms).not.toContain(mockFilm2);
+        expect(component.sessionDevKits[0].assignedFilms).toContain(mockFilm1);
+      });
+    });
+
+    describe('onFilmDrop - Edge Cases', () => {
+      it('should not transfer film if not over container', () => {
+        const event = createDragDropEvent(
+          'unassigned-films', component.unassignedFilms,
+          'devkit-devkit-1', component.sessionDevKits[0].assignedFilms,
+          0, 0, mockFilm1, false
+        );
+
+        const initialUnassignedCount = component.unassignedFilms.length;
+        const initialAssignedCount = component.sessionDevKits[0].assignedFilms.length;
+
+        component.onFilmDrop(event);
+
+        expect(component.unassignedFilms.length).toBe(initialUnassignedCount);
+        expect(component.sessionDevKits[0].assignedFilms.length).toBe(initialAssignedCount);
+      });
+
+      it('should handle case where dragged item is not found in source array', () => {
+        const nonExistentFilm: FilmDto = {
+          ...mockFilm1,
+          rowKey: 'non-existent-film'
+        };
+
+        const event = createDragDropEvent(
+          'unassigned-films', component.unassignedFilms,
+          'devkit-devkit-1', component.sessionDevKits[0].assignedFilms,
+          0, 0, nonExistentFilm
+        );
+
+        const initialUnassignedCount = component.unassignedFilms.length;
+        const initialAssignedCount = component.sessionDevKits[0].assignedFilms.length;
+
+        component.onFilmDrop(event);
+
+        // Should not change arrays if item not found
+        expect(component.unassignedFilms.length).toBe(initialUnassignedCount);
+        expect(component.sessionDevKits[0].assignedFilms.length).toBe(initialAssignedCount);
+      });
+    });
+
+    describe('TrackBy Functions', () => {
+      it('should return correct rowKey for trackByFilmRowKey', () => {
+        const result = component.trackByFilmRowKey(0, mockFilm1);
+        expect(result).toBe('film-1');
+      });
+
+      it('should return correct rowKey for trackByDevKitRowKey', () => {
+        const devKitWithFilms = {
+          devKit: mockDevKit,
+          assignedFilms: [mockFilm1]
+        };
+        const result = component.trackByDevKitRowKey(0, devKitWithFilms);
+        expect(result).toBe('devkit-1');
+      });
+
+      it('should return correct rowKey for trackByDevKitDtoRowKey', () => {
+        const result = component.trackByDevKitDtoRowKey(0, mockDevKit);
+        expect(result).toBe('devkit-1');
+      });
+    });
+
+    describe('Form Dirty State', () => {
+      it('should mark form as dirty when film is dropped', () => {
+        spyOn(component.form, 'markAsDirty');
+
+        const event = createDragDropEvent(
+          'unassigned-films', component.unassignedFilms,
+          'devkit-devkit-1', component.sessionDevKits[0].assignedFilms,
+          0, 0, mockFilm1
+        );
+
+        component.onFilmDrop(event);
+
+        expect(component.form.markAsDirty).toHaveBeenCalled();
+      });
+    });
   });
 });

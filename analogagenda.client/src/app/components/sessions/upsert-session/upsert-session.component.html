@@ -48,7 +48,7 @@
       </div>
     </div>
     <div class="devkit-grid" *ngIf="sessionDevKits.length > 0">
-      <div *ngFor="let devKitWithFilms of sessionDevKits" class="devkit-container">
+      <div *ngFor="let devKitWithFilms of sessionDevKits; trackBy: trackByDevKitRowKey" class="devkit-container">
         <div class="devkit-header">
           <div class="devkit-info">
             <h4>{{ devKitWithFilms.devKit.name }}</h4>
@@ -94,9 +94,10 @@
           
           <div class="drop-zone-content">
             <div 
-              *ngFor="let film of devKitWithFilms.assignedFilms" 
+              *ngFor="let film of devKitWithFilms.assignedFilms; trackBy: trackByFilmRowKey" 
               class="film-card removable-film"
               [cdkDragDisabled]="isViewMode"
+              [cdkDragData]="film"
               cdkDrag>
               <button 
                 *ngIf="isEditMode || isInsert"
@@ -153,9 +154,10 @@
       
       <div class="unassigned-grid" *ngIf="unassignedFilms.length > 0">
         <div 
-          *ngFor="let film of unassignedFilms" 
+          *ngFor="let film of unassignedFilms; trackBy: trackByFilmRowKey" 
           class="film-card removable-film"
           [cdkDragDisabled]="isViewMode"
+          [cdkDragData]="film"
           cdkDrag>
           <button 
             *ngIf="isEditMode || isInsert"
@@ -289,7 +291,7 @@
         </label>
       </div>
       <div class="items-grid">
-        <div *ngFor="let devKit of filteredAvailableDevKits" class="item-card" 
+        <div *ngFor="let devKit of filteredAvailableDevKits; trackBy: trackByDevKitDtoRowKey" class="item-card" 
              [class.expired]="devKit.expired"
              [class.selected]="isDevKitSelectedForModal(devKit.rowKey)"
              (click)="toggleDevKitSelection(devKit.rowKey)">
@@ -328,7 +330,7 @@
     </div>
     <div class="modal-body">
       <div class="items-grid">
-        <div *ngFor="let film of availableUnassignedFilms" class="item-card"
+        <div *ngFor="let film of availableUnassignedFilms; trackBy: trackByFilmRowKey" class="item-card"
              [class.selected]="isFilmSelectedForModal(film.rowKey)"
              (click)="toggleFilmSelection(film.rowKey)">
           <div class="item-content">
