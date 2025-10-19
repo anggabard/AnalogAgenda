@@ -93,13 +93,13 @@ public class FilmController(Storage storageCfg, ITableService tablesService, IBl
     }
 
     [HttpGet("developed")]
-    public async Task<IActionResult> GetDevelopedFilms([FromQuery] int page = 1, [FromQuery] int pageSize = 5)
+    public async Task<IActionResult> GetDevelopedFilms([FromQuery] FilmSearchDto searchDto)
     {
-        return await GetFilteredFilms(f => f.Developed, page, pageSize);
+        return await GetFilteredFilms(f => f.Developed, searchDto);
     }
 
     [HttpGet("my/developed")]
-    public async Task<IActionResult> GetMyDevelopedFilms([FromQuery] int page = 1, [FromQuery] int pageSize = 5)
+    public async Task<IActionResult> GetMyDevelopedFilms([FromQuery] FilmSearchDto searchDto)
     {
         var currentUser = User.Name();
         if (string.IsNullOrEmpty(currentUser))
@@ -108,17 +108,17 @@ public class FilmController(Storage storageCfg, ITableService tablesService, IBl
         var currentUserEnum = currentUser.ToEnum<EUsernameType>();
 
         // Azure Table Storage may have issues with compound expressions, so filter by user first
-        return await GetMyFilteredFilms(f => f.Developed, currentUserEnum, page, pageSize);
+        return await GetMyFilteredFilms(f => f.Developed, currentUserEnum, searchDto);
     }
 
     [HttpGet("not-developed")]
-    public async Task<IActionResult> GetNotDevelopedFilms([FromQuery] int page = 1, [FromQuery] int pageSize = 5)
+    public async Task<IActionResult> GetNotDevelopedFilms([FromQuery] FilmSearchDto searchDto)
     {
-        return await GetFilteredFilms(f => !f.Developed, page, pageSize);
+        return await GetFilteredFilms(f => !f.Developed, searchDto);
     }
 
     [HttpGet("my/not-developed")]
-    public async Task<IActionResult> GetMyNotDevelopedFilms([FromQuery] int page = 1, [FromQuery] int pageSize = 5)
+    public async Task<IActionResult> GetMyNotDevelopedFilms([FromQuery] FilmSearchDto searchDto)
     {
         var currentUser = User.Name();
         if (string.IsNullOrEmpty(currentUser))
@@ -127,31 +127,39 @@ public class FilmController(Storage storageCfg, ITableService tablesService, IBl
         var currentUserEnum = currentUser.ToEnum<EUsernameType>();
 
         // Azure Table Storage may have issues with compound expressions, so filter by user first
-        return await GetMyFilteredFilms(f => !f.Developed, currentUserEnum, page, pageSize);
+        return await GetMyFilteredFilms(f => !f.Developed, currentUserEnum, searchDto);
     }
 
     private async Task<IActionResult> GetFilteredFilms(
         Expression<Func<FilmEntity, bool>> predicate,
-        int page = 1,
-        int pageSize = 5)
+        FilmSearchDto searchDto)
     {
         // For backward compatibility, if page is 0 or negative, return all filtered films
-        if (page <= 0)
+        if (searchDto.Page <= 0)
         {
             var entities = await tablesService.GetTableEntriesAsync(predicate);
-            var results = entities
+            var filteredEntities = ApplySearchFilters(entities, searchDto);
+            var results = filteredEntities
                 .ApplyStandardSorting()
                 .Select(EntityToDto);
             return Ok(results);
         }
 
-        var pagedEntities = await tablesService.GetTableEntriesPagedAsync(predicate, page, pageSize, entities => entities.ApplyStandardSorting());
+        var allEntities = await tablesService.GetTableEntriesAsync(predicate);
+        var searchFilteredEntities = ApplySearchFilters(allEntities, searchDto);
+        var sortedEntities = searchFilteredEntities.ApplyStandardSorting().ToList();
+        
+        // Apply pagination
+        var totalCount = sortedEntities.Count;
+        var skip = (searchDto.Page - 1) * searchDto.PageSize;
+        var pagedData = sortedEntities.Skip(skip).Take(searchDto.PageSize).ToList();
+
         var pagedResults = new PagedResponseDto<FilmDto>
         {
-            Data = pagedEntities.Data.Select(EntityToDto),
-            TotalCount = pagedEntities.TotalCount,
-            PageSize = pagedEntities.PageSize,
-            CurrentPage = pagedEntities.CurrentPage
+            Data = pagedData.Select(EntityToDto),
+            TotalCount = totalCount,
+            PageSize = searchDto.PageSize,
+            CurrentPage = searchDto.Page
         };
 
         return Ok(pagedResults);
@@ -160,44 +168,46 @@ public class FilmController(Storage storageCfg, ITableService tablesService, IBl
     private async Task<IActionResult> GetMyFilteredFilms(
         Expression<Func<FilmEntity, bool>> statusPredicate,
         EUsernameType currentUserEnum,
-        int page = 1,
-        int pageSize = 5)
+        FilmSearchDto searchDto)
     {
-        if (page <= 0)
+        if (searchDto.Page <= 0)
         {
             // Get all entities with status filter, then filter by user in memory
             var allEntities = await tablesService.GetTableEntriesAsync(statusPredicate);
             var myEntities = allEntities
-                .Where(f => f.PurchasedBy == currentUserEnum)
+                .Where(f => f.PurchasedBy == currentUserEnum);
+            var filteredEntities = ApplySearchFilters(myEntities, searchDto);
+            var results = filteredEntities
                 .ApplyUserFilteredSorting()
                 .Select(EntityToDto);
-            return Ok(myEntities);
+            return Ok(results);
         }
 
         // For pagination, we need to get all status-filtered entities and then page them
         var statusFilteredEntities = await tablesService.GetTableEntriesAsync(statusPredicate);
         var myFilms = statusFilteredEntities
-            .Where(f => f.PurchasedBy == currentUserEnum)
-            .ApplyUserFilteredSorting()
-            .ToList();
+            .Where(f => f.PurchasedBy == currentUserEnum);
+        var filteredFilms = ApplySearchFilters(myFilms, searchDto);
+        var sortedFilms = filteredFilms.ApplyUserFilteredSorting().ToList();
 
-        var totalCount = myFilms.Count;
-        var skip = (page - 1) * pageSize;
-        var pagedData = myFilms
+        var totalCount = sortedFilms.Count;
+        var skip = (searchDto.Page - 1) * searchDto.PageSize;
+        var pagedData = sortedFilms
             .Skip(skip)
-            .Take(pageSize)
+            .Take(searchDto.PageSize)
             .ToList();
 
         var pagedResults = new PagedResponseDto<FilmDto>
         {
             Data = pagedData.Select(EntityToDto),
             TotalCount = totalCount,
-            PageSize = pageSize,
-            CurrentPage = page
+            PageSize = searchDto.PageSize,
+            CurrentPage = searchDto.Page
         };
 
         return Ok(pagedResults);
     }
+
 
     [HttpGet("{rowKey}")]
     public async Task<IActionResult> GetFilmByRowKey(string rowKey)
@@ -264,6 +274,57 @@ public class FilmController(Storage storageCfg, ITableService tablesService, IBl
             // Delete the table entry
             await photosTable.DeleteEntityAsync(photo);
         }
+    }
+
+
+    private IEnumerable<FilmEntity> ApplySearchFilters(IEnumerable<FilmEntity> films, FilmSearchDto searchDto)
+    {
+        var filteredFilms = films;
+
+        // Apply each non-null/non-empty filter with AND logic
+        if (!string.IsNullOrEmpty(searchDto.Name))
+        {
+            filteredFilms = filteredFilms.Where(f => f.Name.Contains(searchDto.Name, StringComparison.OrdinalIgnoreCase));
+        }
+
+        if (!string.IsNullOrEmpty(searchDto.Id))
+        {
+            filteredFilms = filteredFilms.Where(f => f.RowKey.Contains(searchDto.Id, StringComparison.OrdinalIgnoreCase));
+        }
+
+        if (!string.IsNullOrEmpty(searchDto.Iso))
+        {
+            filteredFilms = filteredFilms.Where(f => f.Iso.Contains(searchDto.Iso, StringComparison.OrdinalIgnoreCase));
+        }
+
+        if (!string.IsNullOrEmpty(searchDto.Type))
+        {
+            if (Enum.TryParse<EFilmType>(searchDto.Type, out var filmType))
+            {
+                filteredFilms = filteredFilms.Where(f => f.Type == filmType);
+            }
+        }
+
+
+        if (!string.IsNullOrEmpty(searchDto.PurchasedBy))
+        {
+            if (Enum.TryParse<EUsernameType>(searchDto.PurchasedBy, out var usernameType))
+            {
+                filteredFilms = filteredFilms.Where(f => f.PurchasedBy == usernameType);
+            }
+        }
+
+        if (!string.IsNullOrEmpty(searchDto.DevelopedWithDevKitRowKey))
+        {
+            filteredFilms = filteredFilms.Where(f => f.DevelopedWithDevKitRowKey == searchDto.DevelopedWithDevKitRowKey);
+        }
+
+        if (!string.IsNullOrEmpty(searchDto.DevelopedInSessionRowKey))
+        {
+            filteredFilms = filteredFilms.Where(f => f.DevelopedInSessionRowKey == searchDto.DevelopedInSessionRowKey);
+        }
+
+        return filteredFilms;
     }
 
 }

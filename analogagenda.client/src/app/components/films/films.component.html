@@ -11,6 +11,12 @@
     </div>
 
     <div class="films-container" *ngIf="activeTab === 'my'">
+        <app-film-search 
+            [isMyFilmsTab]="true"
+            (search)="onSearch($event)"
+            (clearFilters)="onClearFilters()">
+        </app-film-search>
+
         <div class="films-section">
             <h2 class="films-title">Not Developed Films</h2>
             <app-card-list 
@@ -37,6 +43,12 @@
     </div>
 
     <div class="films-container" *ngIf="activeTab === 'all'">
+        <app-film-search 
+            [isMyFilmsTab]="false"
+            (search)="onSearch($event)"
+            (clearFilters)="onClearFilters()">
+        </app-film-search>
+
         <div class="films-section">
             <h2 class="films-title">Not Developed Films</h2>
             <app-card-list 

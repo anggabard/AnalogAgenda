@@ -1,0 +1,75 @@
+<div class="search-container">
+  <div class="search-fields">
+    <!-- Visible search fields -->
+    <div *ngFor="let field of getVisibleFields()" class="search-field">
+      <label [for]="field.key">{{ field.label }}:</label>
+      <input 
+        *ngIf="field.type === 'text'"
+        [id]="field.key"
+        type="text" 
+        [(ngModel)]="field.value"
+        [placeholder]="'Search by ' + field.label"
+        (keyup.enter)="onSearch()"
+        class="search-input" />
+      
+      <input 
+        *ngIf="field.type === 'number'"
+        [id]="field.key"
+        type="number" 
+        [(ngModel)]="field.value"
+        [placeholder]="'Search by ' + field.label"
+        (keyup.enter)="onSearch()"
+        class="search-input" />
+      
+      <select 
+        *ngIf="field.type === 'dropdown'"
+        [id]="field.key"
+        [(ngModel)]="field.value"
+        class="search-select">
+        <option value="">{{ field.key === 'developedWithDevKitRowKey' ? 'Any DevKit' : field.key === 'developedInSessionRowKey' ? 'Any Session' : 'All ' + field.label + 's' }}</option>
+        <option *ngFor="let option of field.options" [value]="option.value">
+          {{ option.label }}
+        </option>
+      </select>
+    </div>
+
+  </div>
+
+  <!-- Action buttons -->
+  <div class="search-actions">
+    <div class="field-selector">
+      <button 
+        type="button" 
+        class="add-field-btn"
+        (click)="toggleFieldSelector()">
+        Edit Fields
+      </button>
+      
+      <!-- Field selector dropdown -->
+      <div *ngIf="showFieldSelector" class="field-dropdown">
+        <div class="field-options">
+          <label *ngFor="let field of getAvailableFields()" class="field-option">
+            <input 
+              type="checkbox" 
+              [checked]="field.visible"
+              (change)="toggleFieldVisibility(field)" />
+            {{ field.label }}
+          </label>
+        </div>
+      </div>
+    </div>
+    
+    <button 
+      type="button" 
+      class="clear-btn"
+      (click)="onClearFilters()">
+      Clear Filters
+    </button>
+    <button 
+      type="button" 
+      class="search-btn"
+      (click)="onSearch()">
+      Search
+    </button>
+  </div>
+</div>

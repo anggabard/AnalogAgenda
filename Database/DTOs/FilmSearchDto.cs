@@ -1,0 +1,14 @@
+using Database.DTOs.Subclasses;
+
+namespace Database.DTOs;
+
+public class FilmSearchDto : PaginationParams
+{
+    public string? Name { get; set; }
+    public string? Id { get; set; }
+    public string? Iso { get; set; }
+    public string? Type { get; set; }
+    public string? PurchasedBy { get; set; }
+    public string? DevelopedWithDevKitRowKey { get; set; }
+    public string? DevelopedInSessionRowKey { get; set; }
+}
