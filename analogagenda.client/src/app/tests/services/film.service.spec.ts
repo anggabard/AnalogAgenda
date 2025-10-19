@@ -297,4 +297,108 @@ describe('FilmService', () => {
       exposureDates: ''
     };
   }
+
+  describe('Search functionality', () => {
+    it('should call getDevelopedFilmsPaged with search parameters', () => {
+      const searchParams = { name: 'Test Film', type: 'ColorNegative' };
+      const page = 1;
+      const pageSize = 5;
+
+      // Act
+      service.getDevelopedFilmsPaged(page, pageSize, searchParams).subscribe();
+
+      // Assert HTTP call
+      const req = httpMock.expectOne(`${baseUrl}/developed?page=1&pageSize=5&name=Test%20Film&type=ColorNegative`);
+      expect(req.request.method).toBe('GET');
+      req.flush(TestConfig.createEmptyPagedResponse<FilmDto>());
+    });
+
+    it('should call getNotDevelopedFilmsPaged with search parameters', () => {
+      const searchParams = { iso: '400' };
+      const page = 2;
+      const pageSize = 10;
+
+      // Act
+      service.getNotDevelopedFilmsPaged(page, pageSize, searchParams).subscribe();
+
+      // Assert HTTP call
+      const req = httpMock.expectOne(`${baseUrl}/not-developed?page=2&pageSize=10&iso=400`);
+      expect(req.request.method).toBe('GET');
+      req.flush(TestConfig.createEmptyPagedResponse<FilmDto>());
+    });
+
+    it('should call getMyDevelopedFilmsPaged with search parameters', () => {
+      const searchParams = { purchasedBy: 'Angel' };
+      const page = 1;
+      const pageSize = 5;
+
+      // Act
+      service.getMyDevelopedFilmsPaged(page, pageSize, searchParams).subscribe();
+
+      // Assert HTTP call
+      const req = httpMock.expectOne(`${baseUrl}/my/developed?page=1&pageSize=5&purchasedBy=Angel`);
+      expect(req.request.method).toBe('GET');
+      req.flush(TestConfig.createEmptyPagedResponse<FilmDto>());
+    });
+
+    it('should call getMyNotDevelopedFilmsPaged with search parameters', () => {
+      const searchParams = { developedWithDevKitRowKey: 'kit123' };
+      const page = 1;
+      const pageSize = 5;
+
+      // Act
+      service.getMyNotDevelopedFilmsPaged(page, pageSize, searchParams).subscribe();
+
+      // Assert HTTP call
+      const req = httpMock.expectOne(`${baseUrl}/my/not-developed?page=1&pageSize=5&developedWithDevKitRowKey=kit123`);
+      expect(req.request.method).toBe('GET');
+      req.flush(TestConfig.createEmptyPagedResponse<FilmDto>());
+    });
+
+    it('should call methods without search parameters when undefined', () => {
+      const page = 1;
+      const pageSize = 5;
+
+      // Act
+      service.getDevelopedFilmsPaged(page, pageSize);
+      service.getNotDevelopedFilmsPaged(page, pageSize);
+      service.getMyDevelopedFilmsPaged(page, pageSize);
+      service.getMyNotDevelopedFilmsPaged(page, pageSize);
+
+      // Assert HTTP calls
+      const req1 = httpMock.expectOne(`${baseUrl}/developed?page=1&pageSize=5`);
+      const req2 = httpMock.expectOne(`${baseUrl}/not-developed?page=1&pageSize=5`);
+      const req3 = httpMock.expectOne(`${baseUrl}/my/developed?page=1&pageSize=5`);
+      const req4 = httpMock.expectOne(`${baseUrl}/my/not-developed?page=1&pageSize=5`);
+      
+      expect(req1.request.method).toBe('GET');
+      expect(req2.request.method).toBe('GET');
+      expect(req3.request.method).toBe('GET');
+      expect(req4.request.method).toBe('GET');
+      
+      req1.flush(TestConfig.createEmptyPagedResponse<FilmDto>());
+      req2.flush(TestConfig.createEmptyPagedResponse<FilmDto>());
+      req3.flush(TestConfig.createEmptyPagedResponse<FilmDto>());
+      req4.flush(TestConfig.createEmptyPagedResponse<FilmDto>());
+    });
+
+    it('should handle search with multiple parameters', () => {
+      const searchParams = { 
+        name: 'Test Film', 
+        type: 'ColorNegative', 
+        iso: '400',
+        developedWithDevKitRowKey: 'kit123'
+      };
+      const page = 1;
+      const pageSize = 5;
+
+      // Act
+      service.getDevelopedFilmsPaged(page, pageSize, searchParams).subscribe();
+
+      // Assert HTTP call
+      const req = httpMock.expectOne(`${baseUrl}/developed?page=1&pageSize=5&name=Test%20Film&type=ColorNegative&iso=400&developedWithDevKitRowKey=kit123`);
+      expect(req.request.method).toBe('GET');
+      req.flush(TestConfig.createEmptyPagedResponse<FilmDto>());
+    });
+  });
 });

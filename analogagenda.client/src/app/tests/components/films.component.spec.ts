@@ -269,4 +269,81 @@ describe('FilmsComponent', () => {
       imageUrl: 'test-image-url',
     };
   }
+
+  describe('Search functionality', () => {
+    it('should handle search for My Films tab', () => {
+      spyOn(component, 'loadMyDevelopedFilms');
+      spyOn(component, 'loadMyNotDevelopedFilms');
+      
+      const searchParams = { name: 'Test Film' };
+      component.activeTab = 'my';
+      
+      component.onSearch(searchParams);
+      
+      expect(component.isSearching).toBe(true);
+      expect(component.myFilmsSearchParams).toEqual(searchParams);
+      expect(component.loadMyDevelopedFilms).toHaveBeenCalled();
+      expect(component.loadMyNotDevelopedFilms).toHaveBeenCalled();
+    });
+
+    it('should handle search for All Films tab', () => {
+      spyOn(component, 'loadAllDevelopedFilms');
+      spyOn(component, 'loadAllNotDevelopedFilms');
+      
+      const searchParams = { name: 'Test Film' };
+      component.activeTab = 'all';
+      
+      component.onSearch(searchParams);
+      
+      expect(component.isSearching).toBe(true);
+      expect(component.allFilmsSearchParams).toEqual(searchParams);
+      expect(component.loadAllDevelopedFilms).toHaveBeenCalled();
+      expect(component.loadAllNotDevelopedFilms).toHaveBeenCalled();
+    });
+
+    it('should clear search state', () => {
+      spyOn(component, 'loadMyDevelopedFilms');
+      spyOn(component, 'loadMyNotDevelopedFilms');
+      
+      component.isSearching = true;
+      component.myFilmsSearchParams = { name: 'Test' };
+      component.activeTab = 'my';
+      
+      component.onClearFilters();
+      
+      expect(component.isSearching).toBe(false);
+      expect(component.myFilmsSearchParams).toEqual({});
+      expect(component.loadMyDevelopedFilms).toHaveBeenCalled();
+      expect(component.loadMyNotDevelopedFilms).toHaveBeenCalled();
+    });
+
+    it('should reset pagination on search', () => {
+      component.allDevelopedPage = 3;
+      component.allNotDevelopedPage = 2;
+      component.myDevelopedPage = 4;
+      component.myNotDevelopedPage = 1;
+      
+      component.onSearch({ name: 'Test' });
+      
+      expect(component.allDevelopedPage).toBe(1);
+      expect(component.allNotDevelopedPage).toBe(1);
+      expect(component.myDevelopedPage).toBe(1);
+      expect(component.myNotDevelopedPage).toBe(1);
+    });
+
+    it('should clear results on search', () => {
+      const mockFilms = [createMockFilm('1', 'Film 1', UsernameType.Angel, true)];
+      component.allDevelopedFilms = mockFilms;
+      component.allNotDevelopedFilms = mockFilms;
+      component.myDevelopedFilms = mockFilms;
+      component.myNotDevelopedFilms = mockFilms;
+      
+      component.onSearch({ name: 'Test' });
+      
+      expect(component.allDevelopedFilms).toEqual([]);
+      expect(component.allNotDevelopedFilms).toEqual([]);
+      expect(component.myDevelopedFilms).toEqual([]);
+      expect(component.myNotDevelopedFilms).toEqual([]);
+    });
+  });
 });
