@@ -308,7 +308,7 @@ describe('FilmService', () => {
       service.getDevelopedFilmsPaged(page, pageSize, searchParams).subscribe();
 
       // Assert HTTP call
-      const req = httpMock.expectOne(`${baseUrl}/developed?page=1&pageSize=5&name=Test%20Film&type=ColorNegative`);
+      const req = httpMock.expectOne(`${baseUrl}/developed?page=1&pageSize=5&name=Test+Film&type=ColorNegative`);
       expect(req.request.method).toBe('GET');
       req.flush(TestConfig.createEmptyPagedResponse<FilmDto>());
     });
@@ -360,12 +360,12 @@ describe('FilmService', () => {
       const pageSize = 5;
 
       // Act
-      service.getDevelopedFilmsPaged(page, pageSize);
-      service.getNotDevelopedFilmsPaged(page, pageSize);
-      service.getMyDevelopedFilmsPaged(page, pageSize);
-      service.getMyNotDevelopedFilmsPaged(page, pageSize);
+      service.getDevelopedFilmsPaged(page, pageSize).subscribe();
+      service.getNotDevelopedFilmsPaged(page, pageSize).subscribe();
+      service.getMyDevelopedFilmsPaged(page, pageSize).subscribe();
+      service.getMyNotDevelopedFilmsPaged(page, pageSize).subscribe();
 
-      // Assert HTTP calls
+      // Assert HTTP calls - just check the URLs are correct
       const req1 = httpMock.expectOne(`${baseUrl}/developed?page=1&pageSize=5`);
       const req2 = httpMock.expectOne(`${baseUrl}/not-developed?page=1&pageSize=5`);
       const req3 = httpMock.expectOne(`${baseUrl}/my/developed?page=1&pageSize=5`);
@@ -396,7 +396,7 @@ describe('FilmService', () => {
       service.getDevelopedFilmsPaged(page, pageSize, searchParams).subscribe();
 
       // Assert HTTP call
-      const req = httpMock.expectOne(`${baseUrl}/developed?page=1&pageSize=5&name=Test%20Film&type=ColorNegative&iso=400&developedWithDevKitRowKey=kit123`);
+      const req = httpMock.expectOne(`${baseUrl}/developed?page=1&pageSize=5&name=Test+Film&type=ColorNegative&iso=400&developedWithDevKitRowKey=kit123`);
       expect(req.request.method).toBe('GET');
       req.flush(TestConfig.createEmptyPagedResponse<FilmDto>());
     });

@@ -1,9 +1,9 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { FormsModule } from '@angular/forms';
 import { of } from 'rxjs';
-import { FilmSearchComponent } from './film-search.component';
-import { DevKitService, SessionService } from '../../../services';
-import { DevKitDto, SessionDto } from '../../../DTOs';
+import { FilmSearchComponent } from '../../components/films/film-search/film-search.component';
+import { DevKitService, SessionService } from '../../services';
+import { DevKitDto, SessionDto } from '../../DTOs';
 
 describe('FilmSearchComponent', () => {
   let component: FilmSearchComponent;
@@ -12,13 +12,13 @@ describe('FilmSearchComponent', () => {
   let mockSessionService: jasmine.SpyObj<SessionService>;
 
   const mockDevKits: DevKitDto[] = [
-    { rowKey: 'kit1', name: 'Belini', type: 'C41', url: 'url1', purchasedBy: 'Angel', purchasedOn: new Date(), mixedOn: new Date(), validForWeeks: 4, validForFilms: 10, filmsDeveloped: 0, imageUrl: '', description: '', expired: false },
-    { rowKey: 'kit2', name: 'Kodak', type: 'E6', url: 'url2', purchasedBy: 'Cristiana', purchasedOn: new Date(), mixedOn: new Date(), validForWeeks: 4, validForFilms: 10, filmsDeveloped: 0, imageUrl: '', description: '', expired: false }
+    { rowKey: 'kit1', name: 'Belini', type: 'C41' as any, url: 'url1', purchasedBy: 'Angel' as any, purchasedOn: '2023-01-01', mixedOn: '2023-01-01', validForWeeks: 4, validForFilms: 10, filmsDeveloped: 0, imageUrl: '', description: '', expired: false },
+    { rowKey: 'kit2', name: 'Kodak', type: 'E6' as any, url: 'url2', purchasedBy: 'Cristiana' as any, purchasedOn: '2023-01-01', mixedOn: '2023-01-01', validForWeeks: 4, validForFilms: 10, filmsDeveloped: 0, imageUrl: '', description: '', expired: false }
   ];
 
   const mockSessions: SessionDto[] = [
-    { rowKey: 'session1', sessionDate: new Date('2023-01-15'), location: 'Studio A', participants: '[]', description: '', usedSubstances: '[]', developedFilms: '[]', imageUrl: '', imageBase64: '' },
-    { rowKey: 'session2', sessionDate: new Date('2023-02-20'), location: 'Studio B', participants: '[]', description: '', usedSubstances: '[]', developedFilms: '[]', imageUrl: '', imageBase64: '' }
+    { rowKey: 'session1', sessionDate: '2023-01-15', location: 'Studio A', participants: '[]', participantsList: [], description: '', usedSubstances: '[]', usedSubstancesList: [], developedFilms: '[]', developedFilmsList: [], imageUrl: '', imageBase64: '' },
+    { rowKey: 'session2', sessionDate: '2023-02-20', location: 'Studio B', participants: '[]', participantsList: [], description: '', usedSubstances: '[]', usedSubstancesList: [], developedFilms: '[]', developedFilmsList: [], imageUrl: '', imageBase64: '' }
   ];
 
   beforeEach(async () => {
@@ -166,8 +166,8 @@ describe('FilmSearchComponent', () => {
     
     const visibleFields = component.getVisibleFields();
     
-    expect(visibleFields).toContain(nameField);
-    expect(visibleFields).not.toContain(idField);
+    expect(visibleFields).toContain(nameField!);
+    expect(visibleFields).not.toContain(idField!);
   });
 
   it('should get available fields correctly', () => {
@@ -181,9 +181,15 @@ describe('FilmSearchComponent', () => {
     component.isMyFilmsTab = true;
     const availableFields = component.getAvailableFields();
     
-    // Owner field should not be available in My Films tab
+    // Owner field should NOT be available in My Films tab
+    // Check that purchasedBy field is not in available fields
     const ownerField = availableFields.find(f => f.key === 'purchasedBy');
-    expect(ownerField?.availableInMyFilms).toBe(false);
+    expect(ownerField).toBeUndefined();
+    
+    // Check that all available fields have availableInMyFilms: true
+    availableFields.forEach(field => {
+      expect(field.availableInMyFilms).toBe(true);
+    });
   });
 
   it('should toggle field selector visibility', () => {
@@ -200,7 +206,10 @@ describe('FilmSearchComponent', () => {
     component.showFieldSelector = true;
     
     const mockEvent = new MouseEvent('click');
-    spyOn(mockEvent, 'target', 'get').and.returnValue(document.body);
+    Object.defineProperty(mockEvent, 'target', {
+      value: document.body,
+      writable: false
+    });
     
     component.onDocumentClick(mockEvent);
     
