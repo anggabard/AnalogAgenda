@@ -40,11 +40,19 @@ export abstract class BasePaginatedService<TDto> extends BaseService {
 
     // Helper method for building query parameters
     protected buildPagedQuery(page: number, pageSize: number, additionalParams?: Record<string, any>): string {
-        const params = new URLSearchParams({
-            page: page.toString(),
-            pageSize: pageSize.toString(),
-            ...(additionalParams || {})
-        });
+        const params = new URLSearchParams();
+        params.append('page', page.toString());
+        params.append('pageSize', pageSize.toString());
+        
+        // Add additional parameters (only non-empty values)
+        if (additionalParams) {
+            Object.entries(additionalParams).forEach(([key, value]) => {
+                if (value !== null && value !== undefined && value !== '') {
+                    params.append(key, value.toString());
+                }
+            });
+        }
+        
         return `?${params.toString()}`;
     }
 
