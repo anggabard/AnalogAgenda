@@ -113,7 +113,7 @@ public class DevKitControllerTests
             CurrentPage = 1
         };
         
-        _mockTableService.Setup(x => x.GetTableEntriesPagedAsync<DevKitEntity>(It.IsAny<int>(), It.IsAny<int>()))
+        _mockTableService.Setup(x => x.GetTableEntriesPagedAsync<DevKitEntity>(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<Func<IEnumerable<DevKitEntity>, IOrderedEnumerable<DevKitEntity>>?>()))
                         .ReturnsAsync(pagedResponse);
 
         // Act

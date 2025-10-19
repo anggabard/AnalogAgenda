@@ -80,7 +80,7 @@ public class FilmController(Storage storageCfg, ITableService tablesService, IBl
             return Ok(results);
         }
 
-        var pagedEntities = await tablesService.GetTableEntriesPagedAsync<FilmEntity>(page, pageSize);
+        var pagedEntities = await tablesService.GetTableEntriesPagedAsync<FilmEntity>(page, pageSize, entities => entities.ApplyStandardSorting());
         var pagedResults = new PagedResponseDto<FilmDto>
         {
             Data = pagedEntities.Data.Select(EntityToDto),
@@ -145,12 +145,10 @@ public class FilmController(Storage storageCfg, ITableService tablesService, IBl
             return Ok(results);
         }
 
-        var pagedEntities = await tablesService.GetTableEntriesPagedAsync(predicate, page, pageSize);
-        var sortedData = pagedEntities.Data.ApplyStandardSorting().ToList();
-
+        var pagedEntities = await tablesService.GetTableEntriesPagedAsync(predicate, page, pageSize, entities => entities.ApplyStandardSorting());
         var pagedResults = new PagedResponseDto<FilmDto>
         {
-            Data = sortedData.Select(EntityToDto),
+            Data = pagedEntities.Data.Select(EntityToDto),
             TotalCount = pagedEntities.TotalCount,
             PageSize = pagedEntities.PageSize,
             CurrentPage = pagedEntities.CurrentPage

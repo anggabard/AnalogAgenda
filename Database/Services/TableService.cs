@@ -75,22 +75,27 @@ namespace Database.Services
 
         }
 
-        public async Task<PagedResponseDto<T>> GetTableEntriesPagedAsync<T>(int page = 1, int pageSize = 10) where T : BaseEntity
+        public async Task<PagedResponseDto<T>> GetTableEntriesPagedAsync<T>(int page = 1, int pageSize = 10, Func<IEnumerable<T>, IOrderedEnumerable<T>>? sortFunc = null) where T : BaseEntity
         {
             var allEntities = await GetTableEntriesAsync<T>();
-            return GetTableEntriesPagedInternal(allEntities, page, pageSize);
+            return GetTableEntriesPagedInternal(allEntities, page, pageSize, sortFunc);
         }
 
-        public async Task<PagedResponseDto<T>> GetTableEntriesPagedAsync<T>(Expression<Func<T, bool>> predicate, int page = 1, int pageSize = 10) where T : BaseEntity
+        public async Task<PagedResponseDto<T>> GetTableEntriesPagedAsync<T>(Expression<Func<T, bool>> predicate, int page = 1, int pageSize = 10, Func<IEnumerable<T>, IOrderedEnumerable<T>>? sortFunc = null) where T : BaseEntity
         {
             var allEntities = await GetTableEntriesAsync(predicate);
-            return GetTableEntriesPagedInternal(allEntities, page, pageSize);
+            return GetTableEntriesPagedInternal(allEntities, page, pageSize, sortFunc);
         }
 
-        private PagedResponseDto<T> GetTableEntriesPagedInternal<T>(List<T> allEntities, int page, int pageSize) where T : BaseEntity
+        private PagedResponseDto<T> GetTableEntriesPagedInternal<T>(List<T> allEntities, int page, int pageSize, Func<IEnumerable<T>, IOrderedEnumerable<T>>? sortFunc = null) where T : BaseEntity
         {
+            // Apply sorting - default to UpdatedDate descending if no sort function provided
+            IEnumerable<T> sortedEntities = sortFunc != null 
+                ? sortFunc(allEntities) 
+                : allEntities.OrderByDescending(e => e.UpdatedDate);
+            
             int skip = (page - 1) * pageSize;
-            var pagedData = allEntities.Skip(skip).Take(pageSize).ToList();
+            var pagedData = sortedEntities.Skip(skip).Take(pageSize).ToList();
 
             return new PagedResponseDto<T>
             {

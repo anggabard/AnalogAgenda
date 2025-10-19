@@ -143,12 +143,11 @@ public abstract class BaseEntityController<TEntity, TDto>(Storage storageCfg, IT
             return Ok(results);
         }
 
-        var pagedEntities = await tablesService.GetTableEntriesPagedAsync<TEntity>(page, pageSize);
-        var sortedData = sortFunc(pagedEntities.Data).ToList();
+        var pagedEntities = await tablesService.GetTableEntriesPagedAsync<TEntity>(page, pageSize, sortFunc);
 
         var pagedResults = new PagedResponseDto<TDto>
         {
-            Data = selectFunc(sortedData),
+            Data = selectFunc(pagedEntities.Data.Cast<TSorted>()),
             TotalCount = pagedEntities.TotalCount,
             PageSize = pagedEntities.PageSize,
             CurrentPage = pagedEntities.CurrentPage
@@ -175,12 +174,11 @@ public abstract class BaseEntityController<TEntity, TDto>(Storage storageCfg, IT
             return Ok(results);
         }
 
-        var pagedEntities = await tablesService.GetTableEntriesPagedAsync(predicate, page, pageSize);
-        var sortedData = sortFunc(pagedEntities.Data).ToList();
+        var pagedEntities = await tablesService.GetTableEntriesPagedAsync(predicate, page, pageSize, sortFunc);
 
         var pagedResults = new PagedResponseDto<TDto>
         {
-            Data = selectFunc(sortedData),
+            Data = selectFunc(pagedEntities.Data.Cast<TSorted>()),
             TotalCount = pagedEntities.TotalCount,
             PageSize = pagedEntities.PageSize,
             CurrentPage = pagedEntities.CurrentPage

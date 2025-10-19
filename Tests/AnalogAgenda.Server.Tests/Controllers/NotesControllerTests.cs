@@ -118,7 +118,7 @@ public class NotesControllerTests
             CurrentPage = 1
         };
         
-        _mockTableService.Setup(x => x.GetTableEntriesPagedAsync<NoteEntity>(It.IsAny<int>(), It.IsAny<int>()))
+        _mockTableService.Setup(x => x.GetTableEntriesPagedAsync<NoteEntity>(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<Func<IEnumerable<NoteEntity>, IOrderedEnumerable<NoteEntity>>?>()))
                         .ReturnsAsync(pagedResponse);
 
         // Act
@@ -168,7 +168,7 @@ public class NotesControllerTests
             CurrentPage = 1
         };
         
-        _mockTableService.Setup(x => x.GetTableEntriesPagedAsync<NoteEntity>(It.IsAny<int>(), It.IsAny<int>()))
+        _mockTableService.Setup(x => x.GetTableEntriesPagedAsync<NoteEntity>(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<Func<IEnumerable<NoteEntity>, IOrderedEnumerable<NoteEntity>>?>()))
                         .ReturnsAsync(pagedResponse);
 
         _mockTableService.Setup(x => x.GetTableEntriesAsync<NoteEntryEntity>())
