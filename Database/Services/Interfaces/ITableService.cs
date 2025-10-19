@@ -12,8 +12,8 @@ public interface ITableService
     TableClient GetTable(TableName table);
     Task<List<T>> GetTableEntriesAsync<T>() where T : BaseEntity;
     Task<List<T>> GetTableEntriesAsync<T>(Expression<Func<T, bool>> predicate) where T : BaseEntity;
-    Task<PagedResponseDto<T>> GetTableEntriesPagedAsync<T>(int page = 1, int pageSize = 10) where T : BaseEntity;
-    Task<PagedResponseDto<T>> GetTableEntriesPagedAsync<T>(Expression<Func<T, bool>> predicate, int page = 1, int pageSize = 10) where T : BaseEntity;
+    Task<PagedResponseDto<T>> GetTableEntriesPagedAsync<T>(int page = 1, int pageSize = 10, Func<IEnumerable<T>, IOrderedEnumerable<T>>? sortFunc = null) where T : BaseEntity;
+    Task<PagedResponseDto<T>> GetTableEntriesPagedAsync<T>(Expression<Func<T, bool>> predicate, int page = 1, int pageSize = 10, Func<IEnumerable<T>, IOrderedEnumerable<T>>? sortFunc = null) where T : BaseEntity;
     Task<T?> GetTableEntryIfExistsAsync<T>(string rowKey) where T : BaseEntity;
     Task<bool> EntryExistsAsync(BaseEntity entity);
     Task<bool> EntryExistsAsync<T>(Expression<Func<T, bool>> predicate) where T : BaseEntity;
