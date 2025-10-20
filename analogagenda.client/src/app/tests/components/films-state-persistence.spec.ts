@@ -93,7 +93,8 @@ describe('FilmsComponent State Persistence', () => {
       activeTab: 'all',
       myFilmsSearchParams: { name: 'test' },
       allFilmsSearchParams: { type: 'ColorNegative' },
-      isSearching: true
+      myFilmsIsSearching: true,
+      allFilmsIsSearching: false
     };
 
     spyOn(localStorageService, 'getState').and.returnValue(savedState);
@@ -104,7 +105,8 @@ describe('FilmsComponent State Persistence', () => {
     expect(component.activeTab).toBe('all');
     expect(component.myFilmsSearchParams).toEqual({ name: 'test' });
     expect(component.allFilmsSearchParams).toEqual({ type: 'ColorNegative' });
-    expect(component.isSearching).toBe(true);
+    expect(component.myFilmsIsSearching).toBe(true);
+    expect(component.allFilmsIsSearching).toBe(false);
   });
 
   it('should save state when tab changes', () => {
@@ -118,7 +120,8 @@ describe('FilmsComponent State Persistence', () => {
         activeTab: 'all',
         myFilmsSearchParams: {},
         allFilmsSearchParams: {},
-        isSearching: false
+        myFilmsIsSearching: false,
+        allFilmsIsSearching: false
       })
     );
   });
@@ -135,7 +138,8 @@ describe('FilmsComponent State Persistence', () => {
         activeTab: 'my',
         myFilmsSearchParams: searchParams,
         allFilmsSearchParams: {},
-        isSearching: true
+        myFilmsIsSearching: true,
+        allFilmsIsSearching: false
       })
     );
   });
@@ -151,7 +155,8 @@ describe('FilmsComponent State Persistence', () => {
         activeTab: 'my',
         myFilmsSearchParams: {},
         allFilmsSearchParams: {},
-        isSearching: false
+        myFilmsIsSearching: false,
+        allFilmsIsSearching: false
       })
     );
   });
@@ -167,7 +172,8 @@ describe('FilmsComponent State Persistence', () => {
         activeTab: 'my',
         myFilmsSearchParams: {},
         allFilmsSearchParams: {},
-        isSearching: false
+        myFilmsIsSearching: false,
+        allFilmsIsSearching: false
       })
     );
   });
@@ -180,7 +186,8 @@ describe('FilmsComponent State Persistence', () => {
     expect(component.activeTab).toBe('my');
     expect(component.myFilmsSearchParams).toEqual({});
     expect(component.allFilmsSearchParams).toEqual({});
-    expect(component.isSearching).toBe(false);
+    expect(component.myFilmsIsSearching).toBe(false);
+    expect(component.allFilmsIsSearching).toBe(false);
   });
 
   it('should handle partial state restoration', () => {
@@ -196,6 +203,61 @@ describe('FilmsComponent State Persistence', () => {
     expect(component.activeTab).toBe('all');
     expect(component.myFilmsSearchParams).toEqual({});
     expect(component.allFilmsSearchParams).toEqual({});
-    expect(component.isSearching).toBe(false);
+    expect(component.myFilmsIsSearching).toBe(false);
+    expect(component.allFilmsIsSearching).toBe(false);
+  });
+
+  it('should save state when searching on All Films tab', () => {
+    spyOn(localStorageService, 'saveState');
+    component.setActiveTab('all');
+
+    const searchParams = { type: 'ColorNegative' };
+    component.onSearch(searchParams);
+
+    expect(localStorageService.saveState).toHaveBeenCalledWith(
+      'analogagenda_films_page_state',
+      jasmine.objectContaining({
+        activeTab: 'all',
+        myFilmsSearchParams: {},
+        allFilmsSearchParams: searchParams,
+        myFilmsIsSearching: false,
+        allFilmsIsSearching: true
+      })
+    );
+  });
+
+  it('should clear only My Films when searching on My Films tab', () => {
+    // Set up some initial data
+    component.myDevelopedFilms = [{ rowKey: '1', name: 'My Film' } as any];
+    component.allDevelopedFilms = [{ rowKey: '2', name: 'All Film' } as any];
+
+    const searchParams = { name: 'test' };
+    component.onSearch(searchParams);
+
+    // My Films should be cleared and reloaded
+    expect(component.myFilmsIsSearching).toBe(true);
+    expect(component.myFilmsSearchParams).toEqual(searchParams);
+    
+    // All Films should remain unchanged
+    expect(component.allFilmsIsSearching).toBe(false);
+    expect(component.allFilmsSearchParams).toEqual({});
+  });
+
+  it('should clear only All Films when searching on All Films tab', () => {
+    // Set up some initial data
+    component.myDevelopedFilms = [{ rowKey: '1', name: 'My Film' } as any];
+    component.allDevelopedFilms = [{ rowKey: '2', name: 'All Film' } as any];
+    component.setActiveTab('all');
+
+    const searchParams = { type: 'ColorNegative' };
+    component.onSearch(searchParams);
+
+    // All Films should be cleared and reloaded
+    expect(component.allFilmsIsSearching).toBe(true);
+    expect(component.allFilmsSearchParams).toEqual(searchParams);
+    
+    // My Films should remain unchanged
+    expect(component.myFilmsIsSearching).toBe(false);
+    expect(component.myFilmsSearchParams).toEqual({});
   });
 });
