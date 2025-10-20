@@ -10,6 +10,7 @@
         [(ngModel)]="field.value"
         [placeholder]="'Search by ' + field.label"
         (keyup.enter)="onSearch()"
+        (ngModelChange)="onFieldValueChange()"
         class="search-input" />
       
       <input 
@@ -19,12 +20,14 @@
         [(ngModel)]="field.value"
         [placeholder]="'Search by ' + field.label"
         (keyup.enter)="onSearch()"
+        (ngModelChange)="onFieldValueChange()"
         class="search-input" />
       
       <select 
         *ngIf="field.type === 'dropdown'"
         [id]="field.key"
         [(ngModel)]="field.value"
+        (ngModelChange)="onFieldValueChange()"
         class="search-select">
         <option value="">{{ field.key === 'developedWithDevKitRowKey' ? 'Any DevKit' : field.key === 'developedInSessionRowKey' ? 'Any Session' : 'All ' + field.label + 's' }}</option>
         <option *ngFor="let option of field.options" [value]="option.value">

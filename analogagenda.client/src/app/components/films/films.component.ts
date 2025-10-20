@@ -1,6 +1,6 @@
-import { Component, inject, OnInit, ViewChild, TemplateRef } from "@angular/core";
+import { Component, inject, OnInit, ViewChild, TemplateRef, OnDestroy } from "@angular/core";
 import { Router } from "@angular/router";
-import { FilmService, AccountService } from "../../services";
+import { FilmService, AccountService, LocalStorageService } from "../../services";
 import { FilmDto, IdentityDto, PagedResponseDto } from "../../DTOs";
 import { SearchParams } from "./film-search/film-search.component";
 
@@ -11,10 +11,11 @@ import { SearchParams } from "./film-search/film-search.component";
     standalone: false
 })
 
-export class FilmsComponent implements OnInit {
+export class FilmsComponent implements OnInit, OnDestroy {
   private router = inject(Router);
   private filmService = inject(FilmService);
   private accountService = inject(AccountService);
+  private localStorageService = inject(LocalStorageService);
 
   @ViewChild('myFilmCardTemplate') myFilmCardTemplate!: TemplateRef<any>;
   @ViewChild('allFilmCardTemplate') allFilmCardTemplate!: TemplateRef<any>;
@@ -51,6 +52,7 @@ export class FilmsComponent implements OnInit {
   isSearching = false;
 
   ngOnInit(): void {
+    this.restoreState();
     this.accountService.whoAmI().subscribe({
       next: (identity: IdentityDto) => {
         this.currentUsername = identity.username;
@@ -64,6 +66,10 @@ export class FilmsComponent implements OnInit {
         console.error(err);
       }
     });
+  }
+
+  ngOnDestroy(): void {
+    this.saveState();
   }
 
   // Methods for loading "My Films" tab data
@@ -156,6 +162,7 @@ export class FilmsComponent implements OnInit {
 
   setActiveTab(tab: 'my' | 'all') {
     this.activeTab = tab;
+    this.saveState();
   }
 
   // Search methods
@@ -167,6 +174,9 @@ export class FilmsComponent implements OnInit {
     } else {
       this.allFilmsSearchParams = searchParams;
     }
+
+    // Save state when search parameters change
+    this.saveState();
 
     // Reset pagination and clear existing results
     this.resetPagination();
@@ -184,6 +194,9 @@ export class FilmsComponent implements OnInit {
     } else {
       this.allFilmsSearchParams = {};
     }
+
+    // Save state when filters are cleared
+    this.saveState();
 
     // Reset pagination and clear results
     this.resetPagination();
@@ -243,5 +256,28 @@ export class FilmsComponent implements OnInit {
 
   loadMoreAllNotDevelopedFilms(): void {
     this.loadAllNotDevelopedFilms();
+  }
+
+  // State persistence methods
+  private readonly FILMS_PAGE_STATE_KEY = 'analogagenda_films_page_state';
+
+  private saveState(): void {
+    const state = {
+      activeTab: this.activeTab,
+      myFilmsSearchParams: this.myFilmsSearchParams,
+      allFilmsSearchParams: this.allFilmsSearchParams,
+      isSearching: this.isSearching
+    };
+    this.localStorageService.saveState(this.FILMS_PAGE_STATE_KEY, state);
+  }
+
+  private restoreState(): void {
+    const state = this.localStorageService.getState(this.FILMS_PAGE_STATE_KEY);
+    if (state) {
+      this.activeTab = state.activeTab || 'my';
+      this.myFilmsSearchParams = state.myFilmsSearchParams || {};
+      this.allFilmsSearchParams = state.allFilmsSearchParams || {};
+      this.isSearching = state.isSearching || false;
+    }
   }
 }
