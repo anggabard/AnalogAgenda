@@ -1,7 +1,7 @@
-import { Component, Input, Output, EventEmitter, OnInit, inject, HostListener, ElementRef } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnInit, OnDestroy, inject, HostListener, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { DevKitService, SessionService } from '../../../services';
+import { DevKitService, SessionService, LocalStorageService } from '../../../services';
 import { DevKitDto, SessionDto } from '../../../DTOs';
 
 export interface SearchField {
@@ -33,13 +33,15 @@ export interface SearchParams {
   templateUrl: './film-search.component.html',
   styleUrl: './film-search.component.css'
 })
-export class FilmSearchComponent implements OnInit {
+export class FilmSearchComponent implements OnInit, OnDestroy {
   @Input() isMyFilmsTab: boolean = false;
+  @Input() initialSearchParams: SearchParams = {};
   @Output() search = new EventEmitter<SearchParams>();
   @Output() clearFilters = new EventEmitter<void>();
 
   private devKitService = inject(DevKitService);
   private sessionService = inject(SessionService);
+  private localStorageService = inject(LocalStorageService);
   private elementRef = inject(ElementRef);
 
   showFieldSelector = false;
@@ -128,6 +130,12 @@ export class FilmSearchComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadDropdownData();
+    this.restoreSearchFieldsState();
+    this.applyInitialSearchParams();
+  }
+
+  ngOnDestroy(): void {
+    this.saveSearchFieldsState();
   }
 
   private loadDropdownData(): void {
@@ -165,6 +173,7 @@ export class FilmSearchComponent implements OnInit {
     if (!field.visible) {
       field.value = field.type === 'number' ? null : '';
     }
+    this.saveSearchFieldsState();
   }
 
   @HostListener('document:click', ['$event'])
@@ -198,7 +207,12 @@ export class FilmSearchComponent implements OnInit {
     this.searchFields.forEach(field => {
       field.value = field.type === 'number' ? null : '';
     });
+    this.saveSearchFieldsState();
     this.clearFilters.emit();
+  }
+
+  onFieldValueChange(): void {
+    this.saveSearchFieldsState();
   }
 
   private hasValue(value: any): boolean {
@@ -218,5 +232,47 @@ export class FilmSearchComponent implements OnInit {
     return this.searchFields.filter(field => 
       this.isMyFilmsTab ? field.availableInMyFilms : true
     );
+  }
+
+  // State persistence methods
+  private getSearchFieldsStateKey(): string {
+    return this.isMyFilmsTab ? 'analogagenda_myFilmsSearchFields' : 'analogagenda_allFilmsSearchFields';
+  }
+
+  private saveSearchFieldsState(): void {
+    const state = {
+      searchFields: this.searchFields.map(field => ({
+        key: field.key,
+        visible: field.visible,
+        value: field.value
+      }))
+    };
+    this.localStorageService.saveState(this.getSearchFieldsStateKey(), state);
+  }
+
+  private restoreSearchFieldsState(): void {
+    const state = this.localStorageService.getState(this.getSearchFieldsStateKey());
+    
+    if (state && state.searchFields) {
+      state.searchFields.forEach((savedField: any) => {
+        const field = this.searchFields.find(f => f.key === savedField.key);
+        if (field) {
+          field.visible = savedField.visible;
+          field.value = savedField.value;
+        }
+      });
+    }
+  }
+
+  private applyInitialSearchParams(): void {
+    if (this.initialSearchParams && Object.keys(this.initialSearchParams).length > 0) {
+      Object.keys(this.initialSearchParams).forEach(key => {
+        const field = this.searchFields.find(f => f.key === key);
+        if (field) {
+          field.visible = true;
+          field.value = (this.initialSearchParams as any)[key];
+        }
+      });
+    }
   }
 }

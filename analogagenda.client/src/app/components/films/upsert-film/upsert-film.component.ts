@@ -456,11 +456,21 @@ export class UpsertFilmComponent extends BaseUpsertComponent<FilmDto> implements
     this.showDevKitModal = true;
     // Pre-select current DevKit if already assigned
     this.selectedDevKitRowKey = this.form.get('developedWithDevKitRowKey')?.value || null;
+    
+    // If current DevKit is expired, show expired DevKits by default
+    if (this.selectedDevKitRowKey) {
+      const currentDevKit = this.availableDevKits.find(dk => dk.rowKey === this.selectedDevKitRowKey);
+      if (currentDevKit?.expired) {
+        this.showExpiredDevKits = true;
+      }
+    }
   }
 
   closeDevKitModal(): void {
     this.showDevKitModal = false;
     this.selectedDevKitRowKey = null;
+    // Reset expired checkbox when closing modal
+    this.showExpiredDevKits = false;
   }
 
   selectDevKit(devKitRowKey: string): void {
@@ -531,9 +541,18 @@ export class UpsertFilmComponent extends BaseUpsertComponent<FilmDto> implements
 
   get filteredAvailableDevKits(): DevKitDto[] {
     if (this.showExpiredDevKits) {
-      return this.availableDevKits;
+      // Show all DevKits, but sort so expired appear last, then alphabetically within each group
+      return this.availableDevKits.sort((a, b) => {
+        if (a.expired !== b.expired) {
+          return a.expired ? 1 : -1; // Non-expired first
+        }
+        return a.name.localeCompare(b.name);
+      });
     }
-    return this.availableDevKits.filter(devKit => !devKit.expired);
+    // Show only non-expired DevKits, sorted alphabetically
+    return this.availableDevKits
+      .filter(devKit => !devKit.expired)
+      .sort((a, b) => a.name.localeCompare(b.name));
   }
 
   get hasExpiredDevKits(): boolean {

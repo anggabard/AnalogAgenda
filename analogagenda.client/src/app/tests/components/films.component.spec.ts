@@ -282,7 +282,7 @@ describe('FilmsComponent', () => {
       
       component.onSearch(searchParams);
       
-      expect(component.isSearching).toBe(true);
+      expect(component.myFilmsIsSearching).toBe(true);
       expect(component.myFilmsSearchParams).toEqual(searchParams);
       expect(component.loadMyDevelopedFilms).toHaveBeenCalled();
       expect(component.loadMyNotDevelopedFilms).toHaveBeenCalled();
@@ -297,7 +297,7 @@ describe('FilmsComponent', () => {
       
       component.onSearch(searchParams);
       
-      expect(component.isSearching).toBe(true);
+      expect(component.allFilmsIsSearching).toBe(true);
       expect(component.allFilmsSearchParams).toEqual(searchParams);
       expect(component.loadAllDevelopedFilms).toHaveBeenCalled();
       expect(component.loadAllNotDevelopedFilms).toHaveBeenCalled();
@@ -307,13 +307,13 @@ describe('FilmsComponent', () => {
       spyOn(component, 'loadMyDevelopedFilms');
       spyOn(component, 'loadMyNotDevelopedFilms');
       
-      component.isSearching = true;
+      component.myFilmsIsSearching = true;
       component.myFilmsSearchParams = { name: 'Test' };
       component.activeTab = 'my';
       
       component.onClearFilters();
       
-      expect(component.isSearching).toBe(false);
+      expect(component.myFilmsIsSearching).toBe(false);
       expect(component.myFilmsSearchParams).toEqual({});
       expect(component.loadMyDevelopedFilms).toHaveBeenCalled();
       expect(component.loadMyNotDevelopedFilms).toHaveBeenCalled();
@@ -341,19 +341,22 @@ describe('FilmsComponent', () => {
       expect(component.myNotDevelopedPage).toBe(2);
     });
 
-    it('should clear results on search', () => {
+    it('should clear results on search for active tab only', () => {
       const mockFilms = [createMockFilm('1', 'Film 1', UsernameType.Angel, true)];
       component.allDevelopedFilms = mockFilms;
       component.allNotDevelopedFilms = mockFilms;
       component.myDevelopedFilms = mockFilms;
       component.myNotDevelopedFilms = mockFilms;
       
+      // Test My Films tab (default active tab)
       component.onSearch({ name: 'Test' });
       
-      expect(component.allDevelopedFilms).toEqual([]);
-      expect(component.allNotDevelopedFilms).toEqual([]);
+      // Only My Films should be cleared
       expect(component.myDevelopedFilms).toEqual([]);
       expect(component.myNotDevelopedFilms).toEqual([]);
+      // All Films should remain unchanged
+      expect(component.allDevelopedFilms).toEqual(mockFilms);
+      expect(component.allNotDevelopedFilms).toEqual(mockFilms);
     });
   });
 });

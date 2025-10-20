@@ -1,6 +1,6 @@
-import { Component, inject, OnInit, ViewChild, TemplateRef } from "@angular/core";
+import { Component, inject, OnInit, ViewChild, TemplateRef, OnDestroy } from "@angular/core";
 import { Router } from "@angular/router";
-import { FilmService, AccountService } from "../../services";
+import { FilmService, AccountService, LocalStorageService } from "../../services";
 import { FilmDto, IdentityDto, PagedResponseDto } from "../../DTOs";
 import { SearchParams } from "./film-search/film-search.component";
 
@@ -11,10 +11,11 @@ import { SearchParams } from "./film-search/film-search.component";
     standalone: false
 })
 
-export class FilmsComponent implements OnInit {
+export class FilmsComponent implements OnInit, OnDestroy {
   private router = inject(Router);
   private filmService = inject(FilmService);
   private accountService = inject(AccountService);
+  private localStorageService = inject(LocalStorageService);
 
   @ViewChild('myFilmCardTemplate') myFilmCardTemplate!: TemplateRef<any>;
   @ViewChild('allFilmCardTemplate') allFilmCardTemplate!: TemplateRef<any>;
@@ -48,9 +49,11 @@ export class FilmsComponent implements OnInit {
   // Search state - separate for each tab
   myFilmsSearchParams: SearchParams = {};
   allFilmsSearchParams: SearchParams = {};
-  isSearching = false;
+  myFilmsIsSearching = false;
+  allFilmsIsSearching = false;
 
   ngOnInit(): void {
+    this.restoreState();
     this.accountService.whoAmI().subscribe({
       next: (identity: IdentityDto) => {
         this.currentUsername = identity.username;
@@ -66,12 +69,25 @@ export class FilmsComponent implements OnInit {
     });
   }
 
+  ngOnDestroy(): void {
+    this.saveState();
+  }
+
+  // Search parameter getters
+  private getMyFilmsSearchParams(): SearchParams | undefined {
+    return this.myFilmsIsSearching ? this.myFilmsSearchParams : undefined;
+  }
+
+  private getAllFilmsSearchParams(): SearchParams | undefined {
+    return this.allFilmsIsSearching ? this.allFilmsSearchParams : undefined;
+  }
+
   // Methods for loading "My Films" tab data
   loadMyDevelopedFilms(): void {
     if (this.loadingMyDeveloped) return;
     
     this.loadingMyDeveloped = true;
-    const searchParams = this.isSearching ? this.myFilmsSearchParams : undefined;
+    const searchParams = this.getMyFilmsSearchParams();
     this.filmService.getMyDevelopedFilmsPaged(this.myDevelopedPage, this.pageSize, searchParams).subscribe({
       next: (response: PagedResponseDto<FilmDto>) => {
         this.myDevelopedFilms.push(...response.data);
@@ -90,7 +106,7 @@ export class FilmsComponent implements OnInit {
     if (this.loadingMyNotDeveloped) return;
     
     this.loadingMyNotDeveloped = true;
-    const searchParams = this.isSearching ? this.myFilmsSearchParams : undefined;
+    const searchParams = this.getMyFilmsSearchParams();
     this.filmService.getMyNotDevelopedFilmsPaged(this.myNotDevelopedPage, this.pageSize, searchParams).subscribe({
       next: (response: PagedResponseDto<FilmDto>) => {
         this.myNotDevelopedFilms.push(...response.data);
@@ -110,7 +126,7 @@ export class FilmsComponent implements OnInit {
     if (this.loadingAllDeveloped) return;
     
     this.loadingAllDeveloped = true;
-    const searchParams = this.isSearching ? this.allFilmsSearchParams : undefined;
+    const searchParams = this.getAllFilmsSearchParams();
     this.filmService.getDevelopedFilmsPaged(this.allDevelopedPage, this.pageSize, searchParams).subscribe({
       next: (response: PagedResponseDto<FilmDto>) => {
         this.allDevelopedFilms.push(...response.data);
@@ -129,7 +145,7 @@ export class FilmsComponent implements OnInit {
     if (this.loadingAllNotDeveloped) return;
     
     this.loadingAllNotDeveloped = true;
-    const searchParams = this.isSearching ? this.allFilmsSearchParams : undefined;
+    const searchParams = this.getAllFilmsSearchParams();
     this.filmService.getNotDevelopedFilmsPaged(this.allNotDevelopedPage, this.pageSize, searchParams).subscribe({
       next: (response: PagedResponseDto<FilmDto>) => {
         this.allNotDevelopedFilms.push(...response.data);
@@ -156,76 +172,68 @@ export class FilmsComponent implements OnInit {
 
   setActiveTab(tab: 'my' | 'all') {
     this.activeTab = tab;
+    this.saveState();
   }
 
   // Search methods
   onSearch(searchParams: SearchParams): void {
-    this.isSearching = true;
-    
     if (this.activeTab === 'my') {
+      this.myFilmsIsSearching = true;
       this.myFilmsSearchParams = searchParams;
+      this.resetMyFilmsPagination();
+      this.clearMyFilms();
+      this.loadMyDevelopedFilms();
+      this.loadMyNotDevelopedFilms();
     } else {
+      this.allFilmsIsSearching = true;
       this.allFilmsSearchParams = searchParams;
+      this.resetAllFilmsPagination();
+      this.clearAllFilms();
+      this.loadAllDevelopedFilms();
+      this.loadAllNotDevelopedFilms();
     }
-
-    // Reset pagination and clear existing results
-    this.resetPagination();
-    this.clearResults();
-
-    // Load films with search parameters
-    this.loadFilmsWithSearch();
+    this.saveState();
   }
 
   onClearFilters(): void {
-    this.isSearching = false;
-    
     if (this.activeTab === 'my') {
+      this.myFilmsIsSearching = false;
       this.myFilmsSearchParams = {};
+      this.resetMyFilmsPagination();
+      this.clearMyFilms();
+      this.loadMyDevelopedFilms();
+      this.loadMyNotDevelopedFilms();
     } else {
+      this.allFilmsIsSearching = false;
       this.allFilmsSearchParams = {};
+      this.resetAllFilmsPagination();
+      this.clearAllFilms();
+      this.loadAllDevelopedFilms();
+      this.loadAllNotDevelopedFilms();
     }
-
-    // Reset pagination and clear results
-    this.resetPagination();
-    this.clearResults();
-
-    // Load films without search
-    this.loadFilmsWithoutSearch();
+    this.saveState();
   }
 
-  private resetPagination(): void {
-    this.allDevelopedPage = 1;
-    this.allNotDevelopedPage = 1;
+  private resetMyFilmsPagination(): void {
     this.myDevelopedPage = 1;
     this.myNotDevelopedPage = 1;
   }
 
-  private clearResults(): void {
-    this.allDevelopedFilms = [];
-    this.allNotDevelopedFilms = [];
+  private resetAllFilmsPagination(): void {
+    this.allDevelopedPage = 1;
+    this.allNotDevelopedPage = 1;
+  }
+
+  private clearMyFilms(): void {
     this.myDevelopedFilms = [];
     this.myNotDevelopedFilms = [];
   }
 
-  private loadFilmsWithSearch(): void {
-    if (this.activeTab === 'my') {
-      this.loadMyDevelopedFilms();
-      this.loadMyNotDevelopedFilms();
-    } else {
-      this.loadAllDevelopedFilms();
-      this.loadAllNotDevelopedFilms();
-    }
+  private clearAllFilms(): void {
+    this.allDevelopedFilms = [];
+    this.allNotDevelopedFilms = [];
   }
 
-  private loadFilmsWithoutSearch(): void {
-    if (this.activeTab === 'my') {
-      this.loadMyDevelopedFilms();
-      this.loadMyNotDevelopedFilms();
-    } else {
-      this.loadAllDevelopedFilms();
-      this.loadAllNotDevelopedFilms();
-    }
-  }
 
 
   // Update existing load more methods to use search if active
@@ -243,5 +251,30 @@ export class FilmsComponent implements OnInit {
 
   loadMoreAllNotDevelopedFilms(): void {
     this.loadAllNotDevelopedFilms();
+  }
+
+  // State persistence methods
+  private readonly FILMS_PAGE_STATE_KEY = 'analogagenda_films_page_state';
+
+  private saveState(): void {
+    const state = {
+      activeTab: this.activeTab,
+      myFilmsSearchParams: this.myFilmsSearchParams,
+      allFilmsSearchParams: this.allFilmsSearchParams,
+      myFilmsIsSearching: this.myFilmsIsSearching,
+      allFilmsIsSearching: this.allFilmsIsSearching
+    };
+    this.localStorageService.saveState(this.FILMS_PAGE_STATE_KEY, state);
+  }
+
+  private restoreState(): void {
+    const state = this.localStorageService.getState(this.FILMS_PAGE_STATE_KEY);
+    if (state) {
+      this.activeTab = state.activeTab || 'my';
+      this.myFilmsSearchParams = state.myFilmsSearchParams || {};
+      this.allFilmsSearchParams = state.allFilmsSearchParams || {};
+      this.myFilmsIsSearching = state.myFilmsIsSearching || false;
+      this.allFilmsIsSearching = state.allFilmsIsSearching || false;
+    }
   }
 }

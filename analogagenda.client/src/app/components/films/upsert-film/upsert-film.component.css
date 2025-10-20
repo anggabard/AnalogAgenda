@@ -558,6 +558,7 @@ label {
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
+  align-items: flex-start;
 }
 
 .item-name {
@@ -577,6 +578,7 @@ label {
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 150px;
+  display: block;
 }
 
 .item-owner {

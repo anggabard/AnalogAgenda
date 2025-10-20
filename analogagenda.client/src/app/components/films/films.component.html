@@ -13,6 +13,7 @@
     <div class="films-container" *ngIf="activeTab === 'my'">
         <app-film-search 
             [isMyFilmsTab]="true"
+            [initialSearchParams]="myFilmsSearchParams"
             (search)="onSearch($event)"
             (clearFilters)="onClearFilters()">
         </app-film-search>
@@ -45,6 +46,7 @@
     <div class="films-container" *ngIf="activeTab === 'all'">
         <app-film-search 
             [isMyFilmsTab]="false"
+            [initialSearchParams]="allFilmsSearchParams"
             (search)="onSearch($event)"
             (clearFilters)="onClearFilters()">
         </app-film-search>
