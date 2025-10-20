@@ -145,6 +145,85 @@ describe('UpsertFilmComponent', () => {
     expect(result).toEqual(mockDevKits);
   });
 
+  it('should sort devkits alphabetically when showExpiredDevKits is false', () => {
+    const mockDevKits = [
+      { rowKey: 'devkit-3', name: 'Z DevKit', url: '', type: DevKitType.C41, purchasedBy: UsernameType.Angel, purchasedOn: '', mixedOn: '', validForWeeks: 4, validForFilms: 10, filmsDeveloped: 0, description: '', expired: false, imageBase64: '', imageUrl: '' },
+      { rowKey: 'devkit-1', name: 'A DevKit', url: '', type: DevKitType.BW, purchasedBy: UsernameType.Tudor, purchasedOn: '', mixedOn: '', validForWeeks: 4, validForFilms: 10, filmsDeveloped: 0, description: '', expired: false, imageBase64: '', imageUrl: '' },
+      { rowKey: 'devkit-2', name: 'M DevKit', url: '', type: DevKitType.E6, purchasedBy: UsernameType.Angel, purchasedOn: '', mixedOn: '', validForWeeks: 4, validForFilms: 10, filmsDeveloped: 0, description: '', expired: true, imageBase64: '', imageUrl: '' }
+    ];
+    component.availableDevKits = mockDevKits;
+    component.showExpiredDevKits = false;
+
+    const result = component.filteredAvailableDevKits;
+
+    expect(result.length).toBe(2);
+    expect(result[0].name).toBe('A DevKit');
+    expect(result[1].name).toBe('Z DevKit');
+  });
+
+  it('should sort devkits with expired last when showExpiredDevKits is true', () => {
+    const mockDevKits = [
+      { rowKey: 'devkit-3', name: 'Z DevKit', url: '', type: DevKitType.C41, purchasedBy: UsernameType.Angel, purchasedOn: '', mixedOn: '', validForWeeks: 4, validForFilms: 10, filmsDeveloped: 0, description: '', expired: true, imageBase64: '', imageUrl: '' },
+      { rowKey: 'devkit-1', name: 'A DevKit', url: '', type: DevKitType.BW, purchasedBy: UsernameType.Tudor, purchasedOn: '', mixedOn: '', validForWeeks: 4, validForFilms: 10, filmsDeveloped: 0, description: '', expired: false, imageBase64: '', imageUrl: '' },
+      { rowKey: 'devkit-2', name: 'M DevKit', url: '', type: DevKitType.E6, purchasedBy: UsernameType.Angel, purchasedOn: '', mixedOn: '', validForWeeks: 4, validForFilms: 10, filmsDeveloped: 0, description: '', expired: true, imageBase64: '', imageUrl: '' }
+    ];
+    component.availableDevKits = mockDevKits;
+    component.showExpiredDevKits = true;
+
+    const result = component.filteredAvailableDevKits;
+
+    expect(result.length).toBe(3);
+    expect(result[0].name).toBe('A DevKit');
+    expect(result[0].expired).toBeFalsy();
+    expect(result[1].name).toBe('M DevKit');
+    expect(result[1].expired).toBeTruthy();
+    expect(result[2].name).toBe('Z DevKit');
+    expect(result[2].expired).toBeTruthy();
+  });
+
+  it('should auto-show expired devkits when current devkit is expired', () => {
+    const mockDevKits = [
+      { rowKey: 'devkit-1', name: 'Current DevKit', url: '', type: DevKitType.C41, purchasedBy: UsernameType.Angel, purchasedOn: '', mixedOn: '', validForWeeks: 4, validForFilms: 10, filmsDeveloped: 0, description: '', expired: true, imageBase64: '', imageUrl: '' },
+      { rowKey: 'devkit-2', name: 'Other DevKit', url: '', type: DevKitType.BW, purchasedBy: UsernameType.Tudor, purchasedOn: '', mixedOn: '', validForWeeks: 4, validForFilms: 10, filmsDeveloped: 0, description: '', expired: false, imageBase64: '', imageUrl: '' }
+    ];
+    
+    // Mock the DevKit service to return our test data
+    mockDevKitService.getAll.and.returnValue(of(mockDevKits));
+    
+    component.form.patchValue({ developedWithDevKitRowKey: 'devkit-1' });
+    component.showExpiredDevKits = false;
+
+    component.onAssignDevKit();
+
+    expect(component.showExpiredDevKits).toBeTruthy();
+    expect(component.showDevKitModal).toBeTruthy();
+  });
+
+  it('should not auto-show expired devkits when current devkit is not expired', () => {
+    const mockDevKits = [
+      { rowKey: 'devkit-1', name: 'Current DevKit', url: '', type: DevKitType.C41, purchasedBy: UsernameType.Angel, purchasedOn: '', mixedOn: '', validForWeeks: 4, validForFilms: 10, filmsDeveloped: 0, description: '', expired: false, imageBase64: '', imageUrl: '' },
+      { rowKey: 'devkit-2', name: 'Other DevKit', url: '', type: DevKitType.BW, purchasedBy: UsernameType.Tudor, purchasedOn: '', mixedOn: '', validForWeeks: 4, validForFilms: 10, filmsDeveloped: 0, description: '', expired: true, imageBase64: '', imageUrl: '' }
+    ];
+    component.availableDevKits = mockDevKits;
+    component.form.patchValue({ developedWithDevKitRowKey: 'devkit-1' });
+    component.showExpiredDevKits = false;
+
+    component.onAssignDevKit();
+
+    expect(component.showExpiredDevKits).toBeFalsy();
+    expect(component.showDevKitModal).toBeTruthy();
+  });
+
+  it('should reset showExpiredDevKits when closing devkit modal', () => {
+    component.showExpiredDevKits = true;
+    component.showDevKitModal = true;
+
+    component.closeDevKitModal();
+
+    expect(component.showExpiredDevKits).toBeFalsy();
+    expect(component.showDevKitModal).toBeFalsy();
+  });
+
   it('should determine hasExpiredDevKits correctly', () => {
     const mockDevKits = [
       { rowKey: 'devkit-1', name: 'DevKit 1', url: '', type: DevKitType.C41, purchasedBy: UsernameType.Angel, purchasedOn: '', mixedOn: '', validForWeeks: 4, validForFilms: 10, filmsDeveloped: 0, description: '', expired: false, imageBase64: '', imageUrl: '' },
