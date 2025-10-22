@@ -1,7 +1,12 @@
+using Aspire.Hosting;
+
 var builder = DistributedApplication.CreateBuilder(args);
 
 // Add the backend API
 var backend = builder.AddProject<Projects.AnalogAgenda_Server>("analogagenda-server");
+
+// Add the Azure Functions
+var functions = builder.AddAzureFunctionsProject<Projects.AnalogAgenda_Functions>("analogagenda-functions");
 
 // Add the frontend Angular app as a proper Aspire resource
 var frontend = builder.AddNpmApp("analogagenda-client", "../analogagenda.client")
