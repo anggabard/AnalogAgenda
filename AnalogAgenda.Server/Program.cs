@@ -9,6 +9,8 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.AddServiceDefaults();
+
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -56,7 +58,15 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("Frontend", builder =>
     {
-        builder.WithOrigins("https://localhost:58774")
+        // Allow the original development port and Aspire ports
+        builder.WithOrigins("https://localhost:58774", "https://localhost:4200", "http://localhost:4200", "https://localhost:4201", "http://localhost:4201")
+               // Allow any localhost port for Aspire dynamic port assignment
+               .SetIsOriginAllowed(origin => 
+                   origin != null && 
+                   (origin.StartsWith("https://localhost:") || 
+                    origin.StartsWith("http://localhost:") ||
+                    origin.StartsWith("http://172.25.240.1:") ||
+                    origin.StartsWith("https://172.25.240.1:")))
                .AllowAnyMethod()
                .AllowAnyHeader()
                .AllowCredentials();
@@ -64,6 +74,8 @@ builder.Services.AddCors(options =>
 });
 
 var app = builder.Build();
+
+app.MapDefaultEndpoints();
 
 // Add global exception handling middleware early in the pipeline
 app.UseMiddleware<GlobalExceptionMiddleware>();
@@ -74,8 +86,6 @@ app.UseMiddleware<RateLimitingMiddleware>();
 // Add security headers middleware
 app.UseMiddleware<SecurityHeadersMiddleware>();
 
-app.UseDefaultFiles();
-app.UseStaticFiles();
 
 if (app.Environment.IsDevelopment())
 {
@@ -90,8 +100,6 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
-
-app.MapFallbackToFile("/index.html");
 
 app.Run();
 

@@ -82,9 +82,7 @@
             }
           },
           "defaultConfiguration": "development",
-          "options": {
-            "port": 58774
-          }
+          "options": {}
         },
         "extract-i18n": {
           "builder": "@angular-devkit/build-angular:extract-i18n"
