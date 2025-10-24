@@ -6,8 +6,8 @@ on:
     branches: [ main ]
 
 jobs:
-  test-all:
-    name: Build + All Tests
+  test-backend:
+    name: Backend Tests
     runs-on: windows-latest
     
     steps:
@@ -19,22 +19,11 @@ jobs:
       with:
         dotnet-version: '8.0.x'
         
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '20.x'
-        cache: 'npm'
-        cache-dependency-path: analogagenda.client/package-lock.json
-        
-    - name: Build test projects (includes SPA)
+    - name: Build test projects
       run: |
         dotnet build Tests/AnalogAgenda.Server.Tests/AnalogAgenda.Server.Tests.csproj
         dotnet build Tests/Database.Tests/Database.Tests.csproj
       shell: pwsh
-      
-    - name: Run frontend tests
-      working-directory: ./analogagenda.client
-      run: npx ng test --watch=false --browsers=ChromeHeadless --code-coverage
       
     - name: Run AnalogAgenda.Server tests
       run: dotnet test Tests/AnalogAgenda.Server.Tests/AnalogAgenda.Server.Tests.csproj --no-build --verbosity normal --logger trx --results-directory TestResults
@@ -50,6 +39,25 @@ jobs:
       with:
         name: backend-test-results
         path: TestResults/*.trx
+
+  test-frontend:
+    name: Frontend Tests
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+        
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+        cache: 'npm'
+        cache-dependency-path: analogagenda.client/package-lock.json
+      
+    - name: Run frontend tests
+      working-directory: ./analogagenda.client
+      run: npx ng test --watch=false --browsers=ChromeHeadless --code-coverage
         
     - name: Upload frontend test coverage
       uses: actions/upload-artifact@v4
@@ -57,12 +65,19 @@ jobs:
       with:
         name: frontend-coverage
         path: analogagenda.client/coverage/
-        
+
+  test-summary:
+    name: Test Summary
+    needs: [test-backend, test-frontend]
+    runs-on: windows-latest
+    if: always()
+    
+    steps:
     - name: Test Results Summary
-      if: success()
+      if: needs.test-backend.result == 'success' && needs.test-frontend.result == 'success'
       shell: pwsh
       run: |
-        "## Test Results Summary" | Add-Content $env:GITHUB_STEP_SUMMARY
+        "## ✅ Test Results Summary" | Add-Content $env:GITHUB_STEP_SUMMARY
         "" | Add-Content $env:GITHUB_STEP_SUMMARY
         "### All Tests Complete" | Add-Content $env:GITHUB_STEP_SUMMARY
         "✅ Frontend and backend tests executed successfully" | Add-Content $env:GITHUB_STEP_SUMMARY
@@ -74,16 +89,17 @@ jobs:
         "🎉 All tests passed!" | Add-Content $env:GITHUB_STEP_SUMMARY
         
     - name: Test Failure Summary
-      if: failure()
+      if: needs.test-backend.result != 'success' || needs.test-frontend.result != 'success'
       shell: pwsh
       run: |
         "## ❌ Test Failure Summary" | Add-Content $env:GITHUB_STEP_SUMMARY
         "" | Add-Content $env:GITHUB_STEP_SUMMARY
         "### Tests Failed" | Add-Content $env:GITHUB_STEP_SUMMARY
-        "One or more tests have failed. Check the individual test step logs above for detailed error information." | Add-Content $env:GITHUB_STEP_SUMMARY
+        if (needs.test-backend.result != 'success') { "❌ Backend tests failed" | Add-Content $env:GITHUB_STEP_SUMMARY }
+        if (needs.test-frontend.result != 'success') { "❌ Frontend tests failed" | Add-Content $env:GITHUB_STEP_SUMMARY }
         "" | Add-Content $env:GITHUB_STEP_SUMMARY
         "### Debugging Resources" | Add-Content $env:GITHUB_STEP_SUMMARY
         "📋 Backend test results (if available) can be found in the artifacts section" | Add-Content $env:GITHUB_STEP_SUMMARY
         "📊 Frontend coverage (if available) can be found in the artifacts section" | Add-Content $env:GITHUB_STEP_SUMMARY
         "" | Add-Content $env:GITHUB_STEP_SUMMARY
-        "🔍 Review the step logs above to identify which tests failed and why." | Add-Content $env:GITHUB_STEP_SUMMARY
+        "🔍 Review the individual test job logs above to identify which tests failed and why." | Add-Content $env:GITHUB_STEP_SUMMARY

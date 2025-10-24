@@ -1,6 +1,12 @@
-name: Deploy Azure Function
+name: Deploy Azure Functions to Container Apps
 
 on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'AnalogAgenda.Functions/**'
+      - 'AnalogAgenda.EmailSender/**'
+      - '.github/workflows/deploy-azure-function.yml'
   workflow_dispatch:
 
 permissions:
@@ -8,15 +14,16 @@ permissions:
   contents: read
 
 env:
-  AZURE_FUNCTION_NAME: AnalogAgenda
-  CONFIGURATION: Release
   DOTNET_VERSION: '8.0.x'
-  PUBLISH_DIR: ./publish
-  FUNCTIONS_SLN: ./AnalogAgenda.Functions/AnalogAgenda.Functions.sln
+  CONFIGURATION: Release
+  AZURE_CONTAINER_REGISTRY: 'analogagendaacr'
+  IMAGE_NAME: 'analogagenda-functions'
+  CONTAINER_APP_NAME: 'analogagenda-functions'
+  RESOURCE_GROUP: 'rg-analogagenda'
 
 jobs:
-  deploy:
-    name: Deploy to Azure Function
+  build:
+    name: Build Functions Project
     runs-on: windows-latest
 
     steps:
@@ -29,24 +36,54 @@ jobs:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
       - name: Restore dependencies
-        run: dotnet restore ${{ env.FUNCTIONS_SLN }}
+        run: dotnet restore ./AnalogAgenda.Functions/AnalogAgenda.Functions.sln
 
       - name: Build project
-        run: dotnet build ${{ env.FUNCTIONS_SLN }} --configuration ${{ env.CONFIGURATION }} --no-restore
+        run: dotnet build ./AnalogAgenda.Functions/AnalogAgenda.Functions.sln --configuration ${{ env.CONFIGURATION }} --no-restore
 
-      - name: Publish project
-        run: dotnet publish ./AnalogAgenda.Functions/AnalogAgenda.Functions.csproj --configuration ${{ env.CONFIGURATION }} --no-build --output ${{ env.PUBLISH_DIR }}
+  deploy:
+    name: Deploy to Azure Container Apps
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
 
-      - name: Zip publish output
-        run: Compress-Archive -Path "${{ env.PUBLISH_DIR }}\*" -DestinationPath "${{ env.PUBLISH_DIR }}.zip"
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
       - name: Azure Login
         uses: azure/login@v2
         with:
-          creds: ${{ secrets.AZ_CREDENTIALS }}
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Deploy to Azure Functions
-        uses: azure/functions-action@v1
+      - name: Login to Azure Container Registry
+        uses: docker/login-action@v3
         with:
-          app-name: ${{ env.AZURE_FUNCTION_NAME }}
-          package: ${{ env.PUBLISH_DIR }}.zip
+          registry: ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io
+          username: ${{ secrets.ACR_USERNAME }}
+          password: ${{ secrets.ACR_PASSWORD }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./AnalogAgenda.Functions/Dockerfile
+          push: true
+          tags: |
+            ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/${{ env.IMAGE_NAME }}:latest
+            ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ github.sha }}
+
+      - name: Deploy to Azure Container App
+        uses: azure/CLI@v1
+        with:
+          inlineScript: |
+            az containerapp update \
+              --name ${{ env.CONTAINER_APP_NAME }} \
+              --resource-group ${{ env.RESOURCE_GROUP }} \
+              --image ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ github.sha }}
+
+      - name: Get Container App URL
+        uses: azure/CLI@v1
+        with:
+          inlineScript: |
+            echo "Functions URL: $(az containerapp show --name ${{ env.CONTAINER_APP_NAME }} --resource-group ${{ env.RESOURCE_GROUP }} --query properties.configuration.ingress.fqdn -o tsv)"

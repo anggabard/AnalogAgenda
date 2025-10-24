@@ -1,0 +1,46 @@
+# Build outputs
+bin/
+obj/
+out/
+
+# Test files
+**/*.Tests/
+**/*.Test/
+Tests/
+test/
+tests/
+
+# Coverage reports
+coverage/
+*.lcov
+
+# IDE files
+.vs/
+.vscode/
+*.user
+*.suo
+*.cache
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+
+# Documentation
+*.md
+docs/
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.temp
+
+# Azure Functions specific
+local.settings.json
+host.json

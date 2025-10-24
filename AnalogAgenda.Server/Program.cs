@@ -58,15 +58,34 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("Frontend", builder =>
     {
-        // Allow the original development port and Aspire ports
-        builder.WithOrigins("https://localhost:58774", "https://localhost:4200", "http://localhost:4200", "https://localhost:4201", "http://localhost:4201")
+        // Development origins
+        var developmentOrigins = new[]
+        {
+            "https://localhost:58774", 
+            "https://localhost:4200", 
+            "http://localhost:4200", 
+            "https://localhost:4201", 
+            "http://localhost:4201"
+        };
+
+        // Production frontend URL from environment variable
+        var productionFrontendUrl = Environment.GetEnvironmentVariable("FRONTEND_URL");
+        
+        var allowedOrigins = developmentOrigins.ToList();
+        if (!string.IsNullOrEmpty(productionFrontendUrl))
+        {
+            allowedOrigins.Add(productionFrontendUrl);
+        }
+
+        builder.WithOrigins(allowedOrigins.ToArray())
                // Allow any localhost port for Aspire dynamic port assignment
                .SetIsOriginAllowed(origin => 
                    origin != null && 
                    (origin.StartsWith("https://localhost:") || 
                     origin.StartsWith("http://localhost:") ||
                     origin.StartsWith("http://172.25.240.1:") ||
-                    origin.StartsWith("https://172.25.240.1:")))
+                    origin.StartsWith("https://172.25.240.1:") ||
+                    (!string.IsNullOrEmpty(productionFrontendUrl) && origin.StartsWith(productionFrontendUrl))))
                .AllowAnyMethod()
                .AllowAnyHeader()
                .AllowCredentials();
@@ -91,8 +110,10 @@ if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
-    app.UseCors("Frontend");
 }
+
+// Always use CORS for Aspire and production
+app.UseCors("Frontend");
 
 app.UseHttpsRedirection();
 

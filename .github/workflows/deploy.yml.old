@@ -1,26 +1,21 @@
-name: Build & Deploy AnalogAgenda
+name: Build & Deploy AnalogAgenda to Azure Container Apps
 
 on:
   push:
     branches: [ main ]
     paths-ignore:
-      - "AnalogAgenda.Functions/**"
-      - "AnalogAgenda.EmailSender/**"
       - "**/*.md"
-      - ".github/workflows/deploy-azure-function.yml"
       - ".github/workflows/test-pipeline.yml"
   workflow_dispatch:
 
 env:
-  AZURE_WEBAPP_NAME: analog-agenda
   CONFIGURATION: Release
   DOTNET_VERSION: '8.0.x'
   NODE_VERSION: '20.x'
-  PUBLISH_DIR: ./publish
   WORKING_DIRECTORY: .
 
 jobs:
-  build-and-deploy:
+  test:
     runs-on: windows-latest
 
     steps:
@@ -36,21 +31,10 @@ jobs:
       with:
         node-version: ${{ env.NODE_VERSION }}
 
-    - name: Replace secrets in appsettings.Production.json
-      shell: pwsh
-      run: |
-        $filePath = "${{ env.WORKING_DIRECTORY }}\AnalogAgenda.Server\appsettings.Production.json"
-
-        (Get-Content $filePath) `
-          -replace 'AZ_CLIENT_ID', '${{ secrets.AZ_CLIENT_ID }}' `
-          -replace 'AZ_TENANT_ID', '${{ secrets.AZ_TENANT_ID }}' `
-          -replace 'AZ_CLIENT_SECRET', '${{ secrets.AZ_CLIENT_SECRET }}' `
-          | Set-Content $filePath
-
-    - name: Restore
+    - name: Restore dependencies
       run: dotnet restore ${{ env.WORKING_DIRECTORY }}/AnalogAgenda.sln
 
-    - name: Build
+    - name: Build solution
       run: dotnet build ${{ env.WORKING_DIRECTORY }}/AnalogAgenda.sln --configuration ${{ env.CONFIGURATION }} --no-restore
 
     - name: Run Server unit tests
@@ -65,19 +49,44 @@ jobs:
       working-directory: ${{ env.WORKING_DIRECTORY }}/analogagenda.client
       run: npm run test -- --watch=false --browsers=ChromeHeadless
 
-    - name: Publish
-      run: dotnet publish ${{ env.WORKING_DIRECTORY }}/AnalogAgenda.Server/AnalogAgenda.Server.csproj --configuration ${{ env.CONFIGURATION }} --no-build --output ${{ env.PUBLISH_DIR }}
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
 
-    - name: Zip publish output
-      run: Compress-Archive -Path "${{ env.PUBLISH_DIR }}\*" -DestinationPath "${{ env.PUBLISH_DIR }}.zip"
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup .NET SDK
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+
+    - name: Install Azure Developer CLI
+      uses: Azure/setup-azd@v1.0.0
 
     - name: Azure Login
       uses: azure/login@v2
       with:
-        creds: ${{ secrets.WEBAPP_SPN }}
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-    - name: Deploy to Azure Web App
-      uses: azure/webapps-deploy@v3 
-      with:
-        app-name: ${{ env.AZURE_WEBAPP_NAME }}
-        package: ${{ env.PUBLISH_DIR }}.zip
+    - name: Initialize Azure Developer CLI
+      run: |
+        azd auth login --client-id ${{ secrets.AZURE_CLIENT_ID }} --client-secret ${{ secrets.AZURE_CLIENT_SECRET }} --tenant-id ${{ secrets.AZURE_TENANT_ID }}
+
+    - name: Provision Infrastructure
+      run: |
+        azd provision --no-prompt
+
+    - name: Deploy Application
+      run: |
+        azd deploy --no-prompt
+
+    - name: Get deployment outputs
+      run: |
+        azd output
