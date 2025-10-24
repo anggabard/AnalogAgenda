@@ -2,7 +2,6 @@ name: Deploy Azure Functions to Container Apps
 
 on:
   push:
-    branches: [ main ]
     paths:
       - 'AnalogAgenda.Functions/**'
       - 'AnalogAgenda.EmailSender/**'
@@ -45,7 +44,6 @@ jobs:
     name: Deploy to Azure Container Apps
     needs: build
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
 
     steps:
       - name: Checkout repository

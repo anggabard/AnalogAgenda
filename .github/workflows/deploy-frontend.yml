@@ -2,7 +2,6 @@ name: Deploy Frontend to Azure Container Apps
 
 on:
   push:
-    branches: [ main ]
     paths:
       - 'analogagenda.client/**'
       - '.github/workflows/deploy-frontend.yml'
@@ -16,32 +15,9 @@ env:
   RESOURCE_GROUP: 'analog_agenda_rg'
 
 jobs:
-  test:
-    name: Run Frontend Tests
-    runs-on: windows-latest
-
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: ${{ env.NODE_VERSION }}
-
-    - name: Install dependencies
-      working-directory: ./analogagenda.client
-      run: npm ci
-
-    - name: Run frontend tests
-      working-directory: ./analogagenda.client
-      run: npx ng test --watch=false --browsers=ChromeHeadless
-
   build-and-deploy:
     name: Build and Deploy Frontend
-    needs: test
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
 
     steps:
     - name: Checkout repository

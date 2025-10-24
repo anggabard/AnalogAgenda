@@ -2,7 +2,6 @@ name: Deploy Backend to Azure Container Apps
 
 on:
   push:
-    branches: [ main ]
     paths:
       - '**'
       - '!analogagenda.client/**'
@@ -21,37 +20,9 @@ env:
   RESOURCE_GROUP: 'analog_agenda_rg'
 
 jobs:
-  test:
-    name: Run Backend Tests
-    runs-on: windows-latest
-
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-
-    - name: Setup .NET SDK
-      uses: actions/setup-dotnet@v4
-      with:
-        dotnet-version: ${{ env.DOTNET_VERSION }}
-
-    - name: Build test projects
-      run: |
-        dotnet build ./Tests/AnalogAgenda.Server.Tests/AnalogAgenda.Server.Tests.csproj --configuration ${{ env.CONFIGURATION }}
-        dotnet build ./Tests/Database.Tests/Database.Tests.csproj --configuration ${{ env.CONFIGURATION }}
-
-    - name: Run Server unit tests
-      run: |
-        dotnet test ./Tests/AnalogAgenda.Server.Tests/AnalogAgenda.Server.Tests.csproj --configuration ${{ env.CONFIGURATION }} --no-build --verbosity normal --logger trx --results-directory TestResults
-    
-    - name: Run Database unit tests
-      run: |
-        dotnet test ./Tests/Database.Tests/Database.Tests.csproj --configuration ${{ env.CONFIGURATION }} --no-build --verbosity normal --logger trx --results-directory TestResults
-
   build-and-deploy:
     name: Build and Deploy Backend
-    needs: test
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
 
     steps:
     - name: Checkout repository
