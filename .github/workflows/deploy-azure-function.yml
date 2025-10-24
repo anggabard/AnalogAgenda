@@ -19,7 +19,7 @@ env:
   AZURE_CONTAINER_REGISTRY: 'analogagendaacr'
   IMAGE_NAME: 'analogagenda-functions'
   CONTAINER_APP_NAME: 'analogagenda-functions'
-  RESOURCE_GROUP: 'rg-analogagenda'
+  RESOURCE_GROUP: 'analog_agenda_rg'
 
 jobs:
   build:
