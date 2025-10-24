@@ -55,12 +55,13 @@ jobs:
         cache: 'npm'
         cache-dependency-path: analogagenda.client/package-lock.json
       
-    - name: Install Angular CLI globally
-      run: npm install -g @angular/cli
+    - name: Install dependencies
+      working-directory: ./analogagenda.client
+      run: npm ci
       
     - name: Run frontend tests
       working-directory: ./analogagenda.client
-      run: ng test --watch=false --browsers=ChromeHeadless --code-coverage
+      run: npx ng test --watch=false --browsers=ChromeHeadless --code-coverage
         
     - name: Upload frontend test coverage
       uses: actions/upload-artifact@v4
