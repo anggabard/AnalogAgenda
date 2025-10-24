@@ -33,9 +33,12 @@ jobs:
       working-directory: ./analogagenda.client
       run: npm ci
 
+    - name: Install Angular CLI globally
+      run: npm install -g @angular/cli
+
     - name: Run frontend tests
       working-directory: ./analogagenda.client
-      run: npm run test -- --watch=false --browsers=ChromeHeadless
+      run: ng test --watch=false --browsers=ChromeHeadless
 
   build-and-deploy:
     name: Build and Deploy Frontend
