@@ -2,6 +2,8 @@ name: Deploy Backend to Azure Container Apps
 
 on:
   push:
+    branches:
+      - main
     paths:
       - 'AnalogAgenda.Server/**'
       - 'Database/**'

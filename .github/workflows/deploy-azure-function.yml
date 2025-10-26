@@ -1,6 +1,15 @@
 name: Deploy Azure Function
 
 on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'AnalogAgenda.Functions/**'
+      - 'AnalogAgenda.EmailSender/**'
+      - 'Database/**'
+      - 'Configuration/**'
+      - '.github/workflows/deploy-azure-function.yml'
   workflow_dispatch:
 
 permissions:
