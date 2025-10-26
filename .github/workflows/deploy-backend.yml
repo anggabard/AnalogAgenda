@@ -2,12 +2,77 @@ name: Deploy Backend to Azure Container Apps
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
     paths:
-      - '**'
-      - '!analogagenda.client/**'
-      - '!AnalogAgenda.Functions/**'
-      - '!AnalogAgenda.EmailSender/**'
-      - '!**/*.md'
+      - 'AnalogAgenda.Server/**'
+      - 'Database/**'
+      - 'Configuration/**'
+      - 'AnalogAgenda.ServiceDefaults/**'
       - '.github/workflows/deploy-backend.yml'
   workflow_dispatch:
+
+env:
+  DOTNET_VERSION: '8.0.x'
+  CONFIGURATION: Release
+  AZURE_CONTAINER_REGISTRY: 'analogagendaacr'
+  IMAGE_NAME: 'analogagenda-server'
+  CONTAINER_APP_NAME: 'analogagenda-backend'
+  RESOURCE_GROUP: 'analog_agenda_rg'
+
+jobs:
+  build-and-deploy:
+    name: Build and Deploy Backend
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Azure Login
+      uses: azure/login@v2
+      with:
+        creds: ${{ secrets.AZ_CREDENTIALS }}
+
+    - name: Login to Azure Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io
+        username: ${{ secrets.ACR_USERNAME }}
+        password: ${{ secrets.ACR_PASSWORD }}
+
+    - name: Replace secrets in appsettings.Production.json
+      shell: pwsh
+      run: |
+        $filePath = "AnalogAgenda.Server\appsettings.Production.json"
+
+        (Get-Content $filePath) `
+          -replace 'AZ_CLIENT_ID', '${{ secrets.AZ_CLIENT_ID }}' `
+          -replace 'AZ_TENANT_ID', '${{ secrets.AZ_TENANT_ID }}' `
+          -replace 'AZ_CLIENT_SECRET', '${{ secrets.AZ_CLIENT_SECRET }}' `
+          | Set-Content $filePath
+
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: ./AnalogAgenda.Server/Dockerfile
+        push: true
+        tags: |
+          ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/${{ env.IMAGE_NAME }}:latest
+          ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ github.sha }}
+
+    - name: Deploy to Azure Container App
+      uses: azure/CLI@v1
+      with:
+        inlineScript: |
+          az containerapp update \
+            --name ${{ env.CONTAINER_APP_NAME }} \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --image ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ github.sha }}
+
+    - name: Get Container App URL
+      uses: azure/CLI@v1
+      with:
+        inlineScript: |
+          echo "Backend URL: $(az containerapp show --name ${{ env.CONTAINER_APP_NAME }} --resource-group ${{ env.RESOURCE_GROUP }} --query properties.configuration.ingress.fqdn -o tsv)"
