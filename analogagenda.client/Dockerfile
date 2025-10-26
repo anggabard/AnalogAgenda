@@ -23,7 +23,7 @@ FROM nginx:alpine AS production
 COPY nginx.conf /etc/nginx/nginx.conf
 
 # Copy built Angular app from build stage
-COPY --from=build /app/dist/analogagenda.client /usr/share/nginx/html
+COPY --from=build /app/dist/analogagenda.client/browser /usr/share/nginx/html
 
 # Expose port 8080 (Azure Container Apps default)
 EXPOSE 8080
