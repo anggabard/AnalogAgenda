@@ -18,7 +18,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\AnalogAgenda.Server\AnalogAgenda.Server.csproj" />
-    <ProjectReference Include="..\AnalogAgenda.Functions\AnalogAgenda.Functions.csproj" />
   </ItemGroup>
 
 </Project>

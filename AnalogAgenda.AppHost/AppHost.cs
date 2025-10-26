@@ -5,12 +5,6 @@ var backend = builder.AddProject<Projects.AnalogAgenda_Server>("analogagenda-ser
     .PublishAsDockerFile()
     .WithHttpEndpoint(name: "backend-http");
 
-// Add the Azure Functions
-var functions = builder.AddAzureFunctionsProject<Projects.AnalogAgenda_Functions>("analogagenda-functions")
-    .PublishAsDockerFile()
-    .WithEnvironment("AzureWebJobsScriptRoot", "/home/site/wwwroot")
-    .WithEnvironment("FUNCTIONS_WORKER_RUNTIME", "dotnet-isolated");
-
 // Add the frontend Angular app as a proper Aspire resource
 var frontend = builder.AddNpmApp("analogagenda-client", "../analogagenda.client")
     .PublishAsDockerFile()
