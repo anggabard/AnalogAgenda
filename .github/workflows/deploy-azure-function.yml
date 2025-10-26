@@ -78,7 +78,17 @@ jobs:
             az containerapp update \
               --name ${{ env.CONTAINER_APP_NAME }} \
               --resource-group ${{ env.RESOURCE_GROUP }} \
-              --image ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ github.sha }}
+              --image ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ github.sha }} \
+              --set-env-vars \
+                FUNCTIONS_WORKER_RUNTIME=dotnet-isolated \
+                Storage__AccountName=analogagendastorage \
+                AzureAd__ClientId=${{ secrets.AZ_CLIENT_ID }} \
+                AzureAd__TenantId=${{ secrets.AZ_TENANT_ID }} \
+                AzureAd__ClientSecret=${{ secrets.AZ_CLIENT_SECRET }} \
+                Smtp__Host=smtp.zoho.eu \
+                Smtp__Port=587 \
+                Smtp__Username=${{ secrets.SMTP_USERNAME }} \
+                Smtp__Password=${{ secrets.SMTP_PASSWORD }}
 
       - name: Get Container App URL
         uses: azure/CLI@v1
