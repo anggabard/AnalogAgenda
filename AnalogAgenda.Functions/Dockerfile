@@ -1,8 +1,8 @@
-# Use the official Azure Functions base image for .NET 8 isolated
-FROM mcr.microsoft.com/azure-functions/dotnet-isolated:4-dotnet-isolated8.0
+# Build stage - use SDK image
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 
 # Set working directory
-WORKDIR /home/site/wwwroot
+WORKDIR /src
 
 # Copy the Functions project files
 COPY ["AnalogAgenda.Functions/AnalogAgenda.Functions.csproj", "AnalogAgenda.Functions/"]
@@ -17,8 +17,17 @@ RUN dotnet restore "AnalogAgenda.Functions/AnalogAgenda.Functions.csproj"
 COPY . .
 
 # Build and publish the Functions app
-WORKDIR "/home/site/wwwroot/AnalogAgenda.Functions"
-RUN dotnet publish "AnalogAgenda.Functions.csproj" -c Release -o /home/site/wwwroot
+WORKDIR "/src/AnalogAgenda.Functions"
+RUN dotnet publish "AnalogAgenda.Functions.csproj" -c Release -o /app/publish
+
+# Runtime stage - use Azure Functions base image
+FROM mcr.microsoft.com/azure-functions/dotnet-isolated:4-dotnet-isolated8.0
+
+# Set working directory
+WORKDIR /home/site/wwwroot
+
+# Copy published files from build stage
+COPY --from=build /app/publish .
 
 # Set environment variables
 ENV AzureWebJobsScriptRoot=/home/site/wwwroot
