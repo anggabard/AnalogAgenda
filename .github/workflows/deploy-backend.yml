@@ -3,11 +3,10 @@ name: Deploy Backend to Azure Container Apps
 on:
   push:
     paths:
-      - '**'
-      - '!analogagenda.client/**'
-      - '!AnalogAgenda.Functions/**'
-      - '!AnalogAgenda.EmailSender/**'
-      - '!**/*.md'
+      - 'AnalogAgenda.Server/**'
+      - 'Database/**'
+      - 'Configuration/**'
+      - 'AnalogAgenda.ServiceDefaults/**'
       - '.github/workflows/deploy-backend.yml'
   workflow_dispatch:
 

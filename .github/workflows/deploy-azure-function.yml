@@ -5,6 +5,8 @@ on:
     paths:
       - 'AnalogAgenda.Functions/**'
       - 'AnalogAgenda.EmailSender/**'
+      - 'Database/**'
+      - 'Configuration/**'
       - '.github/workflows/deploy-azure-function.yml'
   workflow_dispatch:
 
