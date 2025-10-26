@@ -31,7 +31,7 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         opt.Cookie.HttpOnly = true;
         opt.Cookie.SameSite = SameSiteMode.None;
         opt.Cookie.SecurePolicy = CookieSecurePolicy.Always;
-        opt.ExpireTimeSpan = TimeSpan.FromDays(1);
+        opt.ExpireTimeSpan = TimeSpan.FromDays(7);
 
         opt.Events.OnRedirectToLogin = context =>
         {

@@ -18,11 +18,7 @@ COPY . .
 
 # Build and publish the Functions app
 WORKDIR "/home/site/wwwroot/AnalogAgenda.Functions"
-RUN dotnet build "AnalogAgenda.Functions.csproj" -c Release -o /app/build
-RUN dotnet publish "AnalogAgenda.Functions.csproj" -c Release -o /app/publish
-
-# Copy published files to the functions runtime directory
-COPY /app/publish /home/site/wwwroot
+RUN dotnet publish "AnalogAgenda.Functions.csproj" -c Release -o /home/site/wwwroot
 
 # Set environment variables
 ENV AzureWebJobsScriptRoot=/home/site/wwwroot
