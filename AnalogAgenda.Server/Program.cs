@@ -29,7 +29,7 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
     {
         opt.Cookie.Name = ".AnalogAgenda.Auth";
         opt.Cookie.HttpOnly = true;
-        opt.Cookie.SameSite = SameSiteMode.None;
+        opt.Cookie.SameSite = SameSiteMode.Lax; // Lax for same-site cookies (analogagenda.site and api.analogagenda.site share same eTLD+1)
         opt.Cookie.SecurePolicy = CookieSecurePolicy.Always;
         opt.ExpireTimeSpan = TimeSpan.FromDays(7);
 
@@ -76,6 +76,9 @@ builder.Services.AddCors(options =>
         {
             allowedOrigins.Add(productionFrontendUrl);
         }
+        
+        // Add analogagenda.site for production
+        allowedOrigins.Add("https://analogagenda.site");
 
         builder.WithOrigins(allowedOrigins.ToArray())
                // Allow any localhost port for Aspire dynamic port assignment
@@ -85,6 +88,7 @@ builder.Services.AddCors(options =>
                     origin.StartsWith("http://localhost:") ||
                     origin.StartsWith("http://172.25.240.1:") ||
                     origin.StartsWith("https://172.25.240.1:") ||
+                    origin == "https://analogagenda.site" ||
                     (!string.IsNullOrEmpty(productionFrontendUrl) && origin.StartsWith(productionFrontendUrl))))
                .AllowAnyMethod()
                .AllowAnyHeader()
