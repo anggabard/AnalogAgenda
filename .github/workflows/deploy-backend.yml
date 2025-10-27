@@ -63,7 +63,7 @@ jobs:
           ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ github.sha }}
 
     - name: Deploy to Azure Container App
-      uses: azure/CLI@v1
+      uses: azure/CLI@v2
       with:
         inlineScript: |
           az containerapp update \
@@ -73,7 +73,7 @@ jobs:
             --set-env-vars FRONTEND_URL=https://analogagenda.site
 
     - name: Get Container App URL
-      uses: azure/CLI@v1
+      uses: azure/CLI@v2
       with:
         inlineScript: |
           echo "Backend URL: $(az containerapp show --name ${{ env.CONTAINER_APP_NAME }} --resource-group ${{ env.RESOURCE_GROUP }} --query properties.configuration.ingress.fqdn -o tsv)"
