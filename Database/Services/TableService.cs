@@ -90,10 +90,10 @@ namespace Database.Services
         private PagedResponseDto<T> GetTableEntriesPagedInternal<T>(List<T> allEntities, int page, int pageSize, Func<IEnumerable<T>, IOrderedEnumerable<T>>? sortFunc = null) where T : BaseEntity
         {
             // Apply sorting - default to UpdatedDate descending if no sort function provided
-            IEnumerable<T> sortedEntities = sortFunc != null 
-                ? sortFunc(allEntities) 
+            IEnumerable<T> sortedEntities = sortFunc != null
+                ? sortFunc(allEntities)
                 : allEntities.OrderByDescending(e => e.UpdatedDate);
-            
+
             int skip = (page - 1) * pageSize;
             var pagedData = sortedEntities.Skip(skip).Take(pageSize).ToList();
 

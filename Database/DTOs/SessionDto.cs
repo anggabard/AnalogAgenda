@@ -1,4 +1,3 @@
-using Database.DBObjects.Enums;
 using Database.DTOs.Subclasses;
 using Database.Entities;
 using Database.Helpers;
@@ -23,21 +22,21 @@ public class SessionDto : HasImage
     public string DevelopedFilms { get; set; } = string.Empty; // JSON array of Film RowKeys
 
     // Helper properties for frontend
-    public List<string> ParticipantsList 
-    { 
+    public List<string> ParticipantsList
+    {
         get => string.IsNullOrEmpty(Participants) ? [] : JsonSerializer.Deserialize<List<string>>(Participants) ?? [];
         set => Participants = JsonSerializer.Serialize(value);
     }
 
-    public List<string> UsedSubstancesList 
-    { 
-        get => string.IsNullOrEmpty(UsedSubstances) ? [] : JsonSerializer.Deserialize<List<string>>(UsedSubstances) ?? []; 
+    public List<string> UsedSubstancesList
+    {
+        get => string.IsNullOrEmpty(UsedSubstances) ? [] : JsonSerializer.Deserialize<List<string>>(UsedSubstances) ?? [];
         set => UsedSubstances = JsonSerializer.Serialize(value);
     }
 
-    public List<string> DevelopedFilmsList 
-    { 
-        get => string.IsNullOrEmpty(DevelopedFilms) ? [] : JsonSerializer.Deserialize<List<string>>(DevelopedFilms) ?? []; 
+    public List<string> DevelopedFilmsList
+    {
+        get => string.IsNullOrEmpty(DevelopedFilms) ? [] : JsonSerializer.Deserialize<List<string>>(DevelopedFilms) ?? [];
         set => DevelopedFilms = JsonSerializer.Serialize(value);
     }
 

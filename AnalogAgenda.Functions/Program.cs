@@ -13,8 +13,10 @@ builder.ConfigureFunctionsWebApplication();
 builder.Services.AddSmtpConfigBinding();
 builder.Services.AddAzureAdConfigBinding();
 builder.Services.AddStorageConfigBinding();
+builder.Services.AddContainerRegistryConfigBinding();
 
 builder.Services.AddSingleton<IEmailSender, EmailSender>();
 builder.Services.AddSingleton<ITableService, TableService>();
+builder.Services.AddSingleton<IContainerRegistryService, ContainerRegistryService>();
 
 builder.Build().Run();

@@ -10,10 +10,11 @@ public class NoteDto : HasImage
     public required string Name { get; set; }
     public string SideNote { get; set; } = string.Empty;
     public List<NoteEntryDto> Entries { get; set; } = [];
-    
+
     public (NoteEntity, List<NoteEntryEntity>) ToEntity()
     {
-        var entity = new NoteEntity {
+        var entity = new NoteEntity
+        {
             RowKey = RowKey,
             Name = Name,
             SideNote = SideNote,

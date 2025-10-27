@@ -29,7 +29,7 @@ namespace AnalogAgenda.Functions
                 _logger.LogInformation($"Development Kit: {entity.Name} will expire in {daysLeft} days");
 
                 var html = EmailTemplateGenerator.GetExpiringDevKit(daysLeft, entity.Name, entity.Type.ToString(), entity.PurchasedOn, entity.PurchasedBy.ToString(), entity.ValidForFilms - entity.FilmsDeveloped, entity.ImageId, entity.RowKey);
-                
+
                 await EmailNotificationHelper.SendNotificationToSubscribersAsync(
                     tablesService,
                     emailSender,

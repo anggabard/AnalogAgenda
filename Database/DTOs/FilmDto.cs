@@ -36,8 +36,8 @@ public class FilmDto
 
     public string ExposureDates { get; set; } = string.Empty;
 
-    public List<ExposureDateEntry> ExposureDatesList 
-    { 
+    public List<ExposureDateEntry> ExposureDatesList
+    {
         get => string.IsNullOrEmpty(ExposureDates) ? [] : JsonSerializer.Deserialize<List<ExposureDateEntry>>(ExposureDates) ?? [];
         set => ExposureDates = value == null || value.Count == 0 ? string.Empty : JsonSerializer.Serialize(value);
     }

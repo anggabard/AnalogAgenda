@@ -20,8 +20,8 @@ public static class EmailNotificationHelper
     {
         var users = await tablesService.GetTableEntriesAsync<UserEntity>(user => user.IsSubscraibed);
         var receivers = users.Select(userEntity => userEntity.Email);
-        
-        if (!receivers.Any()) 
+
+        if (!receivers.Any())
             throw new Exception("No receivers for email notification!");
 
         await emailSender.SendEmailAsync(receivers, subject, htmlContent);

@@ -23,4 +23,10 @@ public static class BuilderServicesExtension
         services.AddOptions<Smtp>().BindConfiguration("Smtp").ValidateOnStart();
         services.AddSingleton(sp => sp.GetRequiredService<IOptions<Smtp>>().Value);
     }
+
+    public static void AddContainerRegistryConfigBinding(this IServiceCollection services)
+    {
+        services.AddOptions<ContainerRegistry>().BindConfiguration("ContainerRegistry").ValidateOnStart();
+        services.AddSingleton(sp => sp.GetRequiredService<IOptions<ContainerRegistry>>().Value);
+    }
 }

@@ -29,7 +29,8 @@ public class NoteEntity : BaseEntity, IImageEntity
 
     public NoteDto ToDTO(string accountName, List<NoteEntryEntity> noteEntries)
     {
-        return new NoteDto() { 
+        return new NoteDto()
+        {
             RowKey = RowKey,
             Name = Name,
             SideNote = SideNote,

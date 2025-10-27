@@ -32,7 +32,7 @@ public class DevKitExpirationSetter(ILoggerFactory loggerFactory, ITableService 
             _logger.LogInformation($"Development Kit: {entity.Name} has expired");
 
             var html = EmailTemplateGenerator.GetExpiredDevKit(entity.Name, entity.Type.ToString(), entity.PurchasedOn, entity.PurchasedBy.ToString(), kitExpirationDate, entity.ValidForFilms - entity.FilmsDeveloped, entity.ImageId, entity.RowKey);
-            
+
             await EmailNotificationHelper.SendNotificationToSubscribersAsync(
                 tablesService,
                 emailSender,
