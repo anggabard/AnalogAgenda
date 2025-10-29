@@ -235,4 +235,15 @@ textarea.ng-invalid.ng-touched:focus {
   font-weight: 500;
 }
 
+/* ===== MOBILE FIXES ===== */
+
+/* Fix date input width on mobile devices (especially iPhone Safari) */
+@media (max-width: 600px) {
+  input[type="date"] {
+    width: 100% !important;
+    max-width: 100%;
+    box-sizing: border-box;
+    min-width: 0;
+  }
+}
 
