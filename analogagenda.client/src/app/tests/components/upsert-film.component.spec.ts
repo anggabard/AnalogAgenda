@@ -895,5 +895,48 @@ describe('UpsertFilmComponent', () => {
         { date: '2023-01-02', description: 'Second exposure' }
       ]);
     });
+
+    it('should render exposure dates with proper structure (exposure-date-entry wrapper)', () => {
+      component.exposureDates = [
+        { date: '2023-01-01', description: 'First exposure' },
+        { date: '2023-01-02', description: 'Second exposure' }
+      ];
+      component.isExposureDatesModalOpen = true;
+      fixture.detectChanges();
+
+      const compiled = fixture.nativeElement;
+      const exposureEntries = compiled.querySelectorAll('.exposure-date-entry');
+      
+      expect(exposureEntries.length).toBe(2);
+      
+      // Each entry should contain a date input, description input, and delete button
+      exposureEntries.forEach((entry: HTMLElement) => {
+        expect(entry.querySelector('.date-input')).toBeTruthy();
+        expect(entry.querySelector('.description-input')).toBeTruthy();
+        expect(entry.querySelector('.delete-row-btn')).toBeTruthy();
+      });
+    });
+
+    it('should render "Add Exposure Date" button in modal', () => {
+      component.isExposureDatesModalOpen = true;
+      fixture.detectChanges();
+
+      const compiled = fixture.nativeElement;
+      const addButton = compiled.querySelector('.add-row-btn');
+      
+      expect(addButton).toBeTruthy();
+      expect(addButton.textContent.trim()).toBe('Add Exposure Date');
+    });
+
+    it('should render "Save" button in exposure dates modal', () => {
+      component.isExposureDatesModalOpen = true;
+      fixture.detectChanges();
+
+      const compiled = fixture.nativeElement;
+      const saveButton = compiled.querySelector('.save-exposure-dates-btn');
+      
+      expect(saveButton).toBeTruthy();
+      expect(saveButton.textContent.trim()).toBe('Save');
+    });
   });
 });
