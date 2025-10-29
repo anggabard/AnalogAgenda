@@ -989,7 +989,7 @@ label {
 
   .exposure-date-row {
     display: grid;
-    grid-template-columns: 1fr 40px;
+    grid-template-columns: 1fr 40px !important;
     grid-template-rows: auto auto;
     gap: 0.75rem;
   }
@@ -1008,14 +1008,18 @@ label {
   }
 
   .exposure-date-row .description-input {
-    grid-column: 1 / -1;
+    grid-column: 1 / span 2;
     grid-row: 2;
+    min-width: 0;
+    max-width: 100%;
   }
 
   .date-input,
   .description-input {
     font-size: 0.9rem;
     padding: 0.5rem;
+    width: 100%;
+    box-sizing: border-box;
   }
 
   .add-row-btn {
@@ -1023,6 +1027,7 @@ label {
     font-size: 0.9rem;
     height: 44px;
     margin-left: auto;
+    margin-right: auto;
   }
 
   .save-exposure-dates-btn {
