@@ -319,6 +319,17 @@ textarea.form-input {
   gap: 20px;
   margin-bottom: 30px;
   align-items: start;
+  max-width: calc(3 * 500px + 2 * 20px); /* Allow containers to grow wider (up to ~500px each) for 3 columns */
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Explicitly limit to max 3 columns - prevent 4th column by restricting width */
+@media (min-width: 1000px) {
+  .devkit-grid {
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    max-width: 1339px; /* Just under threshold for 4 columns (which would be 1340px), allows ~440px per container */
+  }
 }
 
 .devkit-container {
@@ -1163,6 +1174,9 @@ body .session-management-container .cdk-drop-list-receiving {
   .devkit-grid {
     grid-template-columns: 1fr;
     gap: 15px;
+    max-width: 100%;
+    margin-left: 0;
+    margin-right: 0;
   }
 
   .drop-zone-content {
