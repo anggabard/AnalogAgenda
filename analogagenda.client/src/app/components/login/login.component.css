@@ -2,13 +2,20 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 100vh;
-  max-height: 100vh;
-  overflow: hidden;
+  position: fixed !important; /* Fixed position prevents scrolling, especially in Brave */
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  max-height: 100vh !important;
+  overflow: hidden !important;
   background-image: url('/assets/login-background.jpg');
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
+  z-index: 1;
 }
 
 .container {

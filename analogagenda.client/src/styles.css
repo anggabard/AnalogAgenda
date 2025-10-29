@@ -247,3 +247,15 @@ textarea.ng-invalid.ng-touched:focus {
   }
 }
 
+/* ===== LOGIN PAGE SCROLL PREVENTION ===== */
+
+/* Prevent scrolling when login component is present (fixes Brave browser issue) */
+/* Using :has() selector - supported in all modern browsers including Brave */
+body:has(app-login),
+html:has(app-login) {
+  overflow: hidden !important;
+  height: 100vh !important;
+  max-height: 100vh !important;
+  width: 100vw !important;
+}
+

@@ -5,7 +5,7 @@ var backend = builder.AddProject<Projects.AnalogAgenda_Server>("analogagenda-ser
     .PublishAsDockerFile()
     .WithHttpEndpoint(name: "backend-http");
 
-// Add the frontend Angular app as a proper Aspire resource
+// Add the frontend Angular app
 var frontend = builder.AddNpmApp("analogagenda-client", "../analogagenda.client")
     .PublishAsDockerFile()
     .WithReference(backend)
@@ -20,5 +20,12 @@ frontend.WithEnvironment((context) =>
 });
 
 frontend.WithExternalHttpEndpoints();
+
+backend.WithEnvironment((context) =>
+{
+    var frontendEndpoint = frontend.GetEndpoint("frontend-http");
+    var frontendUrl = frontendEndpoint.Property(EndpointProperty.Url);
+    context.EnvironmentVariables.Add("FRONTEND_URL", frontendUrl);
+});
 
 builder.Build().Run();

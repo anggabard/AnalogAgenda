@@ -1,3 +1,4 @@
+using System.Linq;
 using AnalogAgenda.Server.Middleware;
 using AnalogAgenda.Server.Validators;
 using Configuration;
@@ -60,40 +61,28 @@ builder.Services.AddSingleton<IBlobService, BlobService>();
 
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("Frontend", builder =>
+    options.AddPolicy("Frontend", corsBuilder =>
     {
-        // Development origins
-        var developmentOrigins = new[]
-        {
-            "https://localhost:58774",
-            "https://localhost:4200",
-            "http://localhost:4200",
-            "https://localhost:4201",
-            "http://localhost:4201"
-        };
+        // Frontend URL from Aspire (set via AppHost.cs) or environment variable
+        var frontendUrl = builder.Configuration["FRONTEND_URL"] ?? Environment.GetEnvironmentVariable("FRONTEND_URL");
+        var allowedOrigins = new HashSet<string>();
 
-        // Production frontend URL from environment variable
-        var productionFrontendUrl = Environment.GetEnvironmentVariable("FRONTEND_URL");
-
-        var allowedOrigins = developmentOrigins.ToList();
-        if (!string.IsNullOrEmpty(productionFrontendUrl))
+        if (!string.IsNullOrEmpty(frontendUrl))
         {
-            allowedOrigins.Add(productionFrontendUrl);
+            // Remove trailing slash if present
+            frontendUrl = frontendUrl.TrimEnd('/');
+            allowedOrigins.Add(frontendUrl);
+            
+            // Also add http version if it's https (for local development)
+            if (frontendUrl.StartsWith("https://") && builder.Environment.IsDevelopment())
+            {
+                allowedOrigins.Add(frontendUrl.Replace("https://", "http://"));
+            }
         }
 
-        // Add analogagenda.site for production
-        allowedOrigins.Add("https://analogagenda.site");
-
-        builder.WithOrigins(allowedOrigins.ToArray())
-               // Allow any localhost port for Aspire dynamic port assignment
-               .SetIsOriginAllowed(origin =>
-                   origin != null &&
-                   (origin.StartsWith("https://localhost:") ||
-                    origin.StartsWith("http://localhost:") ||
-                    origin.StartsWith("http://172.25.240.1:") ||
-                    origin.StartsWith("https://172.25.240.1:") ||
-                    origin == "https://analogagenda.site" ||
-                    (!string.IsNullOrEmpty(productionFrontendUrl) && origin.StartsWith(productionFrontendUrl))))
+        // When using AllowCredentials(), we must use WithOrigins() only with explicit origins
+        // SetIsOriginAllowed() cannot be used with AllowCredentials()
+        corsBuilder.WithOrigins(allowedOrigins.ToArray())
                .AllowAnyMethod()
                .AllowAnyHeader()
                .AllowCredentials();
