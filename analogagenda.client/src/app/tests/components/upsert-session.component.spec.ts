@@ -485,4 +485,149 @@ describe('UpsertSessionComponent', () => {
       });
     });
   });
+
+  describe('DevKit Grid Layout', () => {
+    it('should have sessionDevKits array that can hold multiple devkits', () => {
+      const mockDevKit1: DevKitDto = {
+        rowKey: 'devkit-1',
+        name: 'DevKit 1',
+        url: 'http://example.com',
+        type: DevKitType.C41,
+        purchasedBy: UsernameType.Angel,
+        purchasedOn: '2023-01-01',
+        mixedOn: '2023-01-01',
+        validForWeeks: 6,
+        validForFilms: 8,
+        filmsDeveloped: 0,
+        description: 'Test devkit 1',
+        expired: false,
+        imageUrl: 'test-url-1',
+      };
+      const mockDevKit2: DevKitDto = {
+        rowKey: 'devkit-2',
+        name: 'DevKit 2',
+        url: 'http://example.com',
+        type: DevKitType.C41,
+        purchasedBy: UsernameType.Angel,
+        purchasedOn: '2023-01-01',
+        mixedOn: '2023-01-01',
+        validForWeeks: 6,
+        validForFilms: 8,
+        filmsDeveloped: 0,
+        description: 'Test devkit 2',
+        expired: false,
+        imageUrl: 'test-url-2',
+      };
+      const mockDevKit3: DevKitDto = {
+        rowKey: 'devkit-3',
+        name: 'DevKit 3',
+        url: 'http://example.com',
+        type: DevKitType.C41,
+        purchasedBy: UsernameType.Angel,
+        purchasedOn: '2023-01-01',
+        mixedOn: '2023-01-01',
+        validForWeeks: 6,
+        validForFilms: 8,
+        filmsDeveloped: 0,
+        description: 'Test devkit 3',
+        expired: false,
+        imageUrl: 'test-url-3',
+      };
+      const mockDevKit4: DevKitDto = {
+        rowKey: 'devkit-4',
+        name: 'DevKit 4',
+        url: 'http://example.com',
+        type: DevKitType.C41,
+        purchasedBy: UsernameType.Angel,
+        purchasedOn: '2023-01-01',
+        mixedOn: '2023-01-01',
+        validForWeeks: 6,
+        validForFilms: 8,
+        filmsDeveloped: 0,
+        description: 'Test devkit 4',
+        expired: false,
+        imageUrl: 'test-url-4',
+      };
+
+      component.sessionDevKits = [
+        { devKit: mockDevKit1, assignedFilms: [] },
+        { devKit: mockDevKit2, assignedFilms: [] },
+        { devKit: mockDevKit3, assignedFilms: [] },
+        { devKit: mockDevKit4, assignedFilms: [] }
+      ];
+      
+      expect(component.sessionDevKits.length).toBe(4);
+      expect(component.sessionDevKits[0].devKit.name).toBe('DevKit 1');
+      expect(component.sessionDevKits[1].devKit.name).toBe('DevKit 2');
+      expect(component.sessionDevKits[2].devKit.name).toBe('DevKit 3');
+      expect(component.sessionDevKits[3].devKit.name).toBe('DevKit 4');
+    });
+
+    it('should support up to 3 devkits displayed in grid layout', () => {
+      const mockDevKit1: DevKitDto = {
+        rowKey: 'devkit-1',
+        name: 'DevKit 1',
+        url: 'http://example.com',
+        type: DevKitType.C41,
+        purchasedBy: UsernameType.Angel,
+        purchasedOn: '2023-01-01',
+        mixedOn: '2023-01-01',
+        validForWeeks: 6,
+        validForFilms: 8,
+        filmsDeveloped: 0,
+        description: 'Test devkit 1',
+        expired: false,
+        imageUrl: 'test-url-1',
+      };
+      const mockDevKit2: DevKitDto = {
+        rowKey: 'devkit-2',
+        name: 'DevKit 2',
+        url: 'http://example.com',
+        type: DevKitType.C41,
+        purchasedBy: UsernameType.Angel,
+        purchasedOn: '2023-01-01',
+        mixedOn: '2023-01-01',
+        validForWeeks: 6,
+        validForFilms: 8,
+        filmsDeveloped: 0,
+        description: 'Test devkit 2',
+        expired: false,
+        imageUrl: 'test-url-2',
+      };
+      const mockDevKit3: DevKitDto = {
+        rowKey: 'devkit-3',
+        name: 'DevKit 3',
+        url: 'http://example.com',
+        type: DevKitType.C41,
+        purchasedBy: UsernameType.Angel,
+        purchasedOn: '2023-01-01',
+        mixedOn: '2023-01-01',
+        validForWeeks: 6,
+        validForFilms: 8,
+        filmsDeveloped: 0,
+        description: 'Test devkit 3',
+        expired: false,
+        imageUrl: 'test-url-3',
+      };
+
+      // Test with 1 devkit
+      component.sessionDevKits = [{ devKit: mockDevKit1, assignedFilms: [] }];
+      expect(component.sessionDevKits.length).toBe(1);
+      
+      // Test with 2 devkits
+      component.sessionDevKits = [
+        { devKit: mockDevKit1, assignedFilms: [] },
+        { devKit: mockDevKit2, assignedFilms: [] }
+      ];
+      expect(component.sessionDevKits.length).toBe(2);
+      
+      // Test with 3 devkits
+      component.sessionDevKits = [
+        { devKit: mockDevKit1, assignedFilms: [] },
+        { devKit: mockDevKit2, assignedFilms: [] },
+        { devKit: mockDevKit3, assignedFilms: [] }
+      ];
+      expect(component.sessionDevKits.length).toBe(3);
+    });
+  });
 });

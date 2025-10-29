@@ -168,4 +168,41 @@ describe('NavbarComponent', () => {
     expect(mockRouter.navigate).toHaveBeenCalledWith(['/login']);
   });
 
+  describe('Mobile Toggle Button', () => {
+    it('should render mobile toggle button in template', () => {
+      fixture.detectChanges();
+      const compiled = fixture.nativeElement;
+      const mobileToggle = compiled.querySelector('.mobile-toggle');
+      
+      expect(mobileToggle).toBeTruthy();
+    });
+
+    it('should toggle sidebar when mobile toggle button is clicked', () => {
+      spyOn(component.isOpenEvent, 'emit');
+      fixture.detectChanges();
+      
+      const compiled = fixture.nativeElement;
+      const mobileToggle = compiled.querySelector('.mobile-toggle') as HTMLElement;
+      
+      expect(component.isSidebarOpen).toBeFalse();
+      
+      mobileToggle.click();
+      
+      expect(component.isSidebarOpen).toBeTrue();
+      expect(component.isOpenEvent.emit).toHaveBeenCalledWith(true);
+    });
+
+    it('should toggle sidebar open class when isSidebarOpen is true', () => {
+      component.isSidebarOpen = true;
+      fixture.detectChanges();
+      
+      const compiled = fixture.nativeElement;
+      const mobileToggle = compiled.querySelector('.mobile-toggle');
+      const nav = compiled.querySelector('.nav');
+      
+      expect(mobileToggle.classList.contains('open')).toBeTrue();
+      expect(nav.classList.contains('open')).toBeTrue();
+    });
+  });
+
 });
