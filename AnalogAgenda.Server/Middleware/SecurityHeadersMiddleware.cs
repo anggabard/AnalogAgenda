@@ -6,6 +6,14 @@ public class SecurityHeadersMiddleware(RequestDelegate next)
 
     public async Task InvokeAsync(HttpContext context)
     {
+        // Skip adding security headers for OPTIONS requests (CORS preflight)
+        // CORS middleware will handle these requests
+        if (context.Request.Method == "OPTIONS")
+        {
+            await _next(context);
+            return;
+        }
+
         // Remove server information header
         context.Response.Headers.Remove("Server");
         
@@ -22,13 +30,15 @@ public class SecurityHeadersMiddleware(RequestDelegate next)
         }
         
         // Content Security Policy - adjust based on your needs
+        // Note: connect-src 'self' allows connections to same origin only
+        // For cross-origin API calls, ensure frontend and backend are on same domain or adjust CSP
         context.Response.Headers.Append("Content-Security-Policy", 
             "default-src 'self'; " +
             "script-src 'self' 'unsafe-inline' 'unsafe-eval'; " +
             "style-src 'self' 'unsafe-inline'; " +
             "img-src 'self' data: blob: analogagendastorage.blob.core.windows.net; " +
             "font-src 'self'; " +
-            "connect-src 'self'; " +
+            "connect-src 'self' https://api.analogagenda.site; " +
             "frame-ancestors 'none';");
         
         // Permissions Policy (formerly Feature Policy)

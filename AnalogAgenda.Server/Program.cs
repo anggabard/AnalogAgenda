@@ -96,7 +96,17 @@ app.MapDefaultEndpoints();
 // Add global exception handling middleware early in the pipeline
 app.UseMiddleware<GlobalExceptionMiddleware>();
 
-// Add security headers middleware
+// CORS must be before authentication/authorization to handle OPTIONS preflight requests
+// Always use CORS for Aspire and production
+app.UseCors("Frontend");
+
+app.UseHttpsRedirection();
+
+// Authentication and authorization - OPTIONS requests will bypass this via CORS middleware
+app.UseAuthentication();
+app.UseAuthorization();
+
+// Add security headers middleware after CORS to avoid interfering with CORS headers
 app.UseMiddleware<SecurityHeadersMiddleware>();
 
 if (app.Environment.IsDevelopment())
@@ -108,14 +118,6 @@ else
 {
     app.UseMiddleware<RateLimitingMiddleware>();
 }
-
-// Always use CORS for Aspire and production
-app.UseCors("Frontend");
-
-app.UseHttpsRedirection();
-
-app.UseAuthentication();
-app.UseAuthorization();
 
 app.MapControllers();
 
