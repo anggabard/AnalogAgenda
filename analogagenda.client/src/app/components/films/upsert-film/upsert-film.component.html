@@ -356,11 +356,13 @@
                 <button class="modal-close" (click)="closeExposureDatesModal()">✕</button>
             </div>
             <div class="modal-body">
-                <div *ngFor="let entry of exposureDates; let i = index" class="exposure-date-row">
-                    <input type="date" [(ngModel)]="entry.date" [ngModelOptions]="{standalone: true}" class="input date-input" />
-                    <input type="text" [(ngModel)]="entry.description" [ngModelOptions]="{standalone: true}" 
-                           placeholder="Description" class="input description-input" />
-                    <button type="button" class="delete-row-btn" (click)="removeExposureDateRow(i)">✕</button>
+                <div *ngFor="let entry of exposureDates; let i = index" class="exposure-date-entry">
+                    <div class="exposure-date-row">
+                        <input type="date" [(ngModel)]="entry.date" [ngModelOptions]="{standalone: true}" class="input date-input" />
+                        <input type="text" [(ngModel)]="entry.description" [ngModelOptions]="{standalone: true}" 
+                               placeholder="Description" class="input description-input" />
+                        <button type="button" class="delete-row-btn" (click)="removeExposureDateRow(i)">✕</button>
+                    </div>
                 </div>
             <button type="button" class="add-row-btn" (click)="addExposureDateRow()">Add Exposure Date</button>
             <button type="button" class="save-exposure-dates-btn" (click)="saveExposureDates()">Save</button>

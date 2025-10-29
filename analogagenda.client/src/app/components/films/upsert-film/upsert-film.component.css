@@ -979,21 +979,43 @@ label {
     margin: 1rem;
   }
 
+  .exposure-date-entry {
+    border: 2px solid rgba(156, 163, 175, 0.3);
+    border-radius: 8px;
+    padding: 0.75rem;
+    margin-bottom: 1rem;
+    background-color: rgba(255, 255, 255, 0.05);
+  }
+
   .exposure-date-row {
-    grid-template-columns: 1fr 1fr 40px;
-    gap: 0.5rem;
+    display: grid;
+    grid-template-columns: 1fr 40px;
+    grid-template-rows: auto auto;
+    gap: 0.75rem;
+  }
+
+  .exposure-date-row .date-input {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .exposure-date-row .delete-row-btn {
+    grid-column: 2;
+    grid-row: 1;
+    width: 40px;
+    height: 40px;
+    font-size: 1.1rem;
+  }
+
+  .exposure-date-row .description-input {
+    grid-column: 1 / -1;
+    grid-row: 2;
   }
 
   .date-input,
   .description-input {
     font-size: 0.9rem;
     padding: 0.5rem;
-  }
-
-  .delete-row-btn {
-    width: 35px;
-    height: 35px;
-    font-size: 1rem;
   }
 
   .add-row-btn {
@@ -1031,11 +1053,14 @@ label {
   max-width: 700px;
 }
 
+.exposure-date-entry {
+  margin-bottom: 0.75rem;
+}
+
 .exposure-date-row {
   display: grid;
   grid-template-columns: 200px 1fr 40px;
   gap: 0.75rem;
-  margin-bottom: 0.75rem;
   align-items: center;
 }
 
