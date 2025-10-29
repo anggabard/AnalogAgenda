@@ -29,8 +29,12 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
     {
         opt.Cookie.Name = ".AnalogAgenda.Auth";
         opt.Cookie.HttpOnly = true;
-        opt.Cookie.SameSite = SameSiteMode.Lax; // Lax for same-site cookies (analogagenda.site and api.analogagenda.site share same eTLD+1)
-        opt.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+        opt.Cookie.SameSite = builder.Environment.IsDevelopment()
+            ? SameSiteMode.None
+            : SameSiteMode.Lax; 
+        opt.Cookie.SecurePolicy = builder.Environment.IsDevelopment()
+            ? CookieSecurePolicy.SameAsRequest
+            : CookieSecurePolicy.Always;
         opt.ExpireTimeSpan = TimeSpan.FromDays(7);
 
         opt.Events.OnRedirectToLogin = context =>
@@ -61,30 +65,30 @@ builder.Services.AddCors(options =>
         // Development origins
         var developmentOrigins = new[]
         {
-            "https://localhost:58774", 
-            "https://localhost:4200", 
-            "http://localhost:4200", 
-            "https://localhost:4201", 
+            "https://localhost:58774",
+            "https://localhost:4200",
+            "http://localhost:4200",
+            "https://localhost:4201",
             "http://localhost:4201"
         };
 
         // Production frontend URL from environment variable
         var productionFrontendUrl = Environment.GetEnvironmentVariable("FRONTEND_URL");
-        
+
         var allowedOrigins = developmentOrigins.ToList();
         if (!string.IsNullOrEmpty(productionFrontendUrl))
         {
             allowedOrigins.Add(productionFrontendUrl);
         }
-        
+
         // Add analogagenda.site for production
         allowedOrigins.Add("https://analogagenda.site");
 
         builder.WithOrigins(allowedOrigins.ToArray())
                // Allow any localhost port for Aspire dynamic port assignment
-               .SetIsOriginAllowed(origin => 
-                   origin != null && 
-                   (origin.StartsWith("https://localhost:") || 
+               .SetIsOriginAllowed(origin =>
+                   origin != null &&
+                   (origin.StartsWith("https://localhost:") ||
                     origin.StartsWith("http://localhost:") ||
                     origin.StartsWith("http://172.25.240.1:") ||
                     origin.StartsWith("https://172.25.240.1:") ||
@@ -103,17 +107,17 @@ app.MapDefaultEndpoints();
 // Add global exception handling middleware early in the pipeline
 app.UseMiddleware<GlobalExceptionMiddleware>();
 
-// Add rate limiting middleware for authentication endpoints
-app.UseMiddleware<RateLimitingMiddleware>();
-
 // Add security headers middleware
 app.UseMiddleware<SecurityHeadersMiddleware>();
-
 
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
+}
+else
+{
+    app.UseMiddleware<RateLimitingMiddleware>();
 }
 
 // Always use CORS for Aspire and production
