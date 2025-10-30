@@ -31,13 +31,13 @@ public class NotesControllerTests
     public async Task GetMergedNotes_WithValidCompositeId_ReturnsMergedNote()
     {
         // Arrange
-        var compositeId = "ABCD1234"; // 2 notes with rowKeys "A1B2" and "C3D4"
-        var note1 = new NoteEntity { RowKey = "A1B2", Name = "Note 1" };
-        var note2 = new NoteEntity { RowKey = "C3D4", Name = "Note 2" };
+        var compositeId = "ABCD1234"; // 2 notes with interleaved rowKeys "AC13" and "BD24"
+        var note1 = new NoteEntity { RowKey = "AC13", Name = "Note 1" };
+        var note2 = new NoteEntity { RowKey = "BD24", Name = "Note 2" };
         
-        _mockTableService.Setup(x => x.GetTableEntryIfExistsAsync<NoteEntity>("A1B2"))
+        _mockTableService.Setup(x => x.GetTableEntryIfExistsAsync<NoteEntity>("AC13"))
             .ReturnsAsync(note1);
-        _mockTableService.Setup(x => x.GetTableEntryIfExistsAsync<NoteEntity>("C3D4"))
+        _mockTableService.Setup(x => x.GetTableEntryIfExistsAsync<NoteEntity>("BD24"))
             .ReturnsAsync(note2);
         _mockTableService.Setup(x => x.GetTableEntriesAsync<NoteEntryEntity>(It.IsAny<System.Linq.Expressions.Expression<Func<NoteEntryEntity, bool>>>()))
             .ReturnsAsync(new List<NoteEntryEntity>());
@@ -56,16 +56,19 @@ public class NotesControllerTests
     }
 
     [Fact]
-    public async Task GetMergedNotes_WithInvalidCompositeId_ReturnsBadRequest()
+    public async Task GetMergedNotes_WithInvalidCompositeId_ReturnsNotFound()
     {
         // Arrange
-        var invalidCompositeId = "INVALID";
+        var invalidCompositeId = "INVALID"; // Will decode to "INVA" but note won't exist
+        
+        _mockTableService.Setup(x => x.GetTableEntryIfExistsAsync<NoteEntity>(It.IsAny<string>()))
+            .ReturnsAsync((NoteEntity?)null);
 
         // Act
         var result = await _controller.GetMergedNotes(invalidCompositeId);
 
         // Assert
-        Assert.IsType<BadRequestObjectResult>(result);
+        Assert.IsType<NotFoundObjectResult>(result);
     }
 
     [Fact]
@@ -88,7 +91,7 @@ public class NotesControllerTests
     public void DecodeCompositeId_WithValidId_ReturnsCorrectRowKeys()
     {
         // Arrange
-        var compositeId = "ABCD1234"; // 2 notes: "A1B2" and "C3D4"
+        var compositeId = "ABCD1234"; // 2 notes: interleaved to "AC13" and "BD24"
         var controller = new TestableNotesController(_mockStorageConfig.Object, _mockTableService.Object, _mockBlobService.Object);
 
         // Act
@@ -96,8 +99,8 @@ public class NotesControllerTests
 
         // Assert
         Assert.Equal(2, result.Count);
-        Assert.Contains("A1B2", result);
-        Assert.Contains("C3D4", result);
+        Assert.Contains("AC13", result);
+        Assert.Contains("BD24", result);
     }
 
     [Fact]

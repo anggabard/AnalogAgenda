@@ -2,6 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
 import { of } from 'rxjs';
 import { NotesComponent } from '../../components/notes/notes.component';
+import { CardListComponent } from '../../components/common/card-list/card-list.component';
 import { NotesService } from '../../services';
 import { NoteDto, PagedResponseDto } from '../../DTOs';
 
@@ -55,7 +56,7 @@ describe('NotesComponent - Merge Functionality', () => {
     notesServiceSpy.getNotesPaged.and.returnValue(of(mockPagedResponse));
 
     await TestBed.configureTestingModule({
-      declarations: [NotesComponent],
+      declarations: [NotesComponent, CardListComponent],
       providers: [
         { provide: NotesService, useValue: notesServiceSpy },
         { provide: Router, useValue: routerSpy }

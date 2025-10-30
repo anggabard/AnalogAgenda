@@ -28,11 +28,13 @@ export class TimeHelper {
   /**
    * Formats time for display in view mode
    * @param decimalMinutes - Time in decimal minutes
-   * @returns Formatted time string for display
+   * @returns Formatted time string for display (e.g., "1m 30s")
    */
   static formatTimeForDisplay(decimalMinutes: number): string {
-    if (decimalMinutes === undefined || decimalMinutes === null || isNaN(decimalMinutes)) return '0:00';
-    return this.decimalMinutesToMinSec(decimalMinutes);
+    if (decimalMinutes === undefined || decimalMinutes === null || isNaN(decimalMinutes)) return '';
+    const minutes = Math.floor(decimalMinutes);
+    const seconds = Math.round((decimalMinutes - minutes) * 60);
+    return `${minutes}m ${seconds.toString().padStart(2, '0')}s`;
   }
 
   /**
