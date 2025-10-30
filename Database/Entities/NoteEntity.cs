@@ -38,4 +38,16 @@ public class NoteEntity : BaseEntity, IImageEntity
             Entries = [.. noteEntries.Select(entry => entry.ToDTO())]
         };
     }
+
+    public NoteDto ToDTO(string accountName, List<NoteEntryDto> noteEntries)
+    {
+        return new NoteDto()
+        {
+            RowKey = RowKey,
+            Name = Name,
+            SideNote = SideNote,
+            ImageUrl = ImageId == Guid.Empty ? string.Empty : BlobUrlHelper.GetUrlFromImageImageInfo(accountName, ContainerName.notes.ToString(), ImageId),
+            Entries = noteEntries
+        };
+    }
 }

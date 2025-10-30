@@ -15,6 +15,8 @@ public class NotesController(Storage storageCfg, ITableService tablesService, IB
 {
     private readonly TableClient notesTable = tablesService.GetTable(TableName.Notes);
     private readonly TableClient notesEntriesTable = tablesService.GetTable(TableName.NotesEntries);
+    private readonly TableClient notesEntryRulesTable = tablesService.GetTable(TableName.NotesEntryRules);
+    private readonly TableClient notesEntryOverridesTable = tablesService.GetTable(TableName.NotesEntryOverrides);
     private readonly BlobContainerClient notesContainer = blobsService.GetBlobContainer(ContainerName.notes);
 
     protected override TableClient GetTable() => notesTable;
@@ -23,8 +25,34 @@ public class NotesController(Storage storageCfg, ITableService tablesService, IB
     protected override NoteEntity DtoToEntity(NoteDto dto) => dto.ToNoteEntity();
     protected override NoteDto EntityToDto(NoteEntity entity) => entity.ToDTO(storageCfg.AccountName);
     
-    private NoteDto EntityToDtoWithEntries(NoteEntity entity, IEnumerable<NoteEntryEntity> entries) => 
-        entity.ToDTO(storageCfg.AccountName, [.. entries]);
+    private async Task<NoteDto> EntityToDtoWithEntriesAsync(NoteEntity entity, IEnumerable<NoteEntryEntity> entries)
+    {
+        var entryList = entries.ToList();
+        var entryRowKeys = entryList.Select(e => e.RowKey).ToList();
+        
+        // Get rules and overrides for all entries
+        var rules = await tablesService.GetTableEntriesAsync<NoteEntryRuleEntity>();
+        var overrides = await tablesService.GetTableEntriesAsync<NoteEntryOverrideEntity>();
+        
+        var rulesByEntry = rules.Where(r => entryRowKeys.Contains(r.NoteEntryRowKey))
+            .GroupBy(r => r.NoteEntryRowKey)
+            .ToDictionary(g => g.Key, g => g.Select(r => r.ToDTO()).ToList());
+            
+        var overridesByEntry = overrides.Where(o => entryRowKeys.Contains(o.NoteEntryRowKey))
+            .GroupBy(o => o.NoteEntryRowKey)
+            .ToDictionary(g => g.Key, g => g.Select(o => o.ToDTO()).ToList());
+        
+        // Create DTOs with rules and overrides
+        var entryDtos = entryList.Select(entry =>
+        {
+            var dto = entry.ToDTO();
+            dto.Rules = rulesByEntry.GetValueOrDefault(entry.RowKey, new List<NoteEntryRuleDto>());
+            dto.Overrides = overridesByEntry.GetValueOrDefault(entry.RowKey, new List<NoteEntryOverrideDto>());
+            return dto;
+        }).ToList();
+        
+        return entity.ToDTO(storageCfg.AccountName, entryDtos);
+    }
 
     [HttpPost]
     public async Task<IActionResult> CreateNewNote([FromBody] NoteDto dto)
@@ -58,6 +86,9 @@ public class NotesController(Storage storageCfg, ITableService tablesService, IB
                 await notesEntriesTable.AddEntityAsync(entry);
             }
             
+            // Save rules and overrides for each entry
+            await SaveRulesAndOverridesAsync(dto.Entries);
+            
             return Created(string.Empty, createdNote);
         }
         catch (Exception ex)
@@ -68,10 +99,62 @@ public class NotesController(Storage storageCfg, ITableService tablesService, IB
         }
     }
 
+    private async Task SaveRulesAndOverridesAsync(List<NoteEntryDto> entries)
+    {
+        foreach (var entry in entries)
+        {
+            await SaveRulesAndOverridesForEntryAsync(entry);
+        }
+    }
+
+    private async Task SaveRulesAndOverridesForEntryAsync(NoteEntryDto entry)
+    {
+        // Save rules
+        foreach (var rule in entry.Rules)
+        {
+            var ruleEntity = rule.ToEntity(entry.RowKey);
+            await notesEntryRulesTable.AddEntityAsync(ruleEntity);
+        }
+        
+        // Save overrides
+        foreach (var overrideItem in entry.Overrides)
+        {
+            var overrideEntity = overrideItem.ToEntity(entry.RowKey);
+            await notesEntryOverridesTable.AddEntityAsync(overrideEntity);
+        }
+    }
+
+    private async Task UpdateRulesAndOverridesForEntryAsync(NoteEntryDto entry)
+    {
+        // Delete existing rules and overrides
+        await tablesService.DeleteTableEntriesAsync<NoteEntryRuleEntity>(rule => rule.NoteEntryRowKey == entry.RowKey);
+        await tablesService.DeleteTableEntriesAsync<NoteEntryOverrideEntity>(overrideItem => overrideItem.NoteEntryRowKey == entry.RowKey);
+        
+        // Save new rules and overrides
+        await SaveRulesAndOverridesForEntryAsync(entry);
+    }
+
+    private async Task DeleteRulesAndOverridesForEntriesAsync(List<string> entryRowKeys)
+    {
+        foreach (var entryRowKey in entryRowKeys)
+        {
+            await tablesService.DeleteTableEntriesAsync<NoteEntryRuleEntity>(rule => rule.NoteEntryRowKey == entryRowKey);
+            await tablesService.DeleteTableEntriesAsync<NoteEntryOverrideEntity>(overrideItem => overrideItem.NoteEntryRowKey == entryRowKey);
+        }
+    }
+
     private async Task DeleteNoteAndCleanupAsync(string noteRowKey)
     {
         try
         {
+            // Delete rules and overrides first
+            await tablesService.DeleteTableEntriesAsync<NoteEntryRuleEntity>(rule => 
+                tablesService.GetTableEntriesAsync<NoteEntryEntity>(entry => entry.NoteRowKey == noteRowKey)
+                    .Result.Any(e => e.RowKey == rule.NoteEntryRowKey));
+            await tablesService.DeleteTableEntriesAsync<NoteEntryOverrideEntity>(overrideItem => 
+                tablesService.GetTableEntriesAsync<NoteEntryEntity>(entry => entry.NoteRowKey == noteRowKey)
+                    .Result.Any(e => e.RowKey == overrideItem.NoteEntryRowKey));
+            
             // Delete the note (this will also handle image cleanup via base controller logic)
             await DeleteEntityWithImageAsync(noteRowKey);
         }
@@ -102,11 +185,14 @@ public class NotesController(Storage storageCfg, ITableService tablesService, IB
                 .GroupBy(entry => entry.NoteRowKey)
                 .ToDictionary(g => g.Key, g => g.ToList());
 
-            var results = notesEntities.Select(noteEntity =>
-                {
-                    var entryEntities = entriesByNoteKey.GetValueOrDefault(noteEntity.RowKey, new List<NoteEntryEntity>());
-                    return EntityToDtoWithEntries(noteEntity, entryEntities);
-                });
+            var results = new List<NoteDto>();
+            foreach (var noteEntity in notesEntities)
+            {
+                var entryEntities = entriesByNoteKey.GetValueOrDefault(noteEntity.RowKey, new List<NoteEntryEntity>())
+                    .OrderBy(e => e.Index).ToList();
+                var noteDto = await EntityToDtoWithEntriesAsync(noteEntity, entryEntities);
+                results.Add(noteDto);
+            }
 
             return Ok(results);
         }
@@ -133,11 +219,14 @@ public class NotesController(Storage storageCfg, ITableService tablesService, IB
             .GroupBy(entry => entry.NoteRowKey)
             .ToDictionary(g => g.Key, g => g.ToList());
 
-        var notesWithEntries = pagedEntities.Data.Select(noteEntity =>
-            {
-                var entryEntities = pagedEntriesByNoteKey.GetValueOrDefault(noteEntity.RowKey, new List<NoteEntryEntity>());
-                return EntityToDtoWithEntries(noteEntity, entryEntities);
-            });
+        var notesWithEntries = new List<NoteDto>();
+        foreach (var noteEntity in pagedEntities.Data)
+        {
+            var entryEntities = pagedEntriesByNoteKey.GetValueOrDefault(noteEntity.RowKey, new List<NoteEntryEntity>())
+                .OrderBy(e => e.Index).ToList();
+            var noteDto = await EntityToDtoWithEntriesAsync(noteEntity, entryEntities);
+            notesWithEntries.Add(noteDto);
+        }
 
         var pagedResultsWithEntries = new PagedResponseDto<NoteDto>
         {
@@ -162,7 +251,7 @@ public class NotesController(Storage storageCfg, ITableService tablesService, IB
 
         var entryEntities = await tablesService.GetTableEntriesAsync<NoteEntryEntity>(entry => entry.NoteRowKey == noteEntity.RowKey);
 
-        return Ok(EntityToDtoWithEntries(noteEntity, entryEntities.OrderBy(entry => entry.Time).ToList()));
+        return Ok(await EntityToDtoWithEntriesAsync(noteEntity, entryEntities.OrderBy(entry => entry.Index).ToList()));
     }
 
     [HttpPut("{rowKey}")]
@@ -199,6 +288,8 @@ public class NotesController(Storage storageCfg, ITableService tablesService, IB
                 if (string.IsNullOrEmpty(noteEntryDto.RowKey))
                 {
                     await notesEntriesTable.AddEntityAsync(updatedNoteEntryEntity);
+                    // Save rules and overrides for new entry
+                    await SaveRulesAndOverridesForEntryAsync(noteEntryDto);
                     continue;
                 }
 
@@ -210,9 +301,15 @@ public class NotesController(Storage storageCfg, ITableService tablesService, IB
                 updatedNoteEntryEntity.UpdatedDate = DateTime.UtcNow;
                 
                 await notesEntriesTable.UpdateEntityAsync(updatedNoteEntryEntity, existingEntryEntity.ETag, TableUpdateMode.Replace);
+                
+                // Update rules and overrides for existing entry
+                await UpdateRulesAndOverridesForEntryAsync(noteEntryDto);
+                
                 existingEntryEntities.Remove(existingEntryEntity);
             }
 
+            // Delete remaining entries and their rules/overrides
+            await DeleteRulesAndOverridesForEntriesAsync(existingEntryEntities.Select(e => e.RowKey).ToList());
             await tablesService.DeleteTableEntriesAsync(existingEntryEntities);
 
             return NoContent();
@@ -231,11 +328,136 @@ public class NotesController(Storage storageCfg, ITableService tablesService, IB
 
     private async Task<IActionResult> DeleteNoteWithEntriesAsync(string rowKey)
     {
-        // First delete note entries
-        await tablesService.DeleteTableEntriesAsync<NoteEntryEntity>(entry => entry.NoteRowKey == rowKey);
+        // Get entry row keys first
+        var entryEntities = await tablesService.GetTableEntriesAsync<NoteEntryEntity>(entry => entry.NoteRowKey == rowKey);
+        var entryRowKeys = entryEntities.Select(e => e.RowKey).ToList();
+        
+        // Delete rules and overrides for all entries
+        await DeleteRulesAndOverridesForEntriesAsync(entryRowKeys);
+        
+        // Delete note entries
+        await tablesService.DeleteTableEntriesAsync(entryEntities);
         
         // Then delete the note (this will also handle image cleanup via base controller)
         return await DeleteEntityWithImageAsync(rowKey);
+    }
+
+    [HttpGet("merge/{compositeId}")]
+    public async Task<IActionResult> GetMergedNotes(string compositeId)
+    {
+        try
+        {
+            // Decode composite ID into individual note RowKeys
+            var noteRowKeys = DecodeCompositeId(compositeId);
+            
+            if (noteRowKeys.Count == 0)
+            {
+                return BadRequest("Invalid composite ID format");
+            }
+
+            // Fetch all notes with their entries, rules, and overrides
+            var notes = new List<NoteDto>();
+            foreach (var noteRowKey in noteRowKeys)
+            {
+                var noteEntity = await tablesService.GetTableEntryIfExistsAsync<NoteEntity>(noteRowKey);
+                if (noteEntity == null) continue;
+
+                var entryEntities = await tablesService.GetTableEntriesAsync<NoteEntryEntity>(entry => entry.NoteRowKey == noteEntity.RowKey);
+                var noteDto = await EntityToDtoWithEntriesAsync(noteEntity, entryEntities.OrderBy(e => e.Index).ToList());
+                notes.Add(noteDto);
+            }
+
+            if (notes.Count == 0)
+            {
+                return NotFound("No notes found for the given composite ID");
+            }
+
+            // Create merged note
+            var mergedNote = CreateMergedNote(compositeId, notes);
+            return Ok(mergedNote);
+        }
+        catch (Exception ex)
+        {
+            return UnprocessableEntity($"Failed to merge notes: {ex.Message}");
+        }
+    }
+
+    private List<string> DecodeCompositeId(string compositeId)
+    {
+        // Composite ID is created by interleaving characters from note RowKeys
+        // Each note RowKey is 4 characters, so for 2 notes: positions 0,2,4,6 belong to first note, 1,3,5,7 to second
+        var noteRowKeys = new List<string>();
+        var noteCount = compositeId.Length / 4; // Each note contributes 4 characters
+        
+        for (int noteIndex = 0; noteIndex < noteCount; noteIndex++)
+        {
+            var rowKey = "";
+            for (int charIndex = 0; charIndex < 4; charIndex++)
+            {
+                var position = noteIndex + charIndex * noteCount;
+                if (position < compositeId.Length)
+                {
+                    rowKey += compositeId[position];
+                }
+            }
+            if (rowKey.Length == 4)
+            {
+                noteRowKeys.Add(rowKey);
+            }
+        }
+        
+        return noteRowKeys;
+    }
+
+    private MergedNoteDto CreateMergedNote(string compositeId, List<NoteDto> notes)
+    {
+        var mergedEntries = new List<MergedNoteEntryDto>();
+        var allSideNotes = new HashSet<string>();
+        
+        // Collect all side notes (deduplicate)
+        foreach (var note in notes)
+        {
+            if (!string.IsNullOrEmpty(note.SideNote))
+            {
+                allSideNotes.Add(note.SideNote);
+            }
+        }
+
+        // Create merged entries with accumulated start times
+        double accumulatedTime = 0;
+        foreach (var note in notes)
+        {
+            foreach (var entry in note.Entries.OrderBy(e => e.Index))
+            {
+                var mergedEntry = new MergedNoteEntryDto
+                {
+                    RowKey = entry.RowKey,
+                    NoteRowKey = entry.NoteRowKey,
+                    Time = entry.Time,
+                    Step = entry.Step,
+                    Details = entry.Details,
+                    Index = entry.Index,
+                    TemperatureMin = entry.TemperatureMin,
+                    TemperatureMax = entry.TemperatureMax,
+                    Substance = note.Name,
+                    StartTime = accumulatedTime
+                };
+                mergedEntries.Add(mergedEntry);
+                accumulatedTime += entry.Time;
+            }
+        }
+
+        // Sort by accumulated start time
+        mergedEntries = mergedEntries.OrderBy(e => e.StartTime).ToList();
+
+        return new MergedNoteDto
+        {
+            CompositeId = compositeId,
+            Name = string.Join(" + ", notes.Select(n => n.Name)),
+            SideNote = string.Join("\n\n", allSideNotes),
+            ImageUrl = notes.FirstOrDefault()?.ImageUrl ?? string.Empty,
+            Entries = mergedEntries
+        };
     }
 
 }

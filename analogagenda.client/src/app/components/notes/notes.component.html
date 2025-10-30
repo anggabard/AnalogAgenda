@@ -1,6 +1,7 @@
 <div class="container">
     <div class="header">
         <button class="add-note" (click)="onNewNoteClick()">+ New Note +</button>
+        <button class="merge-notes" (click)="openMergeModal()">Merge Notes</button>
     </div>
 
     <div class="notes-section">
@@ -23,3 +24,38 @@
         <span class="title">{{note.name}}</span>
     </div>
 </ng-template>
+
+<!-- Merge Modal -->
+<div class="merge-modal-overlay" *ngIf="isMergeModalOpen" (click)="closeMergeModal()">
+    <div class="merge-modal" (click)="$event.stopPropagation()">
+        <div class="merge-modal-header">
+            <h2>Merge Notes</h2>
+            <button class="close-btn" (click)="closeMergeModal()">✖</button>
+        </div>
+        
+        <div class="merge-modal-content">
+            <p>Select 2 or more notes to merge:</p>
+            <div class="notes-selection">
+                <div *ngFor="let note of notes" 
+                     class="note-selection-item"
+                     [class.selected]="isNoteSelected(note.rowKey)"
+                     (click)="toggleNoteSelection(note.rowKey)">
+                    <input type="checkbox" 
+                           [checked]="isNoteSelected(note.rowKey)"
+                           (change)="toggleNoteSelection(note.rowKey)" />
+                    <img class="note-thumbnail" [src]="note.imageUrl" />
+                    <span class="note-name">{{ note.name }}</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="merge-modal-actions">
+            <button class="cancel-btn" (click)="closeMergeModal()">Cancel</button>
+            <button class="show-merged-btn" 
+                    [disabled]="!canShowMergedNote()"
+                    (click)="showMergedNote()">
+                Show Merged Note
+            </button>
+        </div>
+    </div>
+</div>

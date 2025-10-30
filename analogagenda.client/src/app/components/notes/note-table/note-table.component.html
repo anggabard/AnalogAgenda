@@ -1,8 +1,16 @@
 <div>
     <!-- Title -->
     <div class="note-header">
-        <input *ngIf="isEditMode" [(ngModel)]="note.name" class="note-title-input" placeholder="Enter note name" />
-        <h1 *ngIf="!isEditMode" class="note-title">{{ note.name || 'Untitled Note' }}</h1>
+        <div class="title-section">
+            <input *ngIf="isEditMode" [(ngModel)]="note.name" class="note-title-input" placeholder="Enter note name" />
+            <h1 *ngIf="!isEditMode" class="note-title">{{ note.name || 'Untitled Note' }}</h1>
+        </div>
+        
+        <div *ngIf="!isEditMode" class="film-counter">
+            <button type="button" class="film-btn film-decrement" (click)="decrementFilmCount()" [disabled]="filmCount <= 1">-1</button>
+            <span class="film-count">{{ filmCount }}</span>
+            <button type="button" class="film-btn film-increment" (click)="incrementFilmCount()" [disabled]="filmCount >= 100">+1</button>
+        </div>
     </div>
 
     <!-- Table Wrapper -->
@@ -10,51 +18,148 @@
         <table>
             <thead>
                 <tr>
-                    <th>Time (min)</th>
-                    <th>Process</th>
-                    <th>Film</th>
+                    <th *ngIf="isEditMode">Duration (min)</th>
+                    <th *ngIf="!isEditMode">Start Time (min)</th>
+                    <th>Step</th>
+                    <th>Temperature (°C)</th>
                     <th>Details</th>
                     <th *ngIf="isEditMode">Actions</th>
                 </tr>
             </thead>
             <tbody>
-                <tr *ngFor="let entry of note.entries; let i = index">
-                    <td data-label="Time (min)">
-                        <input *ngIf="isEditMode" type="number" [(ngModel)]="entry.time"
-                            (change)="onTimeChange(i, entry.time)" />
-                        <span *ngIf="!isEditMode">{{ entry.time }}m</span>
-                    </td>
-                    <td data-label="Process">
-                        <input *ngIf="isEditMode" [(ngModel)]="entry.process" />
-                        <span *ngIf="!isEditMode">{{ entry.process }}</span>
-                    </td>
-                    <td data-label="Film">
-                        <input *ngIf="isEditMode" [(ngModel)]="entry.film" />
-                        <span *ngIf="!isEditMode">{{ entry.film }}</span>
-                    </td>
-                    <td data-label="Details">
-                        <input *ngIf="isEditMode" [(ngModel)]="entry.details" />
-                        <span *ngIf="!isEditMode">{{ entry.details }}</span>
-                    </td>
-                    <td *ngIf="isEditMode" data-label="Actions" class="row-action-btns">
-                        <button class="remove-btn" (click)="removeRow(i)"> <svg xmlns="http://www.w3.org/2000/svg"
-                                width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                                <path
-                                    d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z" />
-                                <path
-                                    d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4zM2.5 3h11V2h-11z" />
-                            </svg></button>
+                <ng-container *ngFor="let entry of note.entries; let i = index">
+                    <tr>
+                        <td *ngIf="isEditMode" data-label="Duration (min)">
+                            <app-time-input 
+                                [(ngModel)]="entry.time" 
+                                [showValidation]="true"
+                                [isValid]="!isDurationInvalid(entry)"
+                                placeholder="0:00">
+                            </app-time-input>
+                        </td>
+                        <td *ngIf="!isEditMode" data-label="Start Time (min)">
+                            <span>{{ formatTimeForDisplay(getAccumulatedStartTime(i)) }}</span>
+                        </td>
+                        <td data-label="Step">
+                            <input *ngIf="isEditMode" [(ngModel)]="entry.step" class="input" />
+                            <span *ngIf="!isEditMode">{{ getEffectiveStep(entry) }}</span>
+                        </td>
+                        <td data-label="Temperature (°C)">
+                            <div *ngIf="isEditMode" class="temperature-inputs">
+                                <input type="number" [(ngModel)]="entry.temperatureMin" step="0.1" placeholder="Min" />
+                                <span>-</span>
+                                <input type="number" [(ngModel)]="entry.temperatureMax" step="0.1" placeholder="Max" 
+                                       [disabled]="!entry.temperatureMin" />
+                            </div>
+                            <span *ngIf="!isEditMode">
+                                {{ getEffectiveTemperature(entry).min | number:'1.1-1' }}°C
+                                <span *ngIf="getEffectiveTemperature(entry).max">- {{ getEffectiveTemperature(entry).max | number:'1.1-1' }}°C</span>
+                            </span>
+                        </td>
+                        <td data-label="Details">
+                            <input *ngIf="isEditMode" [(ngModel)]="entry.details" class="input" />
+                            <span *ngIf="!isEditMode">{{ getEffectiveDetails(entry) }}</span>
+                        </td>
+                        <td *ngIf="isEditMode" data-label="Actions" class="row-action-btns">
+                            <button class="remove-btn" (click)="removeRow(i)"> <svg xmlns="http://www.w3.org/2000/svg"
+                                    width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                                    <path
+                                        d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 1-1 0v6a.5.5 0 0 1-1 0z" />
+                                    <path
+                                        d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4zM2.5 3h11V2h-11z" />
+                                </svg></button>
 
-                        <button class="copy-btn" (click)="copyRow(i)"> <svg xmlns="http://www.w3.org/2000/svg"
-                                width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                                <path fill-rule="evenodd"
-                                    d="M4 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2zm2-1a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1zM2 5a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-1h1v1a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h1v1z" />
-                            </svg></button>
+                            <button class="copy-btn" (click)="copyRow(i)"> <svg xmlns="http://www.w3.org/2000/svg"
+                                    width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                                    <path fill-rule="evenodd"
+                                        d="M4 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2zm2-1a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1zM2 5a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-1h1v1a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h1v1z" />
+                                </svg></button>
+
+                            <button class="override-toggle-btn" (click)="toggleOverrideExpansion(entry.rowKey)" 
+                                    [class.active]="isOverrideExpanded(entry.rowKey)" title="Toggle Overrides">
+                                <svg *ngIf="!isOverrideExpanded(entry.rowKey)" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                                    <path d="M8 12a.5.5 0 0 1-.5-.5V5.707L5.354 7.854a.5.5 0 1 1-.708-.708l3-3a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 5.707V11.5a.5.5 0 0 1-.5.5z"/>
+                                </svg>
+                                <svg *ngIf="isOverrideExpanded(entry.rowKey)" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                                    <path d="M8 4a.5.5 0 0 1 .5.5v5.793l2.146-2.147a.5.5 0 0 1 .708.708l-3 3a.5.5 0 0 1-.708 0l-3-3a.5.5 0 1 1 .708-.708L7.5 10.293V4.5A.5.5 0 0 1 8 4z"/>
+                                </svg>
+                            </button>
+                        </td>
+                    </tr>
+
+                    <!-- Expandable Override Row - appears directly under the row that was clicked -->
+                    <tr *ngIf="isEditMode && isOverrideExpanded(entry.rowKey)" 
+                        class="override-row">
+                        <td colspan="6">
+                            <div class="override-section">
+                            
+                            <!-- Empty State -->
+                            <div *ngIf="entry.overrides.length === 0" class="empty-overrides">
+                                <p>No overrides defined for this step.</p>
+                                <button class="add-override-btn" (click)="addOverride(entry)">Add First Override</button>
+                            </div>
+                            
+                            <!-- Override Items -->
+                            <div *ngIf="entry.overrides.length > 0" class="override-items">
+                                <div *ngIf="hasOverlappingRanges(entry)" class="overlap-warning">
+                                    ⚠️ Warning: Film count ranges overlap!
+                                </div>
+                                <div *ngFor="let override of entry.overrides; let j = index" class="override-item">
+                                    <div class="override-fields">
+                                        <div class="field-group">
+                                            <label>Film Range</label>
+                                            <div class="range-inputs">
+                                                <input type="number" class="input" [(ngModel)]="override.filmCountMin" placeholder="Min" min="0" [ngClass]="{'ng-invalid ng-touched': isOverrideRangeOrderInvalid(override) || isOverrideRangeOverlapInvalid(entry, j)}" />
+                                                <span>-</span>
+                                                <input type="number" class="input" [(ngModel)]="override.filmCountMax" placeholder="Max" min="0" [ngClass]="{'ng-invalid ng-touched': isOverrideRangeOrderInvalid(override) || isOverrideRangeOverlapInvalid(entry, j)}" />
+                                            </div>
+                                        </div>
+                                        <div class="field-group">
+                                            <label>New Time (min)</label>
+                                            <app-time-input 
+                                                [(ngModel)]="override.time" 
+                                                [showValidation]="true"
+                                                [isValid]="!isOverrideTimeInvalid(override)"
+                                                placeholder="0:00">
+                                            </app-time-input>
+                                        </div>
+                                        <button class="remove-override-btn" (click)="removeOverride(entry, j)" title="Remove Override">Remove</button>
+                                    </div>
+                                </div>
+                                <div class="add-override-container">
+                                    <button class="add-override-btn" (click)="addOverride(entry)">Add Override</button>
+                                </div>
+                            </div>
+                        </div>
                     </td>
                 </tr>
+                </ng-container>
+
             </tbody>
         </table>
-        <button *ngIf="isEditMode" class="btn-add" (click)="addRow()">Add Row</button>
+        <div *ngIf="isEditMode" class="table-actions">
+            <button class="btn-add" (click)="addRow()">Add Row</button>
+            <div class="table-actions-right">
+                <button class="btn-add" (click)="openAddRuleModal()">Add Rule</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Rules Display Section (Edit Mode Only) -->
+    <div *ngIf="isEditMode && getAllRules().length > 0" class="rules-display">
+        <h3>Rules</h3>
+        <div class="rules-list">
+            <div *ngFor="let rule of getAllRules()" class="rule-item">
+                <div class="rule-info">
+                    <span class="rule-steps">{{ getRuleSteps(rule).join(' | ') }}</span>
+                    <span class="rule-details">Every {{ rule.rule.filmInterval }} films: +{{ formatTimeForDisplay(rule.rule.timeIncrement) }}</span>
+                </div>
+                <div class="rule-actions">
+                    <button class="edit-rule-btn" (click)="editRule(rule.rule)">Edit</button>
+                    <button class="delete-rule-btn" (click)="deleteRule(rule.rule)">Delete</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <div class="form-wrapper">
@@ -66,6 +171,7 @@
                 <textarea [readonly]="!isEditMode" id="sideNotes" [(ngModel)]="this.note.sideNote"
                     placeholder="Enter your notes here..." required></textarea>
             </div>
+
 
             <!-- Image Upload -->
             <div *ngIf="isEditMode" class="file-upload-group">
@@ -111,6 +217,96 @@
             <button class="btn-primary" (click)="saveNote()">Save</button>
             <button class="btn-ghost" (click)="discardChanges()">Discard</button>
         </ng-container>
+    </div>
+
+    <!-- Add Rule Modal -->
+    <div class="modal-overlay" *ngIf="isAddRuleModalOpen" (mousedown)="closeAddRuleModal()">
+        <div class="modal-content" (click)="$event.stopPropagation()" (mousedown)="$event.stopPropagation()">
+            <div class="modal-header modal-header-center">
+                <div></div>
+                <h3>Add Rule</h3>
+                
+            </div>
+            <div class="modal-body">
+                <div class="add-rule-form">
+                    <div>
+                        <label>Select Steps</label>
+                        <div class="steps-container">
+                            <div class="steps-dropdown">
+                                <div *ngFor="let entry of getStepsWithoutRules()" class="step-option" (click)="toggleStepForRule(entry)">
+                                    <input type="checkbox" [checked]="isStepSelectedForRule(entry.rowKey)" readonly />
+                                    <span>{{ entry.step }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="rule-fields">
+                        <div>
+                            <label>Every X films</label>
+                            <input type="number" [(ngModel)]="newRule.filmInterval" min="1" class="input" />
+                        </div>
+                        <div>
+                            <label>Add time (min)</label>
+                            <app-time-input 
+                                [(ngModel)]="newRule.timeIncrement" 
+                                placeholder="0:00">
+                            </app-time-input>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" (click)="closeAddRuleModal()">Cancel</button>
+                    <button class="btn btn-primary" (click)="addRuleToSelectedSteps()" [disabled]="selectedStepsForRule.length === 0 || newRule.filmInterval <= 0 || newRule.timeIncrement < 0.1">Add Rule</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Rule Modal -->
+    <div class="modal-overlay" *ngIf="isEditRuleModalOpen" (mousedown)="closeEditRuleModal()">
+        <div class="modal-content" (click)="$event.stopPropagation()" (mousedown)="$event.stopPropagation()">
+            <div class="modal-header">
+                <div></div>
+                <h3>Edit Rule</h3>
+                <button class="modal-close" (click)="closeEditRuleModal()">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="add-rule-form">
+                    <div>
+                        <label>Select Steps:</label>
+                        <div class="steps-container">
+                            <div class="steps-dropdown">
+                                <div *ngFor="let entry of getStepsWithoutRules()" class="step-option" (click)="toggleStepForRule(entry)">
+                                    <input type="checkbox" [checked]="isStepSelectedForRule(entry.rowKey)" readonly />
+                                    <span>{{ entry.step }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="rule-fields">
+                        <div>
+                            <label>Every X films</label>
+                            <input type="number" [(ngModel)]="newRule.filmInterval" min="1" class="input" />
+                        </div>
+                        <div>
+                            <label>Add time (min)</label>
+                            <app-time-input 
+                                [(ngModel)]="newRule.timeIncrement" 
+                                placeholder="0:00">
+                            </app-time-input>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" (click)="closeEditRuleModal()">Cancel</button>
+                    <button class="btn btn-primary" (click)="saveEditedRule()" [disabled]="selectedStepsForRule.length === 0 || newRule.filmInterval <= 0 || newRule.timeIncrement < 0.1">Save Changes</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <div class="delete-modal-overlay" *ngIf="isDeleteModalOpen" (click)="isDeleteModalOpen = false">

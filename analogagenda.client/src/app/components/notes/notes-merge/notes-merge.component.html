@@ -1,0 +1,69 @@
+<div *ngIf="loading" class="loading">
+    <p>Loading merged note...</p>
+</div>
+
+<div *ngIf="error" class="error">
+    <p>{{ error }}</p>
+    <button class="btn-primary" (click)="goBack()">Go Back</button>
+</div>
+
+<div *ngIf="mergedNote && !loading" class="merged-note-container">
+    <!-- Title -->
+    <div class="note-header">
+        <h1 class="note-title">{{ mergedNote.name }}</h1>
+        <button class="back-btn" (click)="goBack()">← Back to Notes</button>
+    </div>
+
+    <!-- Film Counter -->
+    <div class="film-counter">
+        <label for="filmCount">Number of Films:</label>
+        <input type="number" id="filmCount" [(ngModel)]="filmCount" min="1" max="100" />
+    </div>
+
+    <!-- Merged Table -->
+    <div class="table-wrapper">
+        <table>
+            <thead>
+                <tr>
+                    <th>Start Time (min)</th>
+                    <th>Step</th>
+                    <th>Substance</th>
+                    <th>Temperature (°C)</th>
+                    <th>Details</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr *ngFor="let entry of mergedNote.entries; let i = index">
+                    <td data-label="Start Time (min)">
+                        <span>{{ getAccumulatedStartTime(i) | number:'1.1-1' }}m</span>
+                    </td>
+                    <td data-label="Step">
+                        <span>{{ getEffectiveStep(entry) }}</span>
+                    </td>
+                    <td data-label="Substance">
+                        <span class="substance-name">{{ entry.substance }}</span>
+                    </td>
+                    <td data-label="Temperature (°C)">
+                        <span>
+                            {{ getEffectiveTemperature(entry).min | number:'1.1-1' }}°C
+                            <span *ngIf="getEffectiveTemperature(entry).max">- {{ getEffectiveTemperature(entry).max | number:'1.1-1' }}°C</span>
+                        </span>
+                    </td>
+                    <td data-label="Details">
+                        <span>{{ getEffectiveDetails(entry) }}</span>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Side Notes -->
+    <div class="form-wrapper" *ngIf="mergedNote.sideNote">
+        <div class="form-row">
+            <div class="textarea-group">
+                <label>Side Notes</label>
+                <div class="side-notes-display">{{ mergedNote.sideNote }}</div>
+            </div>
+        </div>
+    </div>
+</div>

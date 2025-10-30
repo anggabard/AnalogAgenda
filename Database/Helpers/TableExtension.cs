@@ -11,12 +11,14 @@ public static class TableExtension
             TableName.Users => "USER",
             TableName.Notes => "NOTE",
             TableName.NotesEntries => "NOTEENTRY",
+            TableName.NotesEntryRules => "NOTERULE",
+            TableName.NotesEntryOverrides => "NOTEOVERRIDE",
             TableName.DevKits => "DEVKIT",
+            TableName.UsedDevKitThumbnails => "USEDDKT",
             TableName.Films => "FILM",
+            TableName.UsedFilmThumbnails => "USEDFT",
             TableName.Photos => "PHOTO",
             TableName.Sessions => "SESSION",
-            TableName.UsedFilmThumbnails => "USEDFT",
-            TableName.UsedDevKitThumbnails => "USEDDKT",
             _ => throw new Exception($"Partition key for {table} does not exist"),
         };
     }

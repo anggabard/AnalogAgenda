@@ -12,6 +12,10 @@ import { NoteDto, PagedResponseDto } from "../../DTOs";
 })
 export class NotesComponent extends BasePaginatedListComponent<NoteDto> {
 
+  // Merge modal state
+  isMergeModalOpen = false;
+  selectedNotesForMerge: Set<string> = new Set();
+
   constructor(private notesService: NotesService) {
     super();
   }
@@ -53,5 +57,56 @@ export class NotesComponent extends BasePaginatedListComponent<NoteDto> {
 
   onNewNoteClick(): void {
     this.onNewItemClick();
+  }
+
+  // Merge functionality
+  openMergeModal(): void {
+    this.isMergeModalOpen = true;
+    this.selectedNotesForMerge.clear();
+  }
+
+  closeMergeModal(): void {
+    this.isMergeModalOpen = false;
+    this.selectedNotesForMerge.clear();
+  }
+
+  toggleNoteSelection(noteRowKey: string): void {
+    if (this.selectedNotesForMerge.has(noteRowKey)) {
+      this.selectedNotesForMerge.delete(noteRowKey);
+    } else {
+      this.selectedNotesForMerge.add(noteRowKey);
+    }
+  }
+
+  isNoteSelected(noteRowKey: string): boolean {
+    return this.selectedNotesForMerge.has(noteRowKey);
+  }
+
+  canShowMergedNote(): boolean {
+    return this.selectedNotesForMerge.size >= 2;
+  }
+
+  showMergedNote(): void {
+    if (!this.canShowMergedNote()) return;
+
+    const compositeId = this.generateCompositeId();
+    this.router.navigate(['/notes/merge', compositeId]);
+    this.closeMergeModal();
+  }
+
+  private generateCompositeId(): string {
+    const selectedRowKeys = Array.from(this.selectedNotesForMerge);
+    const compositeId = [];
+    
+    // Interleave characters from each note's rowKey
+    for (let charIndex = 0; charIndex < 4; charIndex++) {
+      for (const rowKey of selectedRowKeys) {
+        if (charIndex < rowKey.length) {
+          compositeId.push(rowKey[charIndex]);
+        }
+      }
+    }
+    
+    return compositeId.join('');
   }
 }

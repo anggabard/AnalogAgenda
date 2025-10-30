@@ -233,7 +233,7 @@ describe('NoteTableComponent', () => {
       imageUrl: '',
       imageBase64: '',
       entries: [
-        { rowKey: '1', noteRowKey: '', time: 10, process: 'Step 1', film: '', details: '' }
+        { rowKey: '1', noteRowKey: '', time: 10, step: 'Step 1', details: '', overrides: [], rules: [] } as any
       ]
     };
 
@@ -255,8 +255,8 @@ describe('NoteTableComponent', () => {
       imageUrl: '',
       imageBase64: '',
       entries: [
-        { rowKey: '1', noteRowKey: '', time: 0, process: 'Step 1', film: '', details: '' },
-        { rowKey: '2', noteRowKey: '', time: 10, process: 'Step 2', film: '', details: '' }
+        { rowKey: '1', noteRowKey: '', time: 0, step: 'Step 1', details: '', overrides: [], rules: [] } as any,
+        { rowKey: '2', noteRowKey: '', time: 10, step: 'Step 2', details: '', overrides: [], rules: [] } as any
       ]
     };
 
@@ -265,7 +265,7 @@ describe('NoteTableComponent', () => {
 
     // Assert
     expect(component.note.entries).toHaveSize(1);
-    expect(component.note.entries[0].process).toBe('Step 2');
+    expect(component.note.entries[0].step).toBe('Step 2');
   });
 
   it('should not remove row when only one entry exists', () => {
@@ -277,7 +277,7 @@ describe('NoteTableComponent', () => {
       imageUrl: '',
       imageBase64: '',
       entries: [
-        { rowKey: '1', noteRowKey: '', time: 0, process: 'Step 1', film: '', details: '' }
+        { rowKey: '1', noteRowKey: '', time: 0, step: 'Step 1', details: '', overrides: [], rules: [] } as any
       ]
     };
 
@@ -297,7 +297,7 @@ describe('NoteTableComponent', () => {
       imageUrl: '',
       imageBase64: '',
       entries: [
-        { rowKey: 'original-key', noteRowKey: '', time: 5, process: 'Original Step', film: 'Film1', details: 'Details1' }
+        { rowKey: 'original-key', noteRowKey: '', time: 5, step: 'Original Step', details: 'Details1', overrides: [], rules: [] } as any
       ]
     };
 
@@ -307,77 +307,10 @@ describe('NoteTableComponent', () => {
     // Assert
     expect(component.note.entries).toHaveSize(2);
     expect(component.note.entries[1].rowKey).toBe(''); // Should be empty for copied row
-    expect(component.note.entries[1].process).toBe('Original Step');
-    expect(component.note.entries[1].film).toBe('Film1');
+    expect(component.note.entries[1].step).toBe('Original Step');
+    expect(component.note.entries[1].details).toBe('Details1');
   });
 
-  it('should validate time change - reject lower than previous', () => {
-    // Arrange
-    spyOn(window, 'alert');
-    component.note = {
-      rowKey: '',
-      name: '',
-      sideNote: '',
-      imageUrl: '',
-      imageBase64: '',
-      entries: [
-        { rowKey: '1', noteRowKey: '', time: 10, process: 'Step 1', film: '', details: '' },
-        { rowKey: '2', noteRowKey: '', time: 20, process: 'Step 2', film: '', details: '' }
-      ]
-    };
-
-    // Act
-    component.onTimeChange(1, 5); // Try to set time lower than previous
-
-    // Assert
-    expect(window.alert).toHaveBeenCalledWith('Time cannot be lower than the previous step!');
-    expect(component.note.entries[1].time).toBe(10); // Should be set to previous time
-  });
-
-  it('should validate time change - reject higher than next', () => {
-    // Arrange
-    spyOn(window, 'alert');
-    component.note = {
-      rowKey: '',
-      name: '',
-      sideNote: '',
-      imageUrl: '',
-      imageBase64: '',
-      entries: [
-        { rowKey: '1', noteRowKey: '', time: 10, process: 'Step 1', film: '', details: '' },
-        { rowKey: '2', noteRowKey: '', time: 20, process: 'Step 2', film: '', details: '' },
-        { rowKey: '3', noteRowKey: '', time: 30, process: 'Step 3', film: '', details: '' }
-      ]
-    };
-
-    // Act
-    component.onTimeChange(1, 35); // Try to set time higher than next
-
-    // Assert
-    expect(window.alert).toHaveBeenCalledWith('Time cannot be higher than the next step!');
-    expect(component.note.entries[1].time).toBe(30); // Should be set to next time
-  });
-
-  it('should accept valid time change', () => {
-    // Arrange
-    component.note = {
-      rowKey: '',
-      name: '',
-      sideNote: '',
-      imageUrl: '',
-      imageBase64: '',
-      entries: [
-        { rowKey: '1', noteRowKey: '', time: 10, process: 'Step 1', film: '', details: '' },
-        { rowKey: '2', noteRowKey: '', time: 20, process: 'Step 2', film: '', details: '' }
-      ]
-    };
-
-    // Act
-    component.onTimeChange(1, 15); // Valid time between 10 and infinity
-
-    // Assert
-    expect(component.note.entries[1].time).toBe(15);
-  });
 
   it('should delete note and navigate to notes list', () => {
     // Arrange
@@ -417,5 +350,262 @@ describe('NoteTableComponent', () => {
 
     // Assert
     expect(console.error).toHaveBeenCalledWith('Delete error');
+  });
+
+  describe('Validation Methods', () => {
+    beforeEach(() => {
+      component.isEditMode = true;
+    });
+
+    it('should validate duration - invalid when time is undefined', () => {
+      const entry: any = { time: undefined };
+      expect(component.isDurationInvalid(entry)).toBeTrue();
+    });
+
+    it('should validate duration - invalid when time is null', () => {
+      const entry: any = { time: null };
+      expect(component.isDurationInvalid(entry)).toBeTrue();
+    });
+
+    it('should validate duration - invalid when time is 0', () => {
+      const entry: any = { time: 0 };
+      expect(component.isDurationInvalid(entry)).toBeTrue();
+    });
+
+    it('should validate duration - invalid when time is negative', () => {
+      const entry: any = { time: -1 };
+      expect(component.isDurationInvalid(entry)).toBeTrue();
+    });
+
+    it('should validate duration - valid when time is positive', () => {
+      const entry: any = { time: 5 };
+      expect(component.isDurationInvalid(entry)).toBeFalse();
+    });
+
+    it('should validate override time - invalid when time is 0', () => {
+      const override: any = { time: 0 };
+      expect(component.isOverrideTimeInvalid(override)).toBeTrue();
+    });
+
+    it('should validate override time - invalid when time is negative', () => {
+      const override: any = { time: -1 };
+      expect(component.isOverrideTimeInvalid(override)).toBeTrue();
+    });
+
+    it('should validate override time - valid when time is positive', () => {
+      const override: any = { time: 2.5 };
+      expect(component.isOverrideTimeInvalid(override)).toBeFalse();
+    });
+
+    it('should validate override range order - invalid when max < min', () => {
+      const override: any = { filmCountMin: 10, filmCountMax: 5 };
+      expect(component.isOverrideRangeOrderInvalid(override)).toBeTrue();
+    });
+
+    it('should validate override range order - valid when max >= min', () => {
+      const override: any = { filmCountMin: 5, filmCountMax: 10 };
+      expect(component.isOverrideRangeOrderInvalid(override)).toBeFalse();
+    });
+
+    it('should validate override range order - valid when max == min', () => {
+      const override: any = { filmCountMin: 5, filmCountMax: 5 };
+      expect(component.isOverrideRangeOrderInvalid(override)).toBeFalse();
+    });
+  });
+
+  describe('Override Management', () => {
+    it('should add override with default time increment', () => {
+      const entry: any = {
+        time: 3.0,
+        overrides: []
+      };
+
+      component.addOverride(entry);
+
+      expect(entry.overrides.length).toBe(1);
+      expect(entry.overrides[0].time).toBe(3.25); // base + 0.25 (15 seconds)
+      expect(entry.overrides[0].filmCountMin).toBe(1);
+      expect(entry.overrides[0].filmCountMax).toBe(1);
+    });
+
+    it('should add override based on previous override time', () => {
+      const entry: any = {
+        time: 3.0,
+        overrides: [
+          { filmCountMin: 1, filmCountMax: 5, time: 4.0 }
+        ]
+      };
+
+      component.addOverride(entry);
+
+      expect(entry.overrides.length).toBe(2);
+      expect(entry.overrides[1].time).toBe(4.25); // previous override + 0.25
+      expect(entry.overrides[1].filmCountMin).toBe(6);
+    });
+
+    it('should remove override at specified index', () => {
+      const entry: any = {
+        overrides: [
+          { filmCountMin: 1, filmCountMax: 5, time: 4.0 },
+          { filmCountMin: 6, filmCountMax: 10, time: 5.0 }
+        ]
+      };
+
+      component.removeOverride(entry, 0);
+
+      expect(entry.overrides.length).toBe(1);
+      expect(entry.overrides[0].filmCountMin).toBe(6);
+    });
+
+    it('should toggle override expansion', () => {
+      const rowKey = 'test-key';
+      
+      component.toggleOverrideExpansion(rowKey);
+      expect(component.isOverrideExpanded(rowKey)).toBeTrue();
+      
+      component.toggleOverrideExpansion(rowKey);
+      expect(component.isOverrideExpanded(rowKey)).toBeFalse();
+    });
+  });
+
+  describe('Rule Management', () => {
+    it('should initialize newRule with default values', () => {
+      expect(component.newRule.filmInterval).toBe(1);
+      expect(component.newRule.timeIncrement).toBe(0.5);
+    });
+
+    it('should open add rule modal with reset values', () => {
+      component.openAddRuleModal();
+
+      expect(component.isAddRuleModalOpen).toBeTrue();
+      expect(component.selectedStepsForRule).toEqual([]);
+      expect(component.newRule.filmInterval).toBe(1);
+      expect(component.newRule.timeIncrement).toBe(0.5);
+    });
+
+    it('should close add rule modal', () => {
+      component.isAddRuleModalOpen = true;
+      component.closeAddRuleModal();
+      expect(component.isAddRuleModalOpen).toBeFalse();
+    });
+
+    it('should add rule to selected steps', () => {
+      const entry1: any = { rowKey: '1', step: 'DEV', rules: [] };
+      const entry2: any = { rowKey: '2', step: 'BLEACH', rules: [] };
+      
+      component.selectedStepsForRule = [entry1, entry2];
+      component.newRule = {
+        rowKey: '',
+        noteEntryRowKey: '',
+        filmInterval: 3,
+        timeIncrement: 0.5
+      };
+
+      component.addRuleToSelectedSteps();
+
+      expect(entry1.rules.length).toBe(1);
+      expect(entry2.rules.length).toBe(1);
+      expect(entry1.rules[0].filmInterval).toBe(3);
+      expect(entry1.rules[0].timeIncrement).toBe(0.5);
+      expect(component.isAddRuleModalOpen).toBeFalse();
+    });
+
+    it('should delete rule from entry', () => {
+      const rule: any = { rowKey: 'rule-1', filmInterval: 3, timeIncrement: 0.5 };
+      const entry: any = {
+        rowKey: 'entry-1',
+        rules: [rule]
+      };
+      component.note = {
+        rowKey: '',
+        name: '',
+        sideNote: '',
+        imageUrl: '',
+        imageBase64: '',
+        entries: [entry]
+      };
+
+      component.deleteRule(rule);
+
+      expect(entry.rules.length).toBe(0);
+    });
+
+    it('should group rules by filmInterval and timeIncrement', () => {
+      const entry1: any = {
+        step: 'DEV',
+        rules: [{ filmInterval: 3, timeIncrement: 0.5 }]
+      };
+      const entry2: any = {
+        step: 'BLEACH',
+        rules: [{ filmInterval: 3, timeIncrement: 0.5 }]
+      };
+      component.note = {
+        rowKey: '',
+        name: '',
+        sideNote: '',
+        imageUrl: '',
+        imageBase64: '',
+        entries: [entry1, entry2]
+      };
+
+      const grouped = component.getAllRules();
+
+      expect(grouped.length).toBe(1);
+      expect(grouped[0].steps).toContain('DEV');
+      expect(grouped[0].steps).toContain('BLEACH');
+    });
+  });
+
+  describe('Time Formatting', () => {
+    it('should format time for display', () => {
+      expect(component.formatTimeForDisplay(1.5)).toBe('1m 30s');
+      expect(component.formatTimeForDisplay(0.25)).toBe('0m 15s');
+      expect(component.formatTimeForDisplay(3.75)).toBe('3m 45s');
+    });
+
+    it('should calculate accumulated start time', () => {
+      component.note = {
+        rowKey: '',
+        name: '',
+        sideNote: '',
+        imageUrl: '',
+        imageBase64: '',
+        entries: [
+          { rowKey: '1', noteRowKey: '', time: 3, step: 'PRESOAK', overrides: [], rules: [] } as any,
+          { rowKey: '2', noteRowKey: '', time: 5, step: 'DEV', overrides: [], rules: [] } as any,
+          { rowKey: '3', noteRowKey: '', time: 1, step: 'BLEACH', overrides: [], rules: [] } as any
+        ]
+      };
+
+      expect(component.getAccumulatedStartTime(0)).toBe(0);
+      expect(component.getAccumulatedStartTime(1)).toBe(3);
+      expect(component.getAccumulatedStartTime(2)).toBe(8);
+    });
+  });
+
+  describe('Film Count Management', () => {
+    it('should increment film count', () => {
+      component.filmCount = 5;
+      component.incrementFilmCount();
+      expect(component.filmCount).toBe(6);
+    });
+
+    it('should not increment film count beyond 100', () => {
+      component.filmCount = 100;
+      component.incrementFilmCount();
+      expect(component.filmCount).toBe(100);
+    });
+
+    it('should decrement film count', () => {
+      component.filmCount = 5;
+      component.decrementFilmCount();
+      expect(component.filmCount).toBe(4);
+    });
+
+    it('should not decrement film count below 1', () => {
+      component.filmCount = 1;
+      component.decrementFilmCount();
+      expect(component.filmCount).toBe(1);
+    });
   });
 });

@@ -1,0 +1,13 @@
+<input 
+  type="text" 
+  class="input"
+  [class]="cssClass"
+  [class.ng-invalid]="showValidation && !isValid"
+  [class.ng-touched]="showValidation && !isValid"
+  [value]="displayValue"
+  (input)="onInputChange($event)"
+  (keydown)="onKeyDown($event)"
+  (blur)="onTouched()"
+  [placeholder]="placeholder"
+  [disabled]="disabled"
+/>

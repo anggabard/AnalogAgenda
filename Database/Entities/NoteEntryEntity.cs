@@ -9,9 +9,11 @@ public class NoteEntryEntity : BaseEntity
 
     public string NoteRowKey { get; set; } = default!;
     public required double Time { get; set; }
-    public required string Process { get; set; }
-    public required string Film { get; set; }
+    public required string Step { get; set; }
     public string Details { get; set; } = string.Empty;
+    public int Index { get; set; }
+    public double TemperatureMin { get; set; }
+    public double? TemperatureMax { get; set; }
 
     protected override int RowKeyLenght() => 8;
 
@@ -22,9 +24,11 @@ public class NoteEntryEntity : BaseEntity
             RowKey = RowKey,
             NoteRowKey = NoteRowKey,
             Time = Time,
-            Process = Process,
-            Film = Film,
+            Step = Step,
             Details = Details,
+            Index = Index,
+            TemperatureMin = TemperatureMin,
+            TemperatureMax = TemperatureMax,
         };
     }
 }
