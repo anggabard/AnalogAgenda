@@ -1,4 +1,3 @@
-using System.Linq;
 using AnalogAgenda.Server.Middleware;
 using AnalogAgenda.Server.Validators;
 using Configuration;
@@ -80,9 +79,7 @@ builder.Services.AddCors(options =>
             }
         }
 
-        // When using AllowCredentials(), we must use WithOrigins() only with explicit origins
-        // SetIsOriginAllowed() cannot be used with AllowCredentials()
-        corsBuilder.WithOrigins(allowedOrigins.ToArray())
+        corsBuilder.WithOrigins([.. allowedOrigins])
                .AllowAnyMethod()
                .AllowAnyHeader()
                .AllowCredentials();
