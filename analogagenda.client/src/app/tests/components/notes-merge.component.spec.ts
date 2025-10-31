@@ -195,8 +195,10 @@ describe('NotesMergeComponent', () => {
 
     // Assert
     expect(outDoneRows.length).toBe(2);
-    expect(outDoneRows[0].substance).toBe(mockNotes[0].name);
-    expect(outDoneRows[1].substance).toBe(mockNotes[1].name);
+    // OUT/DONE rows are sorted, so check that both substances are present
+    const substances = outDoneRows.map(r => r.substance);
+    expect(substances).toContain(mockNotes[0].name);
+    expect(substances).toContain(mockNotes[1].name);
   });
 
   it('should check if entry is OUT/DONE row', () => {

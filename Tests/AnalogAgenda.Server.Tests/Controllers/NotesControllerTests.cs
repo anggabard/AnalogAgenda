@@ -1,13 +1,10 @@
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
-using Moq;
 using AnalogAgenda.Server.Controllers;
+using Configuration.Sections;
 using Database.DTOs;
 using Database.Entities;
 using Database.Services.Interfaces;
-using Configuration.Sections;
-using Azure.Storage.Blobs;
-using Azure.Data.Tables;
+using Microsoft.AspNetCore.Mvc;
+using Moq;
 
 namespace Tests.AnalogAgenda.Server.Tests.Controllers;
 
