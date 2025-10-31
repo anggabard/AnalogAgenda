@@ -8,9 +8,11 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 20px;
-    padding-bottom: 10px;
-    border-bottom: 2px solid #e0e0e0;
+    margin-bottom: 16px;
+}
+
+.title-section {
+    flex: 1;
 }
 
 .note-title {
@@ -19,40 +21,52 @@
     font-size: 2rem;
 }
 
-.back-btn {
-    background: #6c757d;
-    color: white;
-    border: none;
-    padding: 8px 16px;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 14px;
-}
-
-.back-btn:hover {
-    background: #5a6268;
-}
-
 .film-counter {
-    background: #f8f9fa;
-    padding: 15px;
-    border-radius: 8px;
-    margin-bottom: 20px;
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 0.5rem;
+    background-color: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 6px;
+    padding: 0.5rem;
 }
 
-.film-counter label {
-    font-weight: 600;
-    color: #495057;
-}
-
-.film-counter input {
-    padding: 8px 12px;
-    border: 1px solid #ced4da;
+.film-btn {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: 1px solid rgba(255, 255, 255, 0.4);
     border-radius: 4px;
-    width: 80px;
+    background-color: rgba(255, 255, 255, 0.1);
+    color: #6b7280;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.film-btn:hover:not(:disabled) {
+    background-color: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.6);
+    transform: translateY(-1px);
+}
+
+.film-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.film-count {
+    min-width: 24px;
+    text-align: center;
+    font-weight: 600;
+    color: #6b7280;
+    font-size: 0.9rem;
 }
 
 .table-wrapper {
@@ -86,8 +100,26 @@ td {
     vertical-align: top;
 }
 
+tbody tr:nth-child(odd) {
+    background: #ffffff;
+}
+
+tbody tr:nth-child(even) {
+    background: #fafafa;
+}
+
 tr:hover {
     background: #f8f9fa;
+}
+
+.out-done-row {
+    background-color: #e8f5e9 !important;
+    font-weight: 600;
+    color: #2e7d32;
+}
+
+.out-done-row td {
+    border-top: 2px solid #4caf50;
 }
 
 .substance-name {

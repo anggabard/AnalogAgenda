@@ -1,7 +1,7 @@
 <div class="container">
     <div class="header">
         <button class="add-note" (click)="onNewNoteClick()">+ New Note +</button>
-        <button class="merge-notes" (click)="openMergeModal()">Merge Notes</button>
+        <button class="add-note merge-notes" (click)="openMergeModal()">Merge Notes</button>
     </div>
 
     <div class="notes-section">
@@ -26,36 +26,41 @@
 </ng-template>
 
 <!-- Merge Modal -->
-<div class="merge-modal-overlay" *ngIf="isMergeModalOpen" (click)="closeMergeModal()">
-    <div class="merge-modal" (click)="$event.stopPropagation()">
-        <div class="merge-modal-header">
-            <h2>Merge Notes</h2>
-            <button class="close-btn" (click)="closeMergeModal()">✖</button>
+<div class="modal-overlay" *ngIf="isMergeModalOpen" (click)="closeMergeModal()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+            <h3>Merge Notes</h3>
+            <button class="modal-close" (click)="closeMergeModal()">✕</button>
         </div>
-        
-        <div class="merge-modal-content">
-            <p>Select 2 or more notes to merge:</p>
-            <div class="notes-selection">
+        <div class="modal-body">
+            <p style="text-align: center; margin-bottom: 20px; color: #666;">Select 2 or more notes to merge:</p>
+            <div class="items-grid">
                 <div *ngFor="let note of notes" 
-                     class="note-selection-item"
+                     class="item-card"
                      [class.selected]="isNoteSelected(note.rowKey)"
                      (click)="toggleNoteSelection(note.rowKey)">
-                    <input type="checkbox" 
-                           [checked]="isNoteSelected(note.rowKey)"
-                           (change)="toggleNoteSelection(note.rowKey)" />
-                    <img class="note-thumbnail" [src]="note.imageUrl" />
-                    <span class="note-name">{{ note.name }}</span>
+                    <div class="item-content">
+                        <div class="item-info">
+                            <img [src]="note.imageUrl" alt="{{note.name}}" class="item-image" />
+                            <div class="item-details">
+                                <span class="item-name">{{ note.name }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="item-checkbox">
+                        <input type="checkbox" 
+                               [checked]="isNoteSelected(note.rowKey)"
+                               readonly />
+                    </div>
                 </div>
             </div>
-        </div>
-        
-        <div class="merge-modal-actions">
-            <button class="cancel-btn" (click)="closeMergeModal()">Cancel</button>
-            <button class="show-merged-btn" 
-                    [disabled]="!canShowMergedNote()"
-                    (click)="showMergedNote()">
-                Show Merged Note
-            </button>
+            <div class="modal-footer" *ngIf="selectedNotesForMerge.size >= 2">
+                <button class="btn btn-primary" 
+                        [disabled]="!canShowMergedNote()"
+                        (click)="showMergedNote()">
+                    Merge {{ selectedNotesForMerge.size }} Note{{ selectedNotesForMerge.size > 1 ? 's' : '' }}
+                </button>
+            </div>
         </div>
     </div>
 </div>

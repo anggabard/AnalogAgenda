@@ -4,20 +4,20 @@
 
 <div *ngIf="error" class="error">
     <p>{{ error }}</p>
-    <button class="btn-primary" (click)="goBack()">Go Back</button>
 </div>
 
-<div *ngIf="mergedNote && !loading" class="merged-note-container">
+<div *ngIf="notes.length > 0 && !loading" class="merged-note-container">
     <!-- Title -->
     <div class="note-header">
-        <h1 class="note-title">{{ mergedNote.name }}</h1>
-        <button class="back-btn" (click)="goBack()">← Back to Notes</button>
-    </div>
-
-    <!-- Film Counter -->
-    <div class="film-counter">
-        <label for="filmCount">Number of Films:</label>
-        <input type="number" id="filmCount" [(ngModel)]="filmCount" min="1" max="100" />
+        <div class="title-section">
+            <h1 class="note-title">{{ mergedName }}</h1>
+        </div>
+        
+        <div class="film-counter">
+            <button type="button" class="film-btn film-decrement" (click)="decrementFilmCount()" [disabled]="filmCount <= 1">-1</button>
+            <span class="film-count">{{ filmCount }}</span>
+            <button type="button" class="film-btn film-increment" (click)="incrementFilmCount()" [disabled]="filmCount >= 100">+1</button>
+        </div>
     </div>
 
     <!-- Merged Table -->
@@ -33,24 +33,25 @@
                 </tr>
             </thead>
             <tbody>
-                <tr *ngFor="let entry of mergedNote.entries; let i = index">
+                <tr *ngFor="let entry of sortedEntries; let i = index" [class.out-done-row]="isOutDoneRow(entry)">
                     <td data-label="Start Time (min)">
-                        <span>{{ getAccumulatedStartTime(i) | number:'1.1-1' }}m</span>
+                        <span>{{ formatTimeForDisplay(entry.startTime) }}</span>
                     </td>
                     <td data-label="Step">
-                        <span>{{ getEffectiveStep(entry) }}</span>
+                        <span>{{ entry.step }}</span>
                     </td>
                     <td data-label="Substance">
                         <span class="substance-name">{{ entry.substance }}</span>
                     </td>
                     <td data-label="Temperature (°C)">
-                        <span>
-                            {{ getEffectiveTemperature(entry).min | number:'1.1-1' }}°C
-                            <span *ngIf="getEffectiveTemperature(entry).max">- {{ getEffectiveTemperature(entry).max | number:'1.1-1' }}°C</span>
+                        <span *ngIf="!isOutDoneRow(entry)">
+                            {{ entry.temperatureMin | number:'1.1-1' }}°C
+                            <span *ngIf="entry.temperatureMax">- {{ entry.temperatureMax | number:'1.1-1' }}°C</span>
                         </span>
+                        <span *ngIf="isOutDoneRow(entry)"></span>
                     </td>
                     <td data-label="Details">
-                        <span>{{ getEffectiveDetails(entry) }}</span>
+                        <span>{{ entry.details }}</span>
                     </td>
                 </tr>
             </tbody>
@@ -58,11 +59,11 @@
     </div>
 
     <!-- Side Notes -->
-    <div class="form-wrapper" *ngIf="mergedNote.sideNote">
+    <div class="form-wrapper" *ngIf="mergedSideNote">
         <div class="form-row">
             <div class="textarea-group">
                 <label>Side Notes</label>
-                <div class="side-notes-display">{{ mergedNote.sideNote }}</div>
+                <div class="side-notes-display">{{ mergedSideNote }}</div>
             </div>
         </div>
     </div>

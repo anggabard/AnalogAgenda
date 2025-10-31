@@ -372,9 +372,7 @@ public class NotesController(Storage storageCfg, ITableService tablesService, IB
                 return NotFound("No notes found for the given composite ID");
             }
 
-            // Create merged note
-            var mergedNote = CreateMergedNote(compositeId, notes);
-            return Ok(mergedNote);
+            return Ok(notes);
         }
         catch (Exception ex)
         {
@@ -409,55 +407,5 @@ public class NotesController(Storage storageCfg, ITableService tablesService, IB
         return noteRowKeys;
     }
 
-    private MergedNoteDto CreateMergedNote(string compositeId, List<NoteDto> notes)
-    {
-        var mergedEntries = new List<MergedNoteEntryDto>();
-        var allSideNotes = new HashSet<string>();
-        
-        // Collect all side notes (deduplicate)
-        foreach (var note in notes)
-        {
-            if (!string.IsNullOrEmpty(note.SideNote))
-            {
-                allSideNotes.Add(note.SideNote);
-            }
-        }
-
-        // Create merged entries with accumulated start times
-        double accumulatedTime = 0;
-        foreach (var note in notes)
-        {
-            foreach (var entry in note.Entries.OrderBy(e => e.Index))
-            {
-                var mergedEntry = new MergedNoteEntryDto
-                {
-                    RowKey = entry.RowKey,
-                    NoteRowKey = entry.NoteRowKey,
-                    Time = entry.Time,
-                    Step = entry.Step,
-                    Details = entry.Details,
-                    Index = entry.Index,
-                    TemperatureMin = entry.TemperatureMin,
-                    TemperatureMax = entry.TemperatureMax,
-                    Substance = note.Name,
-                    StartTime = accumulatedTime
-                };
-                mergedEntries.Add(mergedEntry);
-                accumulatedTime += entry.Time;
-            }
-        }
-
-        // Sort by accumulated start time
-        mergedEntries = mergedEntries.OrderBy(e => e.StartTime).ToList();
-
-        return new MergedNoteDto
-        {
-            CompositeId = compositeId,
-            Name = string.Join(" + ", notes.Select(n => n.Name)),
-            SideNote = string.Join("\n\n", allSideNotes),
-            ImageUrl = notes.FirstOrDefault()?.ImageUrl ?? string.Empty,
-            Entries = mergedEntries
-        };
-    }
 
 }

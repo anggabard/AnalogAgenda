@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { NoteDto, PagedResponseDto, MergedNoteDto } from '../../DTOs';
+import { NoteDto, PagedResponseDto } from '../../DTOs';
 import { Observable } from 'rxjs';
 import { BasePaginatedService } from '../base-paginated.service';
 
@@ -23,8 +23,8 @@ export class NotesService extends BasePaginatedService<NoteDto> {
     return this.getFilteredPaged('', page, pageSize, withEntries ? { withEntries: 'true' } : undefined);
   }
 
-  getMergedNotes(compositeId: string): Observable<MergedNoteDto> {
-    return this.get<MergedNoteDto>(`merge/${compositeId}`);
+  getMergedNotes(compositeId: string): Observable<NoteDto[]> {
+    return this.get<NoteDto[]>(`merge/${compositeId}`);
   }
 
   // Note: getById(), update(), deleteById() are inherited from BasePaginatedService
