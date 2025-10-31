@@ -183,6 +183,15 @@ export class NoteTableComponent implements OnInit {
     return accumulatedTime;
   }
 
+  /** Get total time after all steps are completed */
+  getTotalTime(): number {
+    let totalTime = 0;
+    for (let i = 0; i < this.note.entries.length; i++) {
+      totalTime += this.getEffectiveTime(this.note.entries[i]);
+    }
+    return totalTime;
+  }
+
   /** Get effective time for an entry based on film count, overrides, and rules */
   getEffectiveTime(entry: NoteEntryDto): number {
     // Check for overrides first
