@@ -3,7 +3,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { NoteTableComponent } from '../../components/notes/note-table/note-table.component';
 import { NotesService } from '../../services';
-import { NoteDto } from '../../DTOs';
+import { NoteDto, NoteEntryDto } from '../../DTOs';
 
 describe('NoteTableComponent', () => {
   let component: NoteTableComponent;
@@ -458,13 +458,25 @@ describe('NoteTableComponent', () => {
     });
 
     it('should toggle override expansion', () => {
-      const rowKey = 'test-key';
+      const entry: NoteEntryDto = {
+        rowKey: 'test-key',
+        noteRowKey: '',
+        time: 5,
+        step: 'Test',
+        details: '',
+        index: 0,
+        temperatureMin: 20,
+        temperatureMax: undefined,
+        rules: [],
+        overrides: []
+      };
+      const index = 0;
       
-      component.toggleOverrideExpansion(rowKey);
-      expect(component.isOverrideExpanded(rowKey)).toBeTrue();
+      component.toggleOverrideExpansion(entry, index);
+      expect(component.isOverrideExpanded(entry, index)).toBeTrue();
       
-      component.toggleOverrideExpansion(rowKey);
-      expect(component.isOverrideExpanded(rowKey)).toBeFalse();
+      component.toggleOverrideExpansion(entry, index);
+      expect(component.isOverrideExpanded(entry, index)).toBeFalse();
     });
   });
 

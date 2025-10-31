@@ -28,7 +28,7 @@ public class NotesControllerTests
     }
 
     [Fact]
-    public async Task GetMergedNotes_WithValidCompositeId_ReturnsMergedNote()
+    public async Task GetMergedNotes_WithValidCompositeId_ReturnsListOfNotes()
     {
         // Arrange
         var compositeId = "ABCD1234"; // 2 notes with interleaved rowKeys "AC13" and "BD24"
@@ -52,7 +52,12 @@ public class NotesControllerTests
         // Assert
         Assert.IsType<OkObjectResult>(result);
         var okResult = result as OkObjectResult;
-        Assert.NotNull(okResult.Value);
+        Assert.NotNull(okResult?.Value);
+        var notes = okResult.Value as List<NoteDto>;
+        Assert.NotNull(notes);
+        Assert.Equal(2, notes!.Count);
+        Assert.Contains(notes, n => n.Name == "Note 1");
+        Assert.Contains(notes, n => n.Name == "Note 2");
     }
 
     [Fact]

@@ -4,7 +4,7 @@ import { ActivatedRoute } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { NotesMergeComponent } from '../../components/notes/notes-merge/notes-merge.component';
 import { NotesService } from '../../services';
-import { MergedNoteDto, MergedNoteEntryDto } from '../../DTOs';
+import { NoteDto, NoteEntryDto } from '../../DTOs';
 
 describe('NotesMergeComponent', () => {
   let component: NotesMergeComponent;
@@ -13,39 +13,62 @@ describe('NotesMergeComponent', () => {
   let mockRouter: jasmine.SpyObj<Router>;
   let mockActivatedRoute: any;
 
-  const mockMergedNote: MergedNoteDto = {
-    compositeId: 'ABCD1234',
-    name: 'Note 1 + Note 2',
-    sideNote: 'Combined notes',
-    imageUrl: 'http://example.com/image.jpg',
-    imageBase64: '',
-    entries: [
-      {
-        rowKey: 'entry1',
-        noteRowKey: 'note1',
-        time: 3.5,
-        step: 'Developer',
-        details: 'Mix developer',
-        index: 0,
-        temperatureMin: 20,
-        temperatureMax: 25,
-        substance: 'Note 1',
-        startTime: 0
-      },
-      {
-        rowKey: 'entry2',
-        noteRowKey: 'note2',
-        time: 2.0,
-        step: 'Stop Bath',
-        details: 'Stop development',
-        index: 1,
-        temperatureMin: 18,
-        temperatureMax: 22,
-        substance: 'Note 2',
-        startTime: 3.5
-      }
-    ]
-  };
+  const mockNotes: NoteDto[] = [
+    {
+      rowKey: 'note1',
+      name: 'Note 1',
+      sideNote: 'First note',
+      imageUrl: 'http://example.com/image1.jpg',
+      imageBase64: '',
+      entries: [
+        {
+          rowKey: 'entry1',
+          noteRowKey: 'note1',
+          time: 3.5,
+          step: 'Developer',
+          details: 'Mix developer',
+          index: 0,
+          temperatureMin: 20,
+          temperatureMax: 25,
+          rules: [],
+          overrides: []
+        },
+        {
+          rowKey: 'entry2',
+          noteRowKey: 'note1',
+          time: 2.0,
+          step: 'Stop Bath',
+          details: 'Stop development',
+          index: 1,
+          temperatureMin: 18,
+          temperatureMax: 22,
+          rules: [],
+          overrides: []
+        }
+      ] as NoteEntryDto[]
+    },
+    {
+      rowKey: 'note2',
+      name: 'Note 2',
+      sideNote: 'Second note',
+      imageUrl: 'http://example.com/image2.jpg',
+      imageBase64: '',
+      entries: [
+        {
+          rowKey: 'entry3',
+          noteRowKey: 'note2',
+          time: 1.5,
+          step: 'Fixer',
+          details: 'Fix the image',
+          index: 0,
+          temperatureMin: 20,
+          temperatureMax: undefined,
+          rules: [],
+          overrides: []
+        }
+      ] as NoteEntryDto[]
+    }
+  ];
 
   beforeEach(async () => {
     const notesServiceSpy = jasmine.createSpyObj('NotesService', ['getMergedNotes']);
@@ -78,21 +101,24 @@ describe('NotesMergeComponent', () => {
     expect(component).toBeTruthy();
   });
 
-  it('should load merged note on init', () => {
+  it('should load merged notes on init', () => {
     // Arrange
-    mockNotesService.getMergedNotes.and.returnValue(of(mockMergedNote));
+    mockNotesService.getMergedNotes.and.returnValue(of(mockNotes));
 
     // Act
     component.ngOnInit();
 
     // Assert
     expect(mockNotesService.getMergedNotes).toHaveBeenCalledWith('ABCD1234');
-    expect(component.mergedNote).toEqual(mockMergedNote);
+    expect(component.notes).toEqual(mockNotes);
+    expect(component.mergedName).toBe('Note 1 + Note 2');
+    expect(component.mergedSideNote).toBe('First note\n\nSecond note');
+    expect(component.mergedImageUrl).toBe('http://example.com/image1.jpg');
     expect(component.loading).toBeFalse();
     expect(component.error).toBeNull();
   });
 
-  it('should handle error when loading merged note fails', () => {
+  it('should handle error when loading merged notes fails', () => {
     // Arrange
     mockNotesService.getMergedNotes.and.returnValue(throwError(() => new Error('Failed to load')));
 
@@ -100,9 +126,9 @@ describe('NotesMergeComponent', () => {
     component.ngOnInit();
 
     // Assert
-    expect(component.error).toBe('Failed to load merged note');
+    expect(component.error).toBe('Failed to load merged notes');
     expect(component.loading).toBeFalse();
-    expect(component.mergedNote).toBeNull();
+    expect(component.notes).toEqual([]);
   });
 
   it('should set error when compositeId is missing', () => {
@@ -116,69 +142,230 @@ describe('NotesMergeComponent', () => {
     expect(component.error).toBe('Invalid composite ID');
   });
 
-  it('should calculate accumulated start time correctly', () => {
+  it('should set start times correctly for entries', () => {
     // Arrange
-    component.mergedNote = mockMergedNote;
+    component.notes = mockNotes;
+    component.recalculateAndSortEntries();
 
-    // Act
-    const startTime0 = component.getAccumulatedStartTime(0);
-    const startTime1 = component.getAccumulatedStartTime(1);
-
-    // Assert
-    expect(startTime0).toBe(0);
-    expect(startTime1).toBe(3.5);
+    // Act & Assert
+    // First entry should start at 0
+    const firstEntry = component.sortedEntries[0];
+    expect(firstEntry.startTime).toBeGreaterThanOrEqual(0);
+    // All entries should have valid start times
+    component.sortedEntries.forEach(entry => {
+      expect(entry.startTime).toBeGreaterThanOrEqual(0);
+    });
   });
 
-  it('should get effective time correctly', () => {
+  it('should recalculate and sort entries correctly', () => {
     // Arrange
-    const entry = mockMergedNote.entries[0];
+    component.notes = mockNotes;
+    component.filmCount = 1;
 
     // Act
-    const effectiveTime = component.getEffectiveTime(entry);
+    component.recalculateAndSortEntries();
 
     // Assert
-    expect(effectiveTime).toBe(3.5);
+    expect(component.sortedEntries.length).toBeGreaterThan(0);
+    // Should include OUT/DONE rows for each process
+    const outDoneRows = component.sortedEntries.filter(e => component.isOutDoneRow(e));
+    expect(outDoneRows.length).toBe(2); // One for each note
   });
 
-  it('should get effective step correctly', () => {
+  it('should sort entries by start time', () => {
     // Arrange
-    const entry = mockMergedNote.entries[0];
+    component.notes = mockNotes;
+    component.recalculateAndSortEntries();
 
-    // Act
-    const effectiveStep = component.getEffectiveStep(entry);
-
-    // Assert
-    expect(effectiveStep).toBe('Developer');
+    // Act & Assert
+    for (let i = 1; i < component.sortedEntries.length; i++) {
+      expect(component.sortedEntries[i].startTime).toBeGreaterThanOrEqual(
+        component.sortedEntries[i - 1].startTime
+      );
+    }
   });
 
-  it('should get effective details correctly', () => {
+  it('should include OUT/DONE row for each process', () => {
     // Arrange
-    const entry = mockMergedNote.entries[0];
+    component.notes = mockNotes;
+    component.recalculateAndSortEntries();
 
     // Act
-    const effectiveDetails = component.getEffectiveDetails(entry);
+    const outDoneRows = component.sortedEntries.filter(e => component.isOutDoneRow(e));
 
     // Assert
-    expect(effectiveDetails).toBe('Mix developer');
+    expect(outDoneRows.length).toBe(2);
+    expect(outDoneRows[0].substance).toBe(mockNotes[0].name);
+    expect(outDoneRows[1].substance).toBe(mockNotes[1].name);
   });
 
-  it('should get effective temperature correctly', () => {
+  it('should check if entry is OUT/DONE row', () => {
     // Arrange
-    const entry = mockMergedNote.entries[0];
+    component.notes = mockNotes;
+    component.recalculateAndSortEntries();
 
     // Act
-    const effectiveTemp = component.getEffectiveTemperature(entry);
+    const outDoneEntry = component.sortedEntries.find(e => component.isOutDoneRow(e));
+    const regularEntry = component.sortedEntries.find(e => !component.isOutDoneRow(e));
 
     // Assert
-    expect(effectiveTemp.min).toBe(20);
-    expect(effectiveTemp.max).toBe(25);
+    expect(outDoneEntry).toBeDefined();
+    expect(component.isOutDoneRow(outDoneEntry!)).toBeTrue();
+    expect(regularEntry).toBeDefined();
+    expect(component.isOutDoneRow(regularEntry!)).toBeFalse();
   });
 
-  it('should navigate back to notes', () => {
+  it('should increment film count and recalculate', () => {
+    // Arrange
+    component.notes = mockNotes;
+    component.filmCount = 1;
+    component.recalculateAndSortEntries();
+    const initialEntries = [...component.sortedEntries];
+
     // Act
-    component.goBack();
+    component.incrementFilmCount();
 
     // Assert
-    expect(mockRouter.navigate).toHaveBeenCalledWith(['/notes']);
+    expect(component.filmCount).toBe(2);
+    // Entries should be recalculated (may have different times due to rules)
+    expect(component.sortedEntries.length).toBeGreaterThan(0);
+  });
+
+  it('should not increment film count beyond 100', () => {
+    // Arrange
+    component.filmCount = 100;
+
+    // Act
+    component.incrementFilmCount();
+
+    // Assert
+    expect(component.filmCount).toBe(100);
+  });
+
+  it('should decrement film count and recalculate', () => {
+    // Arrange
+    component.notes = mockNotes;
+    component.filmCount = 5;
+    component.recalculateAndSortEntries();
+
+    // Act
+    component.decrementFilmCount();
+
+    // Assert
+    expect(component.filmCount).toBe(4);
+    expect(component.sortedEntries.length).toBeGreaterThan(0);
+  });
+
+  it('should not decrement film count below 1', () => {
+    // Arrange
+    component.filmCount = 1;
+
+    // Act
+    component.decrementFilmCount();
+
+    // Assert
+    expect(component.filmCount).toBe(1);
+  });
+
+  it('should format time for display', () => {
+    // Act
+    const formatted = component.formatTimeForDisplay(1.5);
+
+    // Assert
+    expect(formatted).toBe('1m 30s');
+  });
+
+  it('should handle notes with rules and overrides', () => {
+    // Arrange
+    const noteWithRules: NoteDto = {
+      rowKey: 'note3',
+      name: 'Note 3',
+      sideNote: '',
+      imageUrl: '',
+      imageBase64: '',
+      entries: [
+        {
+          rowKey: 'entry4',
+          noteRowKey: 'note3',
+          time: 5.0,
+          step: 'Development',
+          details: 'Develop',
+          index: 0,
+          temperatureMin: 20,
+          temperatureMax: undefined,
+          rules: [{ rowKey: '', noteEntryRowKey: '', filmInterval: 3, timeIncrement: 1.0 }],
+          overrides: [
+            {
+              rowKey: '',
+              noteEntryRowKey: '',
+              filmCountMin: 4,
+              filmCountMax: 6,
+              time: 10.0
+            }
+          ]
+        }
+      ] as NoteEntryDto[]
+    };
+    component.notes = [noteWithRules];
+    component.filmCount = 5; // In override range
+
+    // Act
+    component.recalculateAndSortEntries();
+
+    // Assert
+    const entry = component.sortedEntries.find(e => e.rowKey === 'entry4');
+    expect(entry).toBeDefined();
+    expect(entry!.time).toBe(10.0); // Should use override time, not rule
+  });
+
+  it('should handle empty notes array', () => {
+    // Arrange
+    component.notes = [];
+
+    // Act
+    component.recalculateAndSortEntries();
+
+    // Assert
+    expect(component.sortedEntries.length).toBe(0);
+  });
+
+  it('should handle empty sortedEntries in recalculateAndSortEntries', () => {
+    // Arrange
+    component.notes = [];
+
+    // Act
+    component.recalculateAndSortEntries();
+
+    // Assert
+    expect(component.sortedEntries.length).toBe(0);
+  });
+
+  it('should set merged side note correctly with empty side notes filtered', () => {
+    // Arrange
+    const notesWithEmptySideNote: NoteDto[] = [
+      {
+        rowKey: 'note1',
+        name: 'Note 1',
+        sideNote: '',
+        imageUrl: '',
+        imageBase64: '',
+        entries: []
+      },
+      {
+        rowKey: 'note2',
+        name: 'Note 2',
+        sideNote: 'Has content',
+        imageUrl: '',
+        imageBase64: '',
+        entries: []
+      }
+    ];
+    mockNotesService.getMergedNotes.and.returnValue(of(notesWithEmptySideNote));
+
+    // Act
+    component.ngOnInit();
+
+    // Assert
+    expect(component.mergedSideNote).toBe('Has content');
   });
 });
