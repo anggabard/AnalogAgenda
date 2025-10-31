@@ -131,7 +131,8 @@ tbody td {
   box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
 }
 
-.input:disabled {
+.input:disabled,
+input[readonly] {
   background-color: #f8f9fa;
   cursor: not-allowed;
 }

@@ -104,7 +104,7 @@ export class NoteTableComponent implements OnInit {
         step: '', 
         details: '', 
         index: 0,
-        temperatureMin: 20,
+        temperatureMin: 38,
         temperatureMax: undefined,
         rules: [],
         overrides: []
@@ -151,7 +151,7 @@ export class NoteTableComponent implements OnInit {
       step: '',
       details: '',
       index: this.note.entries.length,
-      temperatureMin: 20,
+      temperatureMin: 38,
       temperatureMax: undefined,
       rules: [],
       overrides: []
@@ -192,21 +192,54 @@ export class NoteTableComponent implements OnInit {
     return totalTime;
   }
 
+  /** Get applicable override for current film count - returns last override that ended before current film count if outside all ranges */
+  getApplicableOverride(entry: NoteEntryDto): NoteEntryOverrideDto | null {
+    if (entry.overrides.length === 0) {
+      return null;
+    }
+
+    // First, try to find an override that matches the current film count
+    const matchingOverride = entry.overrides.find(override => 
+      this.filmCount >= override.filmCountMin && this.filmCount <= override.filmCountMax
+    );
+    
+    if (matchingOverride) {
+      return matchingOverride;
+    }
+    
+    // If no match found, find the last override that ended before the current film count
+    // (the override with the highest filmCountMax that is still <= current filmCount)
+    const applicableOverrides = entry.overrides.filter(override => 
+      (override.filmCountMax ?? 0) <= this.filmCount
+    );
+    
+    if (applicableOverrides.length > 0) {
+      // Sort by filmCountMax descending and return the first one
+      applicableOverrides.sort((a, b) => (b.filmCountMax ?? 0) - (a.filmCountMax ?? 0));
+      return applicableOverrides[0];
+    }
+    
+    // If film count is less than all override mins, return null (use base)
+    return null;
+  }
+
   /** Get effective time for an entry based on film count, overrides, and rules */
   getEffectiveTime(entry: NoteEntryDto): number {
     // Check for overrides first
-    const applicableOverride = entry.overrides.find(override => 
-      this.filmCount >= override.filmCountMin && this.filmCount <= override.filmCountMax
-    );
+    const applicableOverride = this.getApplicableOverride(entry);
     
     if (applicableOverride && applicableOverride.time !== undefined) {
       return applicableOverride.time;
     }
     
     // Apply rules if no override
+    // "Every X films" means: first X films (1-X) get base time only
+    // Then every subsequent group of X films gets an additional increment
+    // Example (every 3 films): films 1-3: base, 4-6: +x, 7-9: +2x, 10-12: +3x, etc.
     if (entry.rules.length > 0) {
       const rule = entry.rules[0]; // Only one rule per entry
-      const additionalTime = Math.floor(this.filmCount / rule.filmInterval) * rule.timeIncrement;
+      const incrementCount = Math.floor((this.filmCount - 1) / rule.filmInterval);
+      const additionalTime = incrementCount * rule.timeIncrement;
       return entry.time + additionalTime;
     }
     
@@ -215,9 +248,7 @@ export class NoteTableComponent implements OnInit {
 
   /** Get effective step name for an entry based on film count and overrides */
   getEffectiveStep(entry: NoteEntryDto): string {
-    const applicableOverride = entry.overrides.find(override => 
-      this.filmCount >= override.filmCountMin && this.filmCount <= override.filmCountMax
-    );
+    const applicableOverride = this.getApplicableOverride(entry);
     
     if (applicableOverride && applicableOverride.step) {
       return applicableOverride.step;
@@ -228,9 +259,7 @@ export class NoteTableComponent implements OnInit {
 
   /** Get effective details for an entry based on film count and overrides */
   getEffectiveDetails(entry: NoteEntryDto): string {
-    const applicableOverride = entry.overrides.find(override => 
-      this.filmCount >= override.filmCountMin && this.filmCount <= override.filmCountMax
-    );
+    const applicableOverride = this.getApplicableOverride(entry);
     
     if (applicableOverride && applicableOverride.details) {
       return applicableOverride.details;
@@ -241,9 +270,7 @@ export class NoteTableComponent implements OnInit {
 
   /** Get effective temperature for an entry based on film count and overrides */
   getEffectiveTemperature(entry: NoteEntryDto): { min: number; max?: number } {
-    const applicableOverride = entry.overrides.find(override => 
-      this.filmCount >= override.filmCountMin && this.filmCount <= override.filmCountMax
-    );
+    const applicableOverride = this.getApplicableOverride(entry);
     
     if (applicableOverride) {
       return {
@@ -258,18 +285,25 @@ export class NoteTableComponent implements OnInit {
     };
   }
 
+  /** Get unique identifier for an entry (use index if rowKey is empty) */
+  getEntryIdentifier(entry: NoteEntryDto, index: number): string {
+    return entry.rowKey || `temp-${index}`;
+  }
+
   /** Toggle expansion of overrides for an entry */
-  toggleOverrideExpansion(entryRowKey: string) {
-    if (this.expandedEntries.has(entryRowKey)) {
-      this.expandedEntries.delete(entryRowKey);
+  toggleOverrideExpansion(entry: NoteEntryDto, index: number) {
+    const identifier = this.getEntryIdentifier(entry, index);
+    if (this.expandedEntries.has(identifier)) {
+      this.expandedEntries.delete(identifier);
     } else {
-      this.expandedEntries.add(entryRowKey);
+      this.expandedEntries.add(identifier);
     }
   }
 
   /** Check if overrides are expanded for an entry */
-  isOverrideExpanded(entryRowKey: string): boolean {
-    return this.expandedEntries.has(entryRowKey);
+  isOverrideExpanded(entry: NoteEntryDto, index: number): boolean {
+    const identifier = this.getEntryIdentifier(entry, index);
+    return this.expandedEntries.has(identifier);
   }
 
   /** Add a new override to an entry */
@@ -301,28 +335,52 @@ export class NoteTableComponent implements OnInit {
     entry.overrides.push(newOverride);
   }
 
-  /** Get the next available minimum film count for a new override */
+  /** Get the next available minimum film count for a new override - always uses last override's max + 1 */
   private getNextAvailableFilmCountMin(entry: NoteEntryDto): number {
     if (entry.overrides.length === 0) {
       return 1;
     }
     
-    // Sort overrides by filmCountMin
-    const sortedOverrides = [...entry.overrides].sort((a, b) => a.filmCountMin - b.filmCountMin);
-    
-    // Find the first gap or return the next available number
-    for (let i = 0; i < sortedOverrides.length; i++) {
-      const current = sortedOverrides[i];
-      const next = sortedOverrides[i + 1];
-      
-      if (next && current.filmCountMax + 1 < next.filmCountMin) {
-        return current.filmCountMax + 1;
-      }
+    // Always use the last override's max + 1
+    const sortedOverrides = [...entry.overrides].sort((a, b) => (a.filmCountMin ?? 0) - (b.filmCountMin ?? 0));
+    const lastOverride = sortedOverrides[sortedOverrides.length - 1];
+    return (lastOverride.filmCountMax ?? 0) + 1;
+  }
+
+  /** Check if an override is the first one (first in the sorted order by filmCountMin) */
+  isFirstOverride(entry: NoteEntryDto, overrideIndex: number): boolean {
+    if (entry.overrides.length === 0 || overrideIndex < 0 || overrideIndex >= entry.overrides.length) {
+      return false;
     }
     
-    // If no gap found, return the max + 1
-    const maxFilmCount = Math.max(...sortedOverrides.map(o => o.filmCountMax));
-    return maxFilmCount + 1;
+    const sortedOverrides = [...entry.overrides].sort((a, b) => (a.filmCountMin ?? 0) - (b.filmCountMin ?? 0));
+    const override = entry.overrides[overrideIndex];
+    return sortedOverrides[0] === override;
+  }
+
+  /** Update subsequent overrides when a previous override's max changes */
+  updateSubsequentOverrideMins(entry: NoteEntryDto, changedOverrideIndex: number) {
+    const sortedIndices = entry.overrides
+      .map((o, i) => ({ override: o, index: i }))
+      .sort((a, b) => (a.override.filmCountMin ?? 0) - (b.override.filmCountMin ?? 0));
+    
+    // Find the position of the changed override in the sorted list
+    const changedPosition = sortedIndices.findIndex(item => item.index === changedOverrideIndex);
+    
+    if (changedPosition < 0 || changedPosition >= sortedIndices.length - 1) {
+      return; // No subsequent overrides to update
+    }
+    
+    // Update each subsequent override's min to be the previous override's max + 1
+    for (let i = changedPosition + 1; i < sortedIndices.length; i++) {
+      const prevOverride = sortedIndices[i - 1].override;
+      const currentOverride = sortedIndices[i].override;
+      const newMin = (prevOverride.filmCountMax ?? 0) + 1;
+      
+      if (currentOverride.filmCountMin !== newMin) {
+        currentOverride.filmCountMin = newMin;
+      }
+    }
   }
 
   /** Check if film count ranges overlap */
@@ -371,7 +429,8 @@ export class NoteTableComponent implements OnInit {
 
   /** Toggle step selection for rule */
   toggleStepForRule(entry: NoteEntryDto) {
-    const index = this.selectedStepsForRule.findIndex(s => s.rowKey === entry.rowKey);
+    // Use object reference comparison for reliability
+    const index = this.selectedStepsForRule.findIndex(s => s === entry);
     if (index >= 0) {
       this.selectedStepsForRule.splice(index, 1);
     } else {
@@ -380,8 +439,9 @@ export class NoteTableComponent implements OnInit {
   }
 
   /** Check if step is selected for rule */
-  isStepSelectedForRule(rowKey: string): boolean {
-    return this.selectedStepsForRule.some(s => s.rowKey === rowKey);
+  isStepSelectedForRule(entry: NoteEntryDto): boolean {
+    // Use object reference comparison for reliability
+    return this.selectedStepsForRule.some(s => s === entry);
   }
 
   /** Remove step from rule selection */

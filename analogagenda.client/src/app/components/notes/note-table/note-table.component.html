@@ -75,12 +75,12 @@
                                         d="M4 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2zm2-1a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1zM2 5a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-1h1v1a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h1v1z" />
                                 </svg></button>
 
-                            <button class="override-toggle-btn" (click)="toggleOverrideExpansion(entry.rowKey)" 
-                                    [class.active]="isOverrideExpanded(entry.rowKey)" title="Toggle Overrides">
-                                <svg *ngIf="!isOverrideExpanded(entry.rowKey)" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                            <button class="override-toggle-btn" (click)="toggleOverrideExpansion(entry, i)" 
+                                    [class.active]="isOverrideExpanded(entry, i)" title="Toggle Overrides">
+                                <svg *ngIf="!isOverrideExpanded(entry, i)" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
                                     <path d="M8 12a.5.5 0 0 1-.5-.5V5.707L5.354 7.854a.5.5 0 1 1-.708-.708l3-3a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 5.707V11.5a.5.5 0 0 1-.5.5z"/>
                                 </svg>
-                                <svg *ngIf="isOverrideExpanded(entry.rowKey)" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                                <svg *ngIf="isOverrideExpanded(entry, i)" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
                                     <path d="M8 4a.5.5 0 0 1 .5.5v5.793l2.146-2.147a.5.5 0 0 1 .708.708l-3 3a.5.5 0 0 1-.708 0l-3-3a.5.5 0 1 1 .708-.708L7.5 10.293V4.5A.5.5 0 0 1 8 4z"/>
                                 </svg>
                             </button>
@@ -88,7 +88,7 @@
                     </tr>
 
                     <!-- Expandable Override Row - appears directly under the row that was clicked -->
-                    <tr *ngIf="isEditMode && isOverrideExpanded(entry.rowKey)" 
+                    <tr *ngIf="isEditMode && isOverrideExpanded(entry, i)" 
                         class="override-row">
                         <td colspan="6">
                             <div class="override-section">
@@ -109,9 +109,22 @@
                                         <div class="field-group">
                                             <label>Film Range</label>
                                             <div class="range-inputs">
-                                                <input type="number" class="input" [(ngModel)]="override.filmCountMin" placeholder="Min" min="0" [ngClass]="{'ng-invalid ng-touched': isOverrideRangeOrderInvalid(override) || isOverrideRangeOverlapInvalid(entry, j)}" />
+                                                <input type="number" 
+                                                       class="input" 
+                                                       [(ngModel)]="override.filmCountMin" 
+                                                       placeholder="Min" 
+                                                       min="1" 
+                                                       [readonly]="!isFirstOverride(entry, j)"
+                                                       (ngModelChange)="isFirstOverride(entry, j) && updateSubsequentOverrideMins(entry, j)"
+                                                       [ngClass]="{'ng-invalid ng-touched': isOverrideRangeOrderInvalid(override) || isOverrideRangeOverlapInvalid(entry, j)}" />
                                                 <span>-</span>
-                                                <input type="number" class="input" [(ngModel)]="override.filmCountMax" placeholder="Max" min="0" [ngClass]="{'ng-invalid ng-touched': isOverrideRangeOrderInvalid(override) || isOverrideRangeOverlapInvalid(entry, j)}" />
+                                                <input type="number" 
+                                                       class="input" 
+                                                       [(ngModel)]="override.filmCountMax" 
+                                                       placeholder="Max" 
+                                                       min="1" 
+                                                       (ngModelChange)="updateSubsequentOverrideMins(entry, j)"
+                                                       [ngClass]="{'ng-invalid ng-touched': isOverrideRangeOrderInvalid(override) || isOverrideRangeOverlapInvalid(entry, j)}" />
                                             </div>
                                         </div>
                                         <div class="field-group override-time-input">
@@ -250,7 +263,7 @@
                         <div class="steps-container">
                             <div class="steps-dropdown">
                                 <div *ngFor="let entry of getStepsWithoutRules()" class="step-option" (click)="toggleStepForRule(entry)">
-                                    <input type="checkbox" [checked]="isStepSelectedForRule(entry.rowKey)" readonly />
+                                    <input type="checkbox" [checked]="isStepSelectedForRule(entry)" readonly />
                                     <span>{{ entry.step }}</span>
                                 </div>
                             </div>
@@ -295,7 +308,7 @@
                         <div class="steps-container">
                             <div class="steps-dropdown">
                                 <div *ngFor="let entry of getStepsWithoutRules()" class="step-option" (click)="toggleStepForRule(entry)">
-                                    <input type="checkbox" [checked]="isStepSelectedForRule(entry.rowKey)" readonly />
+                                    <input type="checkbox" [checked]="isStepSelectedForRule(entry)" readonly />
                                     <span>{{ entry.step }}</span>
                                 </div>
                             </div>
