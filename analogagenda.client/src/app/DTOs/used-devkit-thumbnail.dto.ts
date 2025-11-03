@@ -1,5 +1,5 @@
 export interface UsedDevKitThumbnailDto {
-  rowKey: string;
+  id: string;
   devKitName: string;
   imageId: string;
   imageUrl: string;

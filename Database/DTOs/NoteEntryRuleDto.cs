@@ -4,8 +4,8 @@ namespace Database.DTOs;
 
 public class NoteEntryRuleDto
 {
-    public string RowKey { get; set; } = string.Empty;
-    public required string NoteEntryRowKey { get; set; }
+    public string Id { get; set; } = string.Empty;
+    public required string NoteEntryId { get; set; }
     public int FilmInterval { get; set; }
     public double TimeIncrement { get; set; }
 
@@ -13,19 +13,19 @@ public class NoteEntryRuleDto
     {
         return new NoteEntryRuleEntity
         {
-            RowKey = RowKey,
-            NoteEntryRowKey = NoteEntryRowKey,
+            Id = Id,
+            NoteEntryId = NoteEntryId,
             FilmInterval = FilmInterval,
             TimeIncrement = TimeIncrement,
         };
     }
 
-    public NoteEntryRuleEntity ToEntity(string noteEntryRowKey)
+    public NoteEntryRuleEntity ToEntity(string noteEntryId)
     {
         return new NoteEntryRuleEntity
         {
-            RowKey = RowKey,
-            NoteEntryRowKey = noteEntryRowKey,
+            Id = Id,
+            NoteEntryId = noteEntryId,
             FilmInterval = FilmInterval,
             TimeIncrement = TimeIncrement,
         };

@@ -53,14 +53,14 @@ describe('NoteTableComponent', () => {
     // Assert
     expect(component.isNewNote).toBeTrue();
     expect(component.isEditMode).toBeTrue();
-    expect(component.noteRowKey).toBeNull();
+    expect(component.noteId).toBeNull();
   });
 
   it('should initialize in view mode and load note when ID is provided', () => {
     // Arrange
-    const testRowKey = 'test-row-key';
+    const testId = 'test-id';
     const mockNote: NoteDto = {
-      rowKey: testRowKey,
+      id: testId,
       name: 'Test Note',
       sideNote: 'Test Side Note',
       imageUrl: 'test-url',
@@ -68,15 +68,15 @@ describe('NoteTableComponent', () => {
       entries: []
     };
 
-    mockActivatedRoute.snapshot.paramMap.get.and.returnValue(testRowKey);
+    mockActivatedRoute.snapshot.paramMap.get.and.returnValue(testId);
     mockNotesService.getById.and.returnValue(of(mockNote));
 
     // Act
     component.ngOnInit();
 
     // Assert
-    expect(component.noteRowKey).toBe(testRowKey);
-    expect(mockNotesService.getById).toHaveBeenCalledWith(testRowKey);
+    expect(component.noteId).toBe(testId);
+    expect(mockNotesService.getById).toHaveBeenCalledWith(testId);
     expect(component.note).toEqual(mockNote);
     expect(component.originalNote).toEqual(mockNote);
   });
@@ -84,15 +84,15 @@ describe('NoteTableComponent', () => {
   it('should handle error when loading note from backend', () => {
     // Arrange
     spyOn(console, 'error');
-    const testRowKey = 'test-row-key';
-    mockActivatedRoute.snapshot.paramMap.get.and.returnValue(testRowKey);
+    const testId = 'test-id';
+    mockActivatedRoute.snapshot.paramMap.get.and.returnValue(testId);
     mockNotesService.getById.and.returnValue(throwError(() => 'Load error'));
 
     // Act
     component.ngOnInit();
 
     // Assert
-    expect(mockNotesService.getById).toHaveBeenCalledWith(testRowKey);
+    expect(mockNotesService.getById).toHaveBeenCalledWith(testId);
     expect(console.error).toHaveBeenCalledWith('Load error');
   });
 
@@ -101,7 +101,7 @@ describe('NoteTableComponent', () => {
     const emptyNote = component.getEmptyNote();
 
     // Assert
-    expect(emptyNote.rowKey).toBe('');
+    expect(emptyNote.id).toBe('');
     expect(emptyNote.name).toBe('');
     expect(emptyNote.sideNote).toBe('');
     expect(emptyNote.imageBase64).toBe('');
@@ -137,7 +137,7 @@ describe('NoteTableComponent', () => {
   it('should discard changes for existing note and restore original', () => {
     // Arrange
     const originalNote: NoteDto = { 
-      rowKey: '1', 
+      id: '1', 
       name: 'Original', 
       sideNote: 'Original side note', 
       imageUrl: '', 
@@ -161,15 +161,15 @@ describe('NoteTableComponent', () => {
     // Arrange
     component.isNewNote = true;
     component.note = { 
-      rowKey: '', 
+      id: '', 
       name: '', 
       sideNote: 'Test note', 
       imageUrl: '', 
       imageBase64: '', 
       entries: [] 
     };
-    const newRowKey = 'new-row-key';
-    mockNotesService.addNewNote.and.returnValue(of(newRowKey));
+    const newId = 'new-id';
+    mockNotesService.addNewNote.and.returnValue(of(newId));
 
     // Act
     component.saveNote();
@@ -177,15 +177,15 @@ describe('NoteTableComponent', () => {
     // Assert
     expect(component.note.name).toBe('Untitled Note'); // Should set default name
     expect(mockNotesService.addNewNote).toHaveBeenCalledWith(component.note);
-    expect(mockRouter.navigate).toHaveBeenCalledWith(['/notes/' + newRowKey]);
+    expect(mockRouter.navigate).toHaveBeenCalledWith(['/notes/' + newId]);
   });
 
   it('should update existing note', () => {
     // Arrange
     component.isNewNote = false;
-    component.noteRowKey = 'existing-key';
+    component.noteId = 'existing-id';
     component.note = { 
-      rowKey: 'existing-key', 
+      id: 'existing-id', 
       name: 'Updated Note', 
       sideNote: 'Updated side note', 
       imageUrl: '', 
@@ -198,7 +198,7 @@ describe('NoteTableComponent', () => {
     component.saveNote();
 
     // Assert
-    expect(mockNotesService.update).toHaveBeenCalledWith('existing-key', component.note);
+    expect(mockNotesService.update).toHaveBeenCalledWith('existing-id', component.note);
     expect(component.originalNote).toEqual(component.note);
     expect(component.isEditMode).toBeFalse();
   });
@@ -208,7 +208,7 @@ describe('NoteTableComponent', () => {
     spyOn(console, 'error');
     component.isNewNote = true;
     component.note = { 
-      rowKey: '', 
+      id: '', 
       name: 'Test', 
       sideNote: '', 
       imageUrl: '', 
@@ -227,13 +227,13 @@ describe('NoteTableComponent', () => {
   it('should add new row with correct time', () => {
     // Arrange
     component.note = {
-      rowKey: '',
+      id: '',
       name: '',
       sideNote: '',
       imageUrl: '',
       imageBase64: '',
       entries: [
-        { rowKey: '1', noteRowKey: '', time: 10, step: 'Step 1', details: '', overrides: [], rules: [] } as any
+        { id: '1', noteId: '', time: 10, step: 'Step 1', details: '', index: 0, temperatureMin: 38, temperatureMax: undefined, rules: [], overrides: [] }
       ]
     };
 
@@ -243,20 +243,20 @@ describe('NoteTableComponent', () => {
     // Assert
     expect(component.note.entries).toHaveSize(2);
     expect(component.note.entries[1].time).toBe(10); // Should use last entry's time
-    expect(component.note.entries[1].rowKey).toBe('');
+    expect(component.note.entries[1].id).toBe('');
   });
 
   it('should remove row when more than one entry exists', () => {
     // Arrange
     component.note = {
-      rowKey: '',
+      id: '',
       name: '',
       sideNote: '',
       imageUrl: '',
       imageBase64: '',
       entries: [
-        { rowKey: '1', noteRowKey: '', time: 0, step: 'Step 1', details: '', overrides: [], rules: [] } as any,
-        { rowKey: '2', noteRowKey: '', time: 10, step: 'Step 2', details: '', overrides: [], rules: [] } as any
+        { id: '1', noteId: '', time: 0, step: 'Step 1', details: '', index: 0, temperatureMin: 38, temperatureMax: undefined, rules: [], overrides: [] },
+        { id: '2', noteId: '', time: 10, step: 'Step 2', details: '', index: 1, temperatureMin: 38, temperatureMax: undefined, rules: [], overrides: [] }
       ]
     };
 
@@ -271,13 +271,13 @@ describe('NoteTableComponent', () => {
   it('should not remove row when only one entry exists', () => {
     // Arrange
     component.note = {
-      rowKey: '',
+      id: '',
       name: '',
       sideNote: '',
       imageUrl: '',
       imageBase64: '',
       entries: [
-        { rowKey: '1', noteRowKey: '', time: 0, step: 'Step 1', details: '', overrides: [], rules: [] } as any
+        { id: '1', noteId: '', time: 0, step: 'Step 1', details: '', index: 0, temperatureMin: 38, temperatureMax: undefined, rules: [], overrides: [] }
       ]
     };
 
@@ -288,16 +288,16 @@ describe('NoteTableComponent', () => {
     expect(component.note.entries).toHaveSize(1);
   });
 
-  it('should copy row with empty rowKey', () => {
+  it('should copy row with empty id', () => {
     // Arrange
     component.note = {
-      rowKey: '',
+      id: '',
       name: '',
       sideNote: '',
       imageUrl: '',
       imageBase64: '',
       entries: [
-        { rowKey: 'original-key', noteRowKey: '', time: 5, step: 'Original Step', details: 'Details1', overrides: [], rules: [] } as any
+        { id: 'original-key', noteId: '', time: 5, step: 'Original Step', details: 'Details1', index: 0, temperatureMin: 38, temperatureMax: undefined, rules: [], overrides: [] }
       ]
     };
 
@@ -306,16 +306,15 @@ describe('NoteTableComponent', () => {
 
     // Assert
     expect(component.note.entries).toHaveSize(2);
-    expect(component.note.entries[1].rowKey).toBe(''); // Should be empty for copied row
+    expect(component.note.entries[1].id).toBe(''); // Should be empty for copied row
     expect(component.note.entries[1].step).toBe('Original Step');
     expect(component.note.entries[1].details).toBe('Details1');
   });
 
-
   it('should delete note and navigate to notes list', () => {
     // Arrange
     component.note = { 
-      rowKey: 'test-key', 
+      id: 'test-id', 
       name: 'Test Note', 
       sideNote: '', 
       imageUrl: '', 
@@ -328,7 +327,7 @@ describe('NoteTableComponent', () => {
     component.onDelete();
 
     // Assert
-    expect(mockNotesService.deleteById).toHaveBeenCalledWith('test-key');
+    expect(mockNotesService.deleteById).toHaveBeenCalledWith('test-id');
     expect(mockRouter.navigate).toHaveBeenCalledWith(['/notes']);
   });
 
@@ -336,7 +335,7 @@ describe('NoteTableComponent', () => {
     // Arrange
     spyOn(console, 'error');
     component.note = { 
-      rowKey: 'test-key', 
+      id: 'test-id', 
       name: 'Test Note', 
       sideNote: '', 
       imageUrl: '', 
@@ -416,6 +415,7 @@ describe('NoteTableComponent', () => {
   describe('Override Management', () => {
     it('should add override with default time increment', () => {
       const entry: any = {
+        id: 'entry1',
         time: 3.0,
         overrides: []
       };
@@ -430,6 +430,7 @@ describe('NoteTableComponent', () => {
 
     it('should add override based on previous override time', () => {
       const entry: any = {
+        id: 'entry1',
         time: 3.0,
         overrides: [
           { filmCountMin: 1, filmCountMax: 5, time: 4.0 }
@@ -445,6 +446,7 @@ describe('NoteTableComponent', () => {
 
     it('should remove override at specified index', () => {
       const entry: any = {
+        id: 'entry1',
         overrides: [
           { filmCountMin: 1, filmCountMax: 5, time: 4.0 },
           { filmCountMin: 6, filmCountMax: 10, time: 5.0 }
@@ -459,8 +461,8 @@ describe('NoteTableComponent', () => {
 
     it('should toggle override expansion', () => {
       const entry: NoteEntryDto = {
-        rowKey: 'test-key',
-        noteRowKey: '',
+        id: 'test-key',
+        noteId: '',
         time: 5,
         step: 'Test',
         details: '',
@@ -502,13 +504,13 @@ describe('NoteTableComponent', () => {
     });
 
     it('should add rule to selected steps', () => {
-      const entry1: any = { rowKey: '1', step: 'DEV', rules: [] };
-      const entry2: any = { rowKey: '2', step: 'BLEACH', rules: [] };
+      const entry1: any = { id: '1', step: 'DEV', rules: [] };
+      const entry2: any = { id: '2', step: 'BLEACH', rules: [] };
       
       component.selectedStepsForRule = [entry1, entry2];
       component.newRule = {
-        rowKey: '',
-        noteEntryRowKey: '',
+        id: '',
+        noteEntryId: '',
         filmInterval: 3,
         timeIncrement: 0.5
       };
@@ -523,13 +525,13 @@ describe('NoteTableComponent', () => {
     });
 
     it('should delete rule from entry', () => {
-      const rule: any = { rowKey: 'rule-1', filmInterval: 3, timeIncrement: 0.5 };
+      const rule: any = { id: 'rule-1', filmInterval: 3, timeIncrement: 0.5 };
       const entry: any = {
-        rowKey: 'entry-1',
+        id: 'entry-1',
         rules: [rule]
       };
       component.note = {
-        rowKey: '',
+        id: '',
         name: '',
         sideNote: '',
         imageUrl: '',
@@ -552,7 +554,7 @@ describe('NoteTableComponent', () => {
         rules: [{ filmInterval: 3, timeIncrement: 0.5 }]
       };
       component.note = {
-        rowKey: '',
+        id: '',
         name: '',
         sideNote: '',
         imageUrl: '',
@@ -577,15 +579,15 @@ describe('NoteTableComponent', () => {
 
     it('should calculate accumulated start time', () => {
       component.note = {
-        rowKey: '',
+        id: '',
         name: '',
         sideNote: '',
         imageUrl: '',
         imageBase64: '',
         entries: [
-          { rowKey: '1', noteRowKey: '', time: 3, step: 'PRESOAK', overrides: [], rules: [] } as any,
-          { rowKey: '2', noteRowKey: '', time: 5, step: 'DEV', overrides: [], rules: [] } as any,
-          { rowKey: '3', noteRowKey: '', time: 1, step: 'BLEACH', overrides: [], rules: [] } as any
+          { id: '1', noteId: '', time: 3, step: 'PRESOAK', index: 0, temperatureMin: 38, temperatureMax: undefined, rules: [], overrides: [] },
+          { id: '2', noteId: '', time: 5, step: 'DEV', index: 1, temperatureMin: 38, temperatureMax: undefined, rules: [], overrides: [] },
+          { id: '3', noteId: '', time: 1, step: 'BLEACH', index: 2, temperatureMin: 38, temperatureMax: undefined, rules: [], overrides: [] }
         ]
       };
 
@@ -818,6 +820,7 @@ describe('NoteTableComponent', () => {
   describe('Override filmCountMin Auto-calculation', () => {
     it('should set first override min to 1 when no overrides exist', () => {
       const entry: any = {
+        id: 'entry1',
         time: 3.0,
         overrides: []
       };
@@ -830,6 +833,7 @@ describe('NoteTableComponent', () => {
 
     it('should set new override min to previous override max + 1', () => {
       const entry: any = {
+        id: 'entry1',
         time: 3.0,
         overrides: [
           { filmCountMin: 1, filmCountMax: 5, time: 4.0 }
@@ -844,6 +848,7 @@ describe('NoteTableComponent', () => {
 
     it('should handle multiple overrides in sequence', () => {
       const entry: any = {
+        id: 'entry1',
         time: 3.0,
         overrides: [
           { filmCountMin: 1, filmCountMax: 3, time: 4.0 },

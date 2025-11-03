@@ -22,7 +22,7 @@ export class NoteTableComponent implements OnInit {
   isPreviewModalOpen: boolean = false;
   isDeleteModalOpen: boolean = false;
 
-  noteRowKey: string | null = null;
+  noteId: string | null = null;
   originalNote: NoteDto | null = null; // Used for discard
 
   // Film counter for view mode
@@ -37,8 +37,8 @@ export class NoteTableComponent implements OnInit {
   isEditRuleModalOpen = false;
   selectedStepsForRule: NoteEntryDto[] = [];
   newRule: NoteEntryRuleDto = {
-    rowKey: '',
-    noteEntryRowKey: '',
+    id: '',
+    noteEntryId: '',
     filmInterval: 1,
     timeIncrement: 0.5 // This will display as 0:30
   };
@@ -47,11 +47,11 @@ export class NoteTableComponent implements OnInit {
   constructor(private route: ActivatedRoute) { }
 
   ngOnInit(): void {
-    this.noteRowKey = this.route.snapshot.paramMap.get('id');
+    this.noteId = this.route.snapshot.paramMap.get('id');
 
-    if (this.noteRowKey) {
+    if (this.noteId) {
       // VIEW / EDIT MODE - Load from backend
-      this.loadNoteFromBackend(this.noteRowKey);
+      this.loadNoteFromBackend(this.noteId);
     } else {
       // CREATE MODE
       this.isNewNote = true;
@@ -60,8 +60,8 @@ export class NoteTableComponent implements OnInit {
   }
 
   /** Simulated backend load */
-  loadNoteFromBackend(rowKey: string) {
-    this.notesService.getById(rowKey).subscribe({
+  loadNoteFromBackend(id: string) {
+    this.notesService.getById(id).subscribe({
       next: (note: NoteDto) => {
         this.note = note;
         this.originalNote = JSON.parse(JSON.stringify(this.note));
@@ -92,14 +92,14 @@ export class NoteTableComponent implements OnInit {
 
   getEmptyNote() {
     return JSON.parse(JSON.stringify({
-      rowKey: '',
+      id: '',
       name: '',
       sideNote: '',
       imageBase64: '',
       imageUrl: '',
       entries: [{ 
-        rowKey: '', 
-        noteRowKey: '', 
+        id: '', 
+        noteId: '', 
         time: 0, 
         step: '', 
         details: '', 
@@ -119,15 +119,15 @@ export class NoteTableComponent implements OnInit {
 
     if (this.isNewNote) {
       this.notesService.addNewNote(this.note).subscribe({
-        next: (noteRowKey: string) => {
-          this.router.navigate(['/notes/' + noteRowKey]);
+        next: (noteId: string) => {
+          this.router.navigate(['/notes/' + noteId]);
         },
         error: (err: any) => {
           console.error(err);
         }
       });
     } else {
-      this.notesService.update(this.noteRowKey!, this.note).subscribe({
+      this.notesService.update(this.noteId!, this.note).subscribe({
         next: () => {
           this.originalNote = JSON.parse(JSON.stringify(this.note));
           this.isEditMode = false;
@@ -145,8 +145,8 @@ export class NoteTableComponent implements OnInit {
     const newTime = lastEntry ? lastEntry.time : 0;
 
     this.note.entries.push({
-      rowKey: '',
-      noteRowKey: '',
+      id: '',
+      noteId: '',
       time: newTime,
       step: '',
       details: '',
@@ -168,7 +168,7 @@ export class NoteTableComponent implements OnInit {
   copyRow(index: number) {
     const originalEntry = this.note.entries[index];
     var copyEntry = JSON.parse(JSON.stringify(originalEntry));
-    copyEntry.rowKey = '';
+    copyEntry.id = '';
     copyEntry.index = this.note.entries.length;
 
     this.note.entries.splice(index + 1, 0, copyEntry);
@@ -285,9 +285,9 @@ export class NoteTableComponent implements OnInit {
     };
   }
 
-  /** Get unique identifier for an entry (use index if rowKey is empty) */
+  /** Get unique identifier for an entry (use index if id is empty) */
   getEntryIdentifier(entry: NoteEntryDto, index: number): string {
-    return entry.rowKey || `temp-${index}`;
+    return entry.id || `temp-${index}`;
   }
 
   /** Toggle expansion of overrides for an entry */
@@ -322,8 +322,8 @@ export class NoteTableComponent implements OnInit {
     }
     
     const newOverride: NoteEntryOverrideDto = {
-      rowKey: '',
-      noteEntryRowKey: entry.rowKey,
+      id: '',
+      noteEntryId: entry.id,
       filmCountMin: nextMin,
       filmCountMax: nextMin,
       time: defaultTime,
@@ -405,8 +405,8 @@ export class NoteTableComponent implements OnInit {
     this.isAddRuleModalOpen = true;
     this.selectedStepsForRule = [];
     this.newRule = {
-      rowKey: '',
-      noteEntryRowKey: '',
+      id: '',
+      noteEntryId: '',
       filmInterval: 1,
       timeIncrement: 0.5 // This will display as 0:30
     };
@@ -445,8 +445,8 @@ export class NoteTableComponent implements OnInit {
   }
 
   /** Remove step from rule selection */
-  removeStepFromRule(rowKey: string) {
-    this.selectedStepsForRule = this.selectedStepsForRule.filter(s => s.rowKey !== rowKey);
+  removeStepFromRule(id: string) {
+    this.selectedStepsForRule = this.selectedStepsForRule.filter(s => s.id !== id);
   }
 
   /** Add rule to selected steps */
@@ -455,8 +455,8 @@ export class NoteTableComponent implements OnInit {
     
     this.selectedStepsForRule.forEach(entry => {
       const rule: NoteEntryRuleDto = {
-        rowKey: '',
-        noteEntryRowKey: entry.rowKey,
+        id: '',
+        noteEntryId: entry.id,
         filmInterval: this.newRule.filmInterval,
         timeIncrement: this.newRule.timeIncrement
       };
@@ -494,8 +494,8 @@ export class NoteTableComponent implements OnInit {
     this.editingRule = rule;
     this.selectedStepsForRule = this.getStepsForRule(rule);
     this.newRule = {
-      rowKey: rule.rowKey,
-      noteEntryRowKey: rule.noteEntryRowKey,
+      id: rule.id,
+      noteEntryId: rule.noteEntryId,
       filmInterval: rule.filmInterval,
       timeIncrement: rule.timeIncrement
     };
@@ -533,7 +533,7 @@ export class NoteTableComponent implements OnInit {
     
     // Remove the rule from entries that are no longer selected
     currentEntriesWithRule.forEach(entry => {
-      if (!this.selectedStepsForRule.some(selected => selected.rowKey === entry.rowKey)) {
+      if (!this.selectedStepsForRule.some(selected => selected.id === entry.id)) {
         entry.rules = entry.rules.filter(r => 
           !(r.filmInterval === this.editingRule!.filmInterval && 
             r.timeIncrement === this.editingRule!.timeIncrement)
@@ -561,8 +561,8 @@ export class NoteTableComponent implements OnInit {
       
       if (!hasRule) {
         const newRule: NoteEntryRuleDto = {
-          rowKey: '', // Backend will assign this
-          noteEntryRowKey: entry.rowKey,
+          id: '', // Backend will assign this
+          noteEntryId: entry.id,
           filmInterval: this.newRule.filmInterval,
           timeIncrement: this.newRule.timeIncrement
         };
@@ -601,8 +601,8 @@ export class NoteTableComponent implements OnInit {
   /** Add a new rule to an entry */
   addRule(entry: NoteEntryDto) {
     const newRule: NoteEntryRuleDto = {
-      rowKey: '',
-      noteEntryRowKey: entry.rowKey,
+      id: '',
+      noteEntryId: entry.id,
       filmInterval: 1,
       timeIncrement: 0.5 // This will display as 0:30
     };
@@ -636,7 +636,7 @@ export class NoteTableComponent implements OnInit {
   }
 
   onDelete() {
-    this.notesService.deleteById(this.note.rowKey).subscribe({
+    this.notesService.deleteById(this.note.id).subscribe({
       next: () => {
         this.router.navigate(['/notes']);
       },

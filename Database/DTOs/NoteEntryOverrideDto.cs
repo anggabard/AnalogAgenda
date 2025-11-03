@@ -4,8 +4,8 @@ namespace Database.DTOs;
 
 public class NoteEntryOverrideDto
 {
-    public string RowKey { get; set; } = string.Empty;
-    public required string NoteEntryRowKey { get; set; }
+    public string Id { get; set; } = string.Empty;
+    public required string NoteEntryId { get; set; }
     public int FilmCountMin { get; set; }
     public int FilmCountMax { get; set; }
     public double? Time { get; set; }
@@ -18,8 +18,8 @@ public class NoteEntryOverrideDto
     {
         return new NoteEntryOverrideEntity
         {
-            RowKey = RowKey,
-            NoteEntryRowKey = NoteEntryRowKey,
+            Id = Id,
+            NoteEntryId = NoteEntryId,
             FilmCountMin = FilmCountMin,
             FilmCountMax = FilmCountMax,
             Time = Time,
@@ -30,12 +30,12 @@ public class NoteEntryOverrideDto
         };
     }
 
-    public NoteEntryOverrideEntity ToEntity(string noteEntryRowKey)
+    public NoteEntryOverrideEntity ToEntity(string noteEntryId)
     {
         return new NoteEntryOverrideEntity
         {
-            RowKey = RowKey,
-            NoteEntryRowKey = noteEntryRowKey,
+            Id = Id,
+            NoteEntryId = noteEntryId,
             FilmCountMin = FilmCountMin,
             FilmCountMax = FilmCountMax,
             Time = Time,

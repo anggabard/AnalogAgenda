@@ -1,141 +1,311 @@
 using AnalogAgenda.Server.Controllers;
+using AnalogAgenda.Server.Tests.Helpers;
+using Azure.Storage.Blobs;
 using Configuration.Sections;
+using Database.Data;
+using Database.DBObjects.Enums;
 using Database.DTOs;
 using Database.Entities;
 using Database.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
 
-namespace Tests.AnalogAgenda.Server.Tests.Controllers;
+namespace AnalogAgenda.Server.Tests.Controllers;
 
-public class NotesControllerTests
+public class NotesControllerTests : IDisposable
 {
-    private readonly Mock<ITableService> _mockTableService;
+    private readonly Mock<IDatabaseService> _mockTableService;
     private readonly Mock<IBlobService> _mockBlobService;
-    private readonly Mock<Storage> _mockStorageConfig;
+    private readonly Mock<BlobContainerClient> _mockContainerClient;
+    private readonly Storage _storageConfig;
+    private readonly AnalogAgendaDbContext _dbContext;
     private readonly NotesController _controller;
 
     public NotesControllerTests()
     {
-        _mockTableService = new Mock<ITableService>();
+        _mockTableService = new Mock<IDatabaseService>();
         _mockBlobService = new Mock<IBlobService>();
-        _mockStorageConfig = new Mock<Storage>();
+        _mockContainerClient = new Mock<BlobContainerClient>();
+        _storageConfig = new Storage { AccountName = "teststorage" };
+        _dbContext = InMemoryDbContextFactory.Create($"NotesTestDb_{Guid.NewGuid()}");
         
-        _controller = new NotesController(_mockStorageConfig.Object, _mockTableService.Object, _mockBlobService.Object);
+        _mockBlobService.Setup(x => x.GetBlobContainer(ContainerName.notes))
+                       .Returns(_mockContainerClient.Object);
+
+        _controller = new NotesController(_storageConfig, _mockTableService.Object, _mockBlobService.Object, _dbContext);
+    }
+    
+    public void Dispose()
+    {
+        _dbContext.Database.EnsureDeleted();
+        _dbContext.Dispose();
     }
 
     [Fact]
-    public async Task GetMergedNotes_WithValidCompositeId_ReturnsListOfNotes()
+    public async Task CreateNewNote_WithValidDto_ReturnsOkWithRowKey()
     {
         // Arrange
-        var compositeId = "ABCD1234"; // 2 notes with interleaved rowKeys "AC13" and "BD24"
-        var note1 = new NoteEntity { RowKey = "AC13", Name = "Note 1" };
-        var note2 = new NoteEntity { RowKey = "BD24", Name = "Note 2" };
-        
-        _mockTableService.Setup(x => x.GetTableEntryIfExistsAsync<NoteEntity>("AC13"))
-            .ReturnsAsync(note1);
-        _mockTableService.Setup(x => x.GetTableEntryIfExistsAsync<NoteEntity>("BD24"))
-            .ReturnsAsync(note2);
-        _mockTableService.Setup(x => x.GetTableEntriesAsync<NoteEntryEntity>(It.IsAny<System.Linq.Expressions.Expression<Func<NoteEntryEntity, bool>>>()))
-            .ReturnsAsync(new List<NoteEntryEntity>());
-        _mockTableService.Setup(x => x.GetTableEntriesAsync<NoteEntryRuleEntity>())
-            .ReturnsAsync(new List<NoteEntryRuleEntity>());
-        _mockTableService.Setup(x => x.GetTableEntriesAsync<NoteEntryOverrideEntity>())
-            .ReturnsAsync(new List<NoteEntryOverrideEntity>());
+        var noteDto = new NoteDto
+        {
+            Name = "Test Note",
+            SideNote = "Test Description",
+            ImageBase64 = null!,
+            Entries = []
+        };
+
+        _mockTableService.Setup(x => x.AddAsync(It.IsAny<NoteEntity>()))
+                            .Returns(Task.CompletedTask);
 
         // Act
-        var result = await _controller.GetMergedNotes(compositeId);
+        var result = await _controller.CreateNewNote(noteDto);
 
         // Assert
-        Assert.IsType<OkObjectResult>(result);
-        var okResult = result as OkObjectResult;
-        Assert.NotNull(okResult?.Value);
-        var notes = okResult.Value as List<NoteDto>;
-        Assert.NotNull(notes);
-        Assert.Equal(2, notes!.Count);
-        Assert.Contains(notes, n => n.Name == "Note 1");
-        Assert.Contains(notes, n => n.Name == "Note 2");
+        var createdResult = Assert.IsType<CreatedResult>(result);
+        Assert.IsType<NoteDto>(createdResult.Value);
+        _mockTableService.Verify(x => x.AddAsync(It.IsAny<NoteEntity>()), Times.Once);
     }
 
     [Fact]
-    public async Task GetMergedNotes_WithInvalidCompositeId_ReturnsNotFound()
+    public async Task CreateNewNote_WithException_ReturnsUnprocessableEntity()
     {
         // Arrange
-        var invalidCompositeId = "INVALID"; // Will decode to "INVA" but note won't exist
-        
-        _mockTableService.Setup(x => x.GetTableEntryIfExistsAsync<NoteEntity>(It.IsAny<string>()))
-            .ReturnsAsync((NoteEntity?)null);
+        var noteDto = new NoteDto
+        {
+            Name = "Test Note",
+            SideNote = "Test Description",
+            ImageBase64 = null!,
+            Entries = new List<NoteEntryDto>()
+        };
+
+        _mockTableService.Setup(x => x.AddAsync(It.IsAny<NoteEntity>()))
+                            .ThrowsAsync(new Exception("Database error"));
 
         // Act
-        var result = await _controller.GetMergedNotes(invalidCompositeId);
+        var result = await _controller.CreateNewNote(noteDto);
 
         // Assert
-        Assert.IsType<NotFoundObjectResult>(result);
+        var unprocessableResult = Assert.IsType<UnprocessableEntityObjectResult>(result);
+        Assert.Contains("Failed to create", unprocessableResult.Value?.ToString() ?? "");
     }
 
     [Fact]
-    public async Task GetMergedNotes_WithNonExistentNotes_ReturnsNotFound()
+    public async Task GetAllNotes_WithoutEntries_ReturnsOkWithNotes()
     {
-        // Arrange
-        var compositeId = "ABCD1234";
-        
-        _mockTableService.Setup(x => x.GetTableEntryIfExistsAsync<NoteEntity>(It.IsAny<string>()))
-            .ReturnsAsync((NoteEntity?)null);
+        // Arrange - Add data directly to dbContext since controller queries it
+        var noteEntity = new NoteEntity
+        {
+            Name = "Test Note",
+            SideNote = "Test Description",
+            ImageId = Guid.NewGuid(),
+            Id = "test-row-key"
+        };
+        _dbContext.Notes.Add(noteEntity);
+        await _dbContext.SaveChangesAsync();
 
         // Act
-        var result = await _controller.GetMergedNotes(compositeId);
+        var result = await _controller.GetAllNotes(withEntries: false);
 
         // Assert
-        Assert.IsType<NotFoundObjectResult>(result);
+        var okResult = Assert.IsType<OkObjectResult>(result);
+        var pagedResult = Assert.IsType<PagedResponseDto<NoteDto>>(okResult.Value);
+        Assert.Single(pagedResult.Data);
     }
 
     [Fact]
-    public void DecodeCompositeId_WithValidId_ReturnsCorrectRowKeys()
+    public async Task GetAllNotes_WithEntries_ReturnsOkWithNotesAndEntries()
     {
-        // Arrange
-        var compositeId = "ABCD1234"; // 2 notes: interleaved to "AC13" and "BD24"
-        var controller = new TestableNotesController(_mockStorageConfig.Object, _mockTableService.Object, _mockBlobService.Object);
+        // Arrange - Add data directly to dbContext
+        var noteEntity = new NoteEntity
+        {
+            Name = "Test Note",
+            SideNote = "Test Description",
+            ImageId = Guid.NewGuid(),
+            Id = "test-row-key"
+        };
+
+        var noteEntryEntity = new NoteEntryEntity
+        {
+            Details = "Test Entry",
+            Time = 1.0,
+            Step = "Test Process",
+            NoteId = "test-row-key",
+            Id = "entry-key"
+        };
+
+        _dbContext.Notes.Add(noteEntity);
+        _dbContext.NoteEntries.Add(noteEntryEntity);
+        await _dbContext.SaveChangesAsync();
 
         // Act
-        var result = controller.TestDecodeCompositeId(compositeId);
+        var result = await _controller.GetAllNotes(withEntries: true);
 
         // Assert
-        Assert.Equal(2, result.Count);
-        Assert.Contains("AC13", result);
-        Assert.Contains("BD24", result);
+        var okResult = Assert.IsType<OkObjectResult>(result);
+        var notes = Assert.IsAssignableFrom<IEnumerable<NoteDto>>(okResult.Value);
+        Assert.Single(notes);
+        var note = notes.First();
+        Assert.Single(note.Entries);
     }
 
     [Fact]
-    public void DecodeCompositeId_WithThreeNotes_ReturnsCorrectRowKeys()
+    public async Task GetNoteById_WithExistingNote_ReturnsOkWithNote()
     {
-        // Arrange
-        var compositeId = "ABC123DEF456"; // 3 notes: "A1D4", "B2E5", "C3F6"
-        var controller = new TestableNotesController(_mockStorageConfig.Object, _mockTableService.Object, _mockBlobService.Object);
+        // Arrange - Add data directly to dbContext
+        var id = "test-row-key";
+        var noteEntity = new NoteEntity
+        {
+            Name = "Test Note",
+            SideNote = "Test Description",
+            ImageId = Guid.NewGuid(),
+            Id = id
+        };
+
+        var noteEntryEntity = new NoteEntryEntity
+        {
+            Details = "Test Entry",
+            Time = 1.0,
+            Step = "Test Process",
+            NoteId = id,
+            Id = "entry-key"
+        };
+
+        _dbContext.Notes.Add(noteEntity);
+        _dbContext.NoteEntries.Add(noteEntryEntity);
+        await _dbContext.SaveChangesAsync();
 
         // Act
-        var result = controller.TestDecodeCompositeId(compositeId);
+        var result = await _controller.GetNoteById(id);
 
         // Assert
-        Assert.Equal(3, result.Count);
-        Assert.Contains("A1D4", result);
-        Assert.Contains("B2E5", result);
-        Assert.Contains("C3F6", result);
-    }
-}
-
-// Test helper class to access private methods
-public class TestableNotesController : NotesController
-{
-    public TestableNotesController(Storage storageCfg, ITableService tablesService, IBlobService blobsService) 
-        : base(storageCfg, tablesService, blobsService)
-    {
+        var okResult = Assert.IsType<OkObjectResult>(result);
+        var note = Assert.IsType<NoteDto>(okResult.Value);
+        Assert.NotNull(note.Id);
+        Assert.Single(note.Entries);
     }
 
-    public List<string> TestDecodeCompositeId(string compositeId)
+    [Fact]
+    public async Task GetNoteById_WithNonExistingNote_ReturnsNotFound()
     {
-        // Use reflection to access private method
-        var method = typeof(NotesController).GetMethod("DecodeCompositeId", 
-            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-        return (List<string>)method!.Invoke(this, new object[] { compositeId })!;
+        // Arrange
+        var id = "non-existing-key";
+
+        // Act
+        var result = await _controller.GetNoteById(id);
+
+        // Assert
+        var notFoundResult = Assert.IsType<NotFoundObjectResult>(result);
+        Assert.Contains(id, notFoundResult.Value?.ToString() ?? "");
+    }
+
+    [Fact]
+    public async Task UpdateNote_WithValidData_ReturnsNoContent()
+    {
+        // Arrange
+        var id = "test-row-key";
+        var existingEntity = new NoteEntity
+        {
+            Name = "Old Title",
+            SideNote = "Old Description",
+            ImageId = Guid.NewGuid(),
+            Id = id,
+            CreatedDate = DateTime.UtcNow.AddDays(-1),
+        };
+
+        var updateDto = new NoteDto
+        {
+            Name = "New Title",
+            SideNote = "New Description",
+            ImageBase64 = null!,
+            Entries = new List<NoteEntryDto>()
+        };
+
+        _dbContext.Notes.Add(existingEntity);
+        await _dbContext.SaveChangesAsync();
+
+        _mockTableService.Setup(x => x.GetAllAsync<NoteEntryEntity>(It.IsAny<System.Linq.Expressions.Expression<Func<NoteEntryEntity, bool>>>()))
+                        .ReturnsAsync(new List<NoteEntryEntity>());
+
+        _mockTableService.Setup(x => x.UpdateAsync(It.IsAny<NoteEntity>()))
+                            .Returns(Task.CompletedTask);
+
+        // Act
+        var result = await _controller.UpdateNote(id, updateDto);
+
+        // Assert
+        Assert.IsType<NoContentResult>(result);
+        _mockTableService.Verify(x => x.UpdateAsync(It.IsAny<NoteEntity>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task UpdateNote_WithNullDto_ReturnsBadRequest()
+    {
+        // Arrange
+        var id = "test-row-key";
+
+        // Act
+        var result = await _controller.UpdateNote(id, null!);
+
+        // Assert
+        var badRequestResult = Assert.IsType<BadRequestObjectResult>(result);
+        Assert.Equal("Invalid data.", badRequestResult.Value);
+    }
+
+    [Fact]
+    public async Task UpdateNote_WithNonExistingNote_ReturnsNotFound()
+    {
+        // Arrange
+        var id = "non-existing-key";
+        var updateDto = new NoteDto
+        {
+            Name = "New Title",
+            SideNote = "New Description",
+            Entries = new List<NoteEntryDto>()
+        };
+
+        // Act
+        var result = await _controller.UpdateNote(id, updateDto);
+
+        // Assert
+        Assert.IsType<NotFoundResult>(result);
+    }
+
+    [Fact]
+    public async Task DeleteNote_WithExistingNote_ReturnsNoContent()
+    {
+        // Arrange
+        var id = "test-row-key";
+        var existingEntity = new NoteEntity
+        {
+            Name = "Test Note",
+            SideNote = "Test Description",
+            ImageId = Guid.NewGuid(),
+            Id = id
+        };
+
+        _dbContext.Notes.Add(existingEntity);
+        await _dbContext.SaveChangesAsync();
+
+        _mockTableService.Setup(x => x.DeleteRangeAsync<NoteEntryEntity>(It.IsAny<System.Linq.Expressions.Expression<Func<NoteEntryEntity, bool>>>()))
+                        .Returns(Task.CompletedTask);
+
+        // Act
+        var result = await _controller.DeleteNote(id);
+
+        // Assert
+        Assert.IsType<NoContentResult>(result);
+        _mockTableService.Verify(x => x.DeleteRangeAsync<NoteEntryEntity>(It.IsAny<System.Linq.Expressions.Expression<Func<NoteEntryEntity, bool>>>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task DeleteNote_WithNonExistingNote_ReturnsNotFound()
+    {
+        // Arrange
+        var id = "non-existing-key";
+
+        // Act
+        var result = await _controller.DeleteNote(id);
+
+        // Assert
+        Assert.IsType<NotFoundResult>(result);
     }
 }

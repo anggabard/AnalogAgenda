@@ -6,22 +6,23 @@ namespace Database.Entities;
 
 public class PhotoEntity : BaseEntity, IImageEntity
 {
-    public PhotoEntity() : base(TableName.Photos) { }
-
-    public required string FilmRowId { get; set; }
+    public required string FilmId { get; set; }
 
     public int Index { get; set; }
 
     public Guid ImageId { get; set; }
 
-    protected override int RowKeyLenght() => 16;
+    // Navigation property
+    public FilmEntity Film { get; set; } = default!;
+
+    protected override int IdLength() => 16;
 
     public PhotoDto ToDTO(string accountName)
     {
         return new PhotoDto()
         {
-            RowKey = RowKey,
-            FilmRowId = FilmRowId,
+            Id = Id,
+            FilmId = FilmId,
             Index = Index,
             ImageUrl = ImageId == Guid.Empty ? string.Empty : BlobUrlHelper.GetUrlFromImageImageInfo(accountName, ContainerName.photos.ToString(), ImageId)
         };

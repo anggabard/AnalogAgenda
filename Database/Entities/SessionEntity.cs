@@ -6,36 +6,34 @@ namespace Database.Entities;
 
 public class SessionEntity : BaseEntity, IImageEntity
 {
-    public SessionEntity() : base(TableName.Sessions) { }
-
     public DateTime SessionDate { get; set; }
 
     public required string Location { get; set; }
 
-    public required string Participants { get; set; } // JSON array as string
+    public required string Participants { get; set; } // JSON array as string (keeping for now)
 
     public Guid ImageId { get; set; }
 
     public string Description { get; set; } = string.Empty;
 
-    public string UsedSubstances { get; set; } = string.Empty; // JSON array of DevKit RowKeys
+    // Navigation properties - converting from JSON arrays to proper relationships
+    public ICollection<DevKitEntity> UsedDevKits { get; set; } = new List<DevKitEntity>();
+    public ICollection<FilmEntity> DevelopedFilms { get; set; } = new List<FilmEntity>();
 
-    public string DevelopedFilms { get; set; } = string.Empty; // JSON array of Film RowKeys
-
-    protected override int RowKeyLenght() => 10;
+    protected override int IdLength() => 10;
 
     public SessionDto ToDTO(string accountName)
     {
         return new SessionDto()
         {
-            RowKey = RowKey,
+            Id = Id,
             SessionDate = DateOnly.FromDateTime(SessionDate),
             Location = Location,
             Participants = Participants,
             ImageUrl = ImageId == Guid.Empty ? string.Empty : BlobUrlHelper.GetUrlFromImageImageInfo(accountName, ContainerName.sessions.ToString(), ImageId),
             Description = Description,
-            UsedSubstances = UsedSubstances,
-            DevelopedFilms = DevelopedFilms
+            UsedSubstances = string.Join(",", UsedDevKits.Select(d => d.Id)),
+            DevelopedFilms = string.Join(",", DevelopedFilms.Select(f => f.Id))
         };
     }
 }

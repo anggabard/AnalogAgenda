@@ -1,6 +1,6 @@
 export interface NoteEntryOverrideDto {
-  rowKey: string;
-  noteEntryRowKey: string;
+  id: string;
+  noteEntryId: string;
   filmCountMin: number;
   filmCountMax: number;
   time?: number;

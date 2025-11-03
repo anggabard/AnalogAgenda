@@ -2,8 +2,8 @@ import { NoteEntryRuleDto } from './note-entry-rule.dto';
 import { NoteEntryOverrideDto } from './note-entry-override.dto';
 
 export interface NoteEntryDto {
-  rowKey: string;
-  noteRowKey: string;
+  id: string;
+  noteId: string;
   time: number;
   step: string;
   details: string;

@@ -30,8 +30,8 @@ export class NotesComponent extends BasePaginatedListComponent<NoteDto> {
     return '/notes';
   }
 
-  protected getRowKey(note: NoteDto): string {
-    return note.rowKey;
+  protected getId(note: NoteDto): string {
+    return note.id;
   }
 
   // Alias methods for template compatibility
@@ -51,8 +51,8 @@ export class NotesComponent extends BasePaginatedListComponent<NoteDto> {
     this.loadMoreItems();
   }
 
-  onNoteSelected(rowKey: string): void {
-    this.router.navigate(['/notes', rowKey]);
+  onNoteSelected(id: string): void {
+    this.router.navigate(['/notes', id]);
   }
 
   onNewNoteClick(): void {

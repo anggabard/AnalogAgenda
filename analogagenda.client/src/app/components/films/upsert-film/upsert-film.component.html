@@ -199,8 +199,8 @@
             <div class="modal-body">
                 <div class="items-grid">
                     <div *ngFor="let session of availableSessions" class="item-card"
-                         [class.selected]="selectedSessionRowKey === session.rowKey"
-                         (click)="selectSession(session.rowKey)">
+                         [class.selected]="selectedSessionId === session.id"
+                         (click)="selectSession(session.id)">
                         <div class="item-content">
                             <div class="item-info">
                                 <div class="item-details">
@@ -212,12 +212,12 @@
                         </div>
                         <div class="item-radio">
                             <input type="radio" 
-                                   [checked]="selectedSessionRowKey === session.rowKey"
+                                   [checked]="selectedSessionId === session.id"
                                    readonly />
                         </div>
                     </div>
                 </div>
-                <div class="modal-footer" *ngIf="selectedSessionRowKey">
+                <div class="modal-footer" *ngIf="selectedSessionId">
                     <button class="btn btn-primary" (click)="assignSession()">
                         Assign Session
                     </button>
@@ -252,8 +252,8 @@
                 <div class="items-grid" *ngIf="filteredAvailableDevKits.length > 0">
                     <div *ngFor="let devKit of filteredAvailableDevKits" class="item-card"
                          [class.expired]="devKit.expired"
-                         [class.selected]="selectedDevKitRowKey === devKit.rowKey"
-                         (click)="selectDevKit(devKit.rowKey)">
+                         [class.selected]="selectedDevKitId === devKit.id"
+                         (click)="selectDevKit(devKit.id)">
                         <div class="item-content">
                             <div class="item-info">
                                 <img [src]="devKit.imageUrl" alt="{{devKit.name}}" class="item-image" />
@@ -266,7 +266,7 @@
                         </div>
                         <div class="item-radio">
                             <input type="radio" 
-                                   [checked]="selectedDevKitRowKey === devKit.rowKey"
+                                   [checked]="selectedDevKitId === devKit.id"
                                    readonly />
                         </div>
                     </div>
@@ -275,7 +275,7 @@
                     <p *ngIf="form.get('developedInSessionRowKey')?.value">No DevKits available for the selected session. The session may not have any DevKits assigned to it yet.</p>
                     <p *ngIf="!form.get('developedInSessionRowKey')?.value">No DevKits available. Try assigning a session first.</p>
                 </div>
-                <div class="modal-footer" *ngIf="selectedDevKitRowKey">
+                <div class="modal-footer" *ngIf="selectedDevKitId">
                     <button class="btn btn-primary" (click)="assignDevKit()">
                         Assign DevKit
                     </button>

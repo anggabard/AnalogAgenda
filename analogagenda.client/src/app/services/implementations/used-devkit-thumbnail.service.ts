@@ -17,7 +17,7 @@ export class UsedDevKitThumbnailService extends BaseService {
 
   uploadThumbnail(devKitName: string, imageBase64: string): Observable<UsedDevKitThumbnailDto> {
     const dto: UsedDevKitThumbnailDto = {
-      rowKey: '',
+      id: '',
       devKitName: devKitName,
       imageId: '',
       imageUrl: '',

@@ -12,7 +12,7 @@
                 [hasMore]="hasMoreAvailable" 
                 [loading]="loadingAvailable"
                 (loadMore)="loadMoreAvailableDevKits()"
-                (itemClick)="onKitSelected($event.rowKey)">
+                (itemClick)="onKitSelected($event.id)">
             </app-card-list>
         </div>
 
@@ -24,7 +24,7 @@
                 [hasMore]="hasMoreExpired" 
                 [loading]="loadingExpired"
                 (loadMore)="loadMoreExpiredDevKits()"
-                (itemClick)="onKitSelected($event.rowKey)">
+                (itemClick)="onKitSelected($event.id)">
             </app-card-list>
         </div>
     </div>

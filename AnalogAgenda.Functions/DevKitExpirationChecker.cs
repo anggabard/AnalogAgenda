@@ -7,7 +7,7 @@ using Microsoft.Extensions.Logging;
 
 namespace AnalogAgenda.Functions
 {
-    public class DevKitExpirationChecker(ILoggerFactory loggerFactory, ITableService tablesService, IEmailSender emailSender)
+    public class DevKitExpirationChecker(ILoggerFactory loggerFactory, IDatabaseService databaseService, IEmailSender emailSender)
     {
         private readonly ILogger _logger = loggerFactory.CreateLogger<DevKitExpirationChecker>();
 
@@ -19,7 +19,7 @@ namespace AnalogAgenda.Functions
             _logger.LogInformation($"DevKitExpirationChecker function executed at: {now}");
             var oneMonthLater = now.AddMonths(1);
 
-            var entities = await tablesService.GetTableEntriesAsync<DevKitEntity>(kit => !kit.Expired);
+            var entities = await databaseService.GetAllAsync<DevKitEntity>(kit => !kit.Expired);
             foreach (var entity in entities)
             {
                 var kitExpirationDate = entity.GetExpirationDate();
@@ -28,10 +28,10 @@ namespace AnalogAgenda.Functions
                 var daysLeft = (kitExpirationDate - now).Days;
                 _logger.LogInformation($"Development Kit: {entity.Name} will expire in {daysLeft} days");
 
-                var html = EmailTemplateGenerator.GetExpiringDevKit(daysLeft, entity.Name, entity.Type.ToString(), entity.PurchasedOn, entity.PurchasedBy.ToString(), entity.ValidForFilms - entity.FilmsDeveloped, entity.ImageId, entity.RowKey);
+                var html = EmailTemplateGenerator.GetExpiringDevKit(daysLeft, entity.Name, entity.Type.ToString(), entity.PurchasedOn, entity.PurchasedBy.ToString(), entity.ValidForFilms - entity.FilmsDeveloped, entity.ImageId, entity.Id);
 
                 await EmailNotificationHelper.SendNotificationToSubscribersAsync(
-                    tablesService,
+                    databaseService,
                     emailSender,
                     "Your Film Development Kit is about to expire!",
                     html

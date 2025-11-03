@@ -6,7 +6,7 @@ namespace AnalogAgenda.Server.Identity
     {
         Name,
         Email,
-        RowKey
+        Id
     }
 
     public static class ClaimsPrincipalExtensions
@@ -23,7 +23,7 @@ namespace AnalogAgenda.Server.Identity
 
         public static string Email(this ClaimsPrincipal principal) => GetClaim(principal, AllowedClaims.Email);
 
-        public static string RowKey(this ClaimsPrincipal principal) => GetClaim(principal, AllowedClaims.RowKey);
+        public static string Id(this ClaimsPrincipal principal) => GetClaim(principal, AllowedClaims.Id);
 
         private static void CheckClaimsPrincipal(ClaimsPrincipal principal)
         {
@@ -34,7 +34,7 @@ namespace AnalogAgenda.Server.Identity
         {
             AllowedClaims.Name => ClaimTypes.Name,
             AllowedClaims.Email => ClaimTypes.Email,
-            AllowedClaims.RowKey => ClaimTypes.NameIdentifier,
+            AllowedClaims.Id => ClaimTypes.NameIdentifier,
             _ => throw new Exception($"'{claim}' is not allowed."),
         };
     }

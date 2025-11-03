@@ -68,7 +68,7 @@ export class FilmPhotosComponent implements OnInit {
 
   openPreview(photo: PhotoDto) {
     this.currentPreviewPhoto = photo;
-    this.currentPhotoIndex = this.photos.findIndex(p => p.rowKey === photo.rowKey);
+    this.currentPhotoIndex = this.photos.findIndex(p => p.id === photo.id);
     this.isPreviewModalOpen = true;
     
     // Focus the preview overlay to enable keyboard events
@@ -129,11 +129,11 @@ export class FilmPhotosComponent implements OnInit {
 
   confirmDelete() {
     if (this.currentPreviewPhoto) {
-      this.photoService.deletePhoto(this.currentPreviewPhoto.rowKey).subscribe({
+      this.photoService.deletePhoto(this.currentPreviewPhoto.id).subscribe({
         next: () => {
           // Remove photo from local array
-          const deletedPhotoRowKey = this.currentPreviewPhoto!.rowKey;
-          this.photos = this.photos.filter(p => p.rowKey !== deletedPhotoRowKey);
+          const deletedPhotoId = this.currentPreviewPhoto!.id;
+          this.photos = this.photos.filter(p => p.id !== deletedPhotoId);
           
           this.closeDeleteModal();
           
@@ -157,7 +157,7 @@ export class FilmPhotosComponent implements OnInit {
   }
 
   downloadPhoto(photo: PhotoDto) {
-    this.photoService.downloadPhoto(photo.rowKey).subscribe({
+    this.photoService.downloadPhoto(photo.id).subscribe({
       next: (blob) => {
         const url = window.URL.createObjectURL(blob);
         const link = document.createElement('a');
@@ -229,7 +229,7 @@ export class FilmPhotosComponent implements OnInit {
         if (processedCount === files.length) {
           // All files processed, upload them
           const uploadDto: PhotoBulkUploadDto = {
-            filmRowId: this.filmId,
+            filmId: this.filmId,
             photos: photos
           };
           

@@ -4,7 +4,7 @@ namespace Database.DTOs;
 
 public class UsedFilmThumbnailDto
 {
-    public string RowKey { get; set; } = string.Empty;
+    public string Id { get; set; } = string.Empty;
 
     public required string FilmName { get; set; }
 
@@ -18,7 +18,7 @@ public class UsedFilmThumbnailDto
     {
         return new UsedFilmThumbnailEntity
         {
-            RowKey = RowKey,
+            Id = Id,
             FilmName = FilmName,
             ImageId = string.IsNullOrEmpty(ImageId) ? Guid.Empty : Guid.Parse(ImageId)
         };

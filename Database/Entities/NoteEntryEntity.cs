@@ -1,13 +1,10 @@
-﻿using Database.DBObjects.Enums;
-using Database.DTOs;
+﻿using Database.DTOs;
 
 namespace Database.Entities;
 
 public class NoteEntryEntity : BaseEntity
 {
-    public NoteEntryEntity() : base(TableName.NotesEntries) { }
-
-    public string NoteRowKey { get; set; } = default!;
+    public string NoteId { get; set; } = default!;
     public required double Time { get; set; }
     public required string Step { get; set; }
     public string Details { get; set; } = string.Empty;
@@ -15,20 +12,27 @@ public class NoteEntryEntity : BaseEntity
     public double TemperatureMin { get; set; }
     public double? TemperatureMax { get; set; }
 
-    protected override int RowKeyLenght() => 8;
+    // Navigation properties
+    public NoteEntity Note { get; set; } = default!;
+    public ICollection<NoteEntryRuleEntity> Rules { get; set; } = new List<NoteEntryRuleEntity>();
+    public ICollection<NoteEntryOverrideEntity> Overrides { get; set; } = new List<NoteEntryOverrideEntity>();
+
+    protected override int IdLength() => 8;
 
     public NoteEntryDto ToDTO()
     {
         return new NoteEntryDto
         {
-            RowKey = RowKey,
-            NoteRowKey = NoteRowKey,
+            Id = Id,
+            NoteId = NoteId,
             Time = Time,
             Step = Step,
             Details = Details,
             Index = Index,
             TemperatureMin = TemperatureMin,
             TemperatureMax = TemperatureMax,
+            Rules = Rules.Select(r => r.ToDTO()).ToList(),
+            Overrides = Overrides.Select(o => o.ToDTO()).ToList(),
         };
     }
 }

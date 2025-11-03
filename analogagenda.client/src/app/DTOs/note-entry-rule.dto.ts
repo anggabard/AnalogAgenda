@@ -1,6 +1,6 @@
 export interface NoteEntryRuleDto {
-  rowKey: string;
-  noteEntryRowKey: string;
+  id: string;
+  noteEntryId: string;
   filmInterval: number;
   timeIncrement: number;
 }

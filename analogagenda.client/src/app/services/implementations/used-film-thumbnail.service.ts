@@ -17,7 +17,7 @@ export class UsedFilmThumbnailService extends BaseService {
 
   uploadThumbnail(filmName: string, imageBase64: string): Observable<UsedFilmThumbnailDto> {
     const dto: UsedFilmThumbnailDto = {
-      rowKey: '',
+      id: '',
       filmName: filmName,
       imageId: '',
       imageUrl: '',

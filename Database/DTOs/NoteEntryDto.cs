@@ -4,8 +4,8 @@ namespace Database.DTOs;
 
 public class NoteEntryDto
 {
-    public string RowKey { get; set; } = string.Empty;
-    public required string NoteRowKey { get; set; }
+    public string Id { get; set; } = string.Empty;
+    public required string NoteId { get; set; }
     public double Time { get; set; }
     public required string Step { get; set; }
     public string Details { get; set; } = string.Empty;
@@ -19,8 +19,8 @@ public class NoteEntryDto
     {
         return new NoteEntryEntity
         {
-            RowKey = RowKey,
-            NoteRowKey = NoteRowKey,
+            Id = Id,
+            NoteId = NoteId,
             Time = Time,
             Step = Step,
             Details = Details,
@@ -30,12 +30,12 @@ public class NoteEntryDto
         };
     }
 
-    public NoteEntryEntity ToEntity(string noteRowKey)
+    public NoteEntryEntity ToEntity(string noteId)
     {
         return new NoteEntryEntity
         {
-            RowKey = RowKey,
-            NoteRowKey = noteRowKey,
+            Id = Id,
+            NoteId = noteId,
             Time = Time,
             Step = Step,
             Details = Details,

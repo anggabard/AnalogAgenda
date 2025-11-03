@@ -22,15 +22,10 @@ jobs:
     - name: Build test projects
       run: |
         dotnet build Tests/AnalogAgenda.Server.Tests/AnalogAgenda.Server.Tests.csproj
-        dotnet build Tests/Database.Tests/Database.Tests.csproj
       shell: pwsh
       
-    - name: Run AnalogAgenda.Server tests
+    - name: Run AnalogAgenda.Server tests (includes Database tests)
       run: dotnet test Tests/AnalogAgenda.Server.Tests/AnalogAgenda.Server.Tests.csproj --no-build --verbosity normal --logger trx --results-directory TestResults
-      shell: pwsh
-      
-    - name: Run Database tests
-      run: dotnet test Tests/Database.Tests/Database.Tests.csproj --no-build --verbosity normal --logger trx --results-directory TestResults
       shell: pwsh
         
     - name: Upload backend test results

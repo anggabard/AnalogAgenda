@@ -1,0 +1,218 @@
+name: Database Migration
+
+on:
+  # Trigger when database schema files change
+  push:
+    branches:
+      - main
+    paths:
+      - 'Database/Entities/**'
+      - 'Database/Data/**'
+      - 'Database/Database.csproj'
+  
+  # Allow manual trigger
+  workflow_dispatch:
+
+env:
+  DOTNET_VERSION: '8.0.x'
+  RESOURCE_GROUP: 'analog_agenda_rg'
+  SQL_SERVER: 'sql-analogagenda-prod'
+  SQL_DATABASE: 'AnalogAgendaDb'
+  SQL_USER: 'sqladmin'
+  KEY_VAULT_NAME: 'analogagenda-kv'
+
+jobs:
+  check-migrations:
+    name: Check for Pending Migrations
+    runs-on: ubuntu-latest
+    outputs:
+      has_pending: ${{ steps.check.outputs.has_pending }}
+      migration_list: ${{ steps.check.outputs.migration_list }}
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Get full history to detect migration changes
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+
+    - name: Install EF Core tools
+      run: dotnet tool install --global dotnet-ef --version 8.0.11
+
+    - name: Azure Login
+      uses: azure/login@v2
+      with:
+        creds: ${{ secrets.AZ_CREDENTIALS }}
+
+    - name: Fetch SQL password from Key Vault
+      id: keyvault
+      shell: pwsh
+      run: |
+        $kvName = "${{ env.KEY_VAULT_NAME }}"
+        Write-Host "Fetching SQL password from Key Vault..."
+        
+        $sqlPassword = az keyvault secret show --vault-name $kvName --name "sql-password" --query "value" -o tsv
+        
+        Write-Host "::add-mask::$sqlPassword"
+        
+        echo "SQL_PASSWORD=$sqlPassword" >> $env:GITHUB_ENV
+        
+        Write-Host "✅ SQL password fetched from Key Vault"
+
+    - name: Check for pending migrations
+      id: check
+      shell: pwsh
+      env:
+        SQL_PASSWORD: ${{ env.SQL_PASSWORD }}
+      run: |
+        $connectionString = "Server=tcp:${{ env.SQL_SERVER }}.database.windows.net,1433;Database=${{ env.SQL_DATABASE }};User ID=${{ env.SQL_USER }};Password=$env:SQL_PASSWORD;Encrypt=True;TrustServerCertificate=False;"
+        
+        Write-Host "Checking for pending migrations..."
+        
+        # Get list of migrations
+        $migrationList = dotnet ef migrations list --project Database --connection "$connectionString" 2>&1
+        
+        Write-Host "Migration status:"
+        Write-Host $migrationList
+        
+        # Check if there are pending migrations
+        if ($migrationList -match "Pending") {
+          Write-Host "✅ Pending migrations detected"
+          echo "has_pending=true" >> $env:GITHUB_OUTPUT
+        } else {
+          Write-Host "ℹ️ No pending migrations"
+          echo "has_pending=false" >> $env:GITHUB_OUTPUT
+        }
+        
+        # Store migration list for summary
+        $escapedList = $migrationList -replace "`n", "%0A"
+        echo "migration_list=$escapedList" >> $env:GITHUB_OUTPUT
+
+  apply-migrations:
+    name: Apply Database Migrations
+    needs: check-migrations
+    if: needs.check-migrations.outputs.has_pending == 'true' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+
+    - name: Install EF Core tools
+      run: dotnet tool install --global dotnet-ef --version 8.0.11
+
+    - name: Azure Login
+      uses: azure/login@v2
+      with:
+        creds: ${{ secrets.AZ_CREDENTIALS }}
+
+    - name: Whitelist GitHub Runner IP
+      id: whitelist
+      uses: azure/CLI@v2
+      with:
+        inlineScript: |
+          # Get runner's public IP
+          RUNNER_IP=$(curl -s https://api.ipify.org)
+          echo "Runner IP: $RUNNER_IP"
+          
+          # Add firewall rule
+          RULE_NAME="GitHub-Runner-$(date +%s)"
+          echo "rule_name=$RULE_NAME" >> $GITHUB_OUTPUT
+          
+          az sql server firewall-rule create \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --server ${{ env.SQL_SERVER }} \
+            --name "$RULE_NAME" \
+            --start-ip-address "$RUNNER_IP" \
+            --end-ip-address "$RUNNER_IP"
+          
+          echo "✅ Firewall rule created: $RULE_NAME"
+
+    - name: Fetch SQL password from Key Vault
+      id: keyvault
+      shell: pwsh
+      run: |
+        $kvName = "${{ env.KEY_VAULT_NAME }}"
+        Write-Host "Fetching SQL password from Key Vault..."
+        
+        $sqlPassword = az keyvault secret show --vault-name $kvName --name "sql-password" --query "value" -o tsv
+        
+        Write-Host "::add-mask::$sqlPassword"
+        
+        echo "SQL_PASSWORD=$sqlPassword" >> $env:GITHUB_ENV
+        
+        Write-Host "✅ SQL password fetched from Key Vault"
+
+    - name: Apply Migrations
+      shell: pwsh
+      env:
+        SQL_PASSWORD: ${{ env.SQL_PASSWORD }}
+      run: |
+        $connectionString = "Server=tcp:${{ env.SQL_SERVER }}.database.windows.net,1433;Database=${{ env.SQL_DATABASE }};User ID=${{ env.SQL_USER }};Password=$env:SQL_PASSWORD;Encrypt=True;TrustServerCertificate=False;"
+        
+        Write-Host "🚀 Applying all pending migrations to production database..."
+        
+        dotnet ef database update --project Database --connection "$connectionString"
+        
+        if ($LASTEXITCODE -eq 0) {
+          Write-Host "✅ Database migrations applied successfully"
+        } else {
+          Write-Host "❌ Migration failed!"
+          exit 1
+        }
+
+    - name: Verify Migration Status
+      shell: pwsh
+      env:
+        SQL_PASSWORD: ${{ env.SQL_PASSWORD }}
+      run: |
+        $connectionString = "Server=tcp:${{ env.SQL_SERVER }}.database.windows.net,1433;Database=${{ env.SQL_DATABASE }};User ID=${{ env.SQL_USER }};Password=$env:SQL_PASSWORD;Encrypt=True;TrustServerCertificate=False;"
+        
+        Write-Host "`n📊 Current migration status:"
+        dotnet ef migrations list --project Database --connection "$connectionString"
+
+    - name: Remove GitHub Runner IP from Firewall
+      if: always()
+      uses: azure/CLI@v2
+      with:
+        inlineScript: |
+          RULE_NAME="${{ steps.whitelist.outputs.rule_name }}"
+          if [ -n "$RULE_NAME" ]; then
+            az sql server firewall-rule delete \
+              --resource-group ${{ env.RESOURCE_GROUP }} \
+              --server ${{ env.SQL_SERVER }} \
+              --name "$RULE_NAME" || true
+            echo "🧹 Firewall rule removed: $RULE_NAME"
+          fi
+
+    - name: Migration Summary
+      if: always()
+      shell: pwsh
+      run: |
+        "## 📊 Database Migration Summary" | Add-Content $env:GITHUB_STEP_SUMMARY
+        "" | Add-Content $env:GITHUB_STEP_SUMMARY
+        
+        if ($env:JOB_STATUS -eq "success") {
+          "### ✅ Migrations Applied Successfully" | Add-Content $env:GITHUB_STEP_SUMMARY
+          "All pending migrations have been applied to the production database." | Add-Content $env:GITHUB_STEP_SUMMARY
+        } else {
+          "### ❌ Migration Failed" | Add-Content $env:GITHUB_STEP_SUMMARY
+          "Please check the logs above for details." | Add-Content $env:GITHUB_STEP_SUMMARY
+        }
+        
+        "" | Add-Content $env:GITHUB_STEP_SUMMARY
+        "**Database:** ${{ env.SQL_DATABASE }}" | Add-Content $env:GITHUB_STEP_SUMMARY
+        "**Server:** ${{ env.SQL_SERVER }}.database.windows.net" | Add-Content $env:GITHUB_STEP_SUMMARY
+        "**Resource Group:** ${{ env.RESOURCE_GROUP }}" | Add-Content $env:GITHUB_STEP_SUMMARY
+      env:
+        JOB_STATUS: ${{ job.status }}
+

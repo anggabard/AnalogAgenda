@@ -1,7 +1,7 @@
 using Database.Helpers;
 using Database.DBObjects.Enums;
 
-namespace Database.Tests;
+namespace AnalogAgenda.Server.Tests.Database;
 
 public class EnumHelpersTests
 {
@@ -35,10 +35,10 @@ public class EnumHelpersTests
     [Theory]
     [InlineData("")]
     [InlineData(null)]
-    public void ToEnum_WithNullOrEmptyString_ThrowsInvalidCastException(string value)
+    public void ToEnum_WithNullOrEmptyString_ThrowsInvalidCastException(string? value)
     {
         // Act & Assert
-        var exception = Assert.Throws<InvalidCastException>(() => value.ToEnum<TableName>());
+        var exception = Assert.Throws<InvalidCastException>(() => value!.ToEnum<TableName>());
         Assert.Contains("Value cannot be null", exception.Message);
     }
 
@@ -81,3 +81,4 @@ public class EnumHelpersTests
         Assert.Equal(expected, result);
     }
 }
+

@@ -6,8 +6,6 @@ namespace Database.Entities;
 
 public class DevKitEntity : BaseEntity, IImageEntity
 {
-    public DevKitEntity() : base(TableName.DevKits) { }
-
     public required string Name { get; set; }
 
     public required string Url { get; set; }
@@ -32,7 +30,11 @@ public class DevKitEntity : BaseEntity, IImageEntity
 
     public bool Expired { get; set; }
 
-    protected override int RowKeyLenght() => 8;
+    // Navigation properties
+    public ICollection<SessionEntity> UsedInSessions { get; set; } = new List<SessionEntity>();
+    public ICollection<FilmEntity> DevelopedFilms { get; set; } = new List<FilmEntity>();
+
+    protected override int IdLength() => 8;
 
     public DateTime GetExpirationDate() => MixedOn.AddDays(7 * ValidForWeeks);
 
@@ -40,7 +42,7 @@ public class DevKitEntity : BaseEntity, IImageEntity
     {
         return new DevKitDto()
         {
-            RowKey = RowKey,
+            Id = Id,
             Name = Name,
             Url = Url,
             Type = Type.ToString(),

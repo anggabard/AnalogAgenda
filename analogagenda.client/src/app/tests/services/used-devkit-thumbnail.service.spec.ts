@@ -27,14 +27,14 @@ describe('UsedDevKitThumbnailService', () => {
   it('should search thumbnails by devkit name', () => {
     const mockThumbnails: UsedDevKitThumbnailDto[] = [
       {
-        rowKey: 'thumb1',
+        id: 'thumb1',
         devKitName: 'Bellini E6',
         imageId: 'img1',
         imageUrl: 'url1',
         imageBase64: ''
       },
       {
-        rowKey: 'thumb2',
+        id: 'thumb2',
         devKitName: 'Bellini C41',
         imageId: 'img2',
         imageUrl: 'url2',
@@ -54,7 +54,7 @@ describe('UsedDevKitThumbnailService', () => {
   it('should search all thumbnails when no devkit name provided', () => {
     const mockThumbnails: UsedDevKitThumbnailDto[] = [
       {
-        rowKey: 'thumb1',
+        id: 'thumb1',
         devKitName: 'Bellini E6',
         imageId: 'img1',
         imageUrl: 'url1',
@@ -73,7 +73,7 @@ describe('UsedDevKitThumbnailService', () => {
 
   it('should upload thumbnail', () => {
     const mockUploadedThumbnail: UsedDevKitThumbnailDto = {
-      rowKey: 'thumb1',
+      id: 'thumb1',
       devKitName: 'Test DevKit E6',
       imageId: 'img1',
       imageUrl: 'url1',
@@ -81,7 +81,7 @@ describe('UsedDevKitThumbnailService', () => {
     };
 
     const uploadDto: UsedDevKitThumbnailDto = {
-      rowKey: '',
+      id: '',
       devKitName: 'Test DevKit E6',
       imageId: '',
       imageUrl: '',
