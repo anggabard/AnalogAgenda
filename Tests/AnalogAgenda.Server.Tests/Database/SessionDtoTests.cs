@@ -66,7 +66,8 @@ public class SessionDtoTests
         var deserializedList = sessionDto.UsedSubstancesList;
 
         // Assert
-        Assert.Equal("[\"devkit1\",\"devkit2\",\"devkit3\"]", serializedJson);
+        // Format changed from JSON to comma-separated
+        Assert.Equal("devkit1,devkit2,devkit3", serializedJson);
         Assert.Equal(expectedSubstances, deserializedList);
     }
 
@@ -87,7 +88,8 @@ public class SessionDtoTests
         var deserializedList = sessionDto.DevelopedFilmsList;
 
         // Assert
-        Assert.Equal("[]", serializedJson);
+        // Empty list returns empty string, not "[]"
+        Assert.Equal("", serializedJson);
         Assert.Empty(deserializedList);
     }
 

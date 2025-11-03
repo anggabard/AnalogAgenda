@@ -46,16 +46,22 @@ jobs:
         $azClientId = az keyvault secret show --vault-name $kvName --name "az-client-id" --query "value" -o tsv
         $azTenantId = az keyvault secret show --vault-name $kvName --name "az-tenant-id" --query "value" -o tsv
         $azClientSecret = az keyvault secret show --vault-name $kvName --name "az-client-secret" --query "value" -o tsv
+        $sqlPassword = az keyvault secret show --vault-name $kvName --name "sql-password" --query "value" -o tsv
         
         Write-Host "::add-mask::$acrUsername"
         Write-Host "::add-mask::$acrPassword"
         Write-Host "::add-mask::$azClientSecret"
+        Write-Host "::add-mask::$sqlPassword"
+        
+        # Construct SQL connection string
+        $sqlConnectionString = "Server=tcp:sql-analogagenda-prod.database.windows.net,1433;Database=AnalogAgendaDb;User ID=sqladmin;Password=$sqlPassword;Encrypt=True;TrustServerCertificate=False;"
         
         echo "ACR_USERNAME=$acrUsername" >> $env:GITHUB_ENV
         echo "ACR_PASSWORD=$acrPassword" >> $env:GITHUB_ENV
         echo "AZ_CLIENT_ID=$azClientId" >> $env:GITHUB_ENV
         echo "AZ_TENANT_ID=$azTenantId" >> $env:GITHUB_ENV
         echo "AZ_CLIENT_SECRET=$azClientSecret" >> $env:GITHUB_ENV
+        echo "SQL_CONNECTION_STRING=$sqlConnectionString" >> $env:GITHUB_ENV
         
         Write-Host "✅ Secrets fetched from Key Vault"
 
@@ -89,13 +95,15 @@ jobs:
 
     - name: Deploy to Azure Container App
       uses: azure/CLI@v2
+      env:
+        SQL_CONNECTION_STRING: ${{ env.SQL_CONNECTION_STRING }}
       with:
         inlineScript: |
           az containerapp update \
             --name ${{ env.CONTAINER_APP_NAME }} \
             --resource-group ${{ env.RESOURCE_GROUP }} \
             --image ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ github.sha }} \
-            --set-env-vars FRONTEND_URL=https://analogagenda.site
+            --set-env-vars FRONTEND_URL=https://analogagenda.site ConnectionStrings__analogagendadb="$SQL_CONNECTION_STRING"
 
     - name: Get Container App URL
       uses: azure/CLI@v2
