@@ -87,15 +87,15 @@ export class UpsertKitComponent extends BaseUpsertComponent<DevKitDto> implement
   }
 
   protected getUpdateObservable(id: string, item: DevKitDto): Observable<any> {
-    return this.devKitService.update(rowKey, item);
+    return this.devKitService.update(id, item);
   }
 
   protected getDeleteObservable(id: string): Observable<any> {
-    return this.devKitService.deleteById(rowKey);
+    return this.devKitService.deleteById(id);
   }
 
   protected getItemObservable(id: string): Observable<DevKitDto> {
-    return this.devKitService.getById(rowKey);
+    return this.devKitService.getById(id);
   }
 
   protected getBaseRoute(): string {

@@ -105,10 +105,10 @@ describe('NotesComponent', () => {
     const id = 'test-row-key';
 
     // Act
-    component.onNoteSelected(rowKey);
+    component.onNoteSelected(id);
 
     // Assert
-    expect(mockRouter.navigate).toHaveBeenCalledWith(['/notes', rowKey]);
+    expect(mockRouter.navigate).toHaveBeenCalledWith(['/notes', id]);
   });
 
 

@@ -167,7 +167,7 @@ export class FilmsComponent implements OnInit, OnDestroy {
   }
 
   onFilmSelected(id: string) {
-    this.router.navigate(['/films/' + rowKey]);
+    this.router.navigate(['/films/' + id]);
   }
 
   setActiveTab(tab: 'my' | 'all') {

@@ -283,7 +283,7 @@ describe('FilmService', () => {
     purchasedOn: string = '2023-01-01'
   ): FilmDto {
     return {
-      rowKey,
+      id,
       name,
       iso: '400',
       type: FilmType.ColorNegative,
@@ -342,7 +342,7 @@ describe('FilmService', () => {
     });
 
     it('should call getMyNotDevelopedFilmsPaged with search parameters', () => {
-      const searchParams = { developedWithDevKitid: 'kit123' };
+      const searchParams = { developedWithDevKitId: 'kit123' };
       const page = 1;
       const pageSize = 5;
 
@@ -387,7 +387,7 @@ describe('FilmService', () => {
         name: 'Test Film', 
         type: 'ColorNegative', 
         iso: '400',
-        developedWithDevKitid: 'kit123'
+        developedWithDevKitId: 'kit123'
       };
       const page = 1;
       const pageSize = 5;

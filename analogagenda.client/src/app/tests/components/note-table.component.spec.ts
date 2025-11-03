@@ -58,9 +58,9 @@ describe('NoteTableComponent', () => {
 
   it('should initialize in view mode and load note when ID is provided', () => {
     // Arrange
-    const testid = 'test-row-key';
+    const testId = 'test-row-key';
     const mockNote: NoteDto = {
-      id: testRowKey,
+      id: testId,
       name: 'Test Note',
       sideNote: 'Test Side Note',
       imageUrl: 'test-url',
@@ -68,15 +68,15 @@ describe('NoteTableComponent', () => {
       entries: []
     };
 
-    mockActivatedRoute.snapshot.paramMap.get.and.returnValue(testRowKey);
+    mockActivatedRoute.snapshot.paramMap.get.and.returnValue(testId);
     mockNotesService.getById.and.returnValue(of(mockNote));
 
     // Act
     component.ngOnInit();
 
     // Assert
-    expect(component.noteId).toBe(testRowKey);
-    expect(mockNotesService.getById).toHaveBeenCalledWith(testRowKey);
+    expect(component.noteId).toBe(testId);
+    expect(mockNotesService.getById).toHaveBeenCalledWith(testId);
     expect(component.note).toEqual(mockNote);
     expect(component.originalNote).toEqual(mockNote);
   });
@@ -84,15 +84,15 @@ describe('NoteTableComponent', () => {
   it('should handle error when loading note from backend', () => {
     // Arrange
     spyOn(console, 'error');
-    const testid = 'test-row-key';
-    mockActivatedRoute.snapshot.paramMap.get.and.returnValue(testRowKey);
+    const testId = 'test-row-key';
+    mockActivatedRoute.snapshot.paramMap.get.and.returnValue(testId);
     mockNotesService.getById.and.returnValue(throwError(() => 'Load error'));
 
     // Act
     component.ngOnInit();
 
     // Assert
-    expect(mockNotesService.getById).toHaveBeenCalledWith(testRowKey);
+    expect(mockNotesService.getById).toHaveBeenCalledWith(testId);
     expect(console.error).toHaveBeenCalledWith('Load error');
   });
 
@@ -168,8 +168,8 @@ describe('NoteTableComponent', () => {
       imageBase64: '', 
       entries: [] 
     };
-    const newid = 'new-row-key';
-    mockNotesService.addNewNote.and.returnValue(of(newRowKey));
+    const newId = 'new-row-key';
+    mockNotesService.addNewNote.and.returnValue(of(newId));
 
     // Act
     component.saveNote();
@@ -177,13 +177,13 @@ describe('NoteTableComponent', () => {
     // Assert
     expect(component.note.name).toBe('Untitled Note'); // Should set default name
     expect(mockNotesService.addNewNote).toHaveBeenCalledWith(component.note);
-    expect(mockRouter.navigate).toHaveBeenCalledWith(['/notes/' + newRowKey]);
+    expect(mockRouter.navigate).toHaveBeenCalledWith(['/notes/' + newId]);
   });
 
   it('should update existing note', () => {
     // Arrange
     component.isNewNote = false;
-    component.noteid = 'existing-key';
+    component.noteId = 'existing-key';
     component.note = { 
       id: 'existing-key', 
       name: 'Updated Note', 
@@ -233,7 +233,7 @@ describe('NoteTableComponent', () => {
       imageUrl: '',
       imageBase64: '',
       entries: [
-        { id: '1', noteid: '', time: 10, process: 'Step 1', film: '', details: '' }
+        { id: '1', noteId: '', time: 10, process: 'Step 1', film: '', details: '' }
       ]
     };
 
@@ -255,8 +255,8 @@ describe('NoteTableComponent', () => {
       imageUrl: '',
       imageBase64: '',
       entries: [
-        { id: '1', noteid: '', time: 0, process: 'Step 1', film: '', details: '' },
-        { id: '2', noteid: '', time: 10, process: 'Step 2', film: '', details: '' }
+        { id: '1', noteId: '', time: 0, process: 'Step 1', film: '', details: '' },
+        { id: '2', noteId: '', time: 10, process: 'Step 2', film: '', details: '' }
       ]
     };
 
@@ -277,7 +277,7 @@ describe('NoteTableComponent', () => {
       imageUrl: '',
       imageBase64: '',
       entries: [
-        { id: '1', noteid: '', time: 0, process: 'Step 1', film: '', details: '' }
+        { id: '1', noteId: '', time: 0, process: 'Step 1', film: '', details: '' }
       ]
     };
 
@@ -288,7 +288,7 @@ describe('NoteTableComponent', () => {
     expect(component.note.entries).toHaveSize(1);
   });
 
-  it('should copy row with empty rowKey', () => {
+  it('should copy row with empty id', () => {
     // Arrange
     component.note = {
       id: '',
@@ -297,7 +297,7 @@ describe('NoteTableComponent', () => {
       imageUrl: '',
       imageBase64: '',
       entries: [
-        { id: 'original-key', noteid: '', time: 5, process: 'Original Step', film: 'Film1', details: 'Details1' }
+        { id: 'original-key', noteId: '', time: 5, process: 'Original Step', film: 'Film1', details: 'Details1' }
       ]
     };
 
@@ -321,8 +321,8 @@ describe('NoteTableComponent', () => {
       imageUrl: '',
       imageBase64: '',
       entries: [
-        { id: '1', noteid: '', time: 10, process: 'Step 1', film: '', details: '' },
-        { id: '2', noteid: '', time: 20, process: 'Step 2', film: '', details: '' }
+        { id: '1', noteId: '', time: 10, process: 'Step 1', film: '', details: '' },
+        { id: '2', noteId: '', time: 20, process: 'Step 2', film: '', details: '' }
       ]
     };
 
@@ -344,9 +344,9 @@ describe('NoteTableComponent', () => {
       imageUrl: '',
       imageBase64: '',
       entries: [
-        { id: '1', noteid: '', time: 10, process: 'Step 1', film: '', details: '' },
-        { id: '2', noteid: '', time: 20, process: 'Step 2', film: '', details: '' },
-        { id: '3', noteid: '', time: 30, process: 'Step 3', film: '', details: '' }
+        { id: '1', noteId: '', time: 10, process: 'Step 1', film: '', details: '' },
+        { id: '2', noteId: '', time: 20, process: 'Step 2', film: '', details: '' },
+        { id: '3', noteId: '', time: 30, process: 'Step 3', film: '', details: '' }
       ]
     };
 
@@ -367,8 +367,8 @@ describe('NoteTableComponent', () => {
       imageUrl: '',
       imageBase64: '',
       entries: [
-        { id: '1', noteid: '', time: 10, process: 'Step 1', film: '', details: '' },
-        { id: '2', noteid: '', time: 20, process: 'Step 2', film: '', details: '' }
+        { id: '1', noteId: '', time: 10, process: 'Step 1', film: '', details: '' },
+        { id: '2', noteId: '', time: 20, process: 'Step 2', film: '', details: '' }
       ]
     };
 

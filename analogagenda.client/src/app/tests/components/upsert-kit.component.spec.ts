@@ -93,9 +93,9 @@ describe('UpsertKitComponent', () => {
 
   it('should initialize in edit mode and load kit when ID is provided', () => {
     // Arrange
-    const testid = 'test-row-key';
+    const testId = 'test-row-key';
     const mockKit: DevKitDto = {
-      id: testRowKey,
+      id: testId,
       name: 'Test Kit',
       url: 'http://example.com',
       type: DevKitType.C41,
@@ -118,7 +118,7 @@ describe('UpsertKitComponent', () => {
     component = fixture.componentInstance;
 
     // Manually set up for edit mode after component creation
-    component.id = testRowKey;
+    component.id = testId;
     component.isInsert = false;
 
     // Act - Trigger component initialization
@@ -126,7 +126,7 @@ describe('UpsertKitComponent', () => {
 
     // Assert
     expect(component.isInsert).toBeFalse();
-    expect(component.id).toBe(testRowKey);
+    expect(component.id).toBe(testId);
   });
 
 
@@ -169,14 +169,14 @@ describe('UpsertKitComponent', () => {
 
   it('should update existing kit when in edit mode', () => {
     // Arrange
-    const testid = 'existing-key';
+    const testId = 'existing-key';
     mockActivatedRoute.snapshot.paramMap.get.and.returnValue(null);
     fixture = TestBed.createComponent(UpsertKitComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
     
     // Set up for edit mode
-    component.id = testRowKey;
+    component.id = testId;
     component.isInsert = false;
     component.form.patchValue({
       name: 'Updated Kit',
@@ -192,7 +192,7 @@ describe('UpsertKitComponent', () => {
 
     // Assert
     expect(component.loading).toBeFalse();
-    expect(mockDevKitService.update).toHaveBeenCalledWith(testRowKey, jasmine.any(Object));
+    expect(mockDevKitService.update).toHaveBeenCalledWith(testId, jasmine.any(Object));
     expect(mockRouter.navigate).toHaveBeenCalledWith(['/substances']);
     expect(component.errorMessage).toBeNull();
   });
@@ -223,14 +223,14 @@ describe('UpsertKitComponent', () => {
 
   it('should handle update kit error', () => {
     // Arrange
-    const testid = 'existing-key';
+    const testId = 'existing-key';
     mockActivatedRoute.snapshot.paramMap.get.and.returnValue(null);
     fixture = TestBed.createComponent(UpsertKitComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
     
     // Set up for edit mode
-    component.id = testRowKey;
+    component.id = testId;
     component.isInsert = false;
     component.form.patchValue({
       name: 'Updated Kit',
@@ -254,14 +254,14 @@ describe('UpsertKitComponent', () => {
 
   it('should delete kit successfully', () => {
     // Arrange
-    const testid = 'test-key';
+    const testId = 'test-key';
     mockActivatedRoute.snapshot.paramMap.get.and.returnValue(null);
     fixture = TestBed.createComponent(UpsertKitComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
     
     // Set up for edit mode
-    component.id = testRowKey;
+    component.id = testId;
     component.isInsert = false;
     mockDevKitService.deleteById.and.returnValue(of({}));
 
@@ -269,20 +269,20 @@ describe('UpsertKitComponent', () => {
     component.onDelete();
 
     // Assert
-    expect(mockDevKitService.deleteById).toHaveBeenCalledWith(testRowKey);
+    expect(mockDevKitService.deleteById).toHaveBeenCalledWith(testId);
     expect(mockRouter.navigate).toHaveBeenCalledWith(['/substances']);
   });
 
   it('should handle delete error', () => {
     // Arrange
-    const testid = 'test-key';
+    const testId = 'test-key';
     mockActivatedRoute.snapshot.paramMap.get.and.returnValue(null);
     fixture = TestBed.createComponent(UpsertKitComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
     
     // Set up for edit mode
-    component.id = testRowKey;
+    component.id = testId;
     component.isInsert = false;
     mockDevKitService.deleteById.and.returnValue(throwError(() => 'Delete error'));
 
@@ -290,7 +290,7 @@ describe('UpsertKitComponent', () => {
     component.onDelete();
 
     // Assert
-    expect(mockDevKitService.deleteById).toHaveBeenCalledWith(testRowKey);
+    expect(mockDevKitService.deleteById).toHaveBeenCalledWith(testId);
     expect(component.errorMessage).toBe('An unexpected error occurred. Please try again.');
     expect(mockRouter.navigate).not.toHaveBeenCalled();
   });

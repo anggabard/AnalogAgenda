@@ -106,10 +106,10 @@ describe('SubstancesComponent', () => {
     const id = 'test-row-key';
 
     // Act
-    component.onKitSelected(rowKey);
+    component.onKitSelected(id);
 
     // Assert
-    expect(mockRouter.navigate).toHaveBeenCalledWith(['/substances/' + rowKey]);
+    expect(mockRouter.navigate).toHaveBeenCalledWith(['/substances/' + id]);
   });
 
 });

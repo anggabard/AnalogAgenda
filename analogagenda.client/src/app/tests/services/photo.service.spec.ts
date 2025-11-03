@@ -171,13 +171,13 @@ describe('PhotoService', () => {
       const mockBlob = new Blob(['fake-image-data'], { type: 'image/jpeg' });
 
       // Act
-      service.downloadPhoto(rowKey).subscribe(response => {
+      service.downloadPhoto(id).subscribe(response => {
         // Assert
         expect(response).toEqual(mockBlob);
       });
 
       // Assert HTTP call
-      const req = httpMock.expectOne(`${baseUrl}/download/${rowKey}`);
+      const req = httpMock.expectOne(`${baseUrl}/download/${id}`);
       expect(req.request.method).toBe('GET');
       expect(req.request.responseType).toBe('blob');
       req.flush(mockBlob);
@@ -188,7 +188,7 @@ describe('PhotoService', () => {
       const id = 'invalid-photo-key';
 
       // Act
-      service.downloadPhoto(rowKey).subscribe({
+      service.downloadPhoto(id).subscribe({
         next: () => fail('Should have failed'),
         error: (error) => {
           // Assert
@@ -197,7 +197,7 @@ describe('PhotoService', () => {
       });
 
       // Assert HTTP call
-      const req = httpMock.expectOne(`${baseUrl}/download/${rowKey}`);
+      const req = httpMock.expectOne(`${baseUrl}/download/${id}`);
       req.flush(null, { status: 404, statusText: 'Not Found' });
     });
   });
@@ -246,13 +246,13 @@ describe('PhotoService', () => {
       const id = 'test-photo-key';
 
       // Act
-      service.deletePhoto(rowKey).subscribe(response => {
+      service.deletePhoto(id).subscribe(response => {
         // Assert
         expect(response).toBeDefined();
       });
 
       // Assert HTTP call
-      const req = httpMock.expectOne(`${baseUrl}/${rowKey}`);
+      const req = httpMock.expectOne(`${baseUrl}/${id}`);
       expect(req.request.method).toBe('DELETE');
       req.flush({});
     });
@@ -262,7 +262,7 @@ describe('PhotoService', () => {
       const id = 'invalid-photo-key';
 
       // Act
-      service.deletePhoto(rowKey).subscribe({
+      service.deletePhoto(id).subscribe({
         next: () => fail('Should have failed'),
         error: (error) => {
           // Assert
@@ -271,7 +271,7 @@ describe('PhotoService', () => {
       });
 
       // Assert HTTP call
-      const req = httpMock.expectOne(`${baseUrl}/${rowKey}`);
+      const req = httpMock.expectOne(`${baseUrl}/${id}`);
       req.flush('Photo not found', { status: 404, statusText: 'Not Found' });
     });
   });
@@ -279,7 +279,7 @@ describe('PhotoService', () => {
   // Helper function to create mock photos
   function createMockPhoto(id: string, filmId: string, index: number): PhotoDto {
     return {
-      rowKey,
+      id,
       filmId,
       index,
       imageUrl: `test-image-url-${index}`,

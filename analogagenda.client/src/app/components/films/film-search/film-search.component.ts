@@ -22,8 +22,8 @@ export interface SearchParams {
   type?: string;
   numberOfExposures?: number;
   purchasedBy?: string;
-  developedWithDevKitid?: string;
-  developedInSessionid?: string;
+  developedWithDevKitId?: string;
+  developedInSessionId?: string;
 }
 
 @Component({

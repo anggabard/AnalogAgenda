@@ -208,9 +208,9 @@ describe('UpsertSessionComponent - Drag Drop Bug Regression Tests', () => {
       const film1 = createMockFilm('film-1', 'Film 1');
       const film2 = createMockFilm('film-2', 'Film 2');
 
-      expect(component.trackByFilmRowKey(0, film1)).toBe('film-1');
-      expect(component.trackByFilmRowKey(1, film2)).toBe('film-2');
-      expect(component.trackByFilmRowKey(0, film1)).not.toBe(component.trackByFilmRowKey(1, film2));
+      expect(component.trackByfilmId(0, film1)).toBe('film-1');
+      expect(component.trackByfilmId(1, film2)).toBe('film-2');
+      expect(component.trackByfilmId(0, film1)).not.toBe(component.trackByfilmId(1, film2));
     });
 
     it('should return unique identifiers for dev kits', () => {
@@ -303,7 +303,7 @@ describe('UpsertSessionComponent - Drag Drop Bug Regression Tests', () => {
   // Helper functions for creating test data
   function createMockFilm(id: string, name: string): FilmDto {
     return {
-      rowKey,
+      id,
       name,
       iso: '400',
       type: FilmType.ColorNegative,
@@ -314,13 +314,13 @@ describe('UpsertSessionComponent - Drag Drop Bug Regression Tests', () => {
       imageUrl: `${name.toLowerCase().replace(' ', '')}.jpg`,
       description: `Test ${name}`,
       developed: true,
-      developedInSessionid: 'session-1'
+      developedInSessionId: 'session-1'
     };
   }
 
   function createMockDevKit(id: string, name: string): DevKitDto {
     return {
-      rowKey,
+      id,
       name,
       url: 'http://example.com',
       type: DevKitType.C41,

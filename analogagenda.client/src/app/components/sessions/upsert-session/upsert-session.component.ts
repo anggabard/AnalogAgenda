@@ -90,17 +90,17 @@ export class UpsertSessionComponent extends BaseUpsertComponent<SessionDto> impl
 
   protected getUpdateObservable(id: string, item: SessionDto): Observable<any> {
     const processedItem = this.processFormData();
-    return this.sessionService.update(rowKey, processedItem);
+    return this.sessionService.update(id, processedItem);
   }
 
   protected getDeleteObservable(id: string): Observable<any> {
-    return this.sessionService.deleteById(rowKey);
+    return this.sessionService.deleteById(id);
   }
 
   protected getItemObservable(id: string): Observable<SessionDto> {
     this.loading = true;
     return new Observable(observer => {
-      this.sessionService.getById(rowKey).subscribe({
+      this.sessionService.getById(id).subscribe({
         next: (session) => {
           // After getting the session, load devkits and films
           forkJoin({
@@ -114,11 +114,11 @@ export class UpsertSessionComponent extends BaseUpsertComponent<SessionDto> impl
               const filmToDevKitMapping = session.filmToDevKitMapping || {};
 
               // Initialize devkits with their assigned films based on the mapping
-              this.sessionDevKits = usedDevKitsRowKeys.map((devKitid: string) => {
+              this.sessionDevKits = usedDevKitsRowKeys.map((devKitId: string) => {
                 const devKit = data.allDevKits.find(dk => dk.id === devKitId);
-                const filmRowKeys = filmToDevKitMapping[devKitId] || [];
-                const assignedFilms = filmRowKeys
-                  .map(filmid => data.allFilms.find(f => f.id === filmRowKey))
+                const filmIds = filmToDevKitMapping[devKitId] || [];
+                const assignedFilms = filmIds
+                  .map(filmId => data.allFilms.find(f => f.id === filmId))
                   .filter(f => f !== undefined) as FilmDto[];
                 
                 return {
@@ -128,16 +128,16 @@ export class UpsertSessionComponent extends BaseUpsertComponent<SessionDto> impl
               }).filter((item: DevKitWithFilms) => item.devKit);
 
               // Unassigned films are those in the session but not in any devkit
-              const assignedFilmRowKeys = Object.values(filmToDevKitMapping).flat();
+              const assignedfilmIds = Object.values(filmToDevKitMapping).flat();
               
               // Get films that are in the session's developedFilmsList but not assigned to any DevKit
               const sessionFilmsWithoutDevKit = data.allFilms.filter(f => 
-                developedFilmsRowKeys.includes(f.id) && !assignedFilmRowKeys.includes(f.id)
+                developedFilmsRowKeys.includes(f.id) && !assignedfilmIds.includes(f.id)
               );
               
               // Get films that have this session assigned but no DevKit assigned
               const filmsWithSessionButNoDevKit = data.allFilms.filter(f => 
-                f.developedInSessionid === session.id && !f.developedWithDevKitId
+                f.developedInSessionId === session.id && !f.developedWithDevKitId
               );
               
               // Combine both lists and remove duplicates
@@ -182,7 +182,7 @@ export class UpsertSessionComponent extends BaseUpsertComponent<SessionDto> impl
     const formValue = this.form.value;
     
     // Build filmToDevKitMapping
-    const filmToDevKitMapping: { [devKitid: string]: string[] } = {};
+    const filmToDevKitMapping: { [devKitId: string]: string[] } = {};
     for (const devKitWithFilms of this.sessionDevKits) {
       filmToDevKitMapping[devKitWithFilms.devKit.id] = devKitWithFilms.assignedFilms.map(f => f.id);
     }
@@ -249,14 +249,14 @@ export class UpsertSessionComponent extends BaseUpsertComponent<SessionDto> impl
 
   private updateAvailableItems(allDevKits: DevKitDto[], allFilms: FilmDto[]): void {
     const useddevKitIds = this.sessionDevKits.map(sdk => sdk.devKit.id);
-    const sessionFilmRowKeys = [
+    const sessionfilmIds = [
       ...this.unassignedFilms.map(f => f.id),
       ...this.sessionDevKits.flatMap(sdk => sdk.assignedFilms.map(f => f.id))
     ];
 
     this.availableDevKits = allDevKits.filter(dk => !useddevKitIds.includes(dk.id));
     this.availableUnassignedFilms = allFilms.filter(f => 
-      !sessionFilmRowKeys.includes(f.id) && 
+      !sessionfilmIds.includes(f.id) && 
       f.developedInSessionId !== this.id && // Don't show films already assigned to this session
       !f.developed // Only show NOT developed films
     );
@@ -321,7 +321,7 @@ export class UpsertSessionComponent extends BaseUpsertComponent<SessionDto> impl
     }
   }
 
-  removeDevKitFromSession(devKitid: string): void {
+  removeDevKitFromSession(devKitId: string): void {
     const devKitIndex = this.sessionDevKits.findIndex(sdk => sdk.devKit.id === devKitId);
     if (devKitIndex >= 0) {
       const devKitWithFilms = this.sessionDevKits[devKitIndex];
@@ -341,8 +341,8 @@ export class UpsertSessionComponent extends BaseUpsertComponent<SessionDto> impl
     }
   }
 
-  removeFilmFromSession(filmid: string): void {
-    const filmIndex = this.unassignedFilms.findIndex(f => f.id === filmRowKey);
+  removeFilmFromSession(filmId: string): void {
+    const filmIndex = this.unassignedFilms.findIndex(f => f.id === filmId);
     if (filmIndex >= 0) {
       const removedFilm = this.unassignedFilms.splice(filmIndex, 1)[0];
       this.availableUnassignedFilms.push(removedFilm);
@@ -351,7 +351,7 @@ export class UpsertSessionComponent extends BaseUpsertComponent<SessionDto> impl
     }
     
     for (const devKitWithFilms of this.sessionDevKits) {
-      const assignedIndex = devKitWithFilms.assignedFilms.findIndex(f => f.id === filmRowKey);
+      const assignedIndex = devKitWithFilms.assignedFilms.findIndex(f => f.id === filmId);
       if (assignedIndex >= 0) {
         const removedFilm = devKitWithFilms.assignedFilms.splice(assignedIndex, 1)[0];
         this.availableUnassignedFilms.push(removedFilm);
@@ -362,7 +362,7 @@ export class UpsertSessionComponent extends BaseUpsertComponent<SessionDto> impl
   }
 
   // Hover effects
-  onDevKitHover(devKitid: string, event: MouseEvent): void {
+  onDevKitHover(devKitId: string, event: MouseEvent): void {
     this.hoveredDevKit = devKitId;
     const button = event.target as HTMLElement;
     const rect = button.getBoundingClientRect();
@@ -422,7 +422,7 @@ export class UpsertSessionComponent extends BaseUpsertComponent<SessionDto> impl
       : this.availableDevKits.filter(dk => !dk.expired);
   }
 
-  toggleDevKitSelection(devKitid: string): void {
+  toggleDevKitSelection(devKitId: string): void {
     const index = this.selectedDevKitsForModal.indexOf(devKitId);
     if (index >= 0) {
       this.selectedDevKitsForModal.splice(index, 1);
@@ -431,26 +431,26 @@ export class UpsertSessionComponent extends BaseUpsertComponent<SessionDto> impl
     }
   }
 
-  toggleFilmSelection(filmid: string): void {
-    const index = this.selectedFilmsForModal.indexOf(filmRowKey);
+  toggleFilmSelection(filmId: string): void {
+    const index = this.selectedFilmsForModal.indexOf(filmId);
     if (index >= 0) {
       this.selectedFilmsForModal.splice(index, 1);
     } else {
-      this.selectedFilmsForModal.push(filmRowKey);
+      this.selectedFilmsForModal.push(filmId);
     }
   }
 
-  isDevKitSelectedForModal(devKitid: string): boolean {
+  isDevKitSelectedForModal(devKitId: string): boolean {
     return this.selectedDevKitsForModal.includes(devKitId);
   }
 
-  isFilmSelectedForModal(filmid: string): boolean {
-    return this.selectedFilmsForModal.includes(filmRowKey);
+  isFilmSelectedForModal(filmId: string): boolean {
+    return this.selectedFilmsForModal.includes(filmId);
   }
 
   addSelectedDevKits(): void {
     this.selectedDevKitsForModal.forEach(id => {
-      const devKit = this.availableDevKits.find(dk => dk.id === rowKey);
+      const devKit = this.availableDevKits.find(dk => dk.id === id);
       if (devKit) {
         this.addDevKitToSession(devKit);
       }
@@ -461,7 +461,7 @@ export class UpsertSessionComponent extends BaseUpsertComponent<SessionDto> impl
 
   addSelectedFilms(): void {
     this.selectedFilmsForModal.forEach(id => {
-      const film = this.availableUnassignedFilms.find(f => f.id === rowKey);
+      const film = this.availableUnassignedFilms.find(f => f.id === id);
       if (film) {
         this.addFilmToSession(film);
       }
@@ -519,7 +519,7 @@ export class UpsertSessionComponent extends BaseUpsertComponent<SessionDto> impl
   }
 
   // TrackBy functions for ngFor loops
-  trackByFilmRowKey(index: number, film: FilmDto): string {
+  trackByfilmId(index: number, film: FilmDto): string {
     return film.id;
   }
 

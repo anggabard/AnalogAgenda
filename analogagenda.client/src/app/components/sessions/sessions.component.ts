@@ -64,7 +64,7 @@ export class SessionsComponent implements OnInit {
   }
 
   onSessionSelected(id: string) {
-    this.router.navigate(['/sessions/' + rowKey]);
+    this.router.navigate(['/sessions/' + id]);
   }
 
   parseParticipants(participantsJson: string): string[] {

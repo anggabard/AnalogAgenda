@@ -59,7 +59,7 @@ public class FilmSearchTests
             new FilmEntity { Id = "3", Name = "Other Film", Type = EFilmType.ColorNegative, Developed = true, Iso = "400" }
         };
 
-        _mockTableService.Setup(x => x.GetTableEntriesAsync(It.IsAny<Expression<Func<FilmEntity, bool>>>()))
+        _mockTableService.Setup(x => x.GetAllAsync(It.IsAny<Expression<Func<FilmEntity, bool>>>()))
             .ReturnsAsync(films);
 
         // Act
@@ -92,7 +92,7 @@ public class FilmSearchTests
             new FilmEntity { Id = "3", Name = "My Film 2", PurchasedBy = EUsernameType.Angel, Developed = true, Iso = "400" }
         };
 
-        _mockTableService.Setup(x => x.GetTableEntriesAsync(It.IsAny<Expression<Func<FilmEntity, bool>>>()))
+        _mockTableService.Setup(x => x.GetAllAsync(It.IsAny<Expression<Func<FilmEntity, bool>>>()))
             .ReturnsAsync(films);
 
         // Act
@@ -123,7 +123,7 @@ public class FilmSearchTests
             new FilmEntity { Id = "2", Name = "Film 2", Developed = false, Iso = "200" }
         };
 
-        _mockTableService.Setup(x => x.GetTableEntriesAsync(It.IsAny<Expression<Func<FilmEntity, bool>>>()))
+        _mockTableService.Setup(x => x.GetAllAsync(It.IsAny<Expression<Func<FilmEntity, bool>>>()))
             .ReturnsAsync(films);
 
         // Act
@@ -153,7 +153,7 @@ public class FilmSearchTests
             new FilmEntity { Id = "2", Name = "Film 2", PurchasedBy = EUsernameType.Angel, Developed = false, DevelopedWithDevKitId = "devkit2", Iso = "200" }
         };
 
-        _mockTableService.Setup(x => x.GetTableEntriesAsync(It.IsAny<Expression<Func<FilmEntity, bool>>>()))
+        _mockTableService.Setup(x => x.GetAllAsync(It.IsAny<Expression<Func<FilmEntity, bool>>>()))
             .ReturnsAsync(films);
 
         // Act
@@ -184,7 +184,7 @@ public class FilmSearchTests
             new FilmEntity { Id = "2", Name = "Film 2", Developed = true, DevelopedInSessionId = "session2", Iso = "200" }
         };
 
-        _mockTableService.Setup(x => x.GetTableEntriesAsync(It.IsAny<Expression<Func<FilmEntity, bool>>>()))
+        _mockTableService.Setup(x => x.GetAllAsync(It.IsAny<Expression<Func<FilmEntity, bool>>>()))
             .ReturnsAsync(films);
 
         // Act
@@ -218,7 +218,7 @@ public class FilmSearchTests
             new FilmEntity { Id = "3", Name = "Other Film", Type = EFilmType.ColorNegative, PurchasedBy = EUsernameType.Cristiana, Developed = true, Iso = "400" }
         };
 
-        _mockTableService.Setup(x => x.GetTableEntriesAsync(It.IsAny<Expression<Func<FilmEntity, bool>>>()))
+        _mockTableService.Setup(x => x.GetAllAsync(It.IsAny<Expression<Func<FilmEntity, bool>>>()))
             .ReturnsAsync(films);
 
         // Act
@@ -252,7 +252,7 @@ public class FilmSearchTests
             new FilmEntity { Id = "5", Name = "Film 5", Developed = true, Iso = "400" }
         };
 
-        _mockTableService.Setup(x => x.GetTableEntriesAsync(It.IsAny<Expression<Func<FilmEntity, bool>>>()))
+        _mockTableService.Setup(x => x.GetAllAsync(It.IsAny<Expression<Func<FilmEntity, bool>>>()))
             .ReturnsAsync(films);
 
         // Act

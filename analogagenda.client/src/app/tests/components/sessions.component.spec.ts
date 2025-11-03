@@ -167,11 +167,11 @@ describe('SessionsComponent', () => {
   });
 
   it('should navigate to session detail on onSessionSelected', () => {
-    const sessionid = 'session-123';
+    const sessionId = 'session-123';
 
-    component.onSessionSelected(sessionRowKey);
+    component.onSessionSelected(sessionId);
 
-    expect(mockRouter.navigate).toHaveBeenCalledWith(['/sessions/' + sessionRowKey]);
+    expect(mockRouter.navigate).toHaveBeenCalledWith(['/sessions/' + sessionId]);
   });
 
   it('should parse participants JSON correctly', () => {

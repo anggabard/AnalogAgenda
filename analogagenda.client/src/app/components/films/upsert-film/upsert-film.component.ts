@@ -39,8 +39,8 @@ export class UpsertFilmComponent extends BaseUpsertComponent<FilmDto> implements
     this.form.get('developed')?.valueChanges.subscribe(developed => {
       if (!developed) {
         this.form.patchValue({
-          developedInSessionid: null,
-          developedWithDevKitid: null
+          developedInSessionId: null,
+          developedWithDevKitId: null
         });
       }
     });
@@ -82,8 +82,8 @@ export class UpsertFilmComponent extends BaseUpsertComponent<FilmDto> implements
   availableDevKits: DevKitDto[] = [];
   
   // Selected items
-  selectedSessionid: string | null = null;
-  selectedDevKitid: string | null = null;
+  selectedSessionId: string | null = null;
+  selectedDevKitId: string | null = null;
   
   // Success message
   successMessage: string | null = null;
@@ -125,8 +125,8 @@ export class UpsertFilmComponent extends BaseUpsertComponent<FilmDto> implements
       imageId: [''],
       description: [''],
       developed: [false, Validators.required],
-      developedInSessionid: [null],
-      developedWithDevKitid: [null],
+      developedInSessionId: [null],
+      developedWithDevKitId: [null],
       exposureDates: ['']
     });
   }
@@ -199,25 +199,25 @@ export class UpsertFilmComponent extends BaseUpsertComponent<FilmDto> implements
   protected getUpdateObservable(id: string, item: FilmDto): Observable<any> {
     // Check if film is being marked as not developed
     if (!item.developed) {
-      return this.handleFilmNotDeveloped(rowKey, item);
+      return this.handleFilmNotDeveloped(id, item);
     }
     
     // If both session and DevKit are assigned, handle both updates
     if (item.developedWithDevKitId && item.developedInSessionId) {
-      return this.updateFilmWithBothSessionAndDevKit(rowKey, item);
+      return this.updateFilmWithBothSessionAndDevKit(id, item);
     }
     
     // If a DevKit is assigned, we need to increment its filmsDeveloped count
     if (item.developedWithDevKitId) {
-      return this.updateFilmWithDevKitIncrement(rowKey, item);
+      return this.updateFilmWithDevKitIncrement(id, item);
     }
     
     // If a session is assigned, we need to update the session's developedFilmsList
     if (item.developedInSessionId) {
-      return this.updateFilmWithSessionUpdate(rowKey, item);
+      return this.updateFilmWithSessionUpdate(id, item);
     }
     
-    return this.filmService.update(rowKey, item);
+    return this.filmService.update(id, item);
   }
 
   private updateFilmWithDevKitIncrement(id: string, item: FilmDto): Observable<any> {
@@ -231,7 +231,7 @@ export class UpsertFilmComponent extends BaseUpsertComponent<FilmDto> implements
         
         // Update both the film and the DevKit
         return forkJoin({
-          filmUpdate: this.filmService.update(rowKey, item),
+          filmUpdate: this.filmService.update(id, item),
           devKitUpdate: this.devKitService.update(item.developedWithDevKitId!, updatedDevKit)
         });
       })
@@ -245,20 +245,20 @@ export class UpsertFilmComponent extends BaseUpsertComponent<FilmDto> implements
         const currentDevelopedFilms = session.developedFilmsList || [];
         
         // Add this film to the session's developedFilmsList if not already present
-        if (!currentDevelopedFilms.includes(rowKey)) {
+        if (!currentDevelopedFilms.includes(id)) {
           const updatedSession = {
             ...session,
-            developedFilmsList: [...currentDevelopedFilms, rowKey]
+            developedFilmsList: [...currentDevelopedFilms, id]
           };
           
           // Update both the film and the session
           return forkJoin({
-            filmUpdate: this.filmService.update(rowKey, item),
+            filmUpdate: this.filmService.update(id, item),
             sessionUpdate: this.sessionService.update(item.developedInSessionId!, updatedSession)
           });
         } else {
           // Film is already in the session, just update the film
-          return this.filmService.update(rowKey, item);
+          return this.filmService.update(id, item);
         }
       })
     );
@@ -278,14 +278,14 @@ export class UpsertFilmComponent extends BaseUpsertComponent<FilmDto> implements
         };
         
         // Add this film to the session's developedFilmsList if not already present
-        const updatedSession = !currentDevelopedFilms.includes(rowKey) ? {
+        const updatedSession = !currentDevelopedFilms.includes(id) ? {
           ...session,
-          developedFilmsList: [...currentDevelopedFilms, rowKey]
+          developedFilmsList: [...currentDevelopedFilms, id]
         } : session;
         
         // Update film, session, and DevKit
         const updates = [
-          this.filmService.update(rowKey, item),
+          this.filmService.update(id, item),
           this.devKitService.update(item.developedWithDevKitId!, updatedDevKit)
         ];
         
@@ -300,9 +300,9 @@ export class UpsertFilmComponent extends BaseUpsertComponent<FilmDto> implements
 
   private handleFilmNotDeveloped(id: string, item: FilmDto): Observable<any> {
     // Get the original film to check what associations need to be cleaned up
-    return this.filmService.getById(rowKey).pipe(
+    return this.filmService.getById(id).pipe(
       switchMap(originalFilm => {
-        const updates = [this.filmService.update(rowKey, item)];
+        const updates = [this.filmService.update(id, item)];
         
         // If the film was previously assigned to a session, remove it from the session's developedFilmsList
         if (originalFilm.developedInSessionId) {
@@ -310,7 +310,7 @@ export class UpsertFilmComponent extends BaseUpsertComponent<FilmDto> implements
             this.sessionService.getById(originalFilm.developedInSessionId).pipe(
               switchMap(session => {
                 const currentDevelopedFilms = session.developedFilmsList || [];
-                const updatedDevelopedFilms = currentDevelopedFilms.filter(filmid => filmRowKey !== rowKey);
+                const updatedDevelopedFilms = currentDevelopedFilms.filter(filmId => filmId !== id);
                 
                 const updatedSession = {
                   ...session,
@@ -345,11 +345,11 @@ export class UpsertFilmComponent extends BaseUpsertComponent<FilmDto> implements
   }
 
   protected getDeleteObservable(id: string): Observable<any> {
-    return this.filmService.deleteById(rowKey);
+    return this.filmService.deleteById(id);
   }
 
   protected getItemObservable(id: string): Observable<FilmDto> {
-    return this.filmService.getById(rowKey);
+    return this.filmService.getById(id);
   }
 
   protected getBaseRoute(): string {
@@ -423,23 +423,23 @@ export class UpsertFilmComponent extends BaseUpsertComponent<FilmDto> implements
     this.loadAvailableSessions();
     this.showSessionModal = true;
     // Pre-select current session if already assigned
-    this.selectedSessionid = this.form.get('developedInSessionId')?.value || null;
+    this.selectedSessionId = this.form.get('developedInSessionId')?.value || null;
   }
 
   closeSessionModal(): void {
     this.showSessionModal = false;
-    this.selectedSessionid = null;
+    this.selectedSessionId = null;
   }
 
-  selectSession(sessionid: string): void {
-    this.selectedSessionid = sessionRowKey;
+  selectSession(sessionId: string): void {
+    this.selectedSessionId = sessionId;
   }
 
   assignSession(): void {
-    if (this.selectedSessionRowKey) {
-      this.form.patchValue({ developedInSessionid: this.selectedSessionRowKey });
+    if (this.selectedSessionId) {
+      this.form.patchValue({ developedInSessionId: this.selectedSessionId });
       // Clear DevKit selection when session changes
-      this.form.patchValue({ developedWithDevKitid: null });
+      this.form.patchValue({ developedWithDevKitId: null });
       this.closeSessionModal();
       this.successMessage = 'Session assigned! Changes will be saved when you click Save.';
       setTimeout(() => this.successMessage = null, 3000);
@@ -455,11 +455,11 @@ export class UpsertFilmComponent extends BaseUpsertComponent<FilmDto> implements
     this.loadAvailableDevKits();
     this.showDevKitModal = true;
     // Pre-select current DevKit if already assigned
-    this.selectedDevKitid = this.form.get('developedWithDevKitId')?.value || null;
+    this.selectedDevKitId = this.form.get('developedWithDevKitId')?.value || null;
     
     // If current DevKit is expired, show expired DevKits by default
-    if (this.selecteddevKitId) {
-      const currentDevKit = this.availableDevKits.find(dk => dk.id === this.selecteddevKitId);
+    if (this.selectedDevKitId) {
+      const currentDevKit = this.availableDevKits.find(dk => dk.id === this.selectedDevKitId);
       if (currentDevKit?.expired) {
         this.showExpiredDevKits = true;
       }
@@ -468,18 +468,18 @@ export class UpsertFilmComponent extends BaseUpsertComponent<FilmDto> implements
 
   closeDevKitModal(): void {
     this.showDevKitModal = false;
-    this.selectedDevKitid = null;
+    this.selectedDevKitId = null;
     // Reset expired checkbox when closing modal
     this.showExpiredDevKits = false;
   }
 
-  selectDevKit(devKitid: string): void {
-    this.selectedDevKitid = devKitId;
+  selectDevKit(devKitId: string): void {
+    this.selectedDevKitId = devKitId;
   }
 
   assignDevKit(): void {
-    if (this.selecteddevKitId) {
-      this.form.patchValue({ developedWithDevKitid: this.selecteddevKitId });
+    if (this.selectedDevKitId) {
+      this.form.patchValue({ developedWithDevKitId: this.selectedDevKitId });
       this.closeDevKitModal();
       this.successMessage = 'DevKit assigned! Changes will be saved when you click Save.';
       setTimeout(() => this.successMessage = null, 3000);
@@ -501,11 +501,11 @@ export class UpsertFilmComponent extends BaseUpsertComponent<FilmDto> implements
 
   private loadAvailableDevKits(): void {
     // If a session is selected, we need to get DevKits from that session
-    const selectedSessionid = this.form.get('developedInSessionId')?.value;
+    const selectedSessionId = this.form.get('developedInSessionId')?.value;
     
-    if (selectedSessionRowKey) {
+    if (selectedSessionId) {
       // Load DevKits from the specific session
-      this.sessionService.getById(selectedSessionRowKey).subscribe({
+      this.sessionService.getById(selectedSessionId).subscribe({
         next: (session) => {
           const useddevKitIds = session.usedSubstancesList || [];
           
@@ -561,15 +561,15 @@ export class UpsertFilmComponent extends BaseUpsertComponent<FilmDto> implements
 
   // Method to check if current DevKit selection is still valid after session change
   private validateCurrentDevKitSelection(): void {
-    const currentDevKitid = this.form.get('developedWithDevKitId')?.value;
-    const currentSessionid = this.form.get('developedInSessionId')?.value;
+    const currentDevKitId = this.form.get('developedWithDevKitId')?.value;
+    const currentSessionId = this.form.get('developedInSessionId')?.value;
     
-    if (currentdevKitId && currentSessionRowKey) {
+    if (currentDevKitId && currentSessionId) {
       // Check if the current DevKit is still available in the selected session
-      const isDevKitInSession = this.availableDevKits.some(devKit => devKit.id === currentdevKitId);
+      const isDevKitInSession = this.availableDevKits.some(devKit => devKit.id === currentDevKitId);
       if (!isDevKitInSession) {
         // Clear the DevKit selection if it's not available in the current session
-        this.form.patchValue({ developedWithDevKitid: null });
+        this.form.patchValue({ developedWithDevKitId: null });
         this.successMessage = 'DevKit selection cleared because it\'s not available in the selected session.';
         setTimeout(() => this.successMessage = null, 3000);
       }

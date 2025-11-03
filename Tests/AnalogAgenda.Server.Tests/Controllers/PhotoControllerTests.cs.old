@@ -66,10 +66,10 @@ public class PhotoControllerTests
             ImageBase64 = "data:image/jpeg;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChAI9jU77oAAAAABJRU5ErkJggg=="
         };
 
-        _mockTableService.Setup(x => x.GetTableEntryIfExistsAsync<FilmEntity>(filmId))
+        _mockTableService.Setup(x => x.GetByIdAsync<FilmEntity>(filmId))
                         .ReturnsAsync(filmEntity);
         
-        _mockTableService.Setup(x => x.GetTableEntriesAsync<PhotoEntity>(It.IsAny<System.Linq.Expressions.Expression<Func<PhotoEntity, bool>>>()))
+        _mockTableService.Setup(x => x.GetAllAsync<PhotoEntity>(It.IsAny<System.Linq.Expressions.Expression<Func<PhotoEntity, bool>>>()))
                         .ReturnsAsync(new List<PhotoEntity>());
 
         // Act
@@ -107,7 +107,7 @@ public class PhotoControllerTests
             ImageBase64 = "data:image/jpeg;base64,validbase64"
         };
 
-        _mockTableService.Setup(x => x.GetTableEntryIfExistsAsync<FilmEntity>(filmId))
+        _mockTableService.Setup(x => x.GetByIdAsync<FilmEntity>(filmId))
                         .ReturnsAsync((FilmEntity?)null);
 
         // Act
@@ -133,10 +133,10 @@ public class PhotoControllerTests
             }
         };
 
-        _mockTableService.Setup(x => x.GetTableEntryIfExistsAsync<FilmEntity>(filmId))
+        _mockTableService.Setup(x => x.GetByIdAsync<FilmEntity>(filmId))
                         .ReturnsAsync(filmEntity);
         
-        _mockTableService.Setup(x => x.GetTableEntriesAsync<PhotoEntity>(It.IsAny<System.Linq.Expressions.Expression<Func<PhotoEntity, bool>>>()))
+        _mockTableService.Setup(x => x.GetAllAsync<PhotoEntity>(It.IsAny<System.Linq.Expressions.Expression<Func<PhotoEntity, bool>>>()))
                         .ReturnsAsync(new List<PhotoEntity>());
 
         // Act
@@ -196,7 +196,7 @@ public class PhotoControllerTests
             new PhotoEntity { FilmId = filmId, Index = 3, Id = "photo3", ImageId = Guid.NewGuid() }
         };
 
-        _mockTableService.Setup(x => x.GetTableEntriesAsync<PhotoEntity>(It.IsAny<System.Linq.Expressions.Expression<Func<PhotoEntity, bool>>>()))
+        _mockTableService.Setup(x => x.GetAllAsync<PhotoEntity>(It.IsAny<System.Linq.Expressions.Expression<Func<PhotoEntity, bool>>>()))
                         .ReturnsAsync(photoEntities);
 
         // Act
@@ -219,7 +219,7 @@ public class PhotoControllerTests
         // Arrange
         var filmId = "test-film-id";
         
-        _mockTableService.Setup(x => x.GetTableEntriesAsync<PhotoEntity>(It.IsAny<System.Linq.Expressions.Expression<Func<PhotoEntity, bool>>>()))
+        _mockTableService.Setup(x => x.GetAllAsync<PhotoEntity>(It.IsAny<System.Linq.Expressions.Expression<Func<PhotoEntity, bool>>>()))
                         .ReturnsAsync(new List<PhotoEntity>());
 
         // Act
@@ -240,10 +240,10 @@ public class PhotoControllerTests
         var photoEntity = new PhotoEntity { Id = id, FilmId = filmId, Index = 1, ImageId = Guid.NewGuid() };
         var filmEntity = new FilmEntity { Id = filmId, Name = "Test Film", Iso = "400" };
 
-        _mockTableService.Setup(x => x.GetTableEntryIfExistsAsync<PhotoEntity>(id))
+        _mockTableService.Setup(x => x.GetByIdAsync<PhotoEntity>(id))
                         .ReturnsAsync(photoEntity);
         
-        _mockTableService.Setup(x => x.GetTableEntryIfExistsAsync<FilmEntity>(filmId))
+        _mockTableService.Setup(x => x.GetByIdAsync<FilmEntity>(filmId))
                         .ReturnsAsync(filmEntity);
 
         // Mock BlobImageHelper static method call result
@@ -264,7 +264,7 @@ public class PhotoControllerTests
         // Arrange
         var id = "non-existent-photo";
 
-        _mockTableService.Setup(x => x.GetTableEntryIfExistsAsync<PhotoEntity>(id))
+        _mockTableService.Setup(x => x.GetByIdAsync<PhotoEntity>(id))
                         .ReturnsAsync((PhotoEntity?)null);
 
         // Act
@@ -286,10 +286,10 @@ public class PhotoControllerTests
             new PhotoEntity { FilmId = filmId, Index = 2, Id = "photo2", ImageId = Guid.NewGuid() }
         };
 
-        _mockTableService.Setup(x => x.GetTableEntryIfExistsAsync<FilmEntity>(filmId))
+        _mockTableService.Setup(x => x.GetByIdAsync<FilmEntity>(filmId))
                         .ReturnsAsync(filmEntity);
         
-        _mockTableService.Setup(x => x.GetTableEntriesAsync<PhotoEntity>(It.IsAny<System.Linq.Expressions.Expression<Func<PhotoEntity, bool>>>()))
+        _mockTableService.Setup(x => x.GetAllAsync<PhotoEntity>(It.IsAny<System.Linq.Expressions.Expression<Func<PhotoEntity, bool>>>()))
                         .ReturnsAsync(photoEntities);
 
         // Mock blob exists check
@@ -309,7 +309,7 @@ public class PhotoControllerTests
         // Arrange
         var filmId = "non-existent-film";
 
-        _mockTableService.Setup(x => x.GetTableEntryIfExistsAsync<FilmEntity>(filmId))
+        _mockTableService.Setup(x => x.GetByIdAsync<FilmEntity>(filmId))
                         .ReturnsAsync((FilmEntity?)null);
 
         // Act
@@ -326,10 +326,10 @@ public class PhotoControllerTests
         var filmId = "test-film-id";
         var filmEntity = new FilmEntity { Id = filmId, Name = "Test Film", Iso = "400" };
 
-        _mockTableService.Setup(x => x.GetTableEntryIfExistsAsync<FilmEntity>(filmId))
+        _mockTableService.Setup(x => x.GetByIdAsync<FilmEntity>(filmId))
                         .ReturnsAsync(filmEntity);
         
-        _mockTableService.Setup(x => x.GetTableEntriesAsync<PhotoEntity>(It.IsAny<System.Linq.Expressions.Expression<Func<PhotoEntity, bool>>>()))
+        _mockTableService.Setup(x => x.GetAllAsync<PhotoEntity>(It.IsAny<System.Linq.Expressions.Expression<Func<PhotoEntity, bool>>>()))
                         .ReturnsAsync(new List<PhotoEntity>());
 
         // Act
@@ -346,7 +346,7 @@ public class PhotoControllerTests
         var id = "test-photo-key";
         var photoEntity = new PhotoEntity { Id = id, FilmId = "test-film", Index = 1, ImageId = Guid.NewGuid() };
 
-        _mockTableService.Setup(x => x.GetTableEntryIfExistsAsync<PhotoEntity>(id))
+        _mockTableService.Setup(x => x.GetByIdAsync<PhotoEntity>(id))
                         .ReturnsAsync(photoEntity);
 
         // Act
@@ -362,7 +362,7 @@ public class PhotoControllerTests
         // Arrange
         var id = "non-existent-photo";
 
-        _mockTableService.Setup(x => x.GetTableEntryIfExistsAsync<PhotoEntity>(id))
+        _mockTableService.Setup(x => x.GetByIdAsync<PhotoEntity>(id))
                         .ReturnsAsync((PhotoEntity?)null);
 
         // Act
@@ -391,10 +391,10 @@ public class PhotoControllerTests
             ImageBase64 = "data:image/jpeg;base64,validbase64data"
         };
 
-        _mockTableService.Setup(x => x.GetTableEntryIfExistsAsync<FilmEntity>(filmId))
+        _mockTableService.Setup(x => x.GetByIdAsync<FilmEntity>(filmId))
                         .ReturnsAsync(filmEntity);
         
-        _mockTableService.Setup(x => x.GetTableEntriesAsync<PhotoEntity>(It.IsAny<System.Linq.Expressions.Expression<Func<PhotoEntity, bool>>>()))
+        _mockTableService.Setup(x => x.GetAllAsync<PhotoEntity>(It.IsAny<System.Linq.Expressions.Expression<Func<PhotoEntity, bool>>>()))
                         .ReturnsAsync(existingPhotos);
 
         // Act - This will fail because we can't mock the static BlobImageHelper methods
@@ -427,10 +427,10 @@ public class PhotoControllerTests
             }
         };
 
-        _mockTableService.Setup(x => x.GetTableEntryIfExistsAsync<FilmEntity>(filmId))
+        _mockTableService.Setup(x => x.GetByIdAsync<FilmEntity>(filmId))
                         .ReturnsAsync(filmEntity);
         
-        _mockTableService.Setup(x => x.GetTableEntriesAsync<PhotoEntity>(It.IsAny<System.Linq.Expressions.Expression<Func<PhotoEntity, bool>>>()))
+        _mockTableService.Setup(x => x.GetAllAsync<PhotoEntity>(It.IsAny<System.Linq.Expressions.Expression<Func<PhotoEntity, bool>>>()))
                         .ReturnsAsync(existingPhotos);
 
         // Act

@@ -206,10 +206,10 @@ describe('FilmsComponent', () => {
     const id = 'test-row-key';
 
     // Act
-    component.onFilmSelected(rowKey);
+    component.onFilmSelected(id);
 
     // Assert
-    expect(mockRouter.navigate).toHaveBeenCalledWith(['/films/' + rowKey]);
+    expect(mockRouter.navigate).toHaveBeenCalledWith(['/films/' + id]);
   });
 
   it('should set active tab correctly', () => {
@@ -258,7 +258,7 @@ describe('FilmsComponent', () => {
     purchasedOn: string = '2023-01-01'
   ): FilmDto {
     return {
-      rowKey,
+      id,
       name,
       iso: '400',
       type: FilmType.ColorNegative,

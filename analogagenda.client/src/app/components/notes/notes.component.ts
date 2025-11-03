@@ -48,7 +48,7 @@ export class NotesComponent extends BasePaginatedListComponent<NoteDto> {
   }
 
   onNoteSelected(id: string): void {
-    this.router.navigate(['/notes', rowKey]);
+    this.router.navigate(['/notes', id]);
   }
 
   onNewNoteClick(): void {

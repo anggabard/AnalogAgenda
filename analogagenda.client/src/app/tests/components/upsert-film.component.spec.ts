@@ -107,16 +107,16 @@ describe('UpsertFilmComponent', () => {
     expect(component.showDevKitModal).toBeFalsy();
   });
 
-  it('should set selectedSessionRowKey when selectSession is called', () => {
-    const sessionid = 'test-session-key';
-    component.selectSession(sessionRowKey);
-    expect(component.selectedSessionRowKey).toBe(sessionRowKey);
+  it('should set selectedSessionId when selectSession is called', () => {
+    const sessionId = 'test-session-key';
+    component.selectSession(sessionId);
+    expect(component.selectedSessionId).toBe(sessionId);
   });
 
-  it('should set selecteddevKitId when selectDevKit is called', () => {
-    const devKitid = 'test-devkit-key';
+  it('should set selectedDevKitId when selectDevKit is called', () => {
+    const devKitId = 'test-devkit-key';
     component.selectDevKit(devKitId);
-    expect(component.selecteddevKitId).toBe(devKitId);
+    expect(component.selectedDevKitId).toBe(devKitId);
   });
 
   it('should filter expired devkits when showExpiredDevKits is false', () => {
@@ -190,7 +190,7 @@ describe('UpsertFilmComponent', () => {
     // Mock the DevKit service to return our test data
     mockDevKitService.getAll.and.returnValue(of(mockDevKits));
     
-    component.form.patchValue({ developedWithDevKitid: 'devkit-1' });
+    component.form.patchValue({ developedWithDevKitId: 'devkit-1' });
     component.showExpiredDevKits = false;
 
     component.onAssignDevKit();
@@ -205,7 +205,7 @@ describe('UpsertFilmComponent', () => {
       { id: 'devkit-2', name: 'Other DevKit', url: '', type: DevKitType.BW, purchasedBy: UsernameType.Tudor, purchasedOn: '', mixedOn: '', validForWeeks: 4, validForFilms: 10, filmsDeveloped: 0, description: '', expired: true, imageBase64: '', imageUrl: '' }
     ];
     component.availableDevKits = mockDevKits;
-    component.form.patchValue({ developedWithDevKitid: 'devkit-1' });
+    component.form.patchValue({ developedWithDevKitId: 'devkit-1' });
     component.showExpiredDevKits = false;
 
     component.onAssignDevKit();
@@ -532,7 +532,7 @@ describe('UpsertFilmComponent', () => {
 
   describe('Bulk Upload Functionality', () => {
     beforeEach(() => {
-      // Set up for insert mode (no rowKey)
+      // Set up for insert mode (no id)
       mockActivatedRoute.snapshot.paramMap.get.and.returnValue(null);
       
       // Set up mock return values for services
@@ -701,7 +701,7 @@ describe('UpsertFilmComponent', () => {
 
   describe('Exposure Dates Functionality', () => {
     beforeEach(() => {
-      // Set up for insert mode (no rowKey)
+      // Set up for insert mode (no id)
       mockActivatedRoute.snapshot.paramMap.get.and.returnValue(null);
       
       // Set up mock return values for services

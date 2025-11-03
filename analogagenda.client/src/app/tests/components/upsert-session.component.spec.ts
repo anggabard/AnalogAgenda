@@ -68,7 +68,7 @@ describe('UpsertSessionComponent', () => {
     expect(component).toBeTruthy();
   });
 
-  it('should initialize in insert mode when no rowKey is provided', () => {
+  it('should initialize in insert mode when no id is provided', () => {
     mockActivatedRoute.snapshot.paramMap.get.and.returnValue(null);
     component.ngOnInit();
 
@@ -79,7 +79,7 @@ describe('UpsertSessionComponent', () => {
 
   it('should toggle devkit selection for modal', () => {
     component.selectedDevKitsForModal = [];
-    const devKitid = 'devkit-1';
+    const devKitId = 'devkit-1';
 
     component.toggleDevKitSelection(devKitId);
 
@@ -92,15 +92,15 @@ describe('UpsertSessionComponent', () => {
 
   it('should toggle film selection for modal', () => {
     component.selectedFilmsForModal = [];
-    const filmid = 'film-1';
+    const filmId = 'film-1';
 
-    component.toggleFilmSelection(filmRowKey);
+    component.toggleFilmSelection(filmId);
 
-    expect(component.selectedFilmsForModal).toContain(filmRowKey);
+    expect(component.selectedFilmsForModal).toContain(filmId);
 
-    component.toggleFilmSelection(filmRowKey);
+    component.toggleFilmSelection(filmId);
 
-    expect(component.selectedFilmsForModal).not.toContain(filmRowKey);
+    expect(component.selectedFilmsForModal).not.toContain(filmId);
   });
 
   it('should check if devkit is selected for modal', () => {
@@ -257,7 +257,7 @@ describe('UpsertSessionComponent', () => {
         imageUrl: 'film1.jpg',
         description: 'Test film 1',
         developed: true,
-        developedInSessionid: 'session-1'
+        developedInSessionId: 'session-1'
       };
 
       mockFilm2 = {
@@ -272,7 +272,7 @@ describe('UpsertSessionComponent', () => {
         imageUrl: 'film2.jpg',
         description: 'Test film 2',
         developed: true,
-        developedInSessionid: 'session-1'
+        developedInSessionId: 'session-1'
       };
 
       mockFilm3 = {
@@ -287,7 +287,7 @@ describe('UpsertSessionComponent', () => {
         imageUrl: 'film3.jpg',
         description: 'Test film 3',
         developed: true,
-        developedInSessionid: 'session-1'
+        developedInSessionId: 'session-1'
       };
 
       mockDevKit = {
@@ -449,12 +449,12 @@ describe('UpsertSessionComponent', () => {
     });
 
     describe('TrackBy Functions', () => {
-      it('should return correct rowKey for trackByFilmRowKey', () => {
-        const result = component.trackByFilmRowKey(0, mockFilm1);
+      it('should return correct id for trackByfilmId', () => {
+        const result = component.trackByfilmId(0, mockFilm1);
         expect(result).toBe('film-1');
       });
 
-      it('should return correct rowKey for trackBydevKitId', () => {
+      it('should return correct id for trackBydevKitId', () => {
         const devKitWithFilms = {
           devKit: mockDevKit,
           assignedFilms: [mockFilm1]
@@ -463,7 +463,7 @@ describe('UpsertSessionComponent', () => {
         expect(result).toBe('devkit-1');
       });
 
-      it('should return correct rowKey for trackByDevKitDtoRowKey', () => {
+      it('should return correct id for trackByDevKitDtoRowKey', () => {
         const result = component.trackByDevKitDtoRowKey(0, mockDevKit);
         expect(result).toBe('devkit-1');
       });

@@ -59,7 +59,7 @@ public class AccountControllerTests
             Password = "password123"
         };
 
-        _mockTableService.Setup(x => x.GetTableEntriesAsync(It.IsAny<System.Linq.Expressions.Expression<Func<UserEntity, bool>>>()))
+        _mockTableService.Setup(x => x.GetAllAsync(It.IsAny<System.Linq.Expressions.Expression<Func<UserEntity, bool>>>()))
             .ReturnsAsync(new List<UserEntity>());
 
         // Act
@@ -88,7 +88,7 @@ public class AccountControllerTests
             Name = "Test User"
         };
 
-        _mockTableService.Setup(x => x.GetTableEntriesAsync(It.IsAny<System.Linq.Expressions.Expression<Func<UserEntity, bool>>>()))
+        _mockTableService.Setup(x => x.GetAllAsync(It.IsAny<System.Linq.Expressions.Expression<Func<UserEntity, bool>>>()))
             .ReturnsAsync([user]);
 
         // Act

@@ -6,7 +6,7 @@ namespace AnalogAgenda.Server.Tests.Entities;
 public class UsedFilmThumbnailEntityTests
 {
     [Fact]
-    public void Constructor_SetsCorrectTableName()
+    public void Constructor_CreatesEntitySuccessfully()
     {
         // Act
         var entity = new UsedFilmThumbnailEntity
@@ -15,8 +15,9 @@ public class UsedFilmThumbnailEntityTests
             ImageId = Guid.NewGuid()
         };
 
-        // Assert
-        Assert.Equal(TableName.UsedFilmThumbnails, entity.GetTable());
+        // Assert - Entity is created successfully with required properties
+        Assert.NotNull(entity);
+        Assert.Equal("Test Film", entity.FilmName);
     }
 
     [Fact]

@@ -21,13 +21,13 @@ export class NoteTableComponent implements OnInit {
   isPreviewModalOpen: boolean = false;
   isDeleteModalOpen: boolean = false;
 
-  noteid: string | null = null;
+  noteId: string | null = null;
   originalNote: NoteDto | null = null; // Used for discard
 
   constructor(private route: ActivatedRoute) { }
 
   ngOnInit(): void {
-    this.noteid = this.route.snapshot.paramMap.get('id');
+    this.noteId = this.route.snapshot.paramMap.get('id');
 
     if (this.noteId) {
       // VIEW / EDIT MODE - Load from backend
@@ -41,7 +41,7 @@ export class NoteTableComponent implements OnInit {
 
   /** Simulated backend load */
   loadNoteFromBackend(id: string) {
-    this.notesService.getById(rowKey).subscribe({
+    this.notesService.getById(id).subscribe({
       next: (note: NoteDto) => {
         this.note = note;
         this.originalNote = JSON.parse(JSON.stringify(this.note));
@@ -77,7 +77,7 @@ export class NoteTableComponent implements OnInit {
       sideNote: '',
       imageBase64: '',
       imageUrl: '',
-      entries: [{ id: '', noteid: '', time: 0, process: '', film: '', details: '' }]
+      entries: [{ id: '', noteId: '', time: 0, process: '', film: '', details: '' }]
     }));
   }
 
@@ -88,7 +88,7 @@ export class NoteTableComponent implements OnInit {
 
     if (this.isNewNote) {
       this.notesService.addNewNote(this.note).subscribe({
-        next: (noteid: string) => {
+        next: (noteId: string) => {
           this.router.navigate(['/notes/' + noteId]);
         },
         error: (err: any) => {
@@ -115,7 +115,7 @@ export class NoteTableComponent implements OnInit {
 
     this.note.entries.push({
       id: '',
-      noteid: '',
+      noteId: '',
       time: newTime,
       process: '',
       film: '',

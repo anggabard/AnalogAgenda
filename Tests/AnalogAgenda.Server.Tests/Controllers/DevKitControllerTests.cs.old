@@ -102,7 +102,7 @@ public class DevKitControllerTests
             }
         };
 
-        _mockTableService.Setup(x => x.GetTableEntriesAsync<DevKitEntity>())
+        _mockTableService.Setup(x => x.GetAllAsync<DevKitEntity>())
                         .ReturnsAsync(devKitEntities);
                         
         var pagedResponse = new PagedResponseDto<DevKitEntity>
@@ -113,7 +113,7 @@ public class DevKitControllerTests
             CurrentPage = 1
         };
         
-        _mockTableService.Setup(x => x.GetTableEntriesPagedAsync<DevKitEntity>(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<Func<IEnumerable<DevKitEntity>, IOrderedEnumerable<DevKitEntity>>?>()))
+        _mockTableService.Setup(x => x.GetPagedAsync<DevKitEntity>(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<Func<IEnumerable<DevKitEntity>, IOrderedEnumerable<DevKitEntity>>?>()))
                         .ReturnsAsync(pagedResponse);
 
         // Act
@@ -140,7 +140,7 @@ public class DevKitControllerTests
             Id = id
         };
 
-        _mockTableService.Setup(x => x.GetTableEntryIfExistsAsync<DevKitEntity>(id))
+        _mockTableService.Setup(x => x.GetByIdAsync<DevKitEntity>(id))
                         .ReturnsAsync(devKitEntity);
 
         // Act
@@ -158,7 +158,7 @@ public class DevKitControllerTests
         // Arrange
         var id = "non-existing-key";
 
-        _mockTableService.Setup(x => x.GetTableEntryIfExistsAsync<DevKitEntity>(id))
+        _mockTableService.Setup(x => x.GetByIdAsync<DevKitEntity>(id))
                         .ReturnsAsync((DevKitEntity?)null);
 
         // Act
@@ -195,7 +195,7 @@ public class DevKitControllerTests
             PurchasedOn = DateOnly.FromDateTime(DateTime.UtcNow)
         };
 
-        _mockTableService.Setup(x => x.GetTableEntryIfExistsAsync<DevKitEntity>(id))
+        _mockTableService.Setup(x => x.GetByIdAsync<DevKitEntity>(id))
                         .ReturnsAsync(existingEntity);
 
         _mockTableClient.Setup(x => x.UpdateEntityAsync(
@@ -245,7 +245,7 @@ public class DevKitControllerTests
             PurchasedOn = DateOnly.FromDateTime(DateTime.UtcNow)
         };
 
-        _mockTableService.Setup(x => x.GetTableEntryIfExistsAsync<DevKitEntity>(id))
+        _mockTableService.Setup(x => x.GetByIdAsync<DevKitEntity>(id))
                         .ReturnsAsync((DevKitEntity?)null);
 
         // Act
@@ -270,7 +270,7 @@ public class DevKitControllerTests
             Id = id
         };
 
-        _mockTableService.Setup(x => x.GetTableEntryIfExistsAsync<DevKitEntity>(id))
+        _mockTableService.Setup(x => x.GetByIdAsync<DevKitEntity>(id))
                         .ReturnsAsync(existingEntity);
 
         // Note: DeleteEntityAsync mock setup removed due to overload resolution issues
@@ -291,7 +291,7 @@ public class DevKitControllerTests
         // Arrange
         var id = "non-existing-key";
 
-        _mockTableService.Setup(x => x.GetTableEntryIfExistsAsync<DevKitEntity>(id))
+        _mockTableService.Setup(x => x.GetByIdAsync<DevKitEntity>(id))
                         .ReturnsAsync((DevKitEntity?)null);
 
         // Act

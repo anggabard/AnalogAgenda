@@ -132,8 +132,8 @@ export class FilmPhotosComponent implements OnInit {
       this.photoService.deletePhoto(this.currentPreviewPhoto.id).subscribe({
         next: () => {
           // Remove photo from local array
-          const deletedPhotoid = this.currentPreviewPhoto!.id;
-          this.photos = this.photos.filter(p => p.id !== deletedPhotoRowKey);
+          const deletedPhotoId = this.currentPreviewPhoto!.id;
+          this.photos = this.photos.filter(p => p.id !== deletedPhotoId);
           
           this.closeDeleteModal();
           

@@ -11,153 +11,153 @@ using Moq;
 
 namespace AnalogAgenda.Server.Tests.Controllers;
 
-public class UsedFilmThumbnailControllerTests
+public class UsedDevKitThumbnailControllerTests
 {
     private readonly Mock<IDatabaseService> _mockTableService;
     private readonly Mock<IBlobService> _mockBlobService;
     private readonly Mock<TableClient> _mockThumbnailsTableClient;
-    private readonly Mock<BlobContainerClient> _mockFilmsContainerClient;
+    private readonly Mock<BlobContainerClient> _mockDevKitsContainerClient;
     private readonly Storage _storageConfig;
-    private readonly UsedFilmThumbnailController _controller;
+    private readonly UsedDevKitThumbnailController _controller;
 
-    public UsedFilmThumbnailControllerTests()
+    public UsedDevKitThumbnailControllerTests()
     {
         _mockTableService = new Mock<IDatabaseService>();
         _mockBlobService = new Mock<IBlobService>();
         _mockThumbnailsTableClient = new Mock<TableClient>();
-        _mockFilmsContainerClient = new Mock<BlobContainerClient>();
+        _mockDevKitsContainerClient = new Mock<BlobContainerClient>();
         _storageConfig = new Storage { AccountName = "teststorage" };
 
-        _mockTableService.Setup(x => x.GetTable(TableName.UsedFilmThumbnails))
+        _mockTableService.Setup(x => x.GetTable(TableName.UsedDevKitThumbnails))
                         .Returns(_mockThumbnailsTableClient.Object);
         
-        _mockBlobService.Setup(x => x.GetBlobContainer(ContainerName.films))
-                       .Returns(_mockFilmsContainerClient.Object);
+        _mockBlobService.Setup(x => x.GetBlobContainer(ContainerName.devkits))
+                       .Returns(_mockDevKitsContainerClient.Object);
 
-        _controller = new UsedFilmThumbnailController(_storageConfig, _mockTableService.Object, _mockBlobService.Object);
+        _controller = new UsedDevKitThumbnailController(_storageConfig, _mockTableService.Object, _mockBlobService.Object);
     }
 
     [Fact]
-    public async Task SearchByFilmName_WithEmptyQuery_ReturnsAllThumbnails()
+    public async Task SearchByDevKitName_WithEmptyQuery_ReturnsAllThumbnails()
     {
         // Arrange
-        var thumbnails = new List<UsedFilmThumbnailEntity>
+        var thumbnails = new List<UsedDevKitThumbnailEntity>
         {
-            new UsedFilmThumbnailEntity
+            new UsedDevKitThumbnailEntity
             {
-                FilmName = "Kodak Portra 400",
+                DevKitName = "Bellini E6",
                 ImageId = Guid.NewGuid(),
                 Id = "thumb1"
             },
-            new UsedFilmThumbnailEntity
+            new UsedDevKitThumbnailEntity
             {
-                FilmName = "Fuji Superia 200",
+                DevKitName = "Bellini C41",
                 ImageId = Guid.NewGuid(),
                 Id = "thumb2"
             }
         };
 
-        _mockTableService.Setup(x => x.GetTableEntriesAsync<UsedFilmThumbnailEntity>())
+        _mockTableService.Setup(x => x.GetAllAsync<UsedDevKitThumbnailEntity>())
                         .ReturnsAsync(thumbnails);
 
         // Act
-        var result = await _controller.SearchByFilmName("");
+        var result = await _controller.SearchByDevKitName("");
 
         // Assert
         var okResult = Assert.IsType<OkObjectResult>(result);
-        var thumbnailsList = Assert.IsAssignableFrom<List<UsedFilmThumbnailDto>>(okResult.Value);
+        var thumbnailsList = Assert.IsAssignableFrom<List<UsedDevKitThumbnailDto>>(okResult.Value);
         Assert.Equal(2, thumbnailsList.Count);
-        Assert.Equal("Fuji Superia 200", thumbnailsList.First().FilmName); // Should be ordered by FilmName
+        Assert.Equal("Bellini C41", thumbnailsList.First().DevKitName); // Should be ordered by DevKitName
     }
 
     [Fact]
-    public async Task SearchByFilmName_WithQuery_ReturnsFilteredThumbnails()
+    public async Task SearchByDevKitName_WithQuery_ReturnsFilteredThumbnails()
     {
         // Arrange
-        var allThumbnails = new List<UsedFilmThumbnailEntity>
+        var allThumbnails = new List<UsedDevKitThumbnailEntity>
         {
-            new UsedFilmThumbnailEntity
+            new UsedDevKitThumbnailEntity
             {
-                FilmName = "Kodak Portra 400",
+                DevKitName = "Bellini E6",
                 ImageId = Guid.NewGuid(),
                 Id = "thumb1"
             },
-            new UsedFilmThumbnailEntity
+            new UsedDevKitThumbnailEntity
             {
-                FilmName = "Fuji Superia 200",
+                DevKitName = "Bellini C41",
                 ImageId = Guid.NewGuid(),
                 Id = "thumb2"
             },
-            new UsedFilmThumbnailEntity
+            new UsedDevKitThumbnailEntity
             {
-                FilmName = "Kodak T-Max 100",
+                DevKitName = "Kodak E6",
                 ImageId = Guid.NewGuid(),
                 Id = "thumb3"
             }
         };
 
-        _mockTableService.Setup(x => x.GetTableEntriesAsync<UsedFilmThumbnailEntity>())
+        _mockTableService.Setup(x => x.GetAllAsync<UsedDevKitThumbnailEntity>())
                         .ReturnsAsync(allThumbnails);
 
         // Act
-        var result = await _controller.SearchByFilmName("Kodak");
+        var result = await _controller.SearchByDevKitName("Bellini");
 
         // Assert
         var okResult = Assert.IsType<OkObjectResult>(result);
-        var thumbnailsList = Assert.IsAssignableFrom<List<UsedFilmThumbnailDto>>(okResult.Value);
+        var thumbnailsList = Assert.IsAssignableFrom<List<UsedDevKitThumbnailDto>>(okResult.Value);
         Assert.Equal(2, thumbnailsList.Count);
-        Assert.All(thumbnailsList, t => Assert.Contains("Kodak", t.FilmName));
+        Assert.All(thumbnailsList, t => Assert.Contains("Bellini", t.DevKitName));
     }
 
     [Fact]
-    public async Task SearchByFilmName_WithCaseInsensitiveQuery_ReturnsFilteredThumbnails()
+    public async Task SearchByDevKitName_WithCaseInsensitiveQuery_ReturnsFilteredThumbnails()
     {
         // Arrange
-        var allThumbnails = new List<UsedFilmThumbnailEntity>
+        var allThumbnails = new List<UsedDevKitThumbnailEntity>
         {
-            new UsedFilmThumbnailEntity
+            new UsedDevKitThumbnailEntity
             {
-                FilmName = "Kodak Portra 400",
+                DevKitName = "Bellini E6",
                 ImageId = Guid.NewGuid(),
                 Id = "thumb1"
             },
-            new UsedFilmThumbnailEntity
+            new UsedDevKitThumbnailEntity
             {
-                FilmName = "Fuji Superia 200",
+                DevKitName = "Bellini C41",
                 ImageId = Guid.NewGuid(),
                 Id = "thumb2"
             }
         };
 
-        _mockTableService.Setup(x => x.GetTableEntriesAsync<UsedFilmThumbnailEntity>())
+        _mockTableService.Setup(x => x.GetAllAsync<UsedDevKitThumbnailEntity>())
                         .ReturnsAsync(allThumbnails);
 
         // Act
-        var result = await _controller.SearchByFilmName("kodak");
+        var result = await _controller.SearchByDevKitName("bellini");
 
         // Assert
         var okResult = Assert.IsType<OkObjectResult>(result);
-        var thumbnailsList = Assert.IsAssignableFrom<List<UsedFilmThumbnailDto>>(okResult.Value);
-        Assert.Single(thumbnailsList);
-        Assert.Equal("Kodak Portra 400", thumbnailsList.First().FilmName);
+        var thumbnailsList = Assert.IsAssignableFrom<List<UsedDevKitThumbnailDto>>(okResult.Value);
+        Assert.Equal(2, thumbnailsList.Count);
+        Assert.All(thumbnailsList, t => Assert.Contains("Bellini", t.DevKitName));
     }
 
     [Fact]
     public async Task CreateThumbnailEntry_WithValidData_ReturnsCreated()
     {
         // Arrange
-        var dto = new UsedFilmThumbnailDto
+        var dto = new UsedDevKitThumbnailDto
         {
-            FilmName = "Test Film 400",
+            DevKitName = "Test DevKit E6",
             ImageBase64 = "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQH/2wBDAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQH/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwA/8A8A"
         };
 
-        _mockThumbnailsTableClient.Setup(x => x.AddEntityAsync(It.IsAny<UsedFilmThumbnailEntity>(), default))
+        _mockThumbnailsTableClient.Setup(x => x.AddEntityAsync(It.IsAny<UsedDevKitThumbnailEntity>(), default))
                                  .Returns(Task.FromResult(It.IsAny<Azure.Response>()));
 
         // Mock BlobClient for image upload
         var mockBlobClient = new Mock<BlobClient>();
-        _mockFilmsContainerClient.Setup(x => x.GetBlobClient(It.IsAny<string>()))
+        _mockDevKitsContainerClient.Setup(x => x.GetBlobClient(It.IsAny<string>()))
                                  .Returns(mockBlobClient.Object);
 
         // Act
@@ -165,19 +165,19 @@ public class UsedFilmThumbnailControllerTests
 
         // Assert
         var createdResult = Assert.IsType<CreatedResult>(result);
-        var createdDto = Assert.IsType<UsedFilmThumbnailDto>(createdResult.Value);
-        Assert.Equal("Test Film 400", createdDto.FilmName);
+        var createdDto = Assert.IsType<UsedDevKitThumbnailDto>(createdResult.Value);
+        Assert.Equal("Test DevKit E6", createdDto.DevKitName);
         Assert.NotNull(createdDto.ImageId);
         Assert.NotEmpty(createdDto.ImageUrl);
     }
 
     [Fact]
-    public async Task CreateThumbnailEntry_WithEmptyFilmName_ReturnsBadRequest()
+    public async Task CreateThumbnailEntry_WithEmptyDevKitName_ReturnsBadRequest()
     {
         // Arrange
-        var dto = new UsedFilmThumbnailDto
+        var dto = new UsedDevKitThumbnailDto
         {
-            FilmName = "",
+            DevKitName = "",
             ImageBase64 = "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQH/2wBDAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQH/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwA/8A8A"
         };
 
@@ -186,16 +186,16 @@ public class UsedFilmThumbnailControllerTests
 
         // Assert
         var badRequestResult = Assert.IsType<BadRequestObjectResult>(result);
-        Assert.Equal("FilmName is required.", badRequestResult.Value);
+        Assert.Equal("DevKitName is required.", badRequestResult.Value);
     }
 
     [Fact]
     public async Task CreateThumbnailEntry_WithEmptyImageBase64_ReturnsBadRequest()
     {
         // Arrange
-        var dto = new UsedFilmThumbnailDto
+        var dto = new UsedDevKitThumbnailDto
         {
-            FilmName = "Test Film 400",
+            DevKitName = "Test DevKit E6",
             ImageBase64 = ""
         };
 
@@ -211,20 +211,20 @@ public class UsedFilmThumbnailControllerTests
     public async Task CreateThumbnailEntry_WithException_ReturnsUnprocessableEntity()
     {
         // Arrange
-        var dto = new UsedFilmThumbnailDto
+        var dto = new UsedDevKitThumbnailDto
         {
-            FilmName = "Test Film 400",
+            DevKitName = "Test DevKit E6",
             ImageBase64 = "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQH/2wBDAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQH/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwA/8A8A"
         };
 
-        _mockThumbnailsTableClient.Setup(x => x.AddEntityAsync(It.IsAny<UsedFilmThumbnailEntity>(), default))
+        _mockThumbnailsTableClient.Setup(x => x.AddEntityAsync(It.IsAny<UsedDevKitThumbnailEntity>(), default))
                                  .ThrowsAsync(new Exception("Database error"));
 
         // Mock BlobClient for image upload to throw exception
         var mockBlobClient = new Mock<BlobClient>();
         mockBlobClient.Setup(x => x.UploadAsync(It.IsAny<Stream>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()))
                      .ThrowsAsync(new Exception("Database error"));
-        _mockFilmsContainerClient.Setup(x => x.GetBlobClient(It.IsAny<string>()))
+        _mockDevKitsContainerClient.Setup(x => x.GetBlobClient(It.IsAny<string>()))
                                  .Returns(mockBlobClient.Object);
 
         // Act

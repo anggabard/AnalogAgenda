@@ -38,7 +38,7 @@ export class SubstancesComponent implements OnInit {
   }
 
   onKitSelected(id: string): void {
-    this.router.navigate(['/substances/' + rowKey]);
+    this.router.navigate(['/substances/' + id]);
   }
 
   loadAvailableDevKits(): void {

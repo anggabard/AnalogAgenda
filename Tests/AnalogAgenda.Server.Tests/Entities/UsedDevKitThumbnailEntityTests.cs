@@ -6,7 +6,7 @@ namespace AnalogAgenda.Server.Tests.Entities;
 public class UsedDevKitThumbnailEntityTests
 {
     [Fact]
-    public void Constructor_SetsCorrectTableName()
+    public void Constructor_CreatesEntitySuccessfully()
     {
         // Act
         var entity = new UsedDevKitThumbnailEntity
@@ -15,8 +15,9 @@ public class UsedDevKitThumbnailEntityTests
             ImageId = Guid.NewGuid()
         };
 
-        // Assert
-        Assert.Equal(TableName.UsedDevKitThumbnails, entity.GetTable());
+        // Assert - Entity is created successfully with required properties
+        Assert.NotNull(entity);
+        Assert.Equal("Test DevKit", entity.DevKitName);
     }
 
     [Fact]

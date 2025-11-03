@@ -32,9 +32,9 @@ public class TestWebApplicationFactory : WebApplicationFactory<AnalogAgenda.Serv
             var mockBlobService = new Mock<IBlobService>();
 
             // Configure mock behaviors here as needed
-            mockTableService.Setup(x => x.GetTableEntriesAsync<Database.Entities.UserEntity>(
-                It.IsAny<System.Linq.Expressions.Expression<Func<Database.Entities.UserEntity, bool>>>()))
-                .ReturnsAsync(new List<Database.Entities.UserEntity>());
+            mockTableService.Setup(x => x.GetAllAsync<global::Database.Entities.UserEntity>(
+                It.IsAny<System.Linq.Expressions.Expression<Func<global::Database.Entities.UserEntity, bool>>>()))
+                .ReturnsAsync(new List<global::Database.Entities.UserEntity>());
 
             services.AddSingleton(mockTableService.Object);
             services.AddSingleton(mockBlobService.Object);
