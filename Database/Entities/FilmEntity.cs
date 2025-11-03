@@ -33,7 +33,7 @@ public class FilmEntity : BaseEntity, IImageEntity
     public string ExposureDates { get; set; } = string.Empty;
 
     // Navigation properties
-    public ICollection<PhotoEntity> Photos { get; set; } = new List<PhotoEntity>();
+    public ICollection<PhotoEntity> Photos { get; set; } = [];
     public SessionEntity? DevelopedInSession { get; set; }
     public DevKitEntity? DevelopedWithDevKit { get; set; }
 

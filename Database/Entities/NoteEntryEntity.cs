@@ -14,8 +14,8 @@ public class NoteEntryEntity : BaseEntity
 
     // Navigation properties
     public NoteEntity Note { get; set; } = default!;
-    public ICollection<NoteEntryRuleEntity> Rules { get; set; } = new List<NoteEntryRuleEntity>();
-    public ICollection<NoteEntryOverrideEntity> Overrides { get; set; } = new List<NoteEntryOverrideEntity>();
+    public ICollection<NoteEntryRuleEntity> Rules { get; set; } = [];
+    public ICollection<NoteEntryOverrideEntity> Overrides { get; set; } = [];
 
     protected override int IdLength() => 8;
 
@@ -31,8 +31,8 @@ public class NoteEntryEntity : BaseEntity
             Index = Index,
             TemperatureMin = TemperatureMin,
             TemperatureMax = TemperatureMax,
-            Rules = Rules.Select(r => r.ToDTO()).ToList(),
-            Overrides = Overrides.Select(o => o.ToDTO()).ToList(),
+            Rules = [.. Rules.Select(r => r.ToDTO())],
+            Overrides = [.. Overrides.Select(o => o.ToDTO())],
         };
     }
 }
