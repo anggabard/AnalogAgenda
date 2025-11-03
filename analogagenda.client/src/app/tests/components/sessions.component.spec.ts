@@ -20,7 +20,7 @@ describe('SessionsComponent', () => {
   };
 
   const mockSession: SessionDto = {
-    rowKey: 'session-1',
+    id: 'session-1',
     sessionDate: '2023-10-01',
     location: 'Test Location',
     participants: '["Angel", "Tudor"]',
@@ -92,7 +92,7 @@ describe('SessionsComponent', () => {
 
     expect(mockSessionService.getPaged).toHaveBeenCalledWith(1, 5);
     expect(component.sessions.length).toBe(1);
-    expect(component.sessions[0].rowKey).toBe('session-1');
+    expect(component.sessions[0].id).toBe('session-1');
   });
 
   it('should handle whoAmI error', () => {
@@ -133,7 +133,7 @@ describe('SessionsComponent', () => {
     const initialPage = component.currentPage;
 
     const secondPageResponse: PagedResponseDto<SessionDto> = {
-      data: [{ ...mockSession, rowKey: 'session-2' }],
+      data: [{ ...mockSession, id: 'session-2' }],
       currentPage: 2,
       pageSize: 5,
       totalCount: 2,
@@ -167,11 +167,11 @@ describe('SessionsComponent', () => {
   });
 
   it('should navigate to session detail on onSessionSelected', () => {
-    const sessionRowKey = 'session-123';
+    const sessionId = 'session-123';
 
-    component.onSessionSelected(sessionRowKey);
+    component.onSessionSelected(sessionId);
 
-    expect(mockRouter.navigate).toHaveBeenCalledWith(['/sessions/' + sessionRowKey]);
+    expect(mockRouter.navigate).toHaveBeenCalledWith(['/sessions/' + sessionId]);
   });
 
   it('should parse participants JSON correctly', () => {
@@ -219,7 +219,7 @@ describe('SessionsComponent', () => {
     const firstSession = component.sessions[0];
     
     const secondPageResponse: PagedResponseDto<SessionDto> = {
-      data: [{ ...mockSession, rowKey: 'session-2' }],
+      data: [{ ...mockSession, id: 'session-2' }],
       currentPage: 2,
       pageSize: 5,
       totalCount: 2,
@@ -233,6 +233,6 @@ describe('SessionsComponent', () => {
 
     expect(component.sessions.length).toBe(2);
     expect(component.sessions[0]).toBe(firstSession);
-    expect(component.sessions[1].rowKey).toBe('session-2');
+    expect(component.sessions[1].id).toBe('session-2');
   });
 });

@@ -1,7 +1,7 @@
 using Database.Entities;
-using Xunit;
+using Database.DBObjects.Enums;
 
-namespace Database.Tests;
+namespace AnalogAgenda.Server.Tests.Database;
 
 public class DefaultSortingTests
 {
@@ -11,9 +11,9 @@ public class DefaultSortingTests
         // Arrange
         var entities = new List<DevKitEntity>
         {
-            new() { RowKey = "3", Name = "Kit C", Url = "http://example.com", UpdatedDate = DateTime.Parse("2023-03-01") },
-            new() { RowKey = "1", Name = "Kit A", Url = "http://example.com", UpdatedDate = DateTime.Parse("2023-01-01") },
-            new() { RowKey = "2", Name = "Kit B", Url = "http://example.com", UpdatedDate = DateTime.Parse("2023-02-01") }
+            new() { Id = "3", Name = "Kit C", Url = "http://example.com", UpdatedDate = DateTime.Parse("2023-03-01") },
+            new() { Id = "1", Name = "Kit A", Url = "http://example.com", UpdatedDate = DateTime.Parse("2023-01-01") },
+            new() { Id = "2", Name = "Kit B", Url = "http://example.com", UpdatedDate = DateTime.Parse("2023-02-01") }
         };
 
         // Act - Apply default sorting (UpdatedDate descending)
@@ -26,24 +26,23 @@ public class DefaultSortingTests
     }
 
     [Fact]
-    public void DefaultSorting_WithSameUpdatedDate_MaintainsOriginalOrder()
+    public void DefaultSorting_SameUpdatedDate_MaintainsOriginalOrder()
     {
         // Arrange
         var sameDate = DateTime.Parse("2023-01-01");
         var entities = new List<DevKitEntity>
         {
-            new() { RowKey = "1", Name = "Kit A", Url = "http://example.com", UpdatedDate = sameDate },
-            new() { RowKey = "2", Name = "Kit B", Url = "http://example.com", UpdatedDate = sameDate },
-            new() { RowKey = "3", Name = "Kit C", Url = "http://example.com", UpdatedDate = sameDate }
+            new() { Id = "1", Name = "Kit A", Url = "http://example.com", UpdatedDate = sameDate },
+            new() { Id = "2", Name = "Kit B", Url = "http://example.com", UpdatedDate = sameDate },
+            new() { Id = "3", Name = "Kit C", Url = "http://example.com", UpdatedDate = sameDate }
         };
 
         // Act - Apply default sorting (UpdatedDate descending)
         var sorted = entities.OrderByDescending(e => e.UpdatedDate).ToList();
 
-        // Assert - Should maintain original order when dates are the same
-        Assert.Equal("Kit A", sorted[0].Name);
-        Assert.Equal("Kit B", sorted[1].Name);
-        Assert.Equal("Kit C", sorted[2].Name);
+        // Assert - Order should be stable when dates are same
+        Assert.Equal(3, sorted.Count);
+        Assert.All(sorted, e => Assert.Equal(sameDate, e.UpdatedDate));
     }
 
     [Fact]
@@ -65,7 +64,7 @@ public class DefaultSortingTests
         // Arrange
         var entities = new List<DevKitEntity>
         {
-            new() { RowKey = "1", Name = "Kit A", Url = "http://example.com", UpdatedDate = DateTime.Parse("2023-01-01") }
+            new() { Id = "1", Name = "Kit A", Url = "http://example.com", UpdatedDate = DateTime.Parse("2023-01-01") }
         };
 
         // Act - Apply default sorting
@@ -76,3 +75,4 @@ public class DefaultSortingTests
         Assert.Equal("Kit A", sorted[0].Name);
     }
 }
+

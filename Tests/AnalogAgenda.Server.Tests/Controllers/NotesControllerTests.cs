@@ -1,7 +1,8 @@
 using AnalogAgenda.Server.Controllers;
-using Azure.Data.Tables;
+using AnalogAgenda.Server.Tests.Helpers;
 using Azure.Storage.Blobs;
 using Configuration.Sections;
+using Database.Data;
 using Database.DBObjects.Enums;
 using Database.DTOs;
 using Database.Entities;
@@ -11,35 +12,33 @@ using Moq;
 
 namespace AnalogAgenda.Server.Tests.Controllers;
 
-public class NotesControllerTests
+public class NotesControllerTests : IDisposable
 {
-    private readonly Mock<ITableService> _mockTableService;
+    private readonly Mock<IDatabaseService> _mockTableService;
     private readonly Mock<IBlobService> _mockBlobService;
-    private readonly Mock<TableClient> _mockNotesTableClient;
-    private readonly Mock<TableClient> _mockEntriesTableClient;
     private readonly Mock<BlobContainerClient> _mockContainerClient;
     private readonly Storage _storageConfig;
+    private readonly AnalogAgendaDbContext _dbContext;
     private readonly NotesController _controller;
 
     public NotesControllerTests()
     {
-        _mockTableService = new Mock<ITableService>();
+        _mockTableService = new Mock<IDatabaseService>();
         _mockBlobService = new Mock<IBlobService>();
-        _mockNotesTableClient = new Mock<TableClient>();
-        _mockEntriesTableClient = new Mock<TableClient>();
         _mockContainerClient = new Mock<BlobContainerClient>();
         _storageConfig = new Storage { AccountName = "teststorage" };
-
-        _mockTableService.Setup(x => x.GetTable(TableName.Notes))
-                        .Returns(_mockNotesTableClient.Object);
-        
-        _mockTableService.Setup(x => x.GetTable(TableName.NotesEntries))
-                        .Returns(_mockEntriesTableClient.Object);
+        _dbContext = InMemoryDbContextFactory.Create($"NotesTestDb_{Guid.NewGuid()}");
         
         _mockBlobService.Setup(x => x.GetBlobContainer(ContainerName.notes))
                        .Returns(_mockContainerClient.Object);
 
-        _controller = new NotesController(_storageConfig, _mockTableService.Object, _mockBlobService.Object);
+        _controller = new NotesController(_storageConfig, _mockTableService.Object, _mockBlobService.Object, _dbContext);
+    }
+    
+    public void Dispose()
+    {
+        _dbContext.Database.EnsureDeleted();
+        _dbContext.Dispose();
     }
 
     [Fact]
@@ -54,8 +53,8 @@ public class NotesControllerTests
             Entries = []
         };
 
-        _mockNotesTableClient.Setup(x => x.AddEntityAsync(It.IsAny<NoteEntity>(), default))
-                            .Returns(Task.FromResult(It.IsAny<Azure.Response>()));
+        _mockTableService.Setup(x => x.AddAsync(It.IsAny<NoteEntity>()))
+                            .ReturnsAsync(It.IsAny<NoteEntity>());
 
         // Act
         var result = await _controller.CreateNewNote(noteDto);
@@ -63,7 +62,7 @@ public class NotesControllerTests
         // Assert
         var createdResult = Assert.IsType<CreatedResult>(result);
         Assert.IsType<NoteDto>(createdResult.Value);
-        _mockNotesTableClient.Verify(x => x.AddEntityAsync(It.IsAny<NoteEntity>(), default), Times.Once);
+        _mockTableService.Verify(x => x.AddAsync(It.IsAny<NoteEntity>()), Times.Once);
     }
 
     [Fact]
@@ -78,10 +77,10 @@ public class NotesControllerTests
             Entries = new List<NoteEntryDto>()
         };
 
-        _mockNotesTableClient.Setup(x => x.AddEntityAsync(It.IsAny<NoteEntity>(), default))
+        _mockTableService.Setup(x => x.AddAsync(It.IsAny<NoteEntity>()))
                             .ThrowsAsync(new Exception("Database error"));
 
-        _mockTableService.Setup(x => x.EntryExistsAsync(It.IsAny<NoteEntity>()))
+        _mockTableService.Setup(x => x.ExistsAsync<NoteEntity>(It.IsAny<string>()))
                         .ReturnsAsync(false);
 
         // Act
@@ -95,31 +94,16 @@ public class NotesControllerTests
     [Fact]
     public async Task GetAllNotes_WithoutEntries_ReturnsOkWithNotes()
     {
-        // Arrange
-        var noteEntities = new List<NoteEntity>
+        // Arrange - Add data directly to dbContext since controller queries it
+        var noteEntity = new NoteEntity
         {
-            new NoteEntity
-            {
-                Name = "Test Note",
-                SideNote = "Test Description",
-                ImageId = Guid.NewGuid(),
-                RowKey = "test-row-key"
-            }
+            Name = "Test Note",
+            SideNote = "Test Description",
+            ImageId = Guid.NewGuid(),
+            Id = "test-row-key"
         };
-
-        _mockTableService.Setup(x => x.GetTableEntriesAsync<NoteEntity>())
-                        .ReturnsAsync(noteEntities);
-                        
-        var pagedResponse = new PagedResponseDto<NoteEntity>
-        {
-            Data = noteEntities,
-            TotalCount = noteEntities.Count,
-            PageSize = 5,
-            CurrentPage = 1
-        };
-        
-        _mockTableService.Setup(x => x.GetTableEntriesPagedAsync<NoteEntity>(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<Func<IEnumerable<NoteEntity>, IOrderedEnumerable<NoteEntity>>?>()))
-                        .ReturnsAsync(pagedResponse);
+        _dbContext.Notes.Add(noteEntity);
+        await _dbContext.SaveChangesAsync();
 
         // Act
         var result = await _controller.GetAllNotes(withEntries: false);
@@ -133,46 +117,28 @@ public class NotesControllerTests
     [Fact]
     public async Task GetAllNotes_WithEntries_ReturnsOkWithNotesAndEntries()
     {
-        // Arrange
-        var noteEntities = new List<NoteEntity>
+        // Arrange - Add data directly to dbContext
+        var noteEntity = new NoteEntity
         {
-            new NoteEntity
-            {
-                Name = "Test Note",
-                SideNote = "Test Description",
-                ImageId = Guid.NewGuid(),
-                RowKey = "test-row-key"
-            }
+            Name = "Test Note",
+            SideNote = "Test Description",
+            ImageId = Guid.NewGuid(),
+            Id = "test-row-key"
         };
 
-        var noteEntryEntities = new List<NoteEntryEntity>
+        var noteEntryEntity = new NoteEntryEntity
         {
-            new NoteEntryEntity
-            {
-                Details = "Test Entry",
-                Time = 1.0,
-                Process = "Test Process",
-                Film = "Test Film",
-                NoteRowKey = "test-row-key"
-            }
+            Details = "Test Entry",
+            Time = 1.0,
+            Process = "Test Process",
+            Film = "Test Film",
+            NoteId = "test-row-key",
+            Id = "entry-key"
         };
 
-        _mockTableService.Setup(x => x.GetTableEntriesAsync<NoteEntity>())
-                        .ReturnsAsync(noteEntities);
-                        
-        var pagedResponse = new PagedResponseDto<NoteEntity>
-        {
-            Data = noteEntities,
-            TotalCount = noteEntities.Count,
-            PageSize = 5,
-            CurrentPage = 1
-        };
-        
-        _mockTableService.Setup(x => x.GetTableEntriesPagedAsync<NoteEntity>(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<Func<IEnumerable<NoteEntity>, IOrderedEnumerable<NoteEntity>>?>()))
-                        .ReturnsAsync(pagedResponse);
-
-        _mockTableService.Setup(x => x.GetTableEntriesAsync<NoteEntryEntity>())
-                        .ReturnsAsync(noteEntryEntities);
+        _dbContext.Notes.Add(noteEntity);
+        _dbContext.NoteEntries.Add(noteEntryEntity);
+        await _dbContext.SaveChangesAsync();
 
         // Act
         var result = await _controller.GetAllNotes(withEntries: true);
@@ -184,75 +150,71 @@ public class NotesControllerTests
     }
 
     [Fact]
-    public async Task GetNoteByRowKey_WithExistingNote_ReturnsOkWithNote()
+    public async Task GetNoteById_WithExistingNote_ReturnsOkWithNote()
     {
-        // Arrange
-        var rowKey = "test-row-key";
+        // Arrange - Add data directly to dbContext
+        var id = "test-row-key";
         var noteEntity = new NoteEntity
         {
             Name = "Test Note",
             SideNote = "Test Description",
             ImageId = Guid.NewGuid(),
-            RowKey = rowKey
+            Id = id
         };
 
-        var noteEntryEntities = new List<NoteEntryEntity>
+        var noteEntryEntity = new NoteEntryEntity
         {
-            new NoteEntryEntity
-            {
-                Details = "Test Entry",
-                Time = 1.0,
-                Process = "Test Process",
-                Film = "Test Film",
-                NoteRowKey = rowKey
-            }
+            Details = "Test Entry",
+            Time = 1.0,
+            Process = "Test Process",
+            Film = "Test Film",
+            NoteId = id,
+            Id = "entry-key"
         };
 
-        _mockTableService.Setup(x => x.GetTableEntryIfExistsAsync<NoteEntity>(rowKey))
-                        .ReturnsAsync(noteEntity);
-
-        _mockTableService.Setup(x => x.GetTableEntriesAsync<NoteEntryEntity>(It.IsAny<System.Linq.Expressions.Expression<Func<NoteEntryEntity, bool>>>()))
-                        .ReturnsAsync(noteEntryEntities);
+        _dbContext.Notes.Add(noteEntity);
+        _dbContext.NoteEntries.Add(noteEntryEntity);
+        await _dbContext.SaveChangesAsync();
 
         // Act
-        var result = await _controller.GetNoteByRowKey(rowKey);
+        var result = await _controller.GetNoteById(id);
 
         // Assert
         var okResult = Assert.IsType<OkObjectResult>(result);
         var note = Assert.IsType<NoteDto>(okResult.Value);
-        Assert.NotNull(note.RowKey);  // RowKey is auto-generated
+        Assert.NotNull(note.Id);  // Id is auto-generated
     }
 
     [Fact]
-    public async Task GetNoteByRowKey_WithNonExistingNote_ReturnsNotFound()
+    public async Task GetNoteById_WithNonExistingNote_ReturnsNotFound()
     {
         // Arrange
-        var rowKey = "non-existing-key";
+        var id = "non-existing-key";
 
-        _mockTableService.Setup(x => x.GetTableEntryIfExistsAsync<NoteEntity>(rowKey))
+        _mockTableService.Setup(x => x.GetByIdAsync<NoteEntity>(id))
                         .ReturnsAsync((NoteEntity?)null);
 
         // Act
-        var result = await _controller.GetNoteByRowKey(rowKey);
+        var result = await _controller.GetNoteById(id);
 
         // Assert
         var notFoundResult = Assert.IsType<NotFoundObjectResult>(result);
-        Assert.Contains(rowKey, notFoundResult.Value?.ToString() ?? "");
+        Assert.Contains(id, notFoundResult.Value?.ToString() ?? "");
     }
 
     [Fact]
     public async Task UpdateNote_WithValidData_ReturnsNoContent()
     {
         // Arrange
-        var rowKey = "test-row-key";
+        var id = "test-row-key";
         var existingEntity = new NoteEntity
         {
             Name = "Old Title",
             SideNote = "Old Description",
             ImageId = Guid.NewGuid(),
-            RowKey = rowKey,
+            Id = id,
             CreatedDate = DateTime.UtcNow.AddDays(-1),
-            ETag = new Azure.ETag("test-etag")
+            // ETag removed - EF Core handles concurrency
         };
 
         var updateDto = new NoteDto
@@ -265,42 +227,34 @@ public class NotesControllerTests
 
         var existingEntryEntities = new List<NoteEntryEntity>();
 
-        _mockTableService.Setup(x => x.GetTableEntryIfExistsAsync<NoteEntity>(rowKey))
+        _mockTableService.Setup(x => x.GetByIdAsync<NoteEntity>(id))
                         .ReturnsAsync(existingEntity);
 
-        _mockTableService.Setup(x => x.GetTableEntriesAsync<NoteEntryEntity>(It.IsAny<System.Linq.Expressions.Expression<Func<NoteEntryEntity, bool>>>()))
+        _mockTableService.Setup(x => x.GetAllAsync<NoteEntryEntity>(It.IsAny<System.Linq.Expressions.Expression<Func<NoteEntryEntity, bool>>>()))
                         .ReturnsAsync(existingEntryEntities);
 
-        _mockNotesTableClient.Setup(x => x.UpdateEntityAsync(
-                               It.IsAny<NoteEntity>(), 
-                               It.IsAny<Azure.ETag>(), 
-                               TableUpdateMode.Replace, 
-                               default))
-                            .Returns(Task.FromResult(It.IsAny<Azure.Response>()));
+        _mockTableService.Setup(x => x.UpdateAsync(It.IsAny<NoteEntity>()))
+                            .Returns(Task.CompletedTask);
 
-        _mockTableService.Setup(x => x.DeleteTableEntriesAsync(It.IsAny<IEnumerable<NoteEntryEntity>>()))
+        _mockTableService.Setup(x => x.DeleteRangeAsync(It.IsAny<IEnumerable<NoteEntryEntity>>()))
                         .Returns(Task.CompletedTask);
 
         // Act
-        var result = await _controller.UpdateNote(rowKey, updateDto);
+        var result = await _controller.UpdateNote(id, updateDto);
 
         // Assert
         Assert.IsType<NoContentResult>(result);
-        _mockNotesTableClient.Verify(x => x.UpdateEntityAsync(
-            It.IsAny<NoteEntity>(), 
-            existingEntity.ETag, 
-            TableUpdateMode.Replace, 
-            default), Times.Once);
+        _mockTableService.Verify(x => x.UpdateAsync(It.IsAny<NoteEntity>()), Times.Once);
     }
 
     [Fact]
     public async Task UpdateNote_WithNullDto_ReturnsBadRequest()
     {
         // Arrange
-        var rowKey = "test-row-key";
+        var id = "test-row-key";
 
         // Act
-        var result = await _controller.UpdateNote(rowKey, null!);
+        var result = await _controller.UpdateNote(id, null!);
 
         // Assert
         var badRequestResult = Assert.IsType<BadRequestObjectResult>(result);
@@ -311,7 +265,7 @@ public class NotesControllerTests
     public async Task UpdateNote_WithNonExistingNote_ReturnsNotFound()
     {
         // Arrange
-        var rowKey = "non-existing-key";
+        var id = "non-existing-key";
         var updateDto = new NoteDto
         {
             Name = "New Title",
@@ -319,11 +273,11 @@ public class NotesControllerTests
             Entries = new List<NoteEntryDto>()
         };
 
-        _mockTableService.Setup(x => x.GetTableEntryIfExistsAsync<NoteEntity>(rowKey))
+        _mockTableService.Setup(x => x.GetByIdAsync<NoteEntity>(id))
                         .ReturnsAsync((NoteEntity?)null);
 
         // Act
-        var result = await _controller.UpdateNote(rowKey, updateDto);
+        var result = await _controller.UpdateNote(id, updateDto);
 
         // Assert
         Assert.IsType<NotFoundResult>(result);
@@ -333,42 +287,42 @@ public class NotesControllerTests
     public async Task DeleteNote_WithExistingNote_ReturnsNoContent()
     {
         // Arrange
-        var rowKey = "test-row-key";
+        var id = "test-row-key";
         var existingEntity = new NoteEntity
         {
             Name = "Test Note",
             SideNote = "Test Description",
             ImageId = Guid.NewGuid(),
-            RowKey = rowKey
+            Id = id
         };
 
-        _mockTableService.Setup(x => x.GetTableEntryIfExistsAsync<NoteEntity>(rowKey))
+        _mockTableService.Setup(x => x.GetByIdAsync<NoteEntity>(id))
                         .ReturnsAsync(existingEntity);
 
-        _mockTableService.Setup(x => x.DeleteTableEntriesAsync<NoteEntryEntity>(It.IsAny<System.Linq.Expressions.Expression<Func<NoteEntryEntity, bool>>>()))
+        _mockTableService.Setup(x => x.DeleteRangeAsync<NoteEntryEntity>(It.IsAny<System.Linq.Expressions.Expression<Func<NoteEntryEntity, bool>>>()))
                         .Returns(Task.CompletedTask);
 
         // Act
-        var result = await _controller.DeleteNote(rowKey);
+        var result = await _controller.DeleteNote(id);
 
         // Assert
         Assert.IsType<NoContentResult>(result);
         // Note: DeleteEntityWithImageAsync from base controller handles the note deletion internally
-        _mockTableService.Verify(x => x.DeleteTableEntriesAsync<NoteEntryEntity>(It.IsAny<System.Linq.Expressions.Expression<Func<NoteEntryEntity, bool>>>()), Times.Once);
-        _mockTableService.Verify(x => x.GetTableEntryIfExistsAsync<NoteEntity>(rowKey), Times.Once);
+        _mockTableService.Verify(x => x.DeleteRangeAsync<NoteEntryEntity>(It.IsAny<System.Linq.Expressions.Expression<Func<NoteEntryEntity, bool>>>()), Times.Once);
+        _mockTableService.Verify(x => x.GetByIdAsync<NoteEntity>(id), Times.Once);
     }
 
     [Fact]
     public async Task DeleteNote_WithNonExistingNote_ReturnsNotFound()
     {
         // Arrange
-        var rowKey = "non-existing-key";
+        var id = "non-existing-key";
 
-        _mockTableService.Setup(x => x.GetTableEntryIfExistsAsync<NoteEntity>(rowKey))
+        _mockTableService.Setup(x => x.GetByIdAsync<NoteEntity>(id))
                         .ReturnsAsync((NoteEntity?)null);
 
         // Act
-        var result = await _controller.DeleteNote(rowKey);
+        var result = await _controller.DeleteNote(id);
 
         // Assert
         Assert.IsType<NotFoundResult>(result);

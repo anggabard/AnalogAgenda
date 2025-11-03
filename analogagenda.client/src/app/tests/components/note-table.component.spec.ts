@@ -53,14 +53,14 @@ describe('NoteTableComponent', () => {
     // Assert
     expect(component.isNewNote).toBeTrue();
     expect(component.isEditMode).toBeTrue();
-    expect(component.noteRowKey).toBeNull();
+    expect(component.noteId).toBeNull();
   });
 
   it('should initialize in view mode and load note when ID is provided', () => {
     // Arrange
-    const testRowKey = 'test-row-key';
+    const testId = 'test-row-key';
     const mockNote: NoteDto = {
-      rowKey: testRowKey,
+      id: testId,
       name: 'Test Note',
       sideNote: 'Test Side Note',
       imageUrl: 'test-url',
@@ -68,15 +68,15 @@ describe('NoteTableComponent', () => {
       entries: []
     };
 
-    mockActivatedRoute.snapshot.paramMap.get.and.returnValue(testRowKey);
+    mockActivatedRoute.snapshot.paramMap.get.and.returnValue(testId);
     mockNotesService.getById.and.returnValue(of(mockNote));
 
     // Act
     component.ngOnInit();
 
     // Assert
-    expect(component.noteRowKey).toBe(testRowKey);
-    expect(mockNotesService.getById).toHaveBeenCalledWith(testRowKey);
+    expect(component.noteId).toBe(testId);
+    expect(mockNotesService.getById).toHaveBeenCalledWith(testId);
     expect(component.note).toEqual(mockNote);
     expect(component.originalNote).toEqual(mockNote);
   });
@@ -84,15 +84,15 @@ describe('NoteTableComponent', () => {
   it('should handle error when loading note from backend', () => {
     // Arrange
     spyOn(console, 'error');
-    const testRowKey = 'test-row-key';
-    mockActivatedRoute.snapshot.paramMap.get.and.returnValue(testRowKey);
+    const testId = 'test-row-key';
+    mockActivatedRoute.snapshot.paramMap.get.and.returnValue(testId);
     mockNotesService.getById.and.returnValue(throwError(() => 'Load error'));
 
     // Act
     component.ngOnInit();
 
     // Assert
-    expect(mockNotesService.getById).toHaveBeenCalledWith(testRowKey);
+    expect(mockNotesService.getById).toHaveBeenCalledWith(testId);
     expect(console.error).toHaveBeenCalledWith('Load error');
   });
 
@@ -101,7 +101,7 @@ describe('NoteTableComponent', () => {
     const emptyNote = component.getEmptyNote();
 
     // Assert
-    expect(emptyNote.rowKey).toBe('');
+    expect(emptyNote.id).toBe('');
     expect(emptyNote.name).toBe('');
     expect(emptyNote.sideNote).toBe('');
     expect(emptyNote.imageBase64).toBe('');
@@ -137,7 +137,7 @@ describe('NoteTableComponent', () => {
   it('should discard changes for existing note and restore original', () => {
     // Arrange
     const originalNote: NoteDto = { 
-      rowKey: '1', 
+      id: '1', 
       name: 'Original', 
       sideNote: 'Original side note', 
       imageUrl: '', 
@@ -161,15 +161,15 @@ describe('NoteTableComponent', () => {
     // Arrange
     component.isNewNote = true;
     component.note = { 
-      rowKey: '', 
+      id: '', 
       name: '', 
       sideNote: 'Test note', 
       imageUrl: '', 
       imageBase64: '', 
       entries: [] 
     };
-    const newRowKey = 'new-row-key';
-    mockNotesService.addNewNote.and.returnValue(of(newRowKey));
+    const newId = 'new-row-key';
+    mockNotesService.addNewNote.and.returnValue(of(newId));
 
     // Act
     component.saveNote();
@@ -177,15 +177,15 @@ describe('NoteTableComponent', () => {
     // Assert
     expect(component.note.name).toBe('Untitled Note'); // Should set default name
     expect(mockNotesService.addNewNote).toHaveBeenCalledWith(component.note);
-    expect(mockRouter.navigate).toHaveBeenCalledWith(['/notes/' + newRowKey]);
+    expect(mockRouter.navigate).toHaveBeenCalledWith(['/notes/' + newId]);
   });
 
   it('should update existing note', () => {
     // Arrange
     component.isNewNote = false;
-    component.noteRowKey = 'existing-key';
+    component.noteId = 'existing-key';
     component.note = { 
-      rowKey: 'existing-key', 
+      id: 'existing-key', 
       name: 'Updated Note', 
       sideNote: 'Updated side note', 
       imageUrl: '', 
@@ -208,7 +208,7 @@ describe('NoteTableComponent', () => {
     spyOn(console, 'error');
     component.isNewNote = true;
     component.note = { 
-      rowKey: '', 
+      id: '', 
       name: 'Test', 
       sideNote: '', 
       imageUrl: '', 
@@ -227,13 +227,13 @@ describe('NoteTableComponent', () => {
   it('should add new row with correct time', () => {
     // Arrange
     component.note = {
-      rowKey: '',
+      id: '',
       name: '',
       sideNote: '',
       imageUrl: '',
       imageBase64: '',
       entries: [
-        { rowKey: '1', noteRowKey: '', time: 10, process: 'Step 1', film: '', details: '' }
+        { id: '1', noteId: '', time: 10, process: 'Step 1', film: '', details: '' }
       ]
     };
 
@@ -243,20 +243,20 @@ describe('NoteTableComponent', () => {
     // Assert
     expect(component.note.entries).toHaveSize(2);
     expect(component.note.entries[1].time).toBe(10); // Should use last entry's time
-    expect(component.note.entries[1].rowKey).toBe('');
+    expect(component.note.entries[1].id).toBe('');
   });
 
   it('should remove row when more than one entry exists', () => {
     // Arrange
     component.note = {
-      rowKey: '',
+      id: '',
       name: '',
       sideNote: '',
       imageUrl: '',
       imageBase64: '',
       entries: [
-        { rowKey: '1', noteRowKey: '', time: 0, process: 'Step 1', film: '', details: '' },
-        { rowKey: '2', noteRowKey: '', time: 10, process: 'Step 2', film: '', details: '' }
+        { id: '1', noteId: '', time: 0, process: 'Step 1', film: '', details: '' },
+        { id: '2', noteId: '', time: 10, process: 'Step 2', film: '', details: '' }
       ]
     };
 
@@ -271,13 +271,13 @@ describe('NoteTableComponent', () => {
   it('should not remove row when only one entry exists', () => {
     // Arrange
     component.note = {
-      rowKey: '',
+      id: '',
       name: '',
       sideNote: '',
       imageUrl: '',
       imageBase64: '',
       entries: [
-        { rowKey: '1', noteRowKey: '', time: 0, process: 'Step 1', film: '', details: '' }
+        { id: '1', noteId: '', time: 0, process: 'Step 1', film: '', details: '' }
       ]
     };
 
@@ -288,16 +288,16 @@ describe('NoteTableComponent', () => {
     expect(component.note.entries).toHaveSize(1);
   });
 
-  it('should copy row with empty rowKey', () => {
+  it('should copy row with empty id', () => {
     // Arrange
     component.note = {
-      rowKey: '',
+      id: '',
       name: '',
       sideNote: '',
       imageUrl: '',
       imageBase64: '',
       entries: [
-        { rowKey: 'original-key', noteRowKey: '', time: 5, process: 'Original Step', film: 'Film1', details: 'Details1' }
+        { id: 'original-key', noteId: '', time: 5, process: 'Original Step', film: 'Film1', details: 'Details1' }
       ]
     };
 
@@ -306,7 +306,7 @@ describe('NoteTableComponent', () => {
 
     // Assert
     expect(component.note.entries).toHaveSize(2);
-    expect(component.note.entries[1].rowKey).toBe(''); // Should be empty for copied row
+    expect(component.note.entries[1].id).toBe(''); // Should be empty for copied row
     expect(component.note.entries[1].process).toBe('Original Step');
     expect(component.note.entries[1].film).toBe('Film1');
   });
@@ -315,14 +315,14 @@ describe('NoteTableComponent', () => {
     // Arrange
     spyOn(window, 'alert');
     component.note = {
-      rowKey: '',
+      id: '',
       name: '',
       sideNote: '',
       imageUrl: '',
       imageBase64: '',
       entries: [
-        { rowKey: '1', noteRowKey: '', time: 10, process: 'Step 1', film: '', details: '' },
-        { rowKey: '2', noteRowKey: '', time: 20, process: 'Step 2', film: '', details: '' }
+        { id: '1', noteId: '', time: 10, process: 'Step 1', film: '', details: '' },
+        { id: '2', noteId: '', time: 20, process: 'Step 2', film: '', details: '' }
       ]
     };
 
@@ -338,15 +338,15 @@ describe('NoteTableComponent', () => {
     // Arrange
     spyOn(window, 'alert');
     component.note = {
-      rowKey: '',
+      id: '',
       name: '',
       sideNote: '',
       imageUrl: '',
       imageBase64: '',
       entries: [
-        { rowKey: '1', noteRowKey: '', time: 10, process: 'Step 1', film: '', details: '' },
-        { rowKey: '2', noteRowKey: '', time: 20, process: 'Step 2', film: '', details: '' },
-        { rowKey: '3', noteRowKey: '', time: 30, process: 'Step 3', film: '', details: '' }
+        { id: '1', noteId: '', time: 10, process: 'Step 1', film: '', details: '' },
+        { id: '2', noteId: '', time: 20, process: 'Step 2', film: '', details: '' },
+        { id: '3', noteId: '', time: 30, process: 'Step 3', film: '', details: '' }
       ]
     };
 
@@ -361,14 +361,14 @@ describe('NoteTableComponent', () => {
   it('should accept valid time change', () => {
     // Arrange
     component.note = {
-      rowKey: '',
+      id: '',
       name: '',
       sideNote: '',
       imageUrl: '',
       imageBase64: '',
       entries: [
-        { rowKey: '1', noteRowKey: '', time: 10, process: 'Step 1', film: '', details: '' },
-        { rowKey: '2', noteRowKey: '', time: 20, process: 'Step 2', film: '', details: '' }
+        { id: '1', noteId: '', time: 10, process: 'Step 1', film: '', details: '' },
+        { id: '2', noteId: '', time: 20, process: 'Step 2', film: '', details: '' }
       ]
     };
 
@@ -382,7 +382,7 @@ describe('NoteTableComponent', () => {
   it('should delete note and navigate to notes list', () => {
     // Arrange
     component.note = { 
-      rowKey: 'test-key', 
+      id: 'test-key', 
       name: 'Test Note', 
       sideNote: '', 
       imageUrl: '', 
@@ -403,7 +403,7 @@ describe('NoteTableComponent', () => {
     // Arrange
     spyOn(console, 'error');
     component.note = { 
-      rowKey: 'test-key', 
+      id: 'test-key', 
       name: 'Test Note', 
       sideNote: '', 
       imageUrl: '', 

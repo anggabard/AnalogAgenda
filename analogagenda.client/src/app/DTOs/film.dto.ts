@@ -2,7 +2,7 @@ import { FilmType, UsernameType } from "../enums";
 import { ExposureDateEntry } from "./exposure-date-entry.dto";
 
 export interface FilmDto {
-  rowKey: string;
+  id: string;
   name: string;
   iso: string;
   type: FilmType;
@@ -13,7 +13,7 @@ export interface FilmDto {
   imageUrl: string;
   description: string;
   developed: boolean;
-  developedInSessionRowKey?: string | null;
-  developedWithDevKitRowKey?: string | null;
+  developedInSessionId?: string | null;
+  developedWithDevKitId?: string | null;
   exposureDates?: string;
 }

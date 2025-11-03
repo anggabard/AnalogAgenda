@@ -6,7 +6,7 @@ namespace Database.DTOs;
 
 public class NoteDto : HasImage
 {
-    public string RowKey { get; set; } = string.Empty;
+    public string Id { get; set; } = string.Empty;
     public required string Name { get; set; }
     public string SideNote { get; set; } = string.Empty;
     public List<NoteEntryDto> Entries { get; set; } = [];
@@ -15,7 +15,7 @@ public class NoteDto : HasImage
     {
         var entity = new NoteEntity
         {
-            RowKey = RowKey,
+            Id = Id,
             Name = Name,
             SideNote = SideNote,
             ImageId = string.IsNullOrEmpty(ImageUrl) ? Guid.Empty : BlobUrlHelper.GetImageInfoFromUrl(ImageUrl).ImageId
@@ -29,15 +29,15 @@ public class NoteDto : HasImage
     {
         return new NoteEntity
         {
-            RowKey = RowKey,
+            Id = Id,
             Name = Name,
             SideNote = SideNote,
             ImageId = string.IsNullOrEmpty(ImageUrl) ? Guid.Empty : BlobUrlHelper.GetImageInfoFromUrl(ImageUrl).ImageId
         };
     }
 
-    public List<NoteEntryEntity> ToNoteEntryEntities(string noteRowKey)
+    public List<NoteEntryEntity> ToNoteEntryEntities(string noteId)
     {
-        return [.. Entries.Select(entry => entry.ToEntity(noteRowKey))];
+        return [.. Entries.Select(entry => entry.ToEntity(noteId))];
     }
 }

@@ -56,7 +56,7 @@ describe('SubstancesComponent', () => {
     // Arrange
     const mockDevKits: DevKitDto[] = [
       {
-        rowKey: '1',
+        id: '1',
         name: 'Test Kit',
         url: 'http://example.com',
         type: DevKitType.C41,
@@ -103,13 +103,13 @@ describe('SubstancesComponent', () => {
 
   it('should navigate to kit details when onKitSelected is called', () => {
     // Arrange
-    const rowKey = 'test-row-key';
+    const id = 'test-row-key';
 
     // Act
-    component.onKitSelected(rowKey);
+    component.onKitSelected(id);
 
     // Assert
-    expect(mockRouter.navigate).toHaveBeenCalledWith(['/substances/' + rowKey]);
+    expect(mockRouter.navigate).toHaveBeenCalledWith(['/substances/' + id]);
   });
 
 });

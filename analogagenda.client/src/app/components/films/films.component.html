@@ -26,7 +26,7 @@
                 [hasMore]="hasMoreMyNotDeveloped" 
                 [loading]="loadingMyNotDeveloped"
                 (loadMore)="loadMoreMyNotDevelopedFilms()"
-                (itemClick)="onFilmSelected($event.rowKey)">
+                (itemClick)="onFilmSelected($event.id)">
             </app-card-list>
         </div>
 
@@ -38,7 +38,7 @@
                 [hasMore]="hasMoreMyDeveloped" 
                 [loading]="loadingMyDeveloped"
                 (loadMore)="loadMoreMyDevelopedFilms()"
-                (itemClick)="onFilmSelected($event.rowKey)">
+                (itemClick)="onFilmSelected($event.id)">
             </app-card-list>
         </div>
     </div>
@@ -59,7 +59,7 @@
                 [hasMore]="hasMoreAllNotDeveloped" 
                 [loading]="loadingAllNotDeveloped"
                 (loadMore)="loadMoreAllNotDevelopedFilms()"
-                (itemClick)="onFilmSelected($event.rowKey)">
+                (itemClick)="onFilmSelected($event.id)">
             </app-card-list>
         </div>
 
@@ -71,7 +71,7 @@
                 [hasMore]="hasMoreAllDeveloped" 
                 [loading]="loadingAllDeveloped"
                 (loadMore)="loadMoreAllDevelopedFilms()"
-                (itemClick)="onFilmSelected($event.rowKey)">
+                (itemClick)="onFilmSelected($event.id)">
             </app-card-list>
         </div>
     </div>

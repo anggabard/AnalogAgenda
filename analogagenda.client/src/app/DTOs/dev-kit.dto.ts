@@ -1,7 +1,7 @@
 import { DevKitType, UsernameType } from "../enums";
 
 export interface DevKitDto {
-  rowKey: string;
+  id: string;
   name: string;
   url: string;
   type: DevKitType;

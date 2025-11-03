@@ -22,8 +22,8 @@ export interface SearchParams {
   type?: string;
   numberOfExposures?: number;
   purchasedBy?: string;
-  developedWithDevKitRowKey?: string;
-  developedInSessionRowKey?: string;
+  developedWithDevKitId?: string;
+  developedInSessionId?: string;
 }
 
 @Component({
@@ -107,7 +107,7 @@ export class FilmSearchComponent implements OnInit, OnDestroy {
       availableInMyFilms: false
     },
     {
-      key: 'developedWithDevKitRowKey',
+      key: 'developedWithDevKitId',
       label: 'Developed with DevKit',
       type: 'dropdown',
       visible: false,
@@ -117,7 +117,7 @@ export class FilmSearchComponent implements OnInit, OnDestroy {
       availableInMyFilms: true
     },
     {
-      key: 'developedInSessionRowKey',
+      key: 'developedInSessionId',
       label: 'Developed in Session',
       type: 'dropdown',
       visible: false,
@@ -143,9 +143,9 @@ export class FilmSearchComponent implements OnInit, OnDestroy {
     this.devKitService.getAll().subscribe({
       next: (devKits) => {
         this.devKits = devKits;
-        const kitField = this.searchFields.find(f => f.key === 'developedWithDevKitRowKey');
+        const kitField = this.searchFields.find(f => f.key === 'developedWithDevKitId');
         if (kitField) {
-          kitField.options = devKits.map(dk => ({ value: dk.rowKey, label: `${dk.name} - ${dk.type}` }));
+          kitField.options = devKits.map(dk => ({ value: dk.id, label: `${dk.name} - ${dk.type}` }));
         }
       },
       error: (err) => console.error('Error loading dev kits:', err)
@@ -155,9 +155,9 @@ export class FilmSearchComponent implements OnInit, OnDestroy {
     this.sessionService.getAll().subscribe({
       next: (sessions) => {
         this.sessions = sessions;
-        const sessionField = this.searchFields.find(f => f.key === 'developedInSessionRowKey');
+        const sessionField = this.searchFields.find(f => f.key === 'developedInSessionId');
         if (sessionField) {
-          sessionField.options = sessions.map(s => ({ value: s.rowKey, label: `${s.sessionDate} - ${s.location}` }));
+          sessionField.options = sessions.map(s => ({ value: s.id, label: `${s.sessionDate} - ${s.location}` }));
         }
       },
       error: (err) => console.error('Error loading sessions:', err)

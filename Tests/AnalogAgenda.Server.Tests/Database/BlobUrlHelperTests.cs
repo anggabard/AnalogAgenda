@@ -1,6 +1,6 @@
 using Database.Helpers;
 
-namespace Database.Tests;
+namespace AnalogAgenda.Server.Tests.Database;
 
 public class BlobUrlHelperTests
 {
@@ -42,10 +42,10 @@ public class BlobUrlHelperTests
     [InlineData("")]
     [InlineData("   ")]
     [InlineData(null)]
-    public void GetImageInfoFromUrl_WithInvalidUrl_ThrowsArgumentException(string url)
+    public void GetImageInfoFromUrl_WithInvalidUrl_ThrowsArgumentException(string? url)
     {
         // Act & Assert
-        Assert.Throws<ArgumentException>(() => BlobUrlHelper.GetImageInfoFromUrl(url));
+        Assert.Throws<ArgumentException>(() => BlobUrlHelper.GetImageInfoFromUrl(url!));
     }
 
     [Fact]
@@ -81,3 +81,4 @@ public class BlobUrlHelperTests
     }
 
 }
+

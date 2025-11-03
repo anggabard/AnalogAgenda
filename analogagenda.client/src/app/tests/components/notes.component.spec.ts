@@ -47,7 +47,7 @@ describe('NotesComponent', () => {
     // Arrange
     const mockNotes: NoteDto[] = [
       {
-        rowKey: '1',
+        id: '1',
         name: 'Test Note 1',
         sideNote: 'Test Side Note 1',
         imageUrl: 'test-url-1',
@@ -55,7 +55,7 @@ describe('NotesComponent', () => {
         entries: []
       },
       {
-        rowKey: '2',
+        id: '2',
         name: 'Test Note 2',
         sideNote: 'Test Side Note 2',
         imageUrl: 'test-url-2',
@@ -102,13 +102,13 @@ describe('NotesComponent', () => {
 
   it('should navigate to note details when onNoteSelected is called', () => {
     // Arrange
-    const rowKey = 'test-row-key';
+    const id = 'test-row-key';
 
     // Act
-    component.onNoteSelected(rowKey);
+    component.onNoteSelected(id);
 
     // Assert
-    expect(mockRouter.navigate).toHaveBeenCalledWith(['/notes', rowKey]);
+    expect(mockRouter.navigate).toHaveBeenCalledWith(['/notes', id]);
   });
 
 

@@ -1,6 +1,6 @@
 export interface NoteEntryDto {
-  rowKey: string;
-  noteRowKey: string;
+  id: string;
+  noteId: string;
   time: number;
   process: string;
   film: string;

@@ -21,17 +21,17 @@ export class NoteTableComponent implements OnInit {
   isPreviewModalOpen: boolean = false;
   isDeleteModalOpen: boolean = false;
 
-  noteRowKey: string | null = null;
+  noteId: string | null = null;
   originalNote: NoteDto | null = null; // Used for discard
 
   constructor(private route: ActivatedRoute) { }
 
   ngOnInit(): void {
-    this.noteRowKey = this.route.snapshot.paramMap.get('id');
+    this.noteId = this.route.snapshot.paramMap.get('id');
 
-    if (this.noteRowKey) {
+    if (this.noteId) {
       // VIEW / EDIT MODE - Load from backend
-      this.loadNoteFromBackend(this.noteRowKey);
+      this.loadNoteFromBackend(this.noteId);
     } else {
       // CREATE MODE
       this.isNewNote = true;
@@ -40,8 +40,8 @@ export class NoteTableComponent implements OnInit {
   }
 
   /** Simulated backend load */
-  loadNoteFromBackend(rowKey: string) {
-    this.notesService.getById(rowKey).subscribe({
+  loadNoteFromBackend(id: string) {
+    this.notesService.getById(id).subscribe({
       next: (note: NoteDto) => {
         this.note = note;
         this.originalNote = JSON.parse(JSON.stringify(this.note));
@@ -72,12 +72,12 @@ export class NoteTableComponent implements OnInit {
 
   getEmptyNote() {
     return JSON.parse(JSON.stringify({
-      rowKey: '',
+      id: '',
       name: '',
       sideNote: '',
       imageBase64: '',
       imageUrl: '',
-      entries: [{ rowKey: '', noteRowKey: '', time: 0, process: '', film: '', details: '' }]
+      entries: [{ id: '', noteId: '', time: 0, process: '', film: '', details: '' }]
     }));
   }
 
@@ -88,15 +88,15 @@ export class NoteTableComponent implements OnInit {
 
     if (this.isNewNote) {
       this.notesService.addNewNote(this.note).subscribe({
-        next: (noteRowKey: string) => {
-          this.router.navigate(['/notes/' + noteRowKey]);
+        next: (noteId: string) => {
+          this.router.navigate(['/notes/' + noteId]);
         },
         error: (err: any) => {
           console.error(err);
         }
       });
     } else {
-      this.notesService.update(this.noteRowKey!, this.note).subscribe({
+      this.notesService.update(this.noteId!, this.note).subscribe({
         next: () => {
           this.originalNote = JSON.parse(JSON.stringify(this.note));
           this.isEditMode = false;
@@ -114,8 +114,8 @@ export class NoteTableComponent implements OnInit {
     const newTime = lastEntry ? lastEntry.time : 0;
 
     this.note.entries.push({
-      rowKey: '',
-      noteRowKey: '',
+      id: '',
+      noteId: '',
       time: newTime,
       process: '',
       film: '',
@@ -133,7 +133,7 @@ export class NoteTableComponent implements OnInit {
   copyRow(index: number) {
     const originalEntry = this.note.entries[index];
     var copyEntry = JSON.parse(JSON.stringify(originalEntry));
-    copyEntry.rowKey = '';
+    copyEntry.id = '';
 
     this.note.entries.splice(index + 1, 0, copyEntry);
   }
@@ -167,7 +167,7 @@ export class NoteTableComponent implements OnInit {
   }
 
   onDelete() {
-    this.notesService.deleteById(this.note.rowKey).subscribe({
+    this.notesService.deleteById(this.note.id).subscribe({
       next: () => {
         this.router.navigate(['/notes']);
       },

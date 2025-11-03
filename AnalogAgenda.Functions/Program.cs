@@ -1,8 +1,11 @@
 using AnalogAgenda.EmailSender;
 using Configuration;
+using Database.Data;
 using Database.Services;
 using Database.Services.Interfaces;
 using Microsoft.Azure.Functions.Worker.Builder;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
@@ -15,8 +18,16 @@ builder.Services.AddAzureAdConfigBinding();
 builder.Services.AddStorageConfigBinding();
 builder.Services.AddContainerRegistryConfigBinding();
 
+// Add DbContext for Azure Functions
+var connectionString = builder.Configuration.GetConnectionString("AnalogAgendaDb");
+if (!string.IsNullOrEmpty(connectionString))
+{
+    builder.Services.AddDbContext<AnalogAgendaDbContext>(options =>
+        options.UseSqlServer(connectionString));
+}
+
 builder.Services.AddSingleton<IEmailSender, EmailSender>();
-builder.Services.AddSingleton<ITableService, TableService>();
+builder.Services.AddScoped<IDatabaseService, DatabaseService>();
 builder.Services.AddSingleton<IContainerRegistryService, ContainerRegistryService>();
 
 builder.Build().Run();

@@ -63,8 +63,8 @@ export class SessionsComponent implements OnInit {
     this.router.navigate(['/sessions/new']);
   }
 
-  onSessionSelected(rowKey: string) {
-    this.router.navigate(['/sessions/' + rowKey]);
+  onSessionSelected(id: string) {
+    this.router.navigate(['/sessions/' + id]);
   }
 
   parseParticipants(participantsJson: string): string[] {

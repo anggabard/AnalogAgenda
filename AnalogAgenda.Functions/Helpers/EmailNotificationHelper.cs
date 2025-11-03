@@ -13,12 +13,12 @@ public static class EmailNotificationHelper
     /// Sends an email notification to all subscribers
     /// </summary>
     public static async Task SendNotificationToSubscribersAsync(
-        ITableService tablesService,
+        IDatabaseService databaseService,
         IEmailSender emailSender,
         string subject,
         string htmlContent)
     {
-        var users = await tablesService.GetTableEntriesAsync<UserEntity>(user => user.IsSubscraibed);
+        var users = await databaseService.GetAllAsync<UserEntity>(user => user.IsSubscraibed);
         var receivers = users.Select(userEntity => userEntity.Email);
 
         if (!receivers.Any())

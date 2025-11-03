@@ -9,6 +9,6 @@ public class FilmSearchDto : PaginationParams
     public string? Iso { get; set; }
     public string? Type { get; set; }
     public string? PurchasedBy { get; set; }
-    public string? DevelopedWithDevKitRowKey { get; set; }
-    public string? DevelopedInSessionRowKey { get; set; }
+    public string? DevelopedWithDevKitId { get; set; }
+    public string? DevelopedInSessionId { get; set; }
 }

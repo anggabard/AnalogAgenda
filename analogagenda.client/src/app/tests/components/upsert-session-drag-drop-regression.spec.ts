@@ -208,18 +208,18 @@ describe('UpsertSessionComponent - Drag Drop Bug Regression Tests', () => {
       const film1 = createMockFilm('film-1', 'Film 1');
       const film2 = createMockFilm('film-2', 'Film 2');
 
-      expect(component.trackByFilmRowKey(0, film1)).toBe('film-1');
-      expect(component.trackByFilmRowKey(1, film2)).toBe('film-2');
-      expect(component.trackByFilmRowKey(0, film1)).not.toBe(component.trackByFilmRowKey(1, film2));
+      expect(component.trackByFilmId(0, film1)).toBe('film-1');
+      expect(component.trackByFilmId(1, film2)).toBe('film-2');
+      expect(component.trackByFilmId(0, film1)).not.toBe(component.trackByFilmId(1, film2));
     });
 
     it('should return unique identifiers for dev kits', () => {
       const devKit1 = createMockDevKit('devkit-1', 'DevKit 1');
       const devKit2 = createMockDevKit('devkit-2', 'DevKit 2');
 
-      expect(component.trackByDevKitDtoRowKey(0, devKit1)).toBe('devkit-1');
-      expect(component.trackByDevKitDtoRowKey(1, devKit2)).toBe('devkit-2');
-      expect(component.trackByDevKitDtoRowKey(0, devKit1)).not.toBe(component.trackByDevKitDtoRowKey(1, devKit2));
+      expect(component.trackByDevKitDtoId(0, devKit1)).toBe('devkit-1');
+      expect(component.trackByDevKitDtoId(1, devKit2)).toBe('devkit-2');
+      expect(component.trackByDevKitDtoId(0, devKit1)).not.toBe(component.trackByDevKitDtoId(1, devKit2));
     });
   });
 
@@ -301,9 +301,9 @@ describe('UpsertSessionComponent - Drag Drop Bug Regression Tests', () => {
   });
 
   // Helper functions for creating test data
-  function createMockFilm(rowKey: string, name: string): FilmDto {
+  function createMockFilm(id: string, name: string): FilmDto {
     return {
-      rowKey,
+      id,
       name,
       iso: '400',
       type: FilmType.ColorNegative,
@@ -314,13 +314,13 @@ describe('UpsertSessionComponent - Drag Drop Bug Regression Tests', () => {
       imageUrl: `${name.toLowerCase().replace(' ', '')}.jpg`,
       description: `Test ${name}`,
       developed: true,
-      developedInSessionRowKey: 'session-1'
+      developedInSessionId: 'session-1'
     };
   }
 
-  function createMockDevKit(rowKey: string, name: string): DevKitDto {
+  function createMockDevKit(id: string, name: string): DevKitDto {
     return {
-      rowKey,
+      id,
       name,
       url: 'http://example.com',
       type: DevKitType.C41,

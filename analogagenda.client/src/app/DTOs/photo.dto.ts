@@ -1,13 +1,13 @@
 import { HasImageDto } from ".";
 
 export interface PhotoDto extends HasImageDto {
-  rowKey: string;
-  filmRowId: string;
+  id: string;
+  filmId: string;
   index: number;
 }
 
 export interface PhotoBulkUploadDto {
-  filmRowId: string;
+  filmId: string;
   photos: PhotoUploadDto[];
 }
 
@@ -16,6 +16,6 @@ export interface PhotoUploadDto {
 }
 
 export interface PhotoCreateDto {
-  filmRowId: string;
+  filmId: string;
   imageBase64: string;
 }

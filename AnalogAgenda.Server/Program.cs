@@ -1,6 +1,7 @@
 using AnalogAgenda.Server.Middleware;
 using AnalogAgenda.Server.Validators;
 using Configuration;
+using Database.Data;
 using Database.Services;
 using Database.Services.Interfaces;
 using FluentValidation;
@@ -10,6 +11,9 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
+
+// Add SQL Server DbContext via Aspire
+builder.AddSqlServerDbContext<AnalogAgendaDbContext>("analogagendadb");
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
@@ -23,6 +27,10 @@ builder.Services.AddScoped<IValidator<Database.DTOs.ChangePasswordDto>, ChangePa
 builder.Services.AddScoped<IValidator<Database.DTOs.FilmDto>, FilmDtoValidator>();
 builder.Services.AddAzureAdConfigBinding();
 builder.Services.AddStorageConfigBinding();
+
+// Register database and blob services
+builder.Services.AddScoped<IDatabaseService, DatabaseService>();
+builder.Services.AddSingleton<IBlobService, BlobService>();
 
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(opt =>
@@ -54,9 +62,6 @@ builder.Configuration
     .AddJsonFile("appsettings.json", optional: true)
     .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true)
     .AddEnvironmentVariables();
-
-builder.Services.AddSingleton<ITableService, TableService>();
-builder.Services.AddSingleton<IBlobService, BlobService>();
 
 builder.Services.AddCors(options =>
 {

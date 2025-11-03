@@ -10,11 +10,12 @@ namespace AnalogAgenda.Functions;
 
 public class GarbageCollector(
     ILoggerFactory loggerFactory,
-    ITableService tablesService,
+    IDatabaseService databaseService,
     IContainerRegistryService containerRegistryService,
     ContainerRegistry containerRegistryConfig)
 {
     private readonly ILogger _logger = loggerFactory.CreateLogger<GarbageCollector>();
+    private readonly IDatabaseService _databaseService = databaseService;
     private readonly IContainerRegistryService _containerRegistryService = containerRegistryService;
     private readonly ContainerRegistry _containerRegistryConfig = containerRegistryConfig;
 
@@ -43,19 +44,19 @@ public class GarbageCollector(
 
     public async Task DeleteUnusedThumbnails<Thumbnail, Entity>() where Thumbnail : BaseEntity, IImageEntity where Entity : BaseEntity, IImageEntity
     {
-        var thumbnailsTable = await tablesService.GetTableEntriesAsync<Thumbnail>();
-        var thumbnailsTableName = TableService.GetTableName<Thumbnail>();
+        var thumbnails = await _databaseService.GetAllAsync<Thumbnail>();
+        var entityTypeName = typeof(Thumbnail).Name;
 
-        foreach (var thumbnail in thumbnailsTable)
+        foreach (var thumbnail in thumbnails)
         {
-            var thumnailId = thumbnail.ImageId;
+            var thumbnailId = thumbnail.ImageId;
 
-            var exists = await tablesService.EntryExistsAsync<Entity>(entity => entity.ImageId == thumnailId);
+            var exists = await _databaseService.ExistsAsync<Entity>(entity => entity.ImageId == thumbnailId);
 
             if (!exists)
             {
-                await tablesService.DeleteTableEntryAsync<Thumbnail>(thumbnail.RowKey);
-                _logger.LogInformation($"Deleted unused thumbnail from Table: {thumbnailsTableName} with RowKey: {thumbnail.RowKey}");
+                await _databaseService.DeleteAsync<Thumbnail>(thumbnail.Id);
+                _logger.LogInformation($"Deleted unused thumbnail of type: {entityTypeName} with Id: {thumbnail.Id}");
             }
         }
     }

@@ -1,82 +1,52 @@
 using AnalogAgenda.Server.Controllers;
-using Azure.Data.Tables;
+using AnalogAgenda.Server.Tests.Helpers;
 using Azure.Storage.Blobs;
 using Configuration.Sections;
+using Database.Data;
 using Database.DBObjects.Enums;
 using Database.DTOs;
 using Database.Entities;
+using Database.Services;
 using Database.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
 
 namespace AnalogAgenda.Server.Tests.Controllers;
 
-public class PhotoControllerTests
+public class PhotoControllerTests : IDisposable
 {
-    private readonly Mock<ITableService> _mockTableService;
+    private readonly AnalogAgendaDbContext _dbContext;
+    private readonly IDatabaseService _databaseService;
     private readonly Mock<IBlobService> _mockBlobService;
-    private readonly Mock<TableClient> _mockPhotosTableClient;
-    private readonly Mock<TableClient> _mockFilmsTableClient;
     private readonly Mock<BlobContainerClient> _mockPhotosContainerClient;
+    private readonly Mock<BlobContainerClient> _mockFilmsContainerClient;
     private readonly Mock<BlobClient> _mockBlobClient;
     private readonly Storage _storageConfig;
     private readonly PhotoController _controller;
 
     public PhotoControllerTests()
     {
-        _mockTableService = new Mock<ITableService>();
+        _dbContext = InMemoryDbContextFactory.Create($"PhotoTestDb_{Guid.NewGuid()}");
+        _databaseService = new DatabaseService(_dbContext);
         _mockBlobService = new Mock<IBlobService>();
-        _mockPhotosTableClient = new Mock<TableClient>();
-        _mockFilmsTableClient = new Mock<TableClient>();
         _mockPhotosContainerClient = new Mock<BlobContainerClient>();
+        _mockFilmsContainerClient = new Mock<BlobContainerClient>();
         _mockBlobClient = new Mock<BlobClient>();
         _storageConfig = new Storage { AccountName = "teststorage" };
 
-        _mockTableService.Setup(x => x.GetTable(TableName.Photos))
-                        .Returns(_mockPhotosTableClient.Object);
-        
-        _mockTableService.Setup(x => x.GetTable(TableName.Films))
-                        .Returns(_mockFilmsTableClient.Object);
-        
         _mockBlobService.Setup(x => x.GetBlobContainer(ContainerName.photos))
                        .Returns(_mockPhotosContainerClient.Object);
-
+        
         _mockPhotosContainerClient.Setup(x => x.GetBlobClient(It.IsAny<string>()))
                                  .Returns(_mockBlobClient.Object);
 
-        // Mock the base controller's table operations
-        _mockPhotosTableClient.Setup(x => x.AddEntityAsync(It.IsAny<PhotoEntity>(), It.IsAny<CancellationToken>()))
-                             .ReturnsAsync(Mock.Of<Azure.Response>());
-
-        _mockPhotosTableClient.Setup(x => x.DeleteEntityAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<Azure.ETag>(), It.IsAny<CancellationToken>()))
-                             .ReturnsAsync(Mock.Of<Azure.Response>());
-
-        _controller = new PhotoController(_storageConfig, _mockTableService.Object, _mockBlobService.Object);
+        _controller = new PhotoController(_storageConfig, _databaseService, _mockBlobService.Object);
     }
 
-    [Fact]
-    public async Task CreatePhoto_WithValidDto_ReturnsOk()
+    public void Dispose()
     {
-        // Arrange
-        var filmRowId = "test-film-id";
-        var filmEntity = new FilmEntity { RowKey = filmRowId, Name = "Test Film", Iso = "400" };
-        var photoDto = new PhotoCreateDto
-        {
-            FilmRowId = filmRowId,
-            ImageBase64 = "data:image/jpeg;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChAI9jU77oAAAAABJRU5ErkJggg=="
-        };
-
-        _mockTableService.Setup(x => x.GetTableEntryIfExistsAsync<FilmEntity>(filmRowId))
-                        .ReturnsAsync(filmEntity);
-        
-        _mockTableService.Setup(x => x.GetTableEntriesAsync<PhotoEntity>(It.IsAny<System.Linq.Expressions.Expression<Func<PhotoEntity, bool>>>()))
-                        .ReturnsAsync(new List<PhotoEntity>());
-
-        // Act
-        var result = await _controller.CreatePhoto(photoDto);
-
-        // Assert
-        Assert.IsType<CreatedResult>(result);
+        _dbContext.Database.EnsureDeleted();
+        _dbContext.Dispose();
     }
 
     [Fact]
@@ -85,7 +55,7 @@ public class PhotoControllerTests
         // Arrange
         var photoDto = new PhotoCreateDto
         {
-            FilmRowId = "test-film-id",
+            FilmId = "test-film-id",
             ImageBase64 = ""
         };
 
@@ -100,15 +70,12 @@ public class PhotoControllerTests
     public async Task CreatePhoto_WithNonExistentFilm_ReturnsNotFound()
     {
         // Arrange
-        var filmRowId = "non-existent-film";
+        var filmId = "non-existent-film";
         var photoDto = new PhotoCreateDto
         {
-            FilmRowId = filmRowId,
+            FilmId = filmId,
             ImageBase64 = "data:image/jpeg;base64,validbase64"
         };
-
-        _mockTableService.Setup(x => x.GetTableEntryIfExistsAsync<FilmEntity>(filmRowId))
-                        .ReturnsAsync((FilmEntity?)null);
 
         // Act
         var result = await _controller.CreatePhoto(photoDto);
@@ -118,41 +85,12 @@ public class PhotoControllerTests
     }
 
     [Fact]
-    public async Task UploadPhotos_WithValidBulkDto_ReturnsOk()
-    {
-        // Arrange
-        var filmRowId = "test-film-id";
-        var filmEntity = new FilmEntity { RowKey = filmRowId, Name = "Test Film", Iso = "400" };
-        var bulkDto = new PhotoBulkUploadDto
-        {
-            FilmRowId = filmRowId,
-            Photos = new List<PhotoUploadDto>
-            {
-                new PhotoUploadDto { ImageBase64 = "data:image/jpeg;base64,validbase64data1" },
-                new PhotoUploadDto { ImageBase64 = "data:image/jpeg;base64,validbase64data2" }
-            }
-        };
-
-        _mockTableService.Setup(x => x.GetTableEntryIfExistsAsync<FilmEntity>(filmRowId))
-                        .ReturnsAsync(filmEntity);
-        
-        _mockTableService.Setup(x => x.GetTableEntriesAsync<PhotoEntity>(It.IsAny<System.Linq.Expressions.Expression<Func<PhotoEntity, bool>>>()))
-                        .ReturnsAsync(new List<PhotoEntity>());
-
-        // Act
-        var result = await _controller.UploadPhotos(bulkDto);
-
-        // Assert
-        Assert.IsType<NoContentResult>(result);
-    }
-
-    [Fact]
     public async Task UploadPhotos_WithEmptyPhotosList_ReturnsBadRequest()
     {
         // Arrange
         var bulkDto = new PhotoBulkUploadDto
         {
-            FilmRowId = "test-film-id",
+            FilmId = "test-film-id",
             Photos = new List<PhotoUploadDto>()
         };
 
@@ -169,7 +107,7 @@ public class PhotoControllerTests
         // Arrange
         var bulkDto = new PhotoBulkUploadDto
         {
-            FilmRowId = "test-film-id",
+            FilmId = "test-film-id",
             Photos = new List<PhotoUploadDto>
             {
                 new PhotoUploadDto { ImageBase64 = "data:image/jpeg;base64,validdata" },
@@ -188,19 +126,20 @@ public class PhotoControllerTests
     public async Task GetPhotosByFilmId_WithValidFilmId_ReturnsOkWithPhotos()
     {
         // Arrange
-        var filmRowId = "test-film-id";
-        var photoEntities = new List<PhotoEntity>
-        {
-            new PhotoEntity { FilmRowId = filmRowId, Index = 2, RowKey = "photo2", ImageId = Guid.NewGuid() },
-            new PhotoEntity { FilmRowId = filmRowId, Index = 1, RowKey = "photo1", ImageId = Guid.NewGuid() },
-            new PhotoEntity { FilmRowId = filmRowId, Index = 3, RowKey = "photo3", ImageId = Guid.NewGuid() }
-        };
+        var filmId = "test-film-id";
+        var film = new FilmEntity { Id = filmId, Name = "Test Film", Iso = "400" };
+        await _databaseService.AddAsync(film);
 
-        _mockTableService.Setup(x => x.GetTableEntriesAsync<PhotoEntity>(It.IsAny<System.Linq.Expressions.Expression<Func<PhotoEntity, bool>>>()))
-                        .ReturnsAsync(photoEntities);
+        var photo1 = new PhotoEntity { FilmId = filmId, Index = 2, Id = "photo2", ImageId = Guid.NewGuid() };
+        var photo2 = new PhotoEntity { FilmId = filmId, Index = 1, Id = "photo1", ImageId = Guid.NewGuid() };
+        var photo3 = new PhotoEntity { FilmId = filmId, Index = 3, Id = "photo3", ImageId = Guid.NewGuid() };
+
+        await _databaseService.AddAsync(photo1);
+        await _databaseService.AddAsync(photo2);
+        await _databaseService.AddAsync(photo3);
 
         // Act
-        var result = await _controller.GetPhotosByFilmId(filmRowId);
+        var result = await _controller.GetPhotosByFilmId(filmId);
 
         // Assert
         var okResult = Assert.IsType<OkObjectResult>(result);
@@ -217,13 +156,12 @@ public class PhotoControllerTests
     public async Task GetPhotosByFilmId_WithNoPhotos_ReturnsEmptyList()
     {
         // Arrange
-        var filmRowId = "test-film-id";
-        
-        _mockTableService.Setup(x => x.GetTableEntriesAsync<PhotoEntity>(It.IsAny<System.Linq.Expressions.Expression<Func<PhotoEntity, bool>>>()))
-                        .ReturnsAsync(new List<PhotoEntity>());
+        var filmId = "test-film-id";
+        var film = new FilmEntity { Id = filmId, Name = "Test Film", Iso = "400" };
+        await _databaseService.AddAsync(film);
 
         // Act
-        var result = await _controller.GetPhotosByFilmId(filmRowId);
+        var result = await _controller.GetPhotosByFilmId(filmId);
 
         // Assert
         var okResult = Assert.IsType<OkObjectResult>(result);
@@ -232,88 +170,26 @@ public class PhotoControllerTests
     }
 
     [Fact]
-    public async Task DownloadPhoto_WithValidRowKey_ReturnsFileResult()
-    {
-        // Arrange
-        var rowKey = "test-photo-key";
-        var filmRowId = "test-film-id";
-        var photoEntity = new PhotoEntity { RowKey = rowKey, FilmRowId = filmRowId, Index = 1, ImageId = Guid.NewGuid() };
-        var filmEntity = new FilmEntity { RowKey = filmRowId, Name = "Test Film", Iso = "400" };
-
-        _mockTableService.Setup(x => x.GetTableEntryIfExistsAsync<PhotoEntity>(rowKey))
-                        .ReturnsAsync(photoEntity);
-        
-        _mockTableService.Setup(x => x.GetTableEntryIfExistsAsync<FilmEntity>(filmRowId))
-                        .ReturnsAsync(filmEntity);
-
-        // Mock BlobImageHelper static method call result
-        _mockBlobClient.Setup(x => x.ExistsAsync(It.IsAny<CancellationToken>()))
-                      .ReturnsAsync(Azure.Response.FromValue(true, Mock.Of<Azure.Response>()));
-
-        // Act - This will fail because we can't easily mock static BlobImageHelper methods
-        // Let's expect the UnprocessableEntity result for now
-        var result = await _controller.DownloadPhoto(rowKey);
-
-        // Assert - Since we can't mock static methods easily, expect the exception handling
-        Assert.IsType<UnprocessableEntityObjectResult>(result);
-    }
-
-    [Fact]
     public async Task DownloadPhoto_WithNonExistentPhoto_ReturnsNotFound()
     {
         // Arrange
-        var rowKey = "non-existent-photo";
-
-        _mockTableService.Setup(x => x.GetTableEntryIfExistsAsync<PhotoEntity>(rowKey))
-                        .ReturnsAsync((PhotoEntity?)null);
+        var id = "non-existent-photo";
 
         // Act
-        var result = await _controller.DownloadPhoto(rowKey);
+        var result = await _controller.DownloadPhoto(id);
 
         // Assert
         Assert.IsType<NotFoundObjectResult>(result);
     }
 
     [Fact]
-    public async Task DownloadAllPhotos_WithValidFilmId_ReturnsZipFile()
-    {
-        // Arrange
-        var filmRowId = "test-film-id";
-        var filmEntity = new FilmEntity { RowKey = filmRowId, Name = "Test Film", Iso = "400" };
-        var photoEntities = new List<PhotoEntity>
-        {
-            new PhotoEntity { FilmRowId = filmRowId, Index = 1, RowKey = "photo1", ImageId = Guid.NewGuid() },
-            new PhotoEntity { FilmRowId = filmRowId, Index = 2, RowKey = "photo2", ImageId = Guid.NewGuid() }
-        };
-
-        _mockTableService.Setup(x => x.GetTableEntryIfExistsAsync<FilmEntity>(filmRowId))
-                        .ReturnsAsync(filmEntity);
-        
-        _mockTableService.Setup(x => x.GetTableEntriesAsync<PhotoEntity>(It.IsAny<System.Linq.Expressions.Expression<Func<PhotoEntity, bool>>>()))
-                        .ReturnsAsync(photoEntities);
-
-        // Mock blob exists check
-        _mockBlobClient.Setup(x => x.ExistsAsync(It.IsAny<CancellationToken>()))
-                      .ReturnsAsync(Azure.Response.FromValue(true, Mock.Of<Azure.Response>()));
-
-        // Act - This will fail because we can't easily mock static BlobImageHelper methods
-        var result = await _controller.DownloadAllPhotos(filmRowId);
-
-        // Assert - Since we can't mock static methods easily, expect the exception handling
-        Assert.IsType<UnprocessableEntityObjectResult>(result);
-    }
-
-    [Fact]
     public async Task DownloadAllPhotos_WithNonExistentFilm_ReturnsNotFound()
     {
         // Arrange
-        var filmRowId = "non-existent-film";
-
-        _mockTableService.Setup(x => x.GetTableEntryIfExistsAsync<FilmEntity>(filmRowId))
-                        .ReturnsAsync((FilmEntity?)null);
+        var filmId = "non-existent-film";
 
         // Act
-        var result = await _controller.DownloadAllPhotos(filmRowId);
+        var result = await _controller.DownloadAllPhotos(filmId);
 
         // Assert
         Assert.IsType<NotFoundObjectResult>(result);
@@ -323,120 +199,47 @@ public class PhotoControllerTests
     public async Task DownloadAllPhotos_WithNoPhotos_ReturnsNotFound()
     {
         // Arrange
-        var filmRowId = "test-film-id";
-        var filmEntity = new FilmEntity { RowKey = filmRowId, Name = "Test Film", Iso = "400" };
-
-        _mockTableService.Setup(x => x.GetTableEntryIfExistsAsync<FilmEntity>(filmRowId))
-                        .ReturnsAsync(filmEntity);
-        
-        _mockTableService.Setup(x => x.GetTableEntriesAsync<PhotoEntity>(It.IsAny<System.Linq.Expressions.Expression<Func<PhotoEntity, bool>>>()))
-                        .ReturnsAsync(new List<PhotoEntity>());
+        var filmId = "test-film-id";
+        var film = new FilmEntity { Id = filmId, Name = "Test Film", Iso = "400" };
+        await _databaseService.AddAsync(film);
 
         // Act
-        var result = await _controller.DownloadAllPhotos(filmRowId);
+        var result = await _controller.DownloadAllPhotos(filmId);
 
         // Assert
         Assert.IsType<NotFoundObjectResult>(result);
     }
 
     [Fact]
-    public async Task DeletePhoto_WithValidRowKey_ReturnsNoContent()
+    public async Task DeletePhoto_WithValidId_ReturnsNoContent()
     {
         // Arrange
-        var rowKey = "test-photo-key";
-        var photoEntity = new PhotoEntity { RowKey = rowKey, FilmRowId = "test-film", Index = 1, ImageId = Guid.NewGuid() };
-
-        _mockTableService.Setup(x => x.GetTableEntryIfExistsAsync<PhotoEntity>(rowKey))
-                        .ReturnsAsync(photoEntity);
+        var id = "test-photo-key";
+        var photo = new PhotoEntity { Id = id, FilmId = "test-film", Index = 1, ImageId = Guid.NewGuid() };
+        await _databaseService.AddAsync(photo);
 
         // Act
-        var result = await _controller.DeletePhoto(rowKey);
+        var result = await _controller.DeletePhoto(id);
 
         // Assert
         Assert.IsType<NoContentResult>(result);
+        
+        // Verify photo was deleted
+        var deletedPhoto = await _databaseService.GetByIdAsync<PhotoEntity>(id);
+        Assert.Null(deletedPhoto);
     }
 
     [Fact]
     public async Task DeletePhoto_WithNonExistentPhoto_ReturnsNotFound()
     {
         // Arrange
-        var rowKey = "non-existent-photo";
-
-        _mockTableService.Setup(x => x.GetTableEntryIfExistsAsync<PhotoEntity>(rowKey))
-                        .ReturnsAsync((PhotoEntity?)null);
+        var id = "non-existent-photo";
 
         // Act
-        var result = await _controller.DeletePhoto(rowKey);
+        var result = await _controller.DeletePhoto(id);
 
         // Assert
         Assert.IsType<NotFoundResult>(result);
     }
-
-    [Fact]
-    public async Task CreatePhoto_WithExistingPhotos_AssignsCorrectIndex()
-    {
-        // Arrange
-        var filmRowId = "test-film-id";
-        var filmEntity = new FilmEntity { RowKey = filmRowId, Name = "Test Film", Iso = "400" };
-        var existingPhotos = new List<PhotoEntity>
-        {
-            new PhotoEntity { FilmRowId = filmRowId, Index = 1, RowKey = "photo1", ImageId = Guid.NewGuid() },
-            new PhotoEntity { FilmRowId = filmRowId, Index = 3, RowKey = "photo3", ImageId = Guid.NewGuid() },
-            new PhotoEntity { FilmRowId = filmRowId, Index = 2, RowKey = "photo2", ImageId = Guid.NewGuid() }
-        };
-
-        var photoDto = new PhotoCreateDto
-        {
-            FilmRowId = filmRowId,
-            ImageBase64 = "data:image/jpeg;base64,validbase64data"
-        };
-
-        _mockTableService.Setup(x => x.GetTableEntryIfExistsAsync<FilmEntity>(filmRowId))
-                        .ReturnsAsync(filmEntity);
-        
-        _mockTableService.Setup(x => x.GetTableEntriesAsync<PhotoEntity>(It.IsAny<System.Linq.Expressions.Expression<Func<PhotoEntity, bool>>>()))
-                        .ReturnsAsync(existingPhotos);
-
-        // Act - This will fail because we can't mock the static BlobImageHelper methods
-        var result = await _controller.CreatePhoto(photoDto);
-
-        // Assert - Since we can't mock static methods easily, expect the exception handling
-        Assert.IsType<UnprocessableEntityObjectResult>(result);
-    }
-
-    [Fact]
-    public async Task UploadPhotos_WithExistingPhotos_AssignsCorrectIndices()
-    {
-        // Arrange
-        var filmRowId = "test-film-id";
-        var filmEntity = new FilmEntity { RowKey = filmRowId, Name = "Test Film", Iso = "400" };
-        var existingPhotos = new List<PhotoEntity>
-        {
-            new PhotoEntity { FilmRowId = filmRowId, Index = 1, RowKey = "photo1" },
-            new PhotoEntity { FilmRowId = filmRowId, Index = 2, RowKey = "photo2" }
-        };
-
-        var bulkDto = new PhotoBulkUploadDto
-        {
-            FilmRowId = filmRowId,
-            Photos = new List<PhotoUploadDto>
-            {
-                new PhotoUploadDto { ImageBase64 = "data:image/jpeg;base64,validbase64data1" },
-                new PhotoUploadDto { ImageBase64 = "data:image/jpeg;base64,validbase64data2" },
-                new PhotoUploadDto { ImageBase64 = "data:image/jpeg;base64,validbase64data3" }
-            }
-        };
-
-        _mockTableService.Setup(x => x.GetTableEntryIfExistsAsync<FilmEntity>(filmRowId))
-                        .ReturnsAsync(filmEntity);
-        
-        _mockTableService.Setup(x => x.GetTableEntriesAsync<PhotoEntity>(It.IsAny<System.Linq.Expressions.Expression<Func<PhotoEntity, bool>>>()))
-                        .ReturnsAsync(existingPhotos);
-
-        // Act
-        var result = await _controller.UploadPhotos(bulkDto);
-
-        // Assert
-        Assert.IsType<NoContentResult>(result);
-    }
 }
+

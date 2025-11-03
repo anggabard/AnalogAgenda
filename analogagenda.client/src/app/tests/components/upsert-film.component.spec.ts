@@ -107,22 +107,22 @@ describe('UpsertFilmComponent', () => {
     expect(component.showDevKitModal).toBeFalsy();
   });
 
-  it('should set selectedSessionRowKey when selectSession is called', () => {
-    const sessionRowKey = 'test-session-key';
-    component.selectSession(sessionRowKey);
-    expect(component.selectedSessionRowKey).toBe(sessionRowKey);
+  it('should set selectedSessionId when selectSession is called', () => {
+    const sessionId = 'test-session-key';
+    component.selectSession(sessionId);
+    expect(component.selectedSessionId).toBe(sessionId);
   });
 
-  it('should set selectedDevKitRowKey when selectDevKit is called', () => {
-    const devKitRowKey = 'test-devkit-key';
-    component.selectDevKit(devKitRowKey);
-    expect(component.selectedDevKitRowKey).toBe(devKitRowKey);
+  it('should set selectedDevKitId when selectDevKit is called', () => {
+    const devKitId = 'test-devkit-key';
+    component.selectDevKit(devKitId);
+    expect(component.selectedDevKitId).toBe(devKitId);
   });
 
   it('should filter expired devkits when showExpiredDevKits is false', () => {
     const mockDevKits = [
-      { rowKey: 'devkit-1', name: 'DevKit 1', url: '', type: DevKitType.C41, purchasedBy: UsernameType.Angel, purchasedOn: '', mixedOn: '', validForWeeks: 4, validForFilms: 10, filmsDeveloped: 0, description: '', expired: false, imageBase64: '', imageUrl: '' },
-      { rowKey: 'devkit-2', name: 'DevKit 2', url: '', type: DevKitType.BW, purchasedBy: UsernameType.Tudor, purchasedOn: '', mixedOn: '', validForWeeks: 4, validForFilms: 10, filmsDeveloped: 0, description: '', expired: true, imageBase64: '', imageUrl: '' }
+      { id: 'devkit-1', name: 'DevKit 1', url: '', type: DevKitType.C41, purchasedBy: UsernameType.Angel, purchasedOn: '', mixedOn: '', validForWeeks: 4, validForFilms: 10, filmsDeveloped: 0, description: '', expired: false, imageBase64: '', imageUrl: '' },
+      { id: 'devkit-2', name: 'DevKit 2', url: '', type: DevKitType.BW, purchasedBy: UsernameType.Tudor, purchasedOn: '', mixedOn: '', validForWeeks: 4, validForFilms: 10, filmsDeveloped: 0, description: '', expired: true, imageBase64: '', imageUrl: '' }
     ];
     component.availableDevKits = mockDevKits;
     component.showExpiredDevKits = false;
@@ -134,8 +134,8 @@ describe('UpsertFilmComponent', () => {
 
   it('should show all devkits when showExpiredDevKits is true', () => {
     const mockDevKits = [
-      { rowKey: 'devkit-1', name: 'DevKit 1', url: '', type: DevKitType.C41, purchasedBy: UsernameType.Angel, purchasedOn: '', mixedOn: '', validForWeeks: 4, validForFilms: 10, filmsDeveloped: 0, description: '', expired: false, imageBase64: '', imageUrl: '' },
-      { rowKey: 'devkit-2', name: 'DevKit 2', url: '', type: DevKitType.BW, purchasedBy: UsernameType.Tudor, purchasedOn: '', mixedOn: '', validForWeeks: 4, validForFilms: 10, filmsDeveloped: 0, description: '', expired: true, imageBase64: '', imageUrl: '' }
+      { id: 'devkit-1', name: 'DevKit 1', url: '', type: DevKitType.C41, purchasedBy: UsernameType.Angel, purchasedOn: '', mixedOn: '', validForWeeks: 4, validForFilms: 10, filmsDeveloped: 0, description: '', expired: false, imageBase64: '', imageUrl: '' },
+      { id: 'devkit-2', name: 'DevKit 2', url: '', type: DevKitType.BW, purchasedBy: UsernameType.Tudor, purchasedOn: '', mixedOn: '', validForWeeks: 4, validForFilms: 10, filmsDeveloped: 0, description: '', expired: true, imageBase64: '', imageUrl: '' }
     ];
     component.availableDevKits = mockDevKits;
     component.showExpiredDevKits = true;
@@ -147,9 +147,9 @@ describe('UpsertFilmComponent', () => {
 
   it('should sort devkits alphabetically when showExpiredDevKits is false', () => {
     const mockDevKits = [
-      { rowKey: 'devkit-3', name: 'Z DevKit', url: '', type: DevKitType.C41, purchasedBy: UsernameType.Angel, purchasedOn: '', mixedOn: '', validForWeeks: 4, validForFilms: 10, filmsDeveloped: 0, description: '', expired: false, imageBase64: '', imageUrl: '' },
-      { rowKey: 'devkit-1', name: 'A DevKit', url: '', type: DevKitType.BW, purchasedBy: UsernameType.Tudor, purchasedOn: '', mixedOn: '', validForWeeks: 4, validForFilms: 10, filmsDeveloped: 0, description: '', expired: false, imageBase64: '', imageUrl: '' },
-      { rowKey: 'devkit-2', name: 'M DevKit', url: '', type: DevKitType.E6, purchasedBy: UsernameType.Angel, purchasedOn: '', mixedOn: '', validForWeeks: 4, validForFilms: 10, filmsDeveloped: 0, description: '', expired: true, imageBase64: '', imageUrl: '' }
+      { id: 'devkit-3', name: 'Z DevKit', url: '', type: DevKitType.C41, purchasedBy: UsernameType.Angel, purchasedOn: '', mixedOn: '', validForWeeks: 4, validForFilms: 10, filmsDeveloped: 0, description: '', expired: false, imageBase64: '', imageUrl: '' },
+      { id: 'devkit-1', name: 'A DevKit', url: '', type: DevKitType.BW, purchasedBy: UsernameType.Tudor, purchasedOn: '', mixedOn: '', validForWeeks: 4, validForFilms: 10, filmsDeveloped: 0, description: '', expired: false, imageBase64: '', imageUrl: '' },
+      { id: 'devkit-2', name: 'M DevKit', url: '', type: DevKitType.E6, purchasedBy: UsernameType.Angel, purchasedOn: '', mixedOn: '', validForWeeks: 4, validForFilms: 10, filmsDeveloped: 0, description: '', expired: true, imageBase64: '', imageUrl: '' }
     ];
     component.availableDevKits = mockDevKits;
     component.showExpiredDevKits = false;
@@ -163,9 +163,9 @@ describe('UpsertFilmComponent', () => {
 
   it('should sort devkits with expired last when showExpiredDevKits is true', () => {
     const mockDevKits = [
-      { rowKey: 'devkit-3', name: 'Z DevKit', url: '', type: DevKitType.C41, purchasedBy: UsernameType.Angel, purchasedOn: '', mixedOn: '', validForWeeks: 4, validForFilms: 10, filmsDeveloped: 0, description: '', expired: true, imageBase64: '', imageUrl: '' },
-      { rowKey: 'devkit-1', name: 'A DevKit', url: '', type: DevKitType.BW, purchasedBy: UsernameType.Tudor, purchasedOn: '', mixedOn: '', validForWeeks: 4, validForFilms: 10, filmsDeveloped: 0, description: '', expired: false, imageBase64: '', imageUrl: '' },
-      { rowKey: 'devkit-2', name: 'M DevKit', url: '', type: DevKitType.E6, purchasedBy: UsernameType.Angel, purchasedOn: '', mixedOn: '', validForWeeks: 4, validForFilms: 10, filmsDeveloped: 0, description: '', expired: true, imageBase64: '', imageUrl: '' }
+      { id: 'devkit-3', name: 'Z DevKit', url: '', type: DevKitType.C41, purchasedBy: UsernameType.Angel, purchasedOn: '', mixedOn: '', validForWeeks: 4, validForFilms: 10, filmsDeveloped: 0, description: '', expired: true, imageBase64: '', imageUrl: '' },
+      { id: 'devkit-1', name: 'A DevKit', url: '', type: DevKitType.BW, purchasedBy: UsernameType.Tudor, purchasedOn: '', mixedOn: '', validForWeeks: 4, validForFilms: 10, filmsDeveloped: 0, description: '', expired: false, imageBase64: '', imageUrl: '' },
+      { id: 'devkit-2', name: 'M DevKit', url: '', type: DevKitType.E6, purchasedBy: UsernameType.Angel, purchasedOn: '', mixedOn: '', validForWeeks: 4, validForFilms: 10, filmsDeveloped: 0, description: '', expired: true, imageBase64: '', imageUrl: '' }
     ];
     component.availableDevKits = mockDevKits;
     component.showExpiredDevKits = true;
@@ -183,14 +183,14 @@ describe('UpsertFilmComponent', () => {
 
   it('should auto-show expired devkits when current devkit is expired', () => {
     const mockDevKits = [
-      { rowKey: 'devkit-1', name: 'Current DevKit', url: '', type: DevKitType.C41, purchasedBy: UsernameType.Angel, purchasedOn: '', mixedOn: '', validForWeeks: 4, validForFilms: 10, filmsDeveloped: 0, description: '', expired: true, imageBase64: '', imageUrl: '' },
-      { rowKey: 'devkit-2', name: 'Other DevKit', url: '', type: DevKitType.BW, purchasedBy: UsernameType.Tudor, purchasedOn: '', mixedOn: '', validForWeeks: 4, validForFilms: 10, filmsDeveloped: 0, description: '', expired: false, imageBase64: '', imageUrl: '' }
+      { id: 'devkit-1', name: 'Current DevKit', url: '', type: DevKitType.C41, purchasedBy: UsernameType.Angel, purchasedOn: '', mixedOn: '', validForWeeks: 4, validForFilms: 10, filmsDeveloped: 0, description: '', expired: true, imageBase64: '', imageUrl: '' },
+      { id: 'devkit-2', name: 'Other DevKit', url: '', type: DevKitType.BW, purchasedBy: UsernameType.Tudor, purchasedOn: '', mixedOn: '', validForWeeks: 4, validForFilms: 10, filmsDeveloped: 0, description: '', expired: false, imageBase64: '', imageUrl: '' }
     ];
     
     // Mock the DevKit service to return our test data
     mockDevKitService.getAll.and.returnValue(of(mockDevKits));
     
-    component.form.patchValue({ developedWithDevKitRowKey: 'devkit-1' });
+    component.form.patchValue({ developedWithDevKitId: 'devkit-1' });
     component.showExpiredDevKits = false;
 
     component.onAssignDevKit();
@@ -201,11 +201,11 @@ describe('UpsertFilmComponent', () => {
 
   it('should not auto-show expired devkits when current devkit is not expired', () => {
     const mockDevKits = [
-      { rowKey: 'devkit-1', name: 'Current DevKit', url: '', type: DevKitType.C41, purchasedBy: UsernameType.Angel, purchasedOn: '', mixedOn: '', validForWeeks: 4, validForFilms: 10, filmsDeveloped: 0, description: '', expired: false, imageBase64: '', imageUrl: '' },
-      { rowKey: 'devkit-2', name: 'Other DevKit', url: '', type: DevKitType.BW, purchasedBy: UsernameType.Tudor, purchasedOn: '', mixedOn: '', validForWeeks: 4, validForFilms: 10, filmsDeveloped: 0, description: '', expired: true, imageBase64: '', imageUrl: '' }
+      { id: 'devkit-1', name: 'Current DevKit', url: '', type: DevKitType.C41, purchasedBy: UsernameType.Angel, purchasedOn: '', mixedOn: '', validForWeeks: 4, validForFilms: 10, filmsDeveloped: 0, description: '', expired: false, imageBase64: '', imageUrl: '' },
+      { id: 'devkit-2', name: 'Other DevKit', url: '', type: DevKitType.BW, purchasedBy: UsernameType.Tudor, purchasedOn: '', mixedOn: '', validForWeeks: 4, validForFilms: 10, filmsDeveloped: 0, description: '', expired: true, imageBase64: '', imageUrl: '' }
     ];
     component.availableDevKits = mockDevKits;
-    component.form.patchValue({ developedWithDevKitRowKey: 'devkit-1' });
+    component.form.patchValue({ developedWithDevKitId: 'devkit-1' });
     component.showExpiredDevKits = false;
 
     component.onAssignDevKit();
@@ -226,8 +226,8 @@ describe('UpsertFilmComponent', () => {
 
   it('should determine hasExpiredDevKits correctly', () => {
     const mockDevKits = [
-      { rowKey: 'devkit-1', name: 'DevKit 1', url: '', type: DevKitType.C41, purchasedBy: UsernameType.Angel, purchasedOn: '', mixedOn: '', validForWeeks: 4, validForFilms: 10, filmsDeveloped: 0, description: '', expired: false, imageBase64: '', imageUrl: '' },
-      { rowKey: 'devkit-2', name: 'DevKit 2', url: '', type: DevKitType.BW, purchasedBy: UsernameType.Tudor, purchasedOn: '', mixedOn: '', validForWeeks: 4, validForFilms: 10, filmsDeveloped: 0, description: '', expired: true, imageBase64: '', imageUrl: '' }
+      { id: 'devkit-1', name: 'DevKit 1', url: '', type: DevKitType.C41, purchasedBy: UsernameType.Angel, purchasedOn: '', mixedOn: '', validForWeeks: 4, validForFilms: 10, filmsDeveloped: 0, description: '', expired: false, imageBase64: '', imageUrl: '' },
+      { id: 'devkit-2', name: 'DevKit 2', url: '', type: DevKitType.BW, purchasedBy: UsernameType.Tudor, purchasedOn: '', mixedOn: '', validForWeeks: 4, validForFilms: 10, filmsDeveloped: 0, description: '', expired: true, imageBase64: '', imageUrl: '' }
     ];
     component.availableDevKits = mockDevKits;
 
@@ -236,8 +236,8 @@ describe('UpsertFilmComponent', () => {
 
   it('should return false for hasExpiredDevKits when no expired devkits', () => {
     const mockDevKits = [
-      { rowKey: 'devkit-1', name: 'DevKit 1', url: '', type: DevKitType.C41, purchasedBy: UsernameType.Angel, purchasedOn: '', mixedOn: '', validForWeeks: 4, validForFilms: 10, filmsDeveloped: 0, description: '', expired: false, imageBase64: '', imageUrl: '' },
-      { rowKey: 'devkit-2', name: 'DevKit 2', url: '', type: DevKitType.BW, purchasedBy: UsernameType.Tudor, purchasedOn: '', mixedOn: '', validForWeeks: 4, validForFilms: 10, filmsDeveloped: 0, description: '', expired: false, imageBase64: '', imageUrl: '' }
+      { id: 'devkit-1', name: 'DevKit 1', url: '', type: DevKitType.C41, purchasedBy: UsernameType.Angel, purchasedOn: '', mixedOn: '', validForWeeks: 4, validForFilms: 10, filmsDeveloped: 0, description: '', expired: false, imageBase64: '', imageUrl: '' },
+      { id: 'devkit-2', name: 'DevKit 2', url: '', type: DevKitType.BW, purchasedBy: UsernameType.Tudor, purchasedOn: '', mixedOn: '', validForWeeks: 4, validForFilms: 10, filmsDeveloped: 0, description: '', expired: false, imageBase64: '', imageUrl: '' }
     ];
     component.availableDevKits = mockDevKits;
 
@@ -382,8 +382,8 @@ describe('UpsertFilmComponent', () => {
 
     it('should perform thumbnail search when onThumbnailSearchClick is called', () => {
       const mockThumbnails = [
-        { rowKey: 'thumb1', filmName: 'Kodak Portra 400', imageId: 'img1', imageUrl: 'url1', imageBase64: '' },
-        { rowKey: 'thumb2', filmName: 'Fuji Superia 200', imageId: 'img2', imageUrl: 'url2', imageBase64: '' }
+        { id: 'thumb1', filmName: 'Kodak Portra 400', imageId: 'img1', imageUrl: 'url1', imageBase64: '' },
+        { id: 'thumb2', filmName: 'Fuji Superia 200', imageId: 'img2', imageUrl: 'url2', imageBase64: '' }
       ];
       mockThumbnailService.searchByFilmName.and.returnValue(of(mockThumbnails));
 
@@ -396,7 +396,7 @@ describe('UpsertFilmComponent', () => {
 
     it('should select thumbnail when onSelectThumbnail is called', () => {
       const mockThumbnail = { 
-        rowKey: 'thumb1', 
+        id: 'thumb1', 
         filmName: 'Kodak Portra 400', 
         imageId: 'img1', 
         imageUrl: 'url1', 
@@ -461,7 +461,7 @@ describe('UpsertFilmComponent', () => {
       component.newThumbnailFilmName = 'Test Film 400';
       
       const mockUploadedThumbnail = {
-        rowKey: 'thumb1',
+        id: 'thumb1',
         filmName: 'Test Film 400',
         imageId: 'img1',
         imageUrl: 'url1',
@@ -532,12 +532,12 @@ describe('UpsertFilmComponent', () => {
 
   describe('Bulk Upload Functionality', () => {
     beforeEach(() => {
-      // Set up for insert mode (no rowKey)
+      // Set up for insert mode (no id)
       mockActivatedRoute.snapshot.paramMap.get.and.returnValue(null);
       
       // Set up mock return values for services
       mockFilmService.getById.and.returnValue(of({
-        rowKey: 'test-id',
+        id: 'test-id',
         name: 'Test Film',
         iso: '400',
         type: FilmType.ColorNegative,
@@ -559,7 +559,7 @@ describe('UpsertFilmComponent', () => {
       
       // Force insert mode
       component.isInsert = true;
-      component.rowKey = null;
+      component.id = null;
     });
 
     it('should initialize with bulkCount of 1', () => {
@@ -701,12 +701,12 @@ describe('UpsertFilmComponent', () => {
 
   describe('Exposure Dates Functionality', () => {
     beforeEach(() => {
-      // Set up for insert mode (no rowKey)
+      // Set up for insert mode (no id)
       mockActivatedRoute.snapshot.paramMap.get.and.returnValue(null);
       
       // Set up mock return values for services
       mockFilmService.getById.and.returnValue(of({
-        rowKey: 'test-id',
+        id: 'test-id',
         name: 'Test Film',
         iso: '400',
         type: FilmType.ColorNegative,
@@ -725,7 +725,7 @@ describe('UpsertFilmComponent', () => {
       
       // Force insert mode first
       component.isInsert = true;
-      component.rowKey = null;
+      component.id = null;
       
       // Initialize component
       component.ngOnInit();
@@ -861,7 +861,7 @@ describe('UpsertFilmComponent', () => {
 
     it('should load existing exposure dates when opening modal for editing', () => {
       const filmWithExposureDates = {
-        rowKey: 'test-id',
+        id: 'test-id',
         name: 'Test Film',
         iso: '400',
         type: FilmType.ColorNegative,
@@ -880,7 +880,7 @@ describe('UpsertFilmComponent', () => {
       
       mockFilmService.getById.and.returnValue(of(filmWithExposureDates));
       component.isInsert = false;
-      component.rowKey = 'test-id';
+      component.id = 'test-id';
       
       component.ngOnInit();
       

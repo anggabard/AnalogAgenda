@@ -1,11 +1,19 @@
 var builder = DistributedApplication.CreateBuilder(args);
 
-// Add the backend API
+// Add SQL Server and Database
+var sqlServer = builder.AddSqlServer("sql")
+    .WithDataVolume();
+
+var database = sqlServer.AddDatabase("analogagendadb");
+
+// Add the backend API - wait for database to be ready
 var backend = builder.AddProject<Projects.AnalogAgenda_Server>("analogagenda-server")
+    .WithReference(database)
+    .WaitFor(database)
     .PublishAsDockerFile()
     .WithHttpEndpoint(name: "backend-http");
 
-// Add the frontend Angular app
+// Add the frontend Angular app - wait for backend to be ready
 var frontend = builder.AddNpmApp("analogagenda-client", "../analogagenda.client")
     .PublishAsDockerFile()
     .WithReference(backend)

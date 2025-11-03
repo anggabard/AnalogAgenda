@@ -21,7 +21,7 @@ export abstract class BaseUpsertComponent<TDto> implements OnInit {
   protected accountService = inject(AccountService);
 
   // Common state
-  rowKey: string | null;
+  id: string | null;
   isInsert: boolean = false;
   originalName: string = '';
   isDeleteModalOpen: boolean = false;
@@ -30,8 +30,8 @@ export abstract class BaseUpsertComponent<TDto> implements OnInit {
   form!: FormGroup;
 
   constructor() {
-    this.rowKey = this.route.snapshot.paramMap.get('id');
-    this.isInsert = this.rowKey == null;
+    this.id = this.route.snapshot.paramMap.get('id');
+    this.isInsert = this.id == null;
     
     // Initialize form first
     this.form = this.createForm();
@@ -58,17 +58,17 @@ export abstract class BaseUpsertComponent<TDto> implements OnInit {
   /**
    * Get the service method for updating items - to be implemented by concrete classes
    */
-  protected abstract getUpdateObservable(rowKey: string, item: TDto): Observable<any>;
+  protected abstract getUpdateObservable(id: string, item: TDto): Observable<any>;
 
   /**
    * Get the service method for deleting items - to be implemented by concrete classes
    */
-  protected abstract getDeleteObservable(rowKey: string): Observable<any>;
+  protected abstract getDeleteObservable(id: string): Observable<any>;
 
   /**
    * Get the service method for fetching single item - to be implemented by concrete classes
    */
-  protected abstract getItemObservable(rowKey: string): Observable<TDto>;
+  protected abstract getItemObservable(id: string): Observable<TDto>;
 
   /**
    * Get the base route for navigation - to be implemented by concrete classes
@@ -98,7 +98,7 @@ export abstract class BaseUpsertComponent<TDto> implements OnInit {
    * Initialize form for editing existing item
    */
   private initializeForEdit(): void {
-    this.getItemObservable(this.rowKey!).subscribe({
+    this.getItemObservable(this.id!).subscribe({
       next: (item: any) => {
         this.form.patchValue(item);
         this.originalName = item.name || '';
@@ -118,7 +118,7 @@ export abstract class BaseUpsertComponent<TDto> implements OnInit {
 
     const operation$ = this.isInsert 
       ? this.getCreateObservable(formData)
-      : this.getUpdateObservable(this.rowKey!, formData);
+      : this.getUpdateObservable(this.id!, formData);
 
     const actionName = this.isInsert ? 'saving' : 'updating';
 
@@ -156,7 +156,7 @@ export abstract class BaseUpsertComponent<TDto> implements OnInit {
   onDelete(): void {
     if (this.isInsert) return;
 
-    this.getDeleteObservable(this.rowKey!).subscribe({
+    this.getDeleteObservable(this.id!).subscribe({
       next: () => {
         this.router.navigate([this.getBaseRoute()]);
       },

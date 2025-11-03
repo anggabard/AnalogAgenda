@@ -27,7 +27,7 @@ describe('SessionService', () => {
   it('should create a new session', () => {
     // Arrange
     const mockSession: SessionDto = {
-      rowKey: '',
+      id: '',
       sessionDate: '2025-10-02',
       location: 'Test Location',
       participants: '["Angel", "Tudor"]',
@@ -43,14 +43,14 @@ describe('SessionService', () => {
 
     const expectedResponse: SessionDto = {
       ...mockSession,
-      rowKey: 'generated-row-key'
+      id: 'generated-row-key'
     };
 
     // Act
     service.add(mockSession).subscribe(response => {
       // Assert
       expect(response).toEqual(expectedResponse);
-      expect(response.rowKey).toBe('generated-row-key');
+      expect(response.id).toBe('generated-row-key');
     });
 
     // Assert HTTP request
@@ -64,7 +64,7 @@ describe('SessionService', () => {
     // Arrange
     const sessionId = 'test-session-id';
     const mockSession: SessionDto = {
-      rowKey: sessionId,
+      id: sessionId,
       sessionDate: '2025-10-02',
       location: 'Test Location',
       participants: '["Angel"]',
@@ -94,7 +94,7 @@ describe('SessionService', () => {
     // Arrange
     const sessionId = 'test-session-id';
     const updatedSession: SessionDto = {
-      rowKey: sessionId,
+      id: sessionId,
       sessionDate: '2025-10-02',
       location: 'Updated Location',
       participants: '["Angel", "Tudor"]',
@@ -144,7 +144,7 @@ describe('SessionService', () => {
     const mockResponse = {
       data: [
         {
-          rowKey: 'session1',
+          id: 'session1',
           sessionDate: '2025-10-02',
           location: 'Location 1',
           participants: '["Angel"]',

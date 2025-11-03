@@ -6,7 +6,7 @@ namespace AnalogAgenda.Server.Tests.Entities;
 public class UsedDevKitThumbnailEntityTests
 {
     [Fact]
-    public void Constructor_SetsCorrectTableName()
+    public void Constructor_CreatesEntitySuccessfully()
     {
         // Act
         var entity = new UsedDevKitThumbnailEntity
@@ -15,8 +15,9 @@ public class UsedDevKitThumbnailEntityTests
             ImageId = Guid.NewGuid()
         };
 
-        // Assert
-        Assert.Equal(TableName.UsedDevKitThumbnails, entity.GetTable());
+        // Assert - Entity is created successfully with required properties
+        Assert.NotNull(entity);
+        Assert.Equal("Test DevKit", entity.DevKitName);
     }
 
     [Fact]
@@ -29,14 +30,14 @@ public class UsedDevKitThumbnailEntityTests
         {
             DevKitName = "Bellini E6",
             ImageId = imageId,
-            RowKey = "test-row-key"
+            Id = "test-row-key"
         };
 
         // Act
         var dto = entity.ToDTO(accountName);
 
         // Assert
-        Assert.NotNull(dto.RowKey); // RowKey is auto-generated
+        Assert.NotNull(dto.Id); // Id is auto-generated
         Assert.Equal("Bellini E6", dto.DevKitName);
         Assert.Equal(imageId.ToString(), dto.ImageId);
         Assert.Contains("teststorage", dto.ImageUrl);
@@ -53,21 +54,21 @@ public class UsedDevKitThumbnailEntityTests
         {
             DevKitName = "Bellini E6",
             ImageId = Guid.Empty,
-            RowKey = "test-row-key"
+            Id = "test-row-key"
         };
 
         // Act
         var dto = entity.ToDTO(accountName);
 
         // Assert
-        Assert.NotNull(dto.RowKey); // RowKey is auto-generated
+        Assert.NotNull(dto.Id); // Id is auto-generated
         Assert.Equal("Bellini E6", dto.DevKitName);
         Assert.Equal(Guid.Empty.ToString(), dto.ImageId);
         Assert.Empty(dto.ImageUrl);
     }
 
     [Fact]
-    public void RowKeyLength_ReturnsCorrectLength()
+    public void IdLength_ReturnsCorrectLength()
     {
         // Arrange
         var entity = new UsedDevKitThumbnailEntity
@@ -77,7 +78,7 @@ public class UsedDevKitThumbnailEntityTests
         };
 
         // Act & Assert
-        // RowKeyLenght is protected, so we can't test it directly
+        // IdLenght is protected, so we can't test it directly
         // We can test that the entity is created successfully
         Assert.NotNull(entity);
     }

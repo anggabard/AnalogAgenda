@@ -12,13 +12,13 @@ describe('FilmSearchComponent', () => {
   let mockSessionService: jasmine.SpyObj<SessionService>;
 
   const mockDevKits: DevKitDto[] = [
-    { rowKey: 'kit1', name: 'Belini', type: 'C41' as any, url: 'url1', purchasedBy: 'Angel' as any, purchasedOn: '2023-01-01', mixedOn: '2023-01-01', validForWeeks: 4, validForFilms: 10, filmsDeveloped: 0, imageUrl: '', description: '', expired: false },
-    { rowKey: 'kit2', name: 'Kodak', type: 'E6' as any, url: 'url2', purchasedBy: 'Cristiana' as any, purchasedOn: '2023-01-01', mixedOn: '2023-01-01', validForWeeks: 4, validForFilms: 10, filmsDeveloped: 0, imageUrl: '', description: '', expired: false }
+    { id: 'kit1', name: 'Belini', type: 'C41' as any, url: 'url1', purchasedBy: 'Angel' as any, purchasedOn: '2023-01-01', mixedOn: '2023-01-01', validForWeeks: 4, validForFilms: 10, filmsDeveloped: 0, imageUrl: '', description: '', expired: false },
+    { id: 'kit2', name: 'Kodak', type: 'E6' as any, url: 'url2', purchasedBy: 'Cristiana' as any, purchasedOn: '2023-01-01', mixedOn: '2023-01-01', validForWeeks: 4, validForFilms: 10, filmsDeveloped: 0, imageUrl: '', description: '', expired: false }
   ];
 
   const mockSessions: SessionDto[] = [
-    { rowKey: 'session1', sessionDate: '2023-01-15', location: 'Studio A', participants: '[]', participantsList: [], description: '', usedSubstances: '[]', usedSubstancesList: [], developedFilms: '[]', developedFilmsList: [], imageUrl: '', imageBase64: '' },
-    { rowKey: 'session2', sessionDate: '2023-02-20', location: 'Studio B', participants: '[]', participantsList: [], description: '', usedSubstances: '[]', usedSubstancesList: [], developedFilms: '[]', developedFilmsList: [], imageUrl: '', imageBase64: '' }
+    { id: 'session1', sessionDate: '2023-01-15', location: 'Studio A', participants: '[]', participantsList: [], description: '', usedSubstances: '[]', usedSubstancesList: [], developedFilms: '[]', developedFilmsList: [], imageUrl: '', imageBase64: '' },
+    { id: 'session2', sessionDate: '2023-02-20', location: 'Studio B', participants: '[]', participantsList: [], description: '', usedSubstances: '[]', usedSubstancesList: [], developedFilms: '[]', developedFilmsList: [], imageUrl: '', imageBase64: '' }
   ];
 
   beforeEach(async () => {
@@ -64,7 +64,7 @@ describe('FilmSearchComponent', () => {
   it('should format dev kit options correctly', () => {
     fixture.detectChanges();
     
-    const kitField = component.searchFields.find(f => f.key === 'developedWithDevKitRowKey');
+    const kitField = component.searchFields.find(f => f.key === 'developedWithDevKitId');
     expect(kitField?.options).toEqual([
       { value: 'kit1', label: 'Belini - C41' },
       { value: 'kit2', label: 'Kodak - E6' }
@@ -74,7 +74,7 @@ describe('FilmSearchComponent', () => {
   it('should format session options correctly', () => {
     fixture.detectChanges();
     
-    const sessionField = component.searchFields.find(f => f.key === 'developedInSessionRowKey');
+    const sessionField = component.searchFields.find(f => f.key === 'developedInSessionId');
     expect(sessionField?.options).toEqual([
       { value: 'session1', label: '2023-01-15 - Studio A' },
       { value: 'session2', label: '2023-02-20 - Studio B' }

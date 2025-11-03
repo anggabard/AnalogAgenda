@@ -68,39 +68,39 @@ describe('UpsertSessionComponent', () => {
     expect(component).toBeTruthy();
   });
 
-  it('should initialize in insert mode when no rowKey is provided', () => {
+  it('should initialize in insert mode when no id is provided', () => {
     mockActivatedRoute.snapshot.paramMap.get.and.returnValue(null);
     component.ngOnInit();
 
     expect(component.isInsert).toBeTruthy();
-    expect(component.rowKey).toBeNull();
+    expect(component.id).toBeNull();
   });
 
 
   it('should toggle devkit selection for modal', () => {
     component.selectedDevKitsForModal = [];
-    const devKitRowKey = 'devkit-1';
+    const devKitId = 'devkit-1';
 
-    component.toggleDevKitSelection(devKitRowKey);
+    component.toggleDevKitSelection(devKitId);
 
-    expect(component.selectedDevKitsForModal).toContain(devKitRowKey);
+    expect(component.selectedDevKitsForModal).toContain(devKitId);
 
-    component.toggleDevKitSelection(devKitRowKey);
+    component.toggleDevKitSelection(devKitId);
 
-    expect(component.selectedDevKitsForModal).not.toContain(devKitRowKey);
+    expect(component.selectedDevKitsForModal).not.toContain(devKitId);
   });
 
   it('should toggle film selection for modal', () => {
     component.selectedFilmsForModal = [];
-    const filmRowKey = 'film-1';
+    const filmId = 'film-1';
 
-    component.toggleFilmSelection(filmRowKey);
+    component.toggleFilmSelection(filmId);
 
-    expect(component.selectedFilmsForModal).toContain(filmRowKey);
+    expect(component.selectedFilmsForModal).toContain(filmId);
 
-    component.toggleFilmSelection(filmRowKey);
+    component.toggleFilmSelection(filmId);
 
-    expect(component.selectedFilmsForModal).not.toContain(filmRowKey);
+    expect(component.selectedFilmsForModal).not.toContain(filmId);
   });
 
   it('should check if devkit is selected for modal', () => {
@@ -137,7 +137,7 @@ describe('UpsertSessionComponent', () => {
 
   it('should filter expired devkits when showExpiredDevKits is false', () => {
     const mockDevKit: DevKitDto = {
-      rowKey: 'devkit-1',
+      id: 'devkit-1',
       name: 'Test DevKit',
       url: 'http://example.com',
       type: DevKitType.C41,
@@ -152,7 +152,7 @@ describe('UpsertSessionComponent', () => {
       imageUrl: 'test-url',
     };
     const expiredDevKit: DevKitDto = {
-      rowKey: 'devkit-2',
+      id: 'devkit-2',
       name: 'Expired DevKit',
       url: 'http://example.com',
       type: DevKitType.C41,
@@ -176,7 +176,7 @@ describe('UpsertSessionComponent', () => {
 
   it('should show all devkits when showExpiredDevKits is true', () => {
     const mockDevKit: DevKitDto = {
-      rowKey: 'devkit-1',
+      id: 'devkit-1',
       name: 'Test DevKit',
       url: 'http://example.com',
       type: DevKitType.C41,
@@ -191,7 +191,7 @@ describe('UpsertSessionComponent', () => {
       imageUrl: 'test-url',
     };
     const expiredDevKit: DevKitDto = {
-      rowKey: 'devkit-2',
+      id: 'devkit-2',
       name: 'Expired DevKit',
       url: 'http://example.com',
       type: DevKitType.C41,
@@ -246,7 +246,7 @@ describe('UpsertSessionComponent', () => {
     beforeEach(() => {
       // Create test films
       mockFilm1 = {
-        rowKey: 'film-1',
+        id: 'film-1',
         name: 'Film 1',
         iso: '400',
         type: FilmType.ColorNegative,
@@ -257,11 +257,11 @@ describe('UpsertSessionComponent', () => {
         imageUrl: 'film1.jpg',
         description: 'Test film 1',
         developed: true,
-        developedInSessionRowKey: 'session-1'
+        developedInSessionId: 'session-1'
       };
 
       mockFilm2 = {
-        rowKey: 'film-2',
+        id: 'film-2',
         name: 'Film 2',
         iso: '400',
         type: FilmType.ColorNegative,
@@ -272,11 +272,11 @@ describe('UpsertSessionComponent', () => {
         imageUrl: 'film2.jpg',
         description: 'Test film 2',
         developed: true,
-        developedInSessionRowKey: 'session-1'
+        developedInSessionId: 'session-1'
       };
 
       mockFilm3 = {
-        rowKey: 'film-3',
+        id: 'film-3',
         name: 'Film 3',
         iso: '400',
         type: FilmType.ColorNegative,
@@ -287,11 +287,11 @@ describe('UpsertSessionComponent', () => {
         imageUrl: 'film3.jpg',
         description: 'Test film 3',
         developed: true,
-        developedInSessionRowKey: 'session-1'
+        developedInSessionId: 'session-1'
       };
 
       mockDevKit = {
-        rowKey: 'devkit-1',
+        id: 'devkit-1',
         name: 'Test DevKit',
         url: 'http://example.com',
         type: DevKitType.C41,
@@ -428,7 +428,7 @@ describe('UpsertSessionComponent', () => {
       it('should handle case where dragged item is not found in source array', () => {
         const nonExistentFilm: FilmDto = {
           ...mockFilm1,
-          rowKey: 'non-existent-film'
+          id: 'non-existent-film'
         };
 
         const event = createDragDropEvent(
@@ -449,22 +449,22 @@ describe('UpsertSessionComponent', () => {
     });
 
     describe('TrackBy Functions', () => {
-      it('should return correct rowKey for trackByFilmRowKey', () => {
-        const result = component.trackByFilmRowKey(0, mockFilm1);
+      it('should return correct id for trackByFilmId', () => {
+        const result = component.trackByFilmId(0, mockFilm1);
         expect(result).toBe('film-1');
       });
 
-      it('should return correct rowKey for trackByDevKitRowKey', () => {
+      it('should return correct id for trackByDevKitId', () => {
         const devKitWithFilms = {
           devKit: mockDevKit,
           assignedFilms: [mockFilm1]
         };
-        const result = component.trackByDevKitRowKey(0, devKitWithFilms);
+        const result = component.trackByDevKitId(0, devKitWithFilms);
         expect(result).toBe('devkit-1');
       });
 
-      it('should return correct rowKey for trackByDevKitDtoRowKey', () => {
-        const result = component.trackByDevKitDtoRowKey(0, mockDevKit);
+      it('should return correct id for trackByDevKitDtoId', () => {
+        const result = component.trackByDevKitDtoId(0, mockDevKit);
         expect(result).toBe('devkit-1');
       });
     });
@@ -489,7 +489,7 @@ describe('UpsertSessionComponent', () => {
   describe('DevKit Grid Layout', () => {
     it('should have sessionDevKits array that can hold multiple devkits', () => {
       const mockDevKit1: DevKitDto = {
-        rowKey: 'devkit-1',
+        id: 'devkit-1',
         name: 'DevKit 1',
         url: 'http://example.com',
         type: DevKitType.C41,
@@ -504,7 +504,7 @@ describe('UpsertSessionComponent', () => {
         imageUrl: 'test-url-1',
       };
       const mockDevKit2: DevKitDto = {
-        rowKey: 'devkit-2',
+        id: 'devkit-2',
         name: 'DevKit 2',
         url: 'http://example.com',
         type: DevKitType.C41,
@@ -519,7 +519,7 @@ describe('UpsertSessionComponent', () => {
         imageUrl: 'test-url-2',
       };
       const mockDevKit3: DevKitDto = {
-        rowKey: 'devkit-3',
+        id: 'devkit-3',
         name: 'DevKit 3',
         url: 'http://example.com',
         type: DevKitType.C41,
@@ -534,7 +534,7 @@ describe('UpsertSessionComponent', () => {
         imageUrl: 'test-url-3',
       };
       const mockDevKit4: DevKitDto = {
-        rowKey: 'devkit-4',
+        id: 'devkit-4',
         name: 'DevKit 4',
         url: 'http://example.com',
         type: DevKitType.C41,
@@ -565,7 +565,7 @@ describe('UpsertSessionComponent', () => {
 
     it('should support up to 3 devkits displayed in grid layout', () => {
       const mockDevKit1: DevKitDto = {
-        rowKey: 'devkit-1',
+        id: 'devkit-1',
         name: 'DevKit 1',
         url: 'http://example.com',
         type: DevKitType.C41,
@@ -580,7 +580,7 @@ describe('UpsertSessionComponent', () => {
         imageUrl: 'test-url-1',
       };
       const mockDevKit2: DevKitDto = {
-        rowKey: 'devkit-2',
+        id: 'devkit-2',
         name: 'DevKit 2',
         url: 'http://example.com',
         type: DevKitType.C41,
@@ -595,7 +595,7 @@ describe('UpsertSessionComponent', () => {
         imageUrl: 'test-url-2',
       };
       const mockDevKit3: DevKitDto = {
-        rowKey: 'devkit-3',
+        id: 'devkit-3',
         name: 'DevKit 3',
         url: 'http://example.com',
         type: DevKitType.C41,

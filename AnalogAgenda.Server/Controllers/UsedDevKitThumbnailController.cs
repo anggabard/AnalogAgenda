@@ -1,5 +1,4 @@
 using AnalogAgenda.Server.Helpers;
-using Azure.Data.Tables;
 using Azure.Storage.Blobs;
 using Configuration.Sections;
 using Database.DBObjects.Enums;
@@ -13,11 +12,10 @@ namespace AnalogAgenda.Server.Controllers;
 
 [Route("api/[controller]")]
 [ApiController, Authorize]
-public class UsedDevKitThumbnailController(Storage storageCfg, ITableService tablesService, IBlobService blobsService) : ControllerBase
+public class UsedDevKitThumbnailController(Storage storageCfg, IDatabaseService databaseService, IBlobService blobsService) : ControllerBase
 {
     private readonly Storage storageCfg = storageCfg;
-    private readonly ITableService tablesService = tablesService;
-    private readonly TableClient thumbnailsTable = tablesService.GetTable(TableName.UsedDevKitThumbnails);
+    private readonly IDatabaseService databaseService = databaseService;
     private readonly BlobContainerClient devKitsContainer = blobsService.GetBlobContainer(ContainerName.devkits);
 
     [HttpGet("search")]
@@ -25,7 +23,7 @@ public class UsedDevKitThumbnailController(Storage storageCfg, ITableService tab
     {
         try
         {
-            var allThumbnails = await tablesService.GetTableEntriesAsync<UsedDevKitThumbnailEntity>();
+            var allThumbnails = await databaseService.GetAllAsync<UsedDevKitThumbnailEntity>();
             
             // If devKitName is empty or null, return all thumbnails
             // Otherwise, filter by partial, case-insensitive match on devkit name
@@ -69,7 +67,7 @@ public class UsedDevKitThumbnailController(Storage storageCfg, ITableService tab
                 DevKitName = dto.DevKitName,
                 ImageId = imageId
             };
-            await thumbnailsTable.AddEntityAsync(entity);
+            await databaseService.AddAsync(entity);
             
             var createdDto = entity.ToDTO(storageCfg.AccountName);
             return Created(string.Empty, createdDto);

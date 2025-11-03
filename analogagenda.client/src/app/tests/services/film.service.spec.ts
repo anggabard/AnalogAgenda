@@ -276,14 +276,14 @@ describe('FilmService', () => {
 
   // Helper function to create mock films
   function createMockFilm(
-    rowKey: string,
+    id: string,
     name: string,
     purchasedBy: UsernameType,
     developed: boolean,
     purchasedOn: string = '2023-01-01'
   ): FilmDto {
     return {
-      rowKey,
+      id,
       name,
       iso: '400',
       type: FilmType.ColorNegative,
@@ -342,7 +342,7 @@ describe('FilmService', () => {
     });
 
     it('should call getMyNotDevelopedFilmsPaged with search parameters', () => {
-      const searchParams = { developedWithDevKitRowKey: 'kit123' };
+      const searchParams = { developedWithDevKitId: 'kit123' };
       const page = 1;
       const pageSize = 5;
 
@@ -350,7 +350,7 @@ describe('FilmService', () => {
       service.getMyNotDevelopedFilmsPaged(page, pageSize, searchParams).subscribe();
 
       // Assert HTTP call
-      const req = httpMock.expectOne(`${baseUrl}/my/not-developed?page=1&pageSize=5&developedWithDevKitRowKey=kit123`);
+      const req = httpMock.expectOne(`${baseUrl}/my/not-developed?page=1&pageSize=5&developedWithDevKitId=kit123`);
       expect(req.request.method).toBe('GET');
       req.flush(TestConfig.createEmptyPagedResponse<FilmDto>());
     });
@@ -387,7 +387,7 @@ describe('FilmService', () => {
         name: 'Test Film', 
         type: 'ColorNegative', 
         iso: '400',
-        developedWithDevKitRowKey: 'kit123'
+        developedWithDevKitId: 'kit123'
       };
       const page = 1;
       const pageSize = 5;
@@ -396,7 +396,7 @@ describe('FilmService', () => {
       service.getDevelopedFilmsPaged(page, pageSize, searchParams).subscribe();
 
       // Assert HTTP call
-      const req = httpMock.expectOne(`${baseUrl}/developed?page=1&pageSize=5&name=Test+Film&type=ColorNegative&iso=400&developedWithDevKitRowKey=kit123`);
+      const req = httpMock.expectOne(`${baseUrl}/developed?page=1&pageSize=5&name=Test+Film&type=ColorNegative&iso=400&developedWithDevKitId=kit123`);
       expect(req.request.method).toBe('GET');
       req.flush(TestConfig.createEmptyPagedResponse<FilmDto>());
     });
