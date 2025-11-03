@@ -30,14 +30,14 @@ public class SessionDto : HasImage
 
     public List<string> UsedSubstancesList
     {
-        get => string.IsNullOrEmpty(UsedSubstances) ? [] : JsonSerializer.Deserialize<List<string>>(UsedSubstances) ?? [];
-        set => UsedSubstances = JsonSerializer.Serialize(value);
+        get => string.IsNullOrEmpty(UsedSubstances) ? [] : UsedSubstances.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
+        set => UsedSubstances = value == null || value.Count == 0 ? string.Empty : string.Join(",", value);
     }
 
     public List<string> DevelopedFilmsList
     {
-        get => string.IsNullOrEmpty(DevelopedFilms) ? [] : JsonSerializer.Deserialize<List<string>>(DevelopedFilms) ?? [];
-        set => DevelopedFilms = JsonSerializer.Serialize(value);
+        get => string.IsNullOrEmpty(DevelopedFilms) ? [] : DevelopedFilms.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
+        set => DevelopedFilms = value == null || value.Count == 0 ? string.Empty : string.Join(",", value);
     }
 
     // Dictionary mapping DevKit Id to list of Film Ids developed with that DevKit

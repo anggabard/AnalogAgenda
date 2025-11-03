@@ -77,11 +77,13 @@ public class AnalogAgendaDbContext : DbContext
                 .HasForeignKey(e => e.FilmId)
                 .OnDelete(DeleteBehavior.Cascade);
 
+            // One-to-many relationship: Film → Session (one film can be developed in one session)
             entity.HasOne(e => e.DevelopedInSession)
                 .WithMany(s => s.DevelopedFilms)
                 .HasForeignKey(e => e.DevelopedInSessionId)
                 .OnDelete(DeleteBehavior.SetNull);
 
+            // Many-to-one relationship: Film → DevKit (one film can be developed with one devkit)
             entity.HasOne(e => e.DevelopedWithDevKit)
                 .WithMany(d => d.DevelopedFilms)
                 .HasForeignKey(e => e.DevelopedWithDevKitId)
@@ -124,7 +126,7 @@ public class AnalogAgendaDbContext : DbContext
             entity.Property(e => e.Description).HasMaxLength(1000);
             entity.HasIndex(e => e.SessionDate);
 
-            // Many-to-many relationship with DevKitEntity
+            // Many-to-many relationship with DevKitEntity (multiple devkits can be used in multiple sessions)
             entity.HasMany(e => e.UsedDevKits)
                 .WithMany(d => d.UsedInSessions)
                 .UsingEntity<Dictionary<string, object>>(
@@ -132,6 +134,13 @@ public class AnalogAgendaDbContext : DbContext
                     j => j.HasOne<DevKitEntity>().WithMany().HasForeignKey("DevKitId"),
                     j => j.HasOne<SessionEntity>().WithMany().HasForeignKey("SessionId")
                 );
+
+            // One-to-many relationship with FilmEntity (one session can develop multiple films)
+            // Films reference sessions via DevelopedInSessionId foreign key
+            entity.HasMany(e => e.DevelopedFilms)
+                .WithOne(f => f.DevelopedInSession)
+                .HasForeignKey(f => f.DevelopedInSessionId)
+                .OnDelete(DeleteBehavior.SetNull);
         });
 
         // Configure UsedFilmThumbnailEntity

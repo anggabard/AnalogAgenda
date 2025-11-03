@@ -45,12 +45,32 @@ public class SessionController(Storage storageCfg, IDatabaseService databaseServ
     [HttpGet]
     public async Task<IActionResult> GetAllSessions([FromQuery] int page = 1, [FromQuery] int pageSize = 5)
     {
-        return await GetEntitiesWithBackwardCompatibilityAsync(
-            page, 
-            pageSize,
-            entities => entities.ApplyStandardSorting(),
-            sorted => sorted.Select(EntityToDto)
-        );
+        IQueryable<SessionEntity> query = dbContext.Sessions
+            .Include(s => s.UsedDevKits)
+            .Include(s => s.DevelopedFilms);
+        
+        if (page <= 0)
+        {
+            var entities = await query.ApplyStandardSorting().ToListAsync();
+            return Ok(entities.Select(EntityToDto));
+        }
+
+        var totalCount = await query.CountAsync();
+        var pagedEntities = await query
+            .ApplyStandardSorting()
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        var pagedResults = new PagedResponseDto<SessionDto>
+        {
+            Data = pagedEntities.Select(EntityToDto),
+            TotalCount = totalCount,
+            PageSize = pageSize,
+            CurrentPage = page
+        };
+
+        return Ok(pagedResults);
     }
 
     [HttpGet("{id}")]

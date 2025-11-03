@@ -82,7 +82,7 @@ namespace Database.Data.Migrations
 
                     b.HasIndex("MixedOn");
 
-                    b.ToTable("DevKits");
+                    b.ToTable("DevKits", (string)null);
                 });
 
             modelBuilder.Entity("Database.Entities.FilmEntity", b =>
@@ -154,7 +154,7 @@ namespace Database.Data.Migrations
 
                     b.HasIndex("DevelopedWithDevKitId");
 
-                    b.ToTable("Films");
+                    b.ToTable("Films", (string)null);
                 });
 
             modelBuilder.Entity("Database.Entities.NoteEntity", b =>
@@ -184,7 +184,7 @@ namespace Database.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Notes");
+                    b.ToTable("Notes", (string)null);
                 });
 
             modelBuilder.Entity("Database.Entities.NoteEntryEntity", b =>
@@ -226,7 +226,7 @@ namespace Database.Data.Migrations
 
                     b.HasIndex("NoteId");
 
-                    b.ToTable("NoteEntries");
+                    b.ToTable("NoteEntries", (string)null);
                 });
 
             modelBuilder.Entity("Database.Entities.PhotoEntity", b =>
@@ -259,7 +259,7 @@ namespace Database.Data.Migrations
                     b.HasIndex("FilmId", "Index")
                         .IsUnique();
 
-                    b.ToTable("Photos");
+                    b.ToTable("Photos", (string)null);
                 });
 
             modelBuilder.Entity("Database.Entities.SessionEntity", b =>
@@ -299,7 +299,7 @@ namespace Database.Data.Migrations
 
                     b.HasIndex("SessionDate");
 
-                    b.ToTable("Sessions");
+                    b.ToTable("Sessions", (string)null);
                 });
 
             modelBuilder.Entity("Database.Entities.UsedDevKitThumbnailEntity", b =>
@@ -324,7 +324,7 @@ namespace Database.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("UsedDevKitThumbnails");
+                    b.ToTable("UsedDevKitThumbnails", (string)null);
                 });
 
             modelBuilder.Entity("Database.Entities.UsedFilmThumbnailEntity", b =>
@@ -349,7 +349,7 @@ namespace Database.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("UsedFilmThumbnails");
+                    b.ToTable("UsedFilmThumbnails", (string)null);
                 });
 
             modelBuilder.Entity("Database.Entities.UserEntity", b =>
@@ -386,7 +386,7 @@ namespace Database.Data.Migrations
                     b.HasIndex("Email")
                         .IsUnique();
 
-                    b.ToTable("Users");
+                    b.ToTable("Users", (string)null);
                 });
 
             modelBuilder.Entity("SessionDevKit", b =>
@@ -401,7 +401,7 @@ namespace Database.Data.Migrations
 
                     b.HasIndex("SessionId");
 
-                    b.ToTable("SessionDevKit");
+                    b.ToTable("SessionDevKit", (string)null);
                 });
 
             modelBuilder.Entity("Database.Entities.FilmEntity", b =>
