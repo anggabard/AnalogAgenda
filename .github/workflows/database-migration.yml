@@ -19,6 +19,7 @@ env:
   SQL_SERVER: 'sql-analogagenda-prod'
   SQL_DATABASE: 'AnalogAgendaDb'
   SQL_USER: 'sqladmin'
+  KEY_VAULT_NAME: 'analogagenda-kv'
 
 jobs:
   check-migrations:
@@ -42,11 +43,31 @@ jobs:
     - name: Install EF Core tools
       run: dotnet tool install --global dotnet-ef --version 8.0.11
 
+    - name: Azure Login
+      uses: azure/login@v2
+      with:
+        creds: ${{ secrets.AZ_CREDENTIALS }}
+
+    - name: Fetch SQL password from Key Vault
+      id: keyvault
+      shell: pwsh
+      run: |
+        $kvName = "${{ env.KEY_VAULT_NAME }}"
+        Write-Host "Fetching SQL password from Key Vault..."
+        
+        $sqlPassword = az keyvault secret show --vault-name $kvName --name "sql-password" --query "value" -o tsv
+        
+        Write-Host "::add-mask::$sqlPassword"
+        
+        echo "SQL_PASSWORD=$sqlPassword" >> $env:GITHUB_ENV
+        
+        Write-Host "✅ SQL password fetched from Key Vault"
+
     - name: Check for pending migrations
       id: check
       shell: pwsh
       env:
-        SQL_PASSWORD: ${{ secrets.SQL_PASSWORD }}
+        SQL_PASSWORD: ${{ env.SQL_PASSWORD }}
       run: |
         $connectionString = "Server=tcp:${{ env.SQL_SERVER }}.database.windows.net,1433;Database=${{ env.SQL_DATABASE }};User ID=${{ env.SQL_USER }};Password=$env:SQL_PASSWORD;Encrypt=True;TrustServerCertificate=False;"
         
@@ -116,10 +137,25 @@ jobs:
           
           echo "✅ Firewall rule created: $RULE_NAME"
 
+    - name: Fetch SQL password from Key Vault
+      id: keyvault
+      shell: pwsh
+      run: |
+        $kvName = "${{ env.KEY_VAULT_NAME }}"
+        Write-Host "Fetching SQL password from Key Vault..."
+        
+        $sqlPassword = az keyvault secret show --vault-name $kvName --name "sql-password" --query "value" -o tsv
+        
+        Write-Host "::add-mask::$sqlPassword"
+        
+        echo "SQL_PASSWORD=$sqlPassword" >> $env:GITHUB_ENV
+        
+        Write-Host "✅ SQL password fetched from Key Vault"
+
     - name: Apply Migrations
       shell: pwsh
       env:
-        SQL_PASSWORD: ${{ secrets.SQL_PASSWORD }}
+        SQL_PASSWORD: ${{ env.SQL_PASSWORD }}
       run: |
         $connectionString = "Server=tcp:${{ env.SQL_SERVER }}.database.windows.net,1433;Database=${{ env.SQL_DATABASE }};User ID=${{ env.SQL_USER }};Password=$env:SQL_PASSWORD;Encrypt=True;TrustServerCertificate=False;"
         
@@ -137,7 +173,7 @@ jobs:
     - name: Verify Migration Status
       shell: pwsh
       env:
-        SQL_PASSWORD: ${{ secrets.SQL_PASSWORD }}
+        SQL_PASSWORD: ${{ env.SQL_PASSWORD }}
       run: |
         $connectionString = "Server=tcp:${{ env.SQL_SERVER }}.database.windows.net,1433;Database=${{ env.SQL_DATABASE }};User ID=${{ env.SQL_USER }};Password=$env:SQL_PASSWORD;Encrypt=True;TrustServerCertificate=False;"
         

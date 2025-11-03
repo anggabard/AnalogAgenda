@@ -7,14 +7,9 @@ using System.Linq.Expressions;
 
 namespace Database.Services;
 
-public class DatabaseService : IDatabaseService
+public class DatabaseService(AnalogAgendaDbContext context) : IDatabaseService
 {
-    private readonly AnalogAgendaDbContext _context;
-
-    public DatabaseService(AnalogAgendaDbContext context)
-    {
-        _context = context;
-    }
+    private readonly AnalogAgendaDbContext _context = context;
 
     public async Task<List<T>> GetAllAsync<T>() where T : BaseEntity
     {
