@@ -519,15 +519,15 @@ export class UpsertSessionComponent extends BaseUpsertComponent<SessionDto> impl
   }
 
   // TrackBy functions for ngFor loops
-  trackByfilmId(index: number, film: FilmDto): string {
+  trackByFilmId(index: number, film: FilmDto): string {
     return film.id;
   }
 
-  trackBydevKitId(index: number, devKitWithFilms: DevKitWithFilms): string {
+  trackByDevKitId(index: number, devKitWithFilms: DevKitWithFilms): string {
     return devKitWithFilms.devKit.id;
   }
 
-  trackByDevKitDtoRowKey(index: number, devKit: DevKitDto): string {
+  trackByDevKitDtoId(index: number, devKit: DevKitDto): string {
     return devKit.id;
   }
 }

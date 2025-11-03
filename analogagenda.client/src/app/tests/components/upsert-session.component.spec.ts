@@ -449,22 +449,22 @@ describe('UpsertSessionComponent', () => {
     });
 
     describe('TrackBy Functions', () => {
-      it('should return correct id for trackByfilmId', () => {
-        const result = component.trackByfilmId(0, mockFilm1);
+      it('should return correct id for trackByFilmId', () => {
+        const result = component.trackByFilmId(0, mockFilm1);
         expect(result).toBe('film-1');
       });
 
-      it('should return correct id for trackBydevKitId', () => {
+      it('should return correct id for trackByDevKitId', () => {
         const devKitWithFilms = {
           devKit: mockDevKit,
           assignedFilms: [mockFilm1]
         };
-        const result = component.trackBydevKitId(0, devKitWithFilms);
+        const result = component.trackByDevKitId(0, devKitWithFilms);
         expect(result).toBe('devkit-1');
       });
 
-      it('should return correct id for trackByDevKitDtoRowKey', () => {
-        const result = component.trackByDevKitDtoRowKey(0, mockDevKit);
+      it('should return correct id for trackByDevKitDtoId', () => {
+        const result = component.trackByDevKitDtoId(0, mockDevKit);
         expect(result).toBe('devkit-1');
       });
     });

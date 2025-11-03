@@ -11,7 +11,7 @@
             [hasMore]="hasMoreNotes" 
             [loading]="loadingNotes"
             (loadMore)="loadMoreNotes()"
-            (itemClick)="onNoteSelected($event.rowKey)">
+            (itemClick)="onNoteSelected($event.id)">
         </app-card-list>
     </div>
 </div>

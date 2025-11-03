@@ -48,13 +48,13 @@
       </div>
     </div>
     <div class="devkit-grid" *ngIf="sessionDevKits.length > 0">
-      <div *ngFor="let devKitWithFilms of sessionDevKits; trackBy: trackByDevKitRowKey" class="devkit-container">
+      <div *ngFor="let devKitWithFilms of sessionDevKits; trackBy: trackByDevKitId" class="devkit-container">
         <div class="devkit-header">
           <div class="devkit-info">
             <h4>{{ devKitWithFilms.devKit.name }}</h4>
             <button 
               class="preview-btn"
-              (mouseenter)="onDevKitHover(devKitWithFilms.devKit.rowKey, $event)"
+              (mouseenter)="onDevKitHover(devKitWithFilms.devKit.id, $event)"
               (mouseleave)="onDevKitLeave()"
               title="Preview DevKit Image">
               ?
@@ -63,7 +63,7 @@
           <button 
             *ngIf="isEditMode || isInsert"
             class="remove-btn" 
-            (click)="removeDevKitFromSession(devKitWithFilms.devKit.rowKey)"
+            (click)="removeDevKitFromSession(devKitWithFilms.devKit.id)"
             title="Remove DevKit">
             ✕
           </button>
@@ -72,7 +72,7 @@
         <!-- DevKit Image Tooltip -->
         <div 
           class="devkit-image-tooltip" 
-          *ngIf="hoveredDevKit === devKitWithFilms.devKit.rowKey">
+          *ngIf="hoveredDevKit === devKitWithFilms.devKit.id">
           <img [src]="devKitWithFilms.devKit.imageUrl" [alt]="devKitWithFilms.devKit.name" />
           <div class="devkit-tooltip-title">{{ devKitWithFilms.devKit.name }}</div>
           <div class="devkit-tooltip-info">
@@ -87,14 +87,14 @@
           [cdkDropListDisabled]="isViewMode"
           cdkDropList
           [cdkDropListSortingDisabled]="true"
-          [id]="'devkit-' + devKitWithFilms.devKit.rowKey"
+          [id]="'devkit-' + devKitWithFilms.devKit.id"
           [cdkDropListData]="devKitWithFilms.assignedFilms"
           [cdkDropListConnectedTo]="getConnectedLists()"
           (cdkDropListDropped)="onFilmDrop($event)">
           
           <div class="drop-zone-content">
             <div 
-              *ngFor="let film of devKitWithFilms.assignedFilms; trackBy: trackByFilmRowKey" 
+              *ngFor="let film of devKitWithFilms.assignedFilms; trackBy: trackByFilmId" 
               class="film-card removable-film"
               [cdkDragDisabled]="isViewMode"
               [cdkDragData]="film"
@@ -102,7 +102,7 @@
               <button 
                 *ngIf="isEditMode || isInsert"
                 class="remove-film-btn" 
-                (click)="removeFilmFromSession(film.rowKey)"
+                (click)="removeFilmFromSession(film.id)"
                 title="Remove from session">
                 ✕
               </button>
@@ -154,7 +154,7 @@
       
       <div class="unassigned-grid" *ngIf="unassignedFilms.length > 0">
         <div 
-          *ngFor="let film of unassignedFilms; trackBy: trackByFilmRowKey" 
+          *ngFor="let film of unassignedFilms; trackBy: trackByFilmId" 
           class="film-card removable-film"
           [cdkDragDisabled]="isViewMode"
           [cdkDragData]="film"
@@ -162,7 +162,7 @@
           <button 
             *ngIf="isEditMode || isInsert"
             class="remove-film-btn" 
-            (click)="removeFilmFromSession(film.rowKey)"
+            (click)="removeFilmFromSession(film.id)"
             title="Remove from session">
             ✕
           </button>
@@ -291,10 +291,10 @@
         </label>
       </div>
       <div class="items-grid">
-        <div *ngFor="let devKit of filteredAvailableDevKits; trackBy: trackByDevKitDtoRowKey" class="item-card" 
+        <div *ngFor="let devKit of filteredAvailableDevKits; trackBy: trackByDevKitDtoId" class="item-card" 
              [class.expired]="devKit.expired"
-             [class.selected]="isDevKitSelectedForModal(devKit.rowKey)"
-             (click)="toggleDevKitSelection(devKit.rowKey)">
+             [class.selected]="isDevKitSelectedForModal(devKit.id)"
+             (click)="toggleDevKitSelection(devKit.id)">
           <div class="item-content">
             <div class="item-info">
               <img [src]="devKit.imageUrl" alt="{{devKit.name}}" class="item-image" />
@@ -307,7 +307,7 @@
           </div>
           <div class="item-checkbox">
             <input type="checkbox" 
-                   [checked]="isDevKitSelectedForModal(devKit.rowKey)"
+                   [checked]="isDevKitSelectedForModal(devKit.id)"
                    readonly />
           </div>
         </div>
@@ -330,9 +330,9 @@
     </div>
     <div class="modal-body">
       <div class="items-grid">
-        <div *ngFor="let film of availableUnassignedFilms; trackBy: trackByFilmRowKey" class="item-card"
-             [class.selected]="isFilmSelectedForModal(film.rowKey)"
-             (click)="toggleFilmSelection(film.rowKey)">
+        <div *ngFor="let film of availableUnassignedFilms; trackBy: trackByFilmId" class="item-card"
+             [class.selected]="isFilmSelectedForModal(film.id)"
+             (click)="toggleFilmSelection(film.id)">
           <div class="item-content">
             <div class="item-info">
               <img [src]="film.imageUrl" alt="{{film.name}}" class="item-image" />
@@ -345,7 +345,7 @@
           </div>
           <div class="item-checkbox">
             <input type="checkbox" 
-                   [checked]="isFilmSelectedForModal(film.rowKey)"
+                   [checked]="isFilmSelectedForModal(film.id)"
                    readonly />
           </div>
         </div>
