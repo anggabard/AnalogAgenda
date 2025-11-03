@@ -72,8 +72,8 @@ export class NotesMergeComponent implements OnInit {
         const startTimeWithinProcess = accumulatedTime;
         
         allEntries.push({
-          rowKey: entry.rowKey,
-          noteRowKey: entry.noteRowKey,
+          rowKey: entry.id,
+          noteRowKey: entry.noteId,
           time: effectiveTime,
           step: this.getEffectiveStep(entry),
           details: this.getEffectiveDetails(entry),
@@ -89,8 +89,8 @@ export class NotesMergeComponent implements OnInit {
       
       // Add OUT/DONE row for this process at the total time
       allEntries.push({
-        rowKey: `out-done-${note.rowKey}`,
-        noteRowKey: note.rowKey,
+        rowKey: `out-done-${note.id}`,
+        noteRowKey: note.id,
         time: 0, // OUT/DONE has no duration
         step: 'OUT/DONE',
         details: '',

@@ -70,16 +70,16 @@ export class NotesComponent extends BasePaginatedListComponent<NoteDto> {
     this.selectedNotesForMerge.clear();
   }
 
-  toggleNoteSelection(noteRowKey: string): void {
-    if (this.selectedNotesForMerge.has(noteRowKey)) {
-      this.selectedNotesForMerge.delete(noteRowKey);
+  toggleNoteSelection(noteId: string): void {
+    if (this.selectedNotesForMerge.has(noteId)) {
+      this.selectedNotesForMerge.delete(noteId);
     } else {
-      this.selectedNotesForMerge.add(noteRowKey);
+      this.selectedNotesForMerge.add(noteId);
     }
   }
 
-  isNoteSelected(noteRowKey: string): boolean {
-    return this.selectedNotesForMerge.has(noteRowKey);
+  isNoteSelected(noteId: string): boolean {
+    return this.selectedNotesForMerge.has(noteId);
   }
 
   canShowMergedNote(): boolean {
@@ -95,14 +95,15 @@ export class NotesComponent extends BasePaginatedListComponent<NoteDto> {
   }
 
   private generateCompositeId(): string {
-    const selectedRowKeys = Array.from(this.selectedNotesForMerge);
+    const selectedIds = Array.from(this.selectedNotesForMerge);
     const compositeId = [];
     
-    // Interleave characters from each note's rowKey
+    // Interleave characters from each note's id
+    // Note: NoteEntity has IdLength = 4, so each id is 4 characters
     for (let charIndex = 0; charIndex < 4; charIndex++) {
-      for (const rowKey of selectedRowKeys) {
-        if (charIndex < rowKey.length) {
-          compositeId.push(rowKey[charIndex]);
+      for (const id of selectedIds) {
+        if (charIndex < id.length) {
+          compositeId.push(id[charIndex]);
         }
       }
     }

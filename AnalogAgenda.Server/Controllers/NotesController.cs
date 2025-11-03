@@ -12,7 +12,7 @@ using Database.Data;
 namespace AnalogAgenda.Server.Controllers;
 
 [Route("api/[controller]")]
-public class NotesController(Storage storageCfg, IDatabaseService databaseService, IBlobService blobsService, AnalogAgendaDbContext dbContext) : BaseEntityController<NoteEntity, NoteDto>(storageCfg, databaseService, blobsService)
+public class NotesController(Storage storageCfg, IDatabaseService databaseService, IBlobService blobsService, AnalogAgendaDbContext dbContext) : BaseEntityController<NoteEntity, NoteDto>(storageCfg, databaseService, blobsService, dbContext)
 {
     private readonly BlobContainerClient notesContainer = blobsService.GetBlobContainer(ContainerName.notes);
 
@@ -309,7 +309,16 @@ public class NotesController(Storage storageCfg, IDatabaseService databaseServic
                 updatedNoteEntryEntity.CreatedDate = existingEntryEntity.CreatedDate;
                 updatedNoteEntryEntity.UpdatedDate = DateTime.UtcNow;
                 
-                await databaseService.UpdateAsync(updatedNoteEntryEntity);
+                // Update safely using Entry API to avoid tracking conflicts
+                dbContext.Set<NoteEntryEntity>().Attach(updatedNoteEntryEntity);
+                dbContext.Entry(updatedNoteEntryEntity).State = EntityState.Modified;
+                
+                // Clear navigation properties to avoid tracking conflicts
+                dbContext.Entry(updatedNoteEntryEntity).Reference(e => e.Note).CurrentValue = null;
+                dbContext.Entry(updatedNoteEntryEntity).Collection(e => e.Rules).IsLoaded = false;
+                dbContext.Entry(updatedNoteEntryEntity).Collection(e => e.Overrides).IsLoaded = false;
+                
+                await dbContext.SaveChangesAsync();
                 
                 // Update rules and overrides for existing entry
                 await UpdateRulesAndOverridesForEntryAsync(noteEntryDto);

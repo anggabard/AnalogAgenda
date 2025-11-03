@@ -14,7 +14,7 @@ describe('NotesComponent - Merge Functionality', () => {
 
   const mockNotes: NoteDto[] = [
     {
-      rowKey: 'A1B2',
+      id: 'A1B2',
       name: 'Note 1',
       sideNote: 'First note',
       imageUrl: 'http://example.com/note1.jpg',
@@ -22,7 +22,7 @@ describe('NotesComponent - Merge Functionality', () => {
       entries: []
     },
     {
-      rowKey: 'C3D4',
+      id: 'C3D4',
       name: 'Note 2',
       sideNote: 'Second note',
       imageUrl: 'http://example.com/note2.jpg',
@@ -30,7 +30,7 @@ describe('NotesComponent - Merge Functionality', () => {
       entries: []
     },
     {
-      rowKey: 'E5F6',
+      id: 'E5F6',
       name: 'Note 3',
       sideNote: 'Third note',
       imageUrl: 'http://example.com/note3.jpg',

@@ -1,21 +1,24 @@
 using AnalogAgenda.Server.Helpers;
 using Azure.Storage.Blobs;
 using Configuration.Sections;
+using Database.Data;
 using Database.DTOs;
 using Database.Entities;
 using Database.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace AnalogAgenda.Server.Controllers;
 
 [ApiController, Authorize]
-public abstract class BaseEntityController<TEntity, TDto>(Storage storageCfg, IDatabaseService databaseService, IBlobService blobsService) : ControllerBase 
+public abstract class BaseEntityController<TEntity, TDto>(Storage storageCfg, IDatabaseService databaseService, IBlobService blobsService, AnalogAgendaDbContext dbContext) : ControllerBase 
     where TEntity : BaseEntity, IImageEntity
 {
     protected readonly Storage storageCfg = storageCfg;
     protected readonly IDatabaseService databaseService = databaseService;
     protected readonly IBlobService blobsService = blobsService;
+    protected readonly AnalogAgendaDbContext dbContext = dbContext;
 
     protected abstract BlobContainerClient GetBlobContainer();
     protected abstract Guid GetDefaultImageId();
@@ -66,7 +69,11 @@ public abstract class BaseEntityController<TEntity, TDto>(Storage storageCfg, ID
 
         var container = GetBlobContainer();
         
-        var existingEntity = await databaseService.GetByIdAsync<TEntity>(id);
+        // Load entity without tracking to avoid conflicts with navigation properties
+        var existingEntity = await dbContext.Set<TEntity>()
+            .AsNoTracking()
+            .FirstOrDefaultAsync(e => e.Id == id);
+        
         if (existingEntity == null)
             return NotFound();
 
@@ -90,7 +97,33 @@ public abstract class BaseEntityController<TEntity, TDto>(Storage storageCfg, ID
         updatedEntity.ImageId = imageId;
         updatedEntity.UpdatedDate = DateTime.UtcNow;
 
-        await databaseService.UpdateAsync(updatedEntity);
+        // Attach and update the entity using Entry API to avoid tracking conflicts
+        dbContext.Set<TEntity>().Attach(updatedEntity);
+        dbContext.Entry(updatedEntity).State = EntityState.Modified;
+        
+        // Clear all navigation properties to avoid tracking conflicts
+        // This is a generic approach - specific controllers can override if needed
+        var entityType = dbContext.Model.FindEntityType(typeof(TEntity));
+        if (entityType != null)
+        {
+            foreach (var navigation in entityType.GetNavigations())
+            {
+                var navigationProperty = typeof(TEntity).GetProperty(navigation.Name);
+                if (navigationProperty != null)
+                {
+                    if (navigation.IsCollection)
+                    {
+                        dbContext.Entry(updatedEntity).Collection(navigation.Name).IsLoaded = false;
+                    }
+                    else
+                    {
+                        dbContext.Entry(updatedEntity).Reference(navigation.Name).CurrentValue = null;
+                    }
+                }
+            }
+        }
+
+        await dbContext.SaveChangesAsync();
 
         return NoContent();
     }

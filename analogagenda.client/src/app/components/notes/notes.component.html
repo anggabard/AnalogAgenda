@@ -37,8 +37,8 @@
             <div class="items-grid">
                 <div *ngFor="let note of notes" 
                      class="item-card"
-                     [class.selected]="isNoteSelected(note.rowKey)"
-                     (click)="toggleNoteSelection(note.rowKey)">
+                     [class.selected]="isNoteSelected(note.id)"
+                     (click)="toggleNoteSelection(note.id)">
                     <div class="item-content">
                         <div class="item-info">
                             <img [src]="note.imageUrl" alt="{{note.name}}" class="item-image" />
@@ -49,7 +49,7 @@
                     </div>
                     <div class="item-checkbox">
                         <input type="checkbox" 
-                               [checked]="isNoteSelected(note.rowKey)"
+                               [checked]="isNoteSelected(note.id)"
                                readonly />
                     </div>
                 </div>

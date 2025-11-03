@@ -1,4 +1,5 @@
 ﻿using AnalogAgenda.Server.Identity;
+using Database.Data;
 using Database.DTOs;
 using Database.Entities;
 using Database.Helpers;
@@ -7,12 +8,13 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 
 namespace AnalogAgenda.Server.Controllers;
 
 [ApiController, Route("api/[controller]")]
-public class AccountController(IDatabaseService database) : ControllerBase
+public class AccountController(IDatabaseService database, AnalogAgendaDbContext dbContext) : ControllerBase
 {
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginDto login)
@@ -46,17 +48,33 @@ public class AccountController(IDatabaseService database) : ControllerBase
     [HttpPost("changePassword")]
     public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordDto dto)
     {
-        var user = await database.GetByIdAsync<UserEntity>(User.Id());
+        // Load entity without tracking to avoid conflicts
+        var existingEntity = await dbContext.Set<UserEntity>()
+            .AsNoTracking()
+            .FirstOrDefaultAsync(u => u.Id == User.Id());
 
-        if (user == null) return Problem("Something went terribly wrong.");
+        if (existingEntity == null) return Problem("Something went terribly wrong.");
 
-        if (!PasswordHasher.VerifyPassword(dto.OldPassword, user.PasswordHash))
+        if (!PasswordHasher.VerifyPassword(dto.OldPassword, existingEntity.PasswordHash))
             return Unauthorized("Bad creds");
 
-        user.PasswordHash = PasswordHasher.HashPassword(dto.NewPassword);
-        user.UpdatedDate = DateTime.UtcNow;
+        // Create updated entity
+        var updatedEntity = new UserEntity
+        {
+            Id = existingEntity.Id,
+            CreatedDate = existingEntity.CreatedDate,
+            UpdatedDate = DateTime.UtcNow,
+            Name = existingEntity.Name,
+            Email = existingEntity.Email,
+            PasswordHash = PasswordHasher.HashPassword(dto.NewPassword),
+            IsSubscraibed = existingEntity.IsSubscraibed
+        };
 
-        await database.UpdateAsync(user);
+        // Attach and update
+        dbContext.Set<UserEntity>().Attach(updatedEntity);
+        dbContext.Entry(updatedEntity).State = EntityState.Modified;
+        
+        await dbContext.SaveChangesAsync();
 
         return Ok();
     }

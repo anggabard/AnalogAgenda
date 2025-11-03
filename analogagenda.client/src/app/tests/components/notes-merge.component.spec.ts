@@ -15,15 +15,15 @@ describe('NotesMergeComponent', () => {
 
   const mockNotes: NoteDto[] = [
     {
-      rowKey: 'note1',
+      id: 'note1',
       name: 'Note 1',
       sideNote: 'First note',
       imageUrl: 'http://example.com/image1.jpg',
       imageBase64: '',
       entries: [
         {
-          rowKey: 'entry1',
-          noteRowKey: 'note1',
+          id: 'entry1',
+          noteId: 'note1',
           time: 3.5,
           step: 'Developer',
           details: 'Mix developer',
@@ -34,8 +34,8 @@ describe('NotesMergeComponent', () => {
           overrides: []
         },
         {
-          rowKey: 'entry2',
-          noteRowKey: 'note1',
+          id: 'entry2',
+          noteId: 'note1',
           time: 2.0,
           step: 'Stop Bath',
           details: 'Stop development',
@@ -48,15 +48,15 @@ describe('NotesMergeComponent', () => {
       ] as NoteEntryDto[]
     },
     {
-      rowKey: 'note2',
+      id: 'note2',
       name: 'Note 2',
       sideNote: 'Second note',
       imageUrl: 'http://example.com/image2.jpg',
       imageBase64: '',
       entries: [
         {
-          rowKey: 'entry3',
-          noteRowKey: 'note2',
+          id: 'entry3',
+          noteId: 'note2',
           time: 1.5,
           step: 'Fixer',
           details: 'Fix the image',
@@ -280,26 +280,26 @@ describe('NotesMergeComponent', () => {
   it('should handle notes with rules and overrides', () => {
     // Arrange
     const noteWithRules: NoteDto = {
-      rowKey: 'note3',
+      id: 'note3',
       name: 'Note 3',
       sideNote: '',
       imageUrl: '',
       imageBase64: '',
       entries: [
         {
-          rowKey: 'entry4',
-          noteRowKey: 'note3',
+          id: 'entry4',
+          noteId: 'note3',
           time: 5.0,
           step: 'Development',
           details: 'Develop',
           index: 0,
           temperatureMin: 20,
           temperatureMax: undefined,
-          rules: [{ rowKey: '', noteEntryRowKey: '', filmInterval: 3, timeIncrement: 1.0 }],
+          rules: [{ id: '', noteEntryId: '', filmInterval: 3, timeIncrement: 1.0 }],
           overrides: [
             {
-              rowKey: '',
-              noteEntryRowKey: '',
+              id: '',
+              noteEntryId: '',
               filmCountMin: 4,
               filmCountMax: 6,
               time: 10.0
@@ -315,6 +315,7 @@ describe('NotesMergeComponent', () => {
     component.recalculateAndSortEntries();
 
     // Assert
+    // MergedNoteEntryDto uses rowKey (which is set from entry.id)
     const entry = component.sortedEntries.find(e => e.rowKey === 'entry4');
     expect(entry).toBeDefined();
     expect(entry!.time).toBe(10.0); // Should use override time, not rule
@@ -346,7 +347,7 @@ describe('NotesMergeComponent', () => {
     // Arrange
     const notesWithEmptySideNote: NoteDto[] = [
       {
-        rowKey: 'note1',
+        id: 'note1',
         name: 'Note 1',
         sideNote: '',
         imageUrl: '',
@@ -354,7 +355,7 @@ describe('NotesMergeComponent', () => {
         entries: []
       },
       {
-        rowKey: 'note2',
+        id: 'note2',
         name: 'Note 2',
         sideNote: 'Has content',
         imageUrl: '',

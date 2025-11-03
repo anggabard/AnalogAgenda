@@ -1,6 +1,7 @@
 using AnalogAgenda.Server.Identity;
 using Azure.Storage.Blobs;
 using Configuration.Sections;
+using Database.Data;
 using Database.DBObjects;
 using Database.DBObjects.Enums;
 using Database.DTOs;
@@ -8,12 +9,13 @@ using Database.Entities;
 using Database.Helpers;
 using Database.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
 
 namespace AnalogAgenda.Server.Controllers;
 
 [Route("api/[controller]")]
-public class FilmController(Storage storageCfg, IDatabaseService databaseService, IBlobService blobsService) : BaseEntityController<FilmEntity, FilmDto>(storageCfg, databaseService, blobsService)
+public class FilmController(Storage storageCfg, IDatabaseService databaseService, IBlobService blobsService, AnalogAgendaDbContext dbContext) : BaseEntityController<FilmEntity, FilmDto>(storageCfg, databaseService, blobsService, dbContext)
 {
     private readonly BlobContainerClient filmsContainer = blobsService.GetBlobContainer(ContainerName.films);
 
@@ -217,15 +219,20 @@ public class FilmController(Storage storageCfg, IDatabaseService databaseService
         if (updateDto == null)
             return BadRequest("Invalid data.");
 
-        var existingEntity = await databaseService.GetByIdAsync<FilmEntity>(id);
+        // Load entity without tracking to avoid conflicts with navigation properties
+        var existingEntity = await dbContext.Set<FilmEntity>()
+            .AsNoTracking()
+            .FirstOrDefaultAsync(e => e.Id == id);
+        
         if (existingEntity == null)
             return NotFound();
 
         try
         {
+            // Create entity from DTO using ToEntity() method
             var updatedEntity = updateDto.ToEntity();
             updatedEntity.Id = id; // Preserve the ID
-            updatedEntity.CreatedDate = existingEntity.CreatedDate;
+            updatedEntity.CreatedDate = existingEntity.CreatedDate; // Preserve CreatedDate
             updatedEntity.UpdatedDate = DateTime.UtcNow;
             
             // If no ImageUrl provided, keep existing ImageId
@@ -234,7 +241,17 @@ public class FilmController(Storage storageCfg, IDatabaseService databaseService
                 updatedEntity.ImageId = existingEntity.ImageId;
             }
             
-            await databaseService.UpdateAsync(updatedEntity);
+            // Attach and update the entity using Entry API
+            // This avoids tracking conflicts with navigation properties
+            dbContext.Set<FilmEntity>().Attach(updatedEntity);
+            dbContext.Entry(updatedEntity).State = Microsoft.EntityFrameworkCore.EntityState.Modified;
+            
+            // Clear navigation properties to avoid tracking conflicts
+            dbContext.Entry(updatedEntity).Reference(f => f.DevelopedWithDevKit).CurrentValue = null;
+            dbContext.Entry(updatedEntity).Reference(f => f.DevelopedInSession).CurrentValue = null;
+            dbContext.Entry(updatedEntity).Collection(f => f.Photos).IsLoaded = false;
+            
+            await dbContext.SaveChangesAsync();
             return NoContent();
         }
         catch (Exception ex)

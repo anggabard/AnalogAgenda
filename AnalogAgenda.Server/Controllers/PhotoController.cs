@@ -1,18 +1,20 @@
 using AnalogAgenda.Server.Helpers;
 using Azure.Storage.Blobs;
 using Configuration.Sections;
+using Database.Data;
 using Database.DBObjects.Enums;
 using Database.DTOs;
 using Database.Entities;
 using Database.Helpers;
 using Database.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using System.IO.Compression;
 
 namespace AnalogAgenda.Server.Controllers;
 
 [Route("api/[controller]")]
-public class PhotoController(Storage storageCfg, IDatabaseService databaseService, IBlobService blobsService) : BaseEntityController<PhotoEntity, PhotoDto>(storageCfg, databaseService, blobsService)
+public class PhotoController(Storage storageCfg, IDatabaseService databaseService, IBlobService blobsService, AnalogAgendaDbContext dbContext) : BaseEntityController<PhotoEntity, PhotoDto>(storageCfg, databaseService, blobsService, dbContext)
 {
     private readonly BlobContainerClient photosContainer = blobsService.GetBlobContainer(ContainerName.photos);
 
@@ -216,11 +218,44 @@ public class PhotoController(Storage storageCfg, IDatabaseService databaseServic
 
     private async Task MarkFilmAsDeveloped(string filmId)
     {
-        var filmEntity = await databaseService.GetByIdAsync<FilmEntity>(filmId);
-        if (filmEntity != null && !filmEntity.Developed)
+        // Load entity without tracking to avoid conflicts
+        var existingEntity = await dbContext.Set<FilmEntity>()
+            .AsNoTracking()
+            .FirstOrDefaultAsync(f => f.Id == filmId);
+        
+        if (existingEntity != null && !existingEntity.Developed)
         {
-            filmEntity.Developed = true;
-            await databaseService.UpdateAsync(filmEntity);
+            // Create updated entity
+            var updatedEntity = new FilmEntity
+            {
+                Id = existingEntity.Id,
+                CreatedDate = existingEntity.CreatedDate,
+                UpdatedDate = DateTime.UtcNow,
+                Name = existingEntity.Name,
+                Iso = existingEntity.Iso,
+                Type = existingEntity.Type,
+                NumberOfExposures = existingEntity.NumberOfExposures,
+                Cost = existingEntity.Cost,
+                PurchasedBy = existingEntity.PurchasedBy,
+                PurchasedOn = existingEntity.PurchasedOn,
+                ImageId = existingEntity.ImageId,
+                Description = existingEntity.Description,
+                Developed = true, // Mark as developed
+                DevelopedInSessionId = existingEntity.DevelopedInSessionId,
+                DevelopedWithDevKitId = existingEntity.DevelopedWithDevKitId,
+                ExposureDates = existingEntity.ExposureDates
+            };
+            
+            // Attach and update
+            dbContext.Set<FilmEntity>().Attach(updatedEntity);
+            dbContext.Entry(updatedEntity).State = Microsoft.EntityFrameworkCore.EntityState.Modified;
+            
+            // Clear navigation properties
+            dbContext.Entry(updatedEntity).Reference(f => f.DevelopedWithDevKit).CurrentValue = null;
+            dbContext.Entry(updatedEntity).Reference(f => f.DevelopedInSession).CurrentValue = null;
+            dbContext.Entry(updatedEntity).Collection(f => f.Photos).IsLoaded = false;
+            
+            await dbContext.SaveChangesAsync();
         }
     }
 }
