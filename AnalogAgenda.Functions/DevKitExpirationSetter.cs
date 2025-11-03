@@ -1,7 +1,5 @@
 ﻿using AnalogAgenda.EmailSender;
 using AnalogAgenda.Functions.Helpers;
-using Azure.Data.Tables;
-using Database.DBObjects.Enums;
 using Database.Entities;
 using Database.Services.Interfaces;
 using Microsoft.Azure.Functions.Worker;
@@ -9,10 +7,9 @@ using Microsoft.Extensions.Logging;
 
 namespace AnalogAgenda.Functions;
 
-public class DevKitExpirationSetter(ILoggerFactory loggerFactory, ITableService tablesService, IEmailSender emailSender)
+public class DevKitExpirationSetter(ILoggerFactory loggerFactory, IDatabaseService databaseService, IEmailSender emailSender)
 {
     private readonly ILogger _logger = loggerFactory.CreateLogger<DevKitExpirationSetter>();
-    private readonly TableClient devKitsTable = tablesService.GetTable(TableName.DevKits);
 
     //Every day at 10:00 AM
     [Function("DevKitExpirationSetter")]
@@ -21,20 +18,20 @@ public class DevKitExpirationSetter(ILoggerFactory loggerFactory, ITableService 
         var now = DateTime.UtcNow;
         _logger.LogInformation($"DevKitExpirationSetter function executed at: {now}");
 
-        var entities = await tablesService.GetTableEntriesAsync<DevKitEntity>(kit => !kit.Expired);
+        var entities = await databaseService.GetAllAsync<DevKitEntity>(kit => !kit.Expired);
         foreach (var entity in entities)
         {
             var kitExpirationDate = entity.GetExpirationDate();
             if (kitExpirationDate > now || entity.FilmsDeveloped < entity.ValidForFilms) continue;
 
             entity.Expired = true;
-            await devKitsTable.UpdateEntityAsync(entity, entity.ETag);
+            await databaseService.UpdateAsync(entity);
             _logger.LogInformation($"Development Kit: {entity.Name} has expired");
 
-            var html = EmailTemplateGenerator.GetExpiredDevKit(entity.Name, entity.Type.ToString(), entity.PurchasedOn, entity.PurchasedBy.ToString(), kitExpirationDate, entity.ValidForFilms - entity.FilmsDeveloped, entity.ImageId, entity.RowKey);
+            var html = EmailTemplateGenerator.GetExpiredDevKit(entity.Name, entity.Type.ToString(), entity.PurchasedOn, entity.PurchasedBy.ToString(), kitExpirationDate, entity.ValidForFilms - entity.FilmsDeveloped, entity.ImageId, entity.Id);
 
             await EmailNotificationHelper.SendNotificationToSubscribersAsync(
-                tablesService,
+                databaseService,
                 emailSender,
                 "Your Film Development Kit has expired!",
                 html

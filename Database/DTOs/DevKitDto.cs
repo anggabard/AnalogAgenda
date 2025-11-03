@@ -6,7 +6,7 @@ namespace Database.DTOs;
 
 public class DevKitDto
 {
-    public string RowKey { get; set; } = string.Empty;
+    public string Id { get; set; } = string.Empty;
 
     public required string Name { get; set; }
 
@@ -36,7 +36,7 @@ public class DevKitDto
     {
         return new DevKitEntity
         {
-            RowKey = RowKey,
+            Id = Id,
             Name = Name,
             Url = Url,
             Type = Type.ToEnum<EDevKitType>(),

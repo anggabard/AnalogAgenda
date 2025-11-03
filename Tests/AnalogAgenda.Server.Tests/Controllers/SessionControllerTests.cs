@@ -13,14 +13,14 @@ namespace AnalogAgenda.Server.Tests.Controllers;
 public class SessionControllerTests
 {
     private readonly Mock<Storage> _mockStorage;
-    private readonly Mock<ITableService> _mockTableService;
+    private readonly Mock<IDatabaseService> _mockTableService;
     private readonly Mock<IBlobService> _mockBlobService;
     private readonly SessionController _controller;
 
     public SessionControllerTests()
     {
         _mockStorage = new Mock<Storage>();
-        _mockTableService = new Mock<ITableService>();
+        _mockTableService = new Mock<IDatabaseService>();
         _mockBlobService = new Mock<IBlobService>();
         _controller = new SessionController(_mockStorage.Object, _mockTableService.Object, _mockBlobService.Object);
     }

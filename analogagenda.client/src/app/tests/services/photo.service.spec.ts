@@ -29,7 +29,7 @@ describe('PhotoService', () => {
     it('should create a single photo', () => {
       // Arrange
       const createDto: PhotoCreateDto = {
-        filmRowId: 'test-film-id',
+        filmId: 'test-film-id',
         imageBase64: 'data:image/jpeg;base64,validbase64data'
       };
       
@@ -51,7 +51,7 @@ describe('PhotoService', () => {
     it('should handle error when creating photo', () => {
       // Arrange
       const createDto: PhotoCreateDto = {
-        filmRowId: 'invalid-film-id',
+        filmId: 'invalid-film-id',
         imageBase64: 'data:image/jpeg;base64,validbase64data'
       };
 
@@ -74,7 +74,7 @@ describe('PhotoService', () => {
     it('should upload multiple photos', () => {
       // Arrange
       const uploadDto: PhotoBulkUploadDto = {
-        filmRowId: 'test-film-id',
+        filmId: 'test-film-id',
         photos: [
           { imageBase64: 'data:image/jpeg;base64,photo1data' },
           { imageBase64: 'data:image/jpeg;base64,photo2data' }
@@ -103,7 +103,7 @@ describe('PhotoService', () => {
     it('should handle error when uploading photos', () => {
       // Arrange
       const uploadDto: PhotoBulkUploadDto = {
-        filmRowId: 'test-film-id',
+        filmId: 'test-film-id',
         photos: []
       };
 
@@ -125,40 +125,40 @@ describe('PhotoService', () => {
   describe('getPhotosByFilmId', () => {
     it('should get photos by film ID', () => {
       // Arrange
-      const filmRowId = 'test-film-id';
+      const filmId = 'test-film-id';
       const mockResponse: PhotoDto[] = [
-        createMockPhoto('photo1', filmRowId, 1),
-        createMockPhoto('photo2', filmRowId, 2),
-        createMockPhoto('photo3', filmRowId, 3)
+        createMockPhoto('photo1', filmId, 1),
+        createMockPhoto('photo2', filmId, 2),
+        createMockPhoto('photo3', filmId, 3)
       ];
 
       // Act
-      service.getPhotosByFilmId(filmRowId).subscribe(response => {
+      service.getPhotosByFilmId(filmId).subscribe(response => {
         // Assert
         expect(response).toEqual(mockResponse);
         expect(response.length).toBe(3);
       });
 
       // Assert HTTP call
-      const req = httpMock.expectOne(`${baseUrl}/film/${filmRowId}`);
+      const req = httpMock.expectOne(`${baseUrl}/film/${filmId}`);
       expect(req.request.method).toBe('GET');
       req.flush(mockResponse);
     });
 
     it('should return empty array when no photos found', () => {
       // Arrange
-      const filmRowId = 'test-film-id';
+      const filmId = 'test-film-id';
       const mockResponse: PhotoDto[] = [];
 
       // Act
-      service.getPhotosByFilmId(filmRowId).subscribe(response => {
+      service.getPhotosByFilmId(filmId).subscribe(response => {
         // Assert
         expect(response).toEqual(mockResponse);
         expect(response.length).toBe(0);
       });
 
       // Assert HTTP call
-      const req = httpMock.expectOne(`${baseUrl}/film/${filmRowId}`);
+      const req = httpMock.expectOne(`${baseUrl}/film/${filmId}`);
       expect(req.request.method).toBe('GET');
       req.flush(mockResponse);
     });
@@ -167,7 +167,7 @@ describe('PhotoService', () => {
   describe('downloadPhoto', () => {
     it('should download a single photo', () => {
       // Arrange
-      const rowKey = 'test-photo-key';
+      const id = 'test-photo-key';
       const mockBlob = new Blob(['fake-image-data'], { type: 'image/jpeg' });
 
       // Act
@@ -185,7 +185,7 @@ describe('PhotoService', () => {
 
     it('should handle error when downloading photo', () => {
       // Arrange
-      const rowKey = 'invalid-photo-key';
+      const id = 'invalid-photo-key';
 
       // Act
       service.downloadPhoto(rowKey).subscribe({
@@ -205,17 +205,17 @@ describe('PhotoService', () => {
   describe('downloadAllPhotos', () => {
     it('should download all photos as zip', () => {
       // Arrange
-      const filmRowId = 'test-film-id';
+      const filmId = 'test-film-id';
       const mockZipBlob = new Blob(['fake-zip-data'], { type: 'application/zip' });
 
       // Act
-      service.downloadAllPhotos(filmRowId).subscribe(response => {
+      service.downloadAllPhotos(filmId).subscribe(response => {
         // Assert
         expect(response).toEqual(mockZipBlob);
       });
 
       // Assert HTTP call
-      const req = httpMock.expectOne(`${baseUrl}/download-all/${filmRowId}`);
+      const req = httpMock.expectOne(`${baseUrl}/download-all/${filmId}`);
       expect(req.request.method).toBe('GET');
       expect(req.request.responseType).toBe('blob');
       req.flush(mockZipBlob);
@@ -223,10 +223,10 @@ describe('PhotoService', () => {
 
     it('should handle error when no photos to download', () => {
       // Arrange
-      const filmRowId = 'empty-film-id';
+      const filmId = 'empty-film-id';
 
       // Act
-      service.downloadAllPhotos(filmRowId).subscribe({
+      service.downloadAllPhotos(filmId).subscribe({
         next: () => fail('Should have failed'),
         error: (error) => {
           // Assert
@@ -235,7 +235,7 @@ describe('PhotoService', () => {
       });
 
       // Assert HTTP call
-      const req = httpMock.expectOne(`${baseUrl}/download-all/${filmRowId}`);
+      const req = httpMock.expectOne(`${baseUrl}/download-all/${filmId}`);
       req.flush(null, { status: 404, statusText: 'Not Found' });
     });
   });
@@ -243,7 +243,7 @@ describe('PhotoService', () => {
   describe('deletePhoto', () => {
     it('should delete a photo', () => {
       // Arrange
-      const rowKey = 'test-photo-key';
+      const id = 'test-photo-key';
 
       // Act
       service.deletePhoto(rowKey).subscribe(response => {
@@ -259,7 +259,7 @@ describe('PhotoService', () => {
 
     it('should handle error when deleting non-existent photo', () => {
       // Arrange
-      const rowKey = 'invalid-photo-key';
+      const id = 'invalid-photo-key';
 
       // Act
       service.deletePhoto(rowKey).subscribe({
@@ -277,10 +277,10 @@ describe('PhotoService', () => {
   });
 
   // Helper function to create mock photos
-  function createMockPhoto(rowKey: string, filmRowId: string, index: number): PhotoDto {
+  function createMockPhoto(id: string, filmId: string, index: number): PhotoDto {
     return {
       rowKey,
-      filmRowId,
+      filmId,
       index,
       imageUrl: `test-image-url-${index}`,
       imageBase64: ''

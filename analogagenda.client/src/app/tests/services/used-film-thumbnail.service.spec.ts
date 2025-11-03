@@ -27,14 +27,14 @@ describe('UsedFilmThumbnailService', () => {
   it('should search thumbnails by film name', () => {
     const mockThumbnails: UsedFilmThumbnailDto[] = [
       {
-        rowKey: 'thumb1',
+        id: 'thumb1',
         filmName: 'Kodak Portra 400',
         imageId: 'img1',
         imageUrl: 'url1',
         imageBase64: ''
       },
       {
-        rowKey: 'thumb2',
+        id: 'thumb2',
         filmName: 'Fuji Superia 200',
         imageId: 'img2',
         imageUrl: 'url2',
@@ -54,7 +54,7 @@ describe('UsedFilmThumbnailService', () => {
   it('should search all thumbnails when no film name provided', () => {
     const mockThumbnails: UsedFilmThumbnailDto[] = [
       {
-        rowKey: 'thumb1',
+        id: 'thumb1',
         filmName: 'Kodak Portra 400',
         imageId: 'img1',
         imageUrl: 'url1',
@@ -73,7 +73,7 @@ describe('UsedFilmThumbnailService', () => {
 
   it('should upload thumbnail', () => {
     const mockUploadedThumbnail: UsedFilmThumbnailDto = {
-      rowKey: 'thumb1',
+      id: 'thumb1',
       filmName: 'Test Film 400',
       imageId: 'img1',
       imageUrl: 'url1',
@@ -81,7 +81,7 @@ describe('UsedFilmThumbnailService', () => {
     };
 
     const uploadDto: UsedFilmThumbnailDto = {
-      rowKey: '',
+      id: '',
       filmName: 'Test Film 400',
       imageId: '',
       imageUrl: '',

@@ -2,7 +2,7 @@ using Database.Helpers;
 using Configuration.Sections;
 using Azure.Identity;
 
-namespace Database.Tests;
+namespace AnalogAgenda.Server.Tests.Database;
 
 public class AzureAdExtensionsTests
 {
@@ -84,3 +84,4 @@ public class AzureAdExtensionsTests
         Assert.IsType<ClientSecretCredential>(result);
     }
 }
+

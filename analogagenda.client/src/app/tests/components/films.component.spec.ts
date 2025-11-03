@@ -203,7 +203,7 @@ describe('FilmsComponent', () => {
 
   it('should navigate to film details when onFilmSelected is called', () => {
     // Arrange
-    const rowKey = 'test-row-key';
+    const id = 'test-row-key';
 
     // Act
     component.onFilmSelected(rowKey);
@@ -251,7 +251,7 @@ describe('FilmsComponent', () => {
 
   // Helper function to create mock films
   function createMockFilm(
-    rowKey: string, 
+    id: string, 
     name: string, 
     purchasedBy: UsernameType, 
     developed: boolean, 

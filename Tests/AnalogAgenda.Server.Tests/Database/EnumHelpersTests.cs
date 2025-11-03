@@ -1,7 +1,7 @@
 using Database.Helpers;
 using Database.DBObjects.Enums;
 
-namespace Database.Tests;
+namespace AnalogAgenda.Server.Tests.Database;
 
 public class EnumHelpersTests
 {
@@ -81,3 +81,4 @@ public class EnumHelpersTests
         Assert.Equal(expected, result);
     }
 }
+

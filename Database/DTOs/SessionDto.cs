@@ -7,7 +7,7 @@ namespace Database.DTOs;
 
 public class SessionDto : HasImage
 {
-    public string RowKey { get; set; } = string.Empty;
+    public string Id { get; set; } = string.Empty;
 
     public DateOnly SessionDate { get; set; }
 
@@ -17,9 +17,9 @@ public class SessionDto : HasImage
 
     public string Description { get; set; } = string.Empty;
 
-    public string UsedSubstances { get; set; } = string.Empty; // JSON array of DevKit RowKeys
+    public string UsedSubstances { get; set; } = string.Empty; // Comma-separated DevKit Ids
 
-    public string DevelopedFilms { get; set; } = string.Empty; // JSON array of Film RowKeys
+    public string DevelopedFilms { get; set; } = string.Empty; // Comma-separated Film Ids
 
     // Helper properties for frontend
     public List<string> ParticipantsList
@@ -40,21 +40,19 @@ public class SessionDto : HasImage
         set => DevelopedFilms = JsonSerializer.Serialize(value);
     }
 
-    // Dictionary mapping DevKit RowKey to list of Film RowKeys developed with that DevKit
+    // Dictionary mapping DevKit Id to list of Film Ids developed with that DevKit
     public Dictionary<string, List<string>> FilmToDevKitMapping { get; set; } = [];
 
     public SessionEntity ToEntity()
     {
         return new SessionEntity
         {
-            RowKey = RowKey,
+            Id = Id,
             SessionDate = SessionDate.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc),
             Location = Location,
             Participants = Participants,
             ImageId = string.IsNullOrEmpty(ImageUrl) ? Guid.Empty : BlobUrlHelper.GetImageInfoFromUrl(ImageUrl).ImageId,
-            Description = Description,
-            UsedSubstances = UsedSubstances,
-            DevelopedFilms = DevelopedFilms
+            Description = Description
         };
     }
 }

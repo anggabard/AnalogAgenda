@@ -1,5 +1,4 @@
-﻿using Azure.Data.Tables;
-using Azure.Storage.Blobs;
+﻿using Azure.Storage.Blobs;
 using Configuration.Sections;
 using Database.DBObjects;
 using Database.DBObjects.Enums;
@@ -13,12 +12,10 @@ using System.Linq.Expressions;
 namespace AnalogAgenda.Server.Controllers;
 
 [Route("api/[controller]")]
-public class DevKitController(Storage storageCfg, ITableService tablesService, IBlobService blobsService) : BaseEntityController<DevKitEntity, DevKitDto>(storageCfg, tablesService, blobsService)
+public class DevKitController(Storage storageCfg, IDatabaseService databaseService, IBlobService blobsService) : BaseEntityController<DevKitEntity, DevKitDto>(storageCfg, databaseService, blobsService)
 {
-    private readonly TableClient devKitsTable = tablesService.GetTable(TableName.DevKits);
     private readonly BlobContainerClient devKitsContainer = blobsService.GetBlobContainer(ContainerName.devkits);
 
-    protected override TableClient GetTable() => devKitsTable;
     protected override BlobContainerClient GetBlobContainer() => devKitsContainer;
     protected override Guid GetDefaultImageId() => Constants.DefaultDevKitImageId;
     protected override DevKitEntity DtoToEntity(DevKitDto dto) => dto.ToEntity();
@@ -37,7 +34,7 @@ public class DevKitController(Storage storageCfg, ITableService tablesService, I
                 entity.ImageId = Constants.DefaultDevKitImageId;
             }
             
-            await devKitsTable.AddEntityAsync(entity);
+            await databaseService.AddAsync(entity);
             
             var createdDto = entity.ToDTO(storageCfg.AccountName);
             return Created(string.Empty, createdDto);
@@ -85,25 +82,26 @@ public class DevKitController(Storage storageCfg, ITableService tablesService, I
         );
     }
 
-    [HttpGet("{rowKey}")]
-    public async Task<IActionResult> GetKitByRowKey(string rowKey)
+    [HttpGet("{id}")]
+    public async Task<IActionResult> GetKitById(string id)
     {
-        return await GetEntityByRowKeyAsync(rowKey);
+        return await GetEntityByIdAsync(id);
     }
 
-    [HttpPut("{rowKey}")]
-    public async Task<IActionResult> UpdateKit(string rowKey, [FromBody] DevKitDto updateDto)
+    [HttpPut("{id}")]
+    public async Task<IActionResult> UpdateKit(string id, [FromBody] DevKitDto updateDto)
     {
         if (updateDto == null)
             return BadRequest("Invalid data.");
 
-        var existingEntity = await tablesService.GetTableEntryIfExistsAsync<DevKitEntity>(rowKey);
+        var existingEntity = await databaseService.GetByIdAsync<DevKitEntity>(id);
         if (existingEntity == null)
             return NotFound();
 
         try
         {
             var updatedEntity = updateDto.ToEntity();
+            updatedEntity.Id = id; // Preserve the ID
             updatedEntity.CreatedDate = existingEntity.CreatedDate;
             updatedEntity.UpdatedDate = DateTime.UtcNow;
             
@@ -113,7 +111,7 @@ public class DevKitController(Storage storageCfg, ITableService tablesService, I
                 updatedEntity.ImageId = existingEntity.ImageId;
             }
             
-            await devKitsTable.UpdateEntityAsync(updatedEntity, existingEntity.ETag, TableUpdateMode.Replace);
+            await databaseService.UpdateAsync(updatedEntity);
             return NoContent();
         }
         catch (Exception ex)
@@ -122,10 +120,10 @@ public class DevKitController(Storage storageCfg, ITableService tablesService, I
         }
     }
 
-    [HttpDelete("{rowKey}")]
-    public async Task<IActionResult> DeleteKit(string rowKey)
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> DeleteKit(string id)
     {
-        return await DeleteEntityWithImageAsync(rowKey);
+        return await DeleteEntityWithImageAsync(id);
     }
 
 }

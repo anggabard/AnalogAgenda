@@ -1,12 +1,9 @@
-﻿using Database.DBObjects.Enums;
-using Database.Helpers;
+﻿using Database.Helpers;
 
 namespace Database.Entities;
 
 public class UserEntity : BaseEntity
 {
-    public UserEntity() : base(TableName.Users) { }
-
     public string Name { get; set; } = default!;
 
     public string Email { get; set; } = default!;
@@ -17,8 +14,8 @@ public class UserEntity : BaseEntity
 
     protected override string GetId()
     {
-        return IdGenerator.Get(RowKeyLenght(), PartitionKey, Name, Email, CreatedDate.Ticks.ToString());
+        return IdGenerator.Get(IdLength(), GetType().Name, Name, Email, CreatedDate.Ticks.ToString());
     }
 
-    protected override int RowKeyLenght() => 6;
+    protected override int IdLength() => 6;
 }

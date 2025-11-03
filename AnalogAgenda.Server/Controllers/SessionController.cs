@@ -1,23 +1,22 @@
-using Azure.Data.Tables;
 using Azure.Storage.Blobs;
 using Configuration.Sections;
 using Database.DBObjects;
 using Database.DBObjects.Enums;
 using Database.DTOs;
 using Database.Entities;
+using Database.Data;
 using Database.Helpers;
 using Database.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace AnalogAgenda.Server.Controllers;
 
 [Route("api/[controller]")]
-public class SessionController(Storage storageCfg, ITableService tablesService, IBlobService blobsService) : BaseEntityController<SessionEntity, SessionDto>(storageCfg, tablesService, blobsService)
+public class SessionController(Storage storageCfg, IDatabaseService databaseService, IBlobService blobsService, AnalogAgendaDbContext dbContext) : BaseEntityController<SessionEntity, SessionDto>(storageCfg, databaseService, blobsService)
 {
-    private readonly TableClient sessionsTable = tablesService.GetTable(TableName.Sessions);
     private readonly BlobContainerClient sessionsContainer = blobsService.GetBlobContainer(ContainerName.sessions);
 
-    protected override TableClient GetTable() => sessionsTable;
     protected override BlobContainerClient GetBlobContainer() => sessionsContainer;
     protected override Guid GetDefaultImageId() => Constants.DefaultSessionImageId;
     protected override SessionEntity DtoToEntity(SessionDto dto) => dto.ToEntity();
@@ -54,54 +53,74 @@ public class SessionController(Storage storageCfg, ITableService tablesService, 
         );
     }
 
-    [HttpGet("{rowKey}")]
-    public async Task<IActionResult> GetSessionByRowKey(string rowKey)
+    [HttpGet("{id}")]
+    public async Task<IActionResult> GetSessionById(string id)
     {
-        var sessionEntity = await tablesService.GetTableEntryIfExistsAsync<SessionEntity>(rowKey);
+        var sessionEntity = await dbContext.Sessions
+            .Include(s => s.DevelopedFilms)
+            .ThenInclude(f => f.DevelopedWithDevKit)
+            .Include(s => s.UsedDevKits)
+            .FirstOrDefaultAsync(s => s.Id == id);
+            
         if (sessionEntity == null)
-            return NotFound($"No Session found with RowKey: {rowKey}");
+            return NotFound($"No Session found with Id: {id}");
 
         var sessionDto = EntityToDto(sessionEntity);
         
-        // Populate FilmToDevKitMapping based on films' DevelopedWithDevKitRowKey
-        await PopulateFilmToDevKitMapping(sessionDto);
+        // Populate FilmToDevKitMapping based on loaded relationships
+        await PopulateFilmToDevKitMapping(sessionDto, sessionEntity);
         
         return Ok(sessionDto);
     }
     
-    private async Task PopulateFilmToDevKitMapping(SessionDto sessionDto)
+    private async Task PopulateFilmToDevKitMapping(SessionDto sessionDto, SessionEntity? sessionEntity = null)
     {
         sessionDto.FilmToDevKitMapping = new Dictionary<string, List<string>>();
         
+        // If we have the entity with loaded relationships, use those
+        if (sessionEntity?.DevelopedFilms != null)
+        {
+            foreach (var film in sessionEntity.DevelopedFilms)
+            {
+                if (!string.IsNullOrEmpty(film.DevelopedWithDevKitId))
+                {
+                    if (!sessionDto.FilmToDevKitMapping.ContainsKey(film.DevelopedWithDevKitId))
+                    {
+                        sessionDto.FilmToDevKitMapping[film.DevelopedWithDevKitId] = new List<string>();
+                    }
+                    sessionDto.FilmToDevKitMapping[film.DevelopedWithDevKitId].Add(film.Id);
+                }
+            }
+            return;
+        }
+        
+        // Otherwise load from DTO's film list
         var developedFilms = sessionDto.DevelopedFilmsList ?? [];
         if (developedFilms.Count == 0)
             return;
         
-        // Get all films for this session
-        var filmsTable = tablesService.GetTable(TableName.Films);
-        foreach (var filmRowKey in developedFilms)
+        foreach (var filmId in developedFilms)
         {
-            var film = await tablesService.GetTableEntryIfExistsAsync<FilmEntity>(filmRowKey);
-            if (film != null && !string.IsNullOrEmpty(film.DevelopedWithDevKitRowKey))
+            var film = await databaseService.GetByIdAsync<FilmEntity>(filmId);
+            if (film != null && !string.IsNullOrEmpty(film.DevelopedWithDevKitId))
             {
-                // Add film to the devkit's list
-                if (!sessionDto.FilmToDevKitMapping.ContainsKey(film.DevelopedWithDevKitRowKey))
+                if (!sessionDto.FilmToDevKitMapping.ContainsKey(film.DevelopedWithDevKitId))
                 {
-                    sessionDto.FilmToDevKitMapping[film.DevelopedWithDevKitRowKey] = new List<string>();
+                    sessionDto.FilmToDevKitMapping[film.DevelopedWithDevKitId] = new List<string>();
                 }
-                sessionDto.FilmToDevKitMapping[film.DevelopedWithDevKitRowKey].Add(filmRowKey);
+                sessionDto.FilmToDevKitMapping[film.DevelopedWithDevKitId].Add(filmId);
             }
         }
     }
 
-    [HttpPut("{rowKey}")]
-    public async Task<IActionResult> UpdateSession(string rowKey, [FromBody] SessionDto updateDto)
+    [HttpPut("{id}")]
+    public async Task<IActionResult> UpdateSession(string id, [FromBody] SessionDto updateDto)
     {
         // Get the original session first
-        var originalSession = await tablesService.GetTableEntryIfExistsAsync<SessionEntity>(rowKey);
+        var originalSession = await databaseService.GetByIdAsync<SessionEntity>(id);
         SessionDto? originalDto = originalSession?.ToDTO(storageCfg.AccountName);
         
-        var result = await UpdateEntityWithImageAsync(rowKey, updateDto, dto => dto.ImageBase64);
+        var result = await UpdateEntityWithImageAsync(id, updateDto, dto => dto.ImageBase64);
         
         // If update was successful, process the business logic
         if (result is NoContentResult)
@@ -112,14 +131,14 @@ public class SessionController(Storage storageCfg, ITableService tablesService, 
         return result;
     }
 
-    [HttpDelete("{rowKey}")]
-    public async Task<IActionResult> DeleteSession(string rowKey)
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> DeleteSession(string id)
     {
         // Get the session before deletion to revert business logic
-        var sessionToDelete = await tablesService.GetTableEntryIfExistsAsync<SessionEntity>(rowKey);
+        var sessionToDelete = await databaseService.GetByIdAsync<SessionEntity>(id);
         SessionDto? sessionDto = sessionToDelete?.ToDTO(storageCfg.AccountName);
         
-        var result = await DeleteEntityWithImageAsync(rowKey);
+        var result = await DeleteEntityWithImageAsync(id);
         
         // If deletion was successful, revert the business logic
         if (result is NoContentResult && sessionDto != null)
@@ -139,8 +158,6 @@ public class SessionController(Storage storageCfg, ITableService tablesService, 
     {
         try
         {
-            var filmsTable = tablesService.GetTable(TableName.Films);
-            var devKitsTable = tablesService.GetTable(TableName.DevKits);
             
             var newDevelopedFilms = newSession.DevelopedFilmsList ?? [];
             var originalDevelopedFilms = originalSession?.DevelopedFilmsList ?? [];
@@ -151,67 +168,67 @@ public class SessionController(Storage storageCfg, ITableService tablesService, 
             var removedFilms = originalDevelopedFilms.Except(newDevelopedFilms).ToList();
             
             // Process newly added films
-            foreach (var filmRowKey in addedFilms)
+            foreach (var filmId in addedFilms)
             {
-                var film = await tablesService.GetTableEntryIfExistsAsync<FilmEntity>(filmRowKey);
+                var film = await databaseService.GetByIdAsync<FilmEntity>(filmId);
                 if (film != null)
                 {
                     // Find which devkit this film belongs to
-                    string? devKitRowKey = null;
+                    string? devKitId = null;
                     foreach (var mapping in newSession.FilmToDevKitMapping)
                     {
-                        if (mapping.Value.Contains(filmRowKey))
+                        if (mapping.Value.Contains(filmId))
                         {
-                            devKitRowKey = mapping.Key;
+                            devKitId = mapping.Key;
                             break;
                         }
                     }
                     
                     // Update film properties
                     film.Developed = true;
-                    film.DevelopedInSessionRowKey = newSession.RowKey;
-                    film.DevelopedWithDevKitRowKey = devKitRowKey; // Can be null if film is unassigned
+                    film.DevelopedInSessionId = newSession.Id;
+                    film.DevelopedWithDevKitId = devKitId; // Can be null if film is unassigned
                     film.UpdatedDate = DateTime.UtcNow;
-                    await filmsTable.UpdateEntityAsync(film, film.ETag, TableUpdateMode.Replace);
+                    await databaseService.UpdateAsync(film);
                     
                     // Increment devkit count if film is assigned to a devkit
-                    if (!string.IsNullOrEmpty(devKitRowKey))
+                    if (!string.IsNullOrEmpty(devKitId))
                     {
-                        var devKit = await tablesService.GetTableEntryIfExistsAsync<DevKitEntity>(devKitRowKey);
+                        var devKit = await databaseService.GetByIdAsync<DevKitEntity>(devKitId);
                         if (devKit != null)
                         {
                             devKit.FilmsDeveloped++;
                             devKit.UpdatedDate = DateTime.UtcNow;
-                            await devKitsTable.UpdateEntityAsync(devKit, devKit.ETag, TableUpdateMode.Replace);
+                            await databaseService.UpdateAsync(devKit);
                         }
                     }
                 }
             }
             
             // Process removed films (revert their state)
-            foreach (var filmRowKey in removedFilms)
+            foreach (var filmId in removedFilms)
             {
-                var film = await tablesService.GetTableEntryIfExistsAsync<FilmEntity>(filmRowKey);
+                var film = await databaseService.GetByIdAsync<FilmEntity>(filmId);
                 if (film != null && film.Developed)
                 {
                     // Decrement devkit count if film was assigned to one
-                    if (!string.IsNullOrEmpty(film.DevelopedWithDevKitRowKey))
+                    if (!string.IsNullOrEmpty(film.DevelopedWithDevKitId))
                     {
-                        var devKit = await tablesService.GetTableEntryIfExistsAsync<DevKitEntity>(film.DevelopedWithDevKitRowKey);
+                        var devKit = await databaseService.GetByIdAsync<DevKitEntity>(film.DevelopedWithDevKitId);
                         if (devKit != null)
                         {
                             devKit.FilmsDeveloped = Math.Max(0, devKit.FilmsDeveloped - 1);
                             devKit.UpdatedDate = DateTime.UtcNow;
-                            await devKitsTable.UpdateEntityAsync(devKit, devKit.ETag, TableUpdateMode.Replace);
+                            await databaseService.UpdateAsync(devKit);
                         }
                     }
                     
                     // Clear film references
                     film.Developed = false;
-                    film.DevelopedInSessionRowKey = null;
-                    film.DevelopedWithDevKitRowKey = null;
+                    film.DevelopedInSessionId = null;
+                    film.DevelopedWithDevKitId = null;
                     film.UpdatedDate = DateTime.UtcNow;
-                    await filmsTable.UpdateEntityAsync(film, film.ETag, TableUpdateMode.Replace);
+                    await databaseService.UpdateAsync(film);
                 }
             }
             
@@ -219,53 +236,53 @@ public class SessionController(Storage storageCfg, ITableService tablesService, 
             if (originalSession != null)
             {
                 var unchangedFilms = newDevelopedFilms.Intersect(originalDevelopedFilms).ToList();
-                foreach (var filmRowKey in unchangedFilms)
+                foreach (var filmId in unchangedFilms)
                 {
-                    var film = await tablesService.GetTableEntryIfExistsAsync<FilmEntity>(filmRowKey);
+                    var film = await databaseService.GetByIdAsync<FilmEntity>(filmId);
                     if (film != null)
                     {
                         // Find new devkit for this film
-                        string? newDevKitRowKey = null;
+                        string? newDevKitId = null;
                         foreach (var mapping in newSession.FilmToDevKitMapping)
                         {
-                            if (mapping.Value.Contains(filmRowKey))
+                            if (mapping.Value.Contains(filmId))
                             {
-                                newDevKitRowKey = mapping.Key;
+                                newDevKitId = mapping.Key;
                                 break;
                             }
                         }
                         
                         // Check if devkit changed
-                        if (film.DevelopedWithDevKitRowKey != newDevKitRowKey)
+                        if (film.DevelopedWithDevKitId != newDevKitId)
                         {
                             // Decrement old devkit count
-                            if (!string.IsNullOrEmpty(film.DevelopedWithDevKitRowKey))
+                            if (!string.IsNullOrEmpty(film.DevelopedWithDevKitId))
                             {
-                                var oldDevKit = await tablesService.GetTableEntryIfExistsAsync<DevKitEntity>(film.DevelopedWithDevKitRowKey);
+                                var oldDevKit = await databaseService.GetByIdAsync<DevKitEntity>(film.DevelopedWithDevKitId);
                                 if (oldDevKit != null)
                                 {
                                     oldDevKit.FilmsDeveloped = Math.Max(0, oldDevKit.FilmsDeveloped - 1);
                                     oldDevKit.UpdatedDate = DateTime.UtcNow;
-                                    await devKitsTable.UpdateEntityAsync(oldDevKit, oldDevKit.ETag, TableUpdateMode.Replace);
+                                    await databaseService.UpdateAsync(oldDevKit);
                                 }
                             }
                             
                             // Increment new devkit count
-                            if (!string.IsNullOrEmpty(newDevKitRowKey))
+                            if (!string.IsNullOrEmpty(newDevKitId))
                             {
-                                var newDevKit = await tablesService.GetTableEntryIfExistsAsync<DevKitEntity>(newDevKitRowKey);
+                                var newDevKit = await databaseService.GetByIdAsync<DevKitEntity>(newDevKitId);
                                 if (newDevKit != null)
                                 {
                                     newDevKit.FilmsDeveloped++;
                                     newDevKit.UpdatedDate = DateTime.UtcNow;
-                                    await devKitsTable.UpdateEntityAsync(newDevKit, newDevKit.ETag, TableUpdateMode.Replace);
+                                    await databaseService.UpdateAsync(newDevKit);
                                 }
                             }
                             
                             // Update film's devkit reference
-                            film.DevelopedWithDevKitRowKey = newDevKitRowKey;
+                            film.DevelopedWithDevKitId = newDevKitId;
                             film.UpdatedDate = DateTime.UtcNow;
-                            await filmsTable.UpdateEntityAsync(film, film.ETag, TableUpdateMode.Replace);
+                            await databaseService.UpdateAsync(film);
                         }
                     }
                 }
@@ -287,33 +304,31 @@ public class SessionController(Storage storageCfg, ITableService tablesService, 
         try
         {
             var developedFilms = deletedSession.DevelopedFilmsList ?? [];
-            var filmsTable = tablesService.GetTable(TableName.Films);
-            var devKitsTable = tablesService.GetTable(TableName.DevKits);
             
             // Revert each film's state
-            foreach (var filmRowKey in developedFilms)
+            foreach (var filmId in developedFilms)
             {
-                var film = await tablesService.GetTableEntryIfExistsAsync<FilmEntity>(filmRowKey);
+                var film = await databaseService.GetByIdAsync<FilmEntity>(filmId);
                 if (film != null && film.Developed)
                 {
                     // Decrement devkit count if film was assigned to one
-                    if (!string.IsNullOrEmpty(film.DevelopedWithDevKitRowKey))
+                    if (!string.IsNullOrEmpty(film.DevelopedWithDevKitId))
                     {
-                        var devKit = await tablesService.GetTableEntryIfExistsAsync<DevKitEntity>(film.DevelopedWithDevKitRowKey);
+                        var devKit = await databaseService.GetByIdAsync<DevKitEntity>(film.DevelopedWithDevKitId);
                         if (devKit != null)
                         {
                             devKit.FilmsDeveloped = Math.Max(0, devKit.FilmsDeveloped - 1);
                             devKit.UpdatedDate = DateTime.UtcNow;
-                            await devKitsTable.UpdateEntityAsync(devKit, devKit.ETag, TableUpdateMode.Replace);
+                            await databaseService.UpdateAsync(devKit);
                         }
                     }
                     
                     // Clear film references
                     film.Developed = false;
-                    film.DevelopedInSessionRowKey = null;
-                    film.DevelopedWithDevKitRowKey = null;
+                    film.DevelopedInSessionId = null;
+                    film.DevelopedWithDevKitId = null;
                     film.UpdatedDate = DateTime.UtcNow;
-                    await filmsTable.UpdateEntityAsync(film, film.ETag, TableUpdateMode.Replace);
+                    await databaseService.UpdateAsync(film);
                 }
             }
         }

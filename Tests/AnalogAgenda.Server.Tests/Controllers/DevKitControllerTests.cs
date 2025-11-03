@@ -13,7 +13,7 @@ namespace AnalogAgenda.Server.Tests.Controllers;
 
 public class DevKitControllerTests
 {
-    private readonly Mock<ITableService> _mockTableService;
+    private readonly Mock<IDatabaseService> _mockTableService;
     private readonly Mock<IBlobService> _mockBlobService;
     private readonly Mock<TableClient> _mockTableClient;
     private readonly Mock<BlobContainerClient> _mockContainerClient;
@@ -22,7 +22,7 @@ public class DevKitControllerTests
 
     public DevKitControllerTests()
     {
-        _mockTableService = new Mock<ITableService>();
+        _mockTableService = new Mock<IDatabaseService>();
         _mockBlobService = new Mock<IBlobService>();
         _mockTableClient = new Mock<TableClient>();
         _mockContainerClient = new Mock<BlobContainerClient>();
@@ -98,7 +98,7 @@ public class DevKitControllerTests
                 Type = EDevKitType.BW,
                 PurchasedOn = DateTime.UtcNow,
                 ImageId = Guid.NewGuid(),
-                RowKey = "test-row-key"
+                Id = "test-row-key"
             }
         };
 
@@ -126,10 +126,10 @@ public class DevKitControllerTests
     }
 
     [Fact]
-    public async Task GetKitByRowKey_WithExistingKit_ReturnsOkWithKit()
+    public async Task GetKitById_WithExistingKit_ReturnsOkWithKit()
     {
         // Arrange
-        var rowKey = "test-row-key";
+        var id = "test-row-key";
         var devKitEntity = new DevKitEntity
         {
             Name = "Test Kit",
@@ -137,14 +137,14 @@ public class DevKitControllerTests
             Type = EDevKitType.BW,
             PurchasedOn = DateTime.UtcNow,
             ImageId = Guid.NewGuid(),
-            RowKey = rowKey
+            Id = id
         };
 
-        _mockTableService.Setup(x => x.GetTableEntryIfExistsAsync<DevKitEntity>(rowKey))
+        _mockTableService.Setup(x => x.GetTableEntryIfExistsAsync<DevKitEntity>(id))
                         .ReturnsAsync(devKitEntity);
 
         // Act
-        var result = await _controller.GetKitByRowKey(rowKey);
+        var result = await _controller.GetKitById(id);
 
         // Assert
         var okResult = Assert.IsType<OkObjectResult>(result);
@@ -153,27 +153,27 @@ public class DevKitControllerTests
     }
 
     [Fact]
-    public async Task GetKitByRowKey_WithNonExistingKit_ReturnsNotFound()
+    public async Task GetKitById_WithNonExistingKit_ReturnsNotFound()
     {
         // Arrange
-        var rowKey = "non-existing-key";
+        var id = "non-existing-key";
 
-        _mockTableService.Setup(x => x.GetTableEntryIfExistsAsync<DevKitEntity>(rowKey))
+        _mockTableService.Setup(x => x.GetTableEntryIfExistsAsync<DevKitEntity>(id))
                         .ReturnsAsync((DevKitEntity?)null);
 
         // Act
-        var result = await _controller.GetKitByRowKey(rowKey);
+        var result = await _controller.GetKitById(id);
 
         // Assert
         var notFoundResult = Assert.IsType<NotFoundObjectResult>(result);
-        Assert.Contains(rowKey, notFoundResult.Value?.ToString() ?? "");
+        Assert.Contains(id, notFoundResult.Value?.ToString() ?? "");
     }
 
     [Fact]
     public async Task UpdateKit_WithValidData_ReturnsNoContent()
     {
         // Arrange
-        var rowKey = "test-row-key";
+        var id = "test-row-key";
         var existingEntity = new DevKitEntity
         {
             Name = "Test Kit",
@@ -181,7 +181,7 @@ public class DevKitControllerTests
             Type = EDevKitType.BW,
             PurchasedOn = DateTime.UtcNow,
             ImageId = Guid.NewGuid(),
-            RowKey = rowKey,
+            Id = id,
             CreatedDate = DateTime.UtcNow.AddDays(-1),
             ETag = new Azure.ETag("test-etag")
         };
@@ -195,7 +195,7 @@ public class DevKitControllerTests
             PurchasedOn = DateOnly.FromDateTime(DateTime.UtcNow)
         };
 
-        _mockTableService.Setup(x => x.GetTableEntryIfExistsAsync<DevKitEntity>(rowKey))
+        _mockTableService.Setup(x => x.GetTableEntryIfExistsAsync<DevKitEntity>(id))
                         .ReturnsAsync(existingEntity);
 
         _mockTableClient.Setup(x => x.UpdateEntityAsync(
@@ -206,7 +206,7 @@ public class DevKitControllerTests
                        .Returns(Task.FromResult(It.IsAny<Azure.Response>()));
 
         // Act
-        var result = await _controller.UpdateKit(rowKey, updateDto);
+        var result = await _controller.UpdateKit(id, updateDto);
 
         // Assert
         Assert.IsType<NoContentResult>(result);
@@ -221,10 +221,10 @@ public class DevKitControllerTests
     public async Task UpdateKit_WithNullDto_ReturnsBadRequest()
     {
         // Arrange
-        var rowKey = "test-row-key";
+        var id = "test-row-key";
 
         // Act
-        var result = await _controller.UpdateKit(rowKey, null!);
+        var result = await _controller.UpdateKit(id, null!);
 
         // Assert
         var badRequestResult = Assert.IsType<BadRequestObjectResult>(result);
@@ -235,7 +235,7 @@ public class DevKitControllerTests
     public async Task UpdateKit_WithNonExistingKit_ReturnsNotFound()
     {
         // Arrange
-        var rowKey = "non-existing-key";
+        var id = "non-existing-key";
         var updateDto = new DevKitDto
         {
             Name = "Updated Kit",
@@ -245,11 +245,11 @@ public class DevKitControllerTests
             PurchasedOn = DateOnly.FromDateTime(DateTime.UtcNow)
         };
 
-        _mockTableService.Setup(x => x.GetTableEntryIfExistsAsync<DevKitEntity>(rowKey))
+        _mockTableService.Setup(x => x.GetTableEntryIfExistsAsync<DevKitEntity>(id))
                         .ReturnsAsync((DevKitEntity?)null);
 
         // Act
-        var result = await _controller.UpdateKit(rowKey, updateDto);
+        var result = await _controller.UpdateKit(id, updateDto);
 
         // Assert
         Assert.IsType<NotFoundResult>(result);
@@ -259,7 +259,7 @@ public class DevKitControllerTests
     public async Task DeleteKit_WithExistingKit_ReturnsNoContent()
     {
         // Arrange
-        var rowKey = "test-row-key";
+        var id = "test-row-key";
         var existingEntity = new DevKitEntity
         {
             Name = "Test Kit",
@@ -267,17 +267,17 @@ public class DevKitControllerTests
             Type = EDevKitType.BW,
             PurchasedOn = DateTime.UtcNow,
             ImageId = Guid.NewGuid(),
-            RowKey = rowKey
+            Id = id
         };
 
-        _mockTableService.Setup(x => x.GetTableEntryIfExistsAsync<DevKitEntity>(rowKey))
+        _mockTableService.Setup(x => x.GetTableEntryIfExistsAsync<DevKitEntity>(id))
                         .ReturnsAsync(existingEntity);
 
         // Note: DeleteEntityAsync mock setup removed due to overload resolution issues
         // The important part is that the controller method executes without throwing exceptions
 
         // Act
-        var result = await _controller.DeleteKit(rowKey);
+        var result = await _controller.DeleteKit(id);
 
         // Assert
         Assert.IsType<NoContentResult>(result);
@@ -289,13 +289,13 @@ public class DevKitControllerTests
     public async Task DeleteKit_WithNonExistingKit_ReturnsNotFound()
     {
         // Arrange
-        var rowKey = "non-existing-key";
+        var id = "non-existing-key";
 
-        _mockTableService.Setup(x => x.GetTableEntryIfExistsAsync<DevKitEntity>(rowKey))
+        _mockTableService.Setup(x => x.GetTableEntryIfExistsAsync<DevKitEntity>(id))
                         .ReturnsAsync((DevKitEntity?)null);
 
         // Act
-        var result = await _controller.DeleteKit(rowKey);
+        var result = await _controller.DeleteKit(id);
 
         // Assert
         Assert.IsType<NotFoundResult>(result);

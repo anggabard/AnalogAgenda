@@ -1,5 +1,4 @@
 using AnalogAgenda.Server.Helpers;
-using Azure.Data.Tables;
 using Azure.Storage.Blobs;
 using Configuration.Sections;
 using Database.DBObjects.Enums;
@@ -13,11 +12,10 @@ namespace AnalogAgenda.Server.Controllers;
 
 [Route("api/[controller]")]
 [ApiController, Authorize]
-public class UsedFilmThumbnailController(Storage storageCfg, ITableService tablesService, IBlobService blobsService) : ControllerBase
+public class UsedFilmThumbnailController(Storage storageCfg, IDatabaseService databaseService, IBlobService blobsService) : ControllerBase
 {
     private readonly Storage storageCfg = storageCfg;
-    private readonly ITableService tablesService = tablesService;
-    private readonly TableClient thumbnailsTable = tablesService.GetTable(TableName.UsedFilmThumbnails);
+    private readonly IDatabaseService databaseService = databaseService;
     private readonly BlobContainerClient filmsContainer = blobsService.GetBlobContainer(ContainerName.films);
 
     [HttpGet("search")]
@@ -25,7 +23,7 @@ public class UsedFilmThumbnailController(Storage storageCfg, ITableService table
     {
         try
         {
-            var allThumbnails = await tablesService.GetTableEntriesAsync<UsedFilmThumbnailEntity>();
+            var allThumbnails = await databaseService.GetAllAsync<UsedFilmThumbnailEntity>();
             
             // If filmName is empty or null, return all thumbnails
             // Otherwise, filter by partial, case-insensitive match on film name
@@ -69,7 +67,7 @@ public class UsedFilmThumbnailController(Storage storageCfg, ITableService table
                 FilmName = dto.FilmName,
                 ImageId = imageId
             };
-            await thumbnailsTable.AddEntityAsync(entity);
+            await databaseService.AddAsync(entity);
             
             var createdDto = entity.ToDTO(storageCfg.AccountName);
             return Created(string.Empty, createdDto);

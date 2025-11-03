@@ -1,5 +1,4 @@
 using AnalogAgenda.Server.Helpers;
-using Azure.Data.Tables;
 using Azure.Storage.Blobs;
 using Configuration.Sections;
 using Database.DBObjects.Enums;
@@ -13,12 +12,10 @@ using System.IO.Compression;
 namespace AnalogAgenda.Server.Controllers;
 
 [Route("api/[controller]")]
-public class PhotoController(Storage storageCfg, ITableService tablesService, IBlobService blobsService) : BaseEntityController<PhotoEntity, PhotoDto>(storageCfg, tablesService, blobsService)
+public class PhotoController(Storage storageCfg, IDatabaseService databaseService, IBlobService blobsService) : BaseEntityController<PhotoEntity, PhotoDto>(storageCfg, databaseService, blobsService)
 {
-    private readonly TableClient photosTable = tablesService.GetTable(TableName.Photos);
     private readonly BlobContainerClient photosContainer = blobsService.GetBlobContainer(ContainerName.photos);
 
-    protected override TableClient GetTable() => photosTable;
     protected override BlobContainerClient GetBlobContainer() => photosContainer;
     protected override Guid GetDefaultImageId() => Guid.Empty; // Photos always have real images, no default needed
     protected override PhotoEntity DtoToEntity(PhotoDto dto) => dto.ToEntity();
@@ -30,14 +27,14 @@ public class PhotoController(Storage storageCfg, ITableService tablesService, IB
         if (string.IsNullOrWhiteSpace(dto.ImageBase64))
             return BadRequest("Image data is required.");
 
-        if (!await FilmExists(dto.FilmRowId))
+        if (!await FilmExists(dto.FilmId))
             return NotFound("Film not found.");
 
-        int nextIndex = await GetNextPhotoIndexAsync(dto.FilmRowId);
+        int nextIndex = await GetNextPhotoIndexAsync(dto.FilmId);
 
         var result = await CreateEntityWithImageAsync(new PhotoDto
         {
-            FilmRowId = dto.FilmRowId,
+            FilmId = dto.FilmId,
             Index = nextIndex,
             ImageBase64 = dto.ImageBase64
         }, photoDto => photoDto.ImageBase64);
@@ -45,7 +42,7 @@ public class PhotoController(Storage storageCfg, ITableService tablesService, IB
         // Auto-mark film as developed when photo is uploaded
         if (result is CreatedResult)
         {
-            await MarkFilmAsDeveloped(dto.FilmRowId);
+            await MarkFilmAsDeveloped(dto.FilmId);
         }
 
         return result;
@@ -61,10 +58,10 @@ public class PhotoController(Storage storageCfg, ITableService tablesService, IB
         if (bulkDto.Photos.Any(p => string.IsNullOrWhiteSpace(p.ImageBase64)))
             return BadRequest("All photos must have image data.");
 
-        if (!await FilmExists(bulkDto.FilmRowId))
+        if (!await FilmExists(bulkDto.FilmId))
             return NotFound("Film not found.");
 
-        int nextIndex = await GetNextPhotoIndexAsync(bulkDto.FilmRowId);
+        int nextIndex = await GetNextPhotoIndexAsync(bulkDto.FilmId);
 
         var uploadedImageIds = new List<Guid>();
 
@@ -78,16 +75,16 @@ public class PhotoController(Storage storageCfg, ITableService tablesService, IB
 
                 var photoEntity = new PhotoEntity
                 {
-                    FilmRowId = bulkDto.FilmRowId,
+                    FilmId = bulkDto.FilmId,
                     Index = nextIndex++,
                     ImageId = imageId
                 };
 
-                await photosTable.AddEntityAsync(photoEntity);
+                await databaseService.AddAsync(photoEntity);
             }
 
             // Auto-mark film as developed when photos are uploaded
-            await MarkFilmAsDeveloped(bulkDto.FilmRowId);
+            await MarkFilmAsDeveloped(bulkDto.FilmId);
 
             return NoContent();
         }
@@ -103,10 +100,10 @@ public class PhotoController(Storage storageCfg, ITableService tablesService, IB
         }
     }
 
-    [HttpGet("film/{filmRowId}")]
-    public async Task<IActionResult> GetPhotosByFilmId(string filmRowId)
+    [HttpGet("film/{filmId}")]
+    public async Task<IActionResult> GetPhotosByFilmId(string filmId)
     {
-        var photos = await tablesService.GetTableEntriesAsync<PhotoEntity>(p => p.FilmRowId == filmRowId);
+        var photos = await databaseService.GetAllAsync<PhotoEntity>(p => p.FilmId == filmId);
         var sortedPhotos = photos
             .ApplyStandardSorting()
             .Select(EntityToDto)
@@ -115,17 +112,17 @@ public class PhotoController(Storage storageCfg, ITableService tablesService, IB
         return Ok(sortedPhotos);
     }
 
-    [HttpGet("download/{rowKey}")]
-    public async Task<IActionResult> DownloadPhoto(string rowKey)
+    [HttpGet("download/{id}")]
+    public async Task<IActionResult> DownloadPhoto(string id)
     {
-        var photoEntity = await tablesService.GetTableEntryIfExistsAsync<PhotoEntity>(rowKey);
+        var photoEntity = await databaseService.GetByIdAsync<PhotoEntity>(id);
         if (photoEntity == null)
             return NotFound("Photo not found.");
 
-        if (!await FilmExists(photoEntity.FilmRowId))
+        if (!await FilmExists(photoEntity.FilmId))
             return NotFound("Associated film not found.");
 
-        var filmEntity = await tablesService.GetTableEntryIfExistsAsync<FilmEntity>(photoEntity.FilmRowId);
+        var filmEntity = await databaseService.GetByIdAsync<FilmEntity>(photoEntity.FilmId);
 
         try
         {
@@ -146,14 +143,14 @@ public class PhotoController(Storage storageCfg, ITableService tablesService, IB
         }
     }
 
-    [HttpGet("download-all/{filmRowId}")]
-    public async Task<IActionResult> DownloadAllPhotos(string filmRowId)
+    [HttpGet("download-all/{filmId}")]
+    public async Task<IActionResult> DownloadAllPhotos(string filmId)
     {
-        var filmEntity = await tablesService.GetTableEntryIfExistsAsync<FilmEntity>(filmRowId);
+        var filmEntity = await databaseService.GetByIdAsync<FilmEntity>(filmId);
         if (filmEntity == null)
             return NotFound("Film not found.");
 
-        var photos = await tablesService.GetTableEntriesAsync<PhotoEntity>(p => p.FilmRowId == filmRowId);
+        var photos = await databaseService.GetAllAsync<PhotoEntity>(p => p.FilmId == filmId);
         if (photos.Count == 0)
             return NotFound("No photos found for this film.");
 
@@ -193,10 +190,10 @@ public class PhotoController(Storage storageCfg, ITableService tablesService, IB
         }
     }
 
-    [HttpDelete("{rowKey}")]
-    public async Task<IActionResult> DeletePhoto(string rowKey)
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> DeletePhoto(string id)
     {
-        return await DeleteEntityWithImageAsync(rowKey);
+        return await DeleteEntityWithImageAsync(id);
     }
 
     private static string SanitizeFileName(string fileName)
@@ -206,25 +203,24 @@ public class PhotoController(Storage storageCfg, ITableService tablesService, IB
         return string.IsNullOrWhiteSpace(sanitized) ? "photo" : sanitized;
     }
 
-    private async Task<bool> FilmExists(string filmRowId)
+    private async Task<bool> FilmExists(string filmId)
     {
-        return await tablesService.GetTableEntryIfExistsAsync<FilmEntity>(filmRowId) != null;
+        return await databaseService.GetByIdAsync<FilmEntity>(filmId) != null;
     }
 
-    private async Task<int> GetNextPhotoIndexAsync(string filmRowId)
+    private async Task<int> GetNextPhotoIndexAsync(string filmId)
     {
-        var existingPhotos = await tablesService.GetTableEntriesAsync<PhotoEntity>(p => p.FilmRowId == filmRowId);
+        var existingPhotos = await databaseService.GetAllAsync<PhotoEntity>(p => p.FilmId == filmId);
         return existingPhotos.Count != 0 ? existingPhotos.Max(p => p.Index) + 1 : 1;
     }
 
-    private async Task MarkFilmAsDeveloped(string filmRowId)
+    private async Task MarkFilmAsDeveloped(string filmId)
     {
-        var filmEntity = await tablesService.GetTableEntryIfExistsAsync<FilmEntity>(filmRowId);
+        var filmEntity = await databaseService.GetByIdAsync<FilmEntity>(filmId);
         if (filmEntity != null && !filmEntity.Developed)
         {
             filmEntity.Developed = true;
-            var filmsTable = tablesService.GetTable(TableName.Films);
-            await filmsTable.UpdateEntityAsync(filmEntity, filmEntity.ETag, TableUpdateMode.Replace);
+            await databaseService.UpdateAsync(filmEntity);
         }
     }
 }

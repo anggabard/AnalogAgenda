@@ -6,9 +6,9 @@ namespace Database.DTOs;
 
 public class PhotoDto : HasImage
 {
-    public string RowKey { get; set; } = string.Empty;
+    public string Id { get; set; } = string.Empty;
 
-    public required string FilmRowId { get; set; }
+    public required string FilmId { get; set; }
 
     public int Index { get; set; }
 
@@ -16,8 +16,8 @@ public class PhotoDto : HasImage
     {
         return new PhotoEntity
         {
-            RowKey = RowKey,
-            FilmRowId = FilmRowId,
+            Id = Id,
+            FilmId = FilmId,
             Index = Index,
             ImageId = Guid.Empty // ImageId should be set by the controller, not derived from URL
         };

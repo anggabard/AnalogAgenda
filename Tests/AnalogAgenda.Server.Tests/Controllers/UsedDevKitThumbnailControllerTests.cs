@@ -13,7 +13,7 @@ namespace AnalogAgenda.Server.Tests.Controllers;
 
 public class UsedDevKitThumbnailControllerTests
 {
-    private readonly Mock<ITableService> _mockTableService;
+    private readonly Mock<IDatabaseService> _mockTableService;
     private readonly Mock<IBlobService> _mockBlobService;
     private readonly Mock<TableClient> _mockThumbnailsTableClient;
     private readonly Mock<BlobContainerClient> _mockDevKitsContainerClient;
@@ -22,7 +22,7 @@ public class UsedDevKitThumbnailControllerTests
 
     public UsedDevKitThumbnailControllerTests()
     {
-        _mockTableService = new Mock<ITableService>();
+        _mockTableService = new Mock<IDatabaseService>();
         _mockBlobService = new Mock<IBlobService>();
         _mockThumbnailsTableClient = new Mock<TableClient>();
         _mockDevKitsContainerClient = new Mock<BlobContainerClient>();
@@ -47,13 +47,13 @@ public class UsedDevKitThumbnailControllerTests
             {
                 DevKitName = "Bellini E6",
                 ImageId = Guid.NewGuid(),
-                RowKey = "thumb1"
+                Id = "thumb1"
             },
             new UsedDevKitThumbnailEntity
             {
                 DevKitName = "Bellini C41",
                 ImageId = Guid.NewGuid(),
-                RowKey = "thumb2"
+                Id = "thumb2"
             }
         };
 
@@ -80,19 +80,19 @@ public class UsedDevKitThumbnailControllerTests
             {
                 DevKitName = "Bellini E6",
                 ImageId = Guid.NewGuid(),
-                RowKey = "thumb1"
+                Id = "thumb1"
             },
             new UsedDevKitThumbnailEntity
             {
                 DevKitName = "Bellini C41",
                 ImageId = Guid.NewGuid(),
-                RowKey = "thumb2"
+                Id = "thumb2"
             },
             new UsedDevKitThumbnailEntity
             {
                 DevKitName = "Kodak E6",
                 ImageId = Guid.NewGuid(),
-                RowKey = "thumb3"
+                Id = "thumb3"
             }
         };
 
@@ -119,13 +119,13 @@ public class UsedDevKitThumbnailControllerTests
             {
                 DevKitName = "Bellini E6",
                 ImageId = Guid.NewGuid(),
-                RowKey = "thumb1"
+                Id = "thumb1"
             },
             new UsedDevKitThumbnailEntity
             {
                 DevKitName = "Bellini C41",
                 ImageId = Guid.NewGuid(),
-                RowKey = "thumb2"
+                Id = "thumb2"
             }
         };
 

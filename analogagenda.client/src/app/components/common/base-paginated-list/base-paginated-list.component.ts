@@ -38,9 +38,9 @@ export abstract class BasePaginatedListComponent<TDto> {
   protected abstract getBaseRoute(): string;
 
   /**
-   * Get the row key from an item - to be implemented by concrete classes
+   * Get the id from an item - to be implemented by concrete classes
    */
-  protected abstract getRowKey(item: TDto): string;
+  protected abstract getId(item: TDto): string;
 
   /**
    * Load items with pagination
@@ -81,7 +81,7 @@ export abstract class BasePaginatedListComponent<TDto> {
    * Navigate to item detail
    */
   onItemSelected(item: TDto): void {
-    const rowKey = this.getRowKey(item);
-    this.router.navigate([`${this.getBaseRoute()}/${rowKey}`]);
+    const id = this.getId(item);
+    this.router.navigate([`${this.getBaseRoute()}/${id}`]);
   }
 }

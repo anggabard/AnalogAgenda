@@ -17,14 +17,14 @@ namespace Tests.AnalogAgenda.Server.Tests.Controllers;
 
 public class FilmSearchTests
 {
-    private readonly Mock<ITableService> _mockTableService;
+    private readonly Mock<IDatabaseService> _mockTableService;
     private readonly Mock<IBlobService> _mockBlobService;
     private readonly FilmController _controller;
     private readonly Storage _storageConfig;
 
     public FilmSearchTests()
     {
-        _mockTableService = new Mock<ITableService>();
+        _mockTableService = new Mock<IDatabaseService>();
         _mockBlobService = new Mock<IBlobService>();
         _storageConfig = new Storage { AccountName = "test" };
         
@@ -54,9 +54,9 @@ public class FilmSearchTests
 
         var films = new List<FilmEntity>
         {
-            new FilmEntity { RowKey = "1", Name = "Test Film 1", Type = EFilmType.ColorNegative, Developed = true, Iso = "400" },
-            new FilmEntity { RowKey = "2", Name = "Test Film 2", Type = EFilmType.ColorPositive, Developed = true, Iso = "200" },
-            new FilmEntity { RowKey = "3", Name = "Other Film", Type = EFilmType.ColorNegative, Developed = true, Iso = "400" }
+            new FilmEntity { Id = "1", Name = "Test Film 1", Type = EFilmType.ColorNegative, Developed = true, Iso = "400" },
+            new FilmEntity { Id = "2", Name = "Test Film 2", Type = EFilmType.ColorPositive, Developed = true, Iso = "200" },
+            new FilmEntity { Id = "3", Name = "Other Film", Type = EFilmType.ColorNegative, Developed = true, Iso = "400" }
         };
 
         _mockTableService.Setup(x => x.GetTableEntriesAsync(It.IsAny<Expression<Func<FilmEntity, bool>>>()))
@@ -87,9 +87,9 @@ public class FilmSearchTests
 
         var films = new List<FilmEntity>
         {
-            new FilmEntity { RowKey = "1", Name = "My Film 1", PurchasedBy = EUsernameType.Angel, Developed = true, Iso = "400" },
-            new FilmEntity { RowKey = "2", Name = "Other Film", PurchasedBy = EUsernameType.Cristiana, Developed = true, Iso = "200" },
-            new FilmEntity { RowKey = "3", Name = "My Film 2", PurchasedBy = EUsernameType.Angel, Developed = true, Iso = "400" }
+            new FilmEntity { Id = "1", Name = "My Film 1", PurchasedBy = EUsernameType.Angel, Developed = true, Iso = "400" },
+            new FilmEntity { Id = "2", Name = "Other Film", PurchasedBy = EUsernameType.Cristiana, Developed = true, Iso = "200" },
+            new FilmEntity { Id = "3", Name = "My Film 2", PurchasedBy = EUsernameType.Angel, Developed = true, Iso = "400" }
         };
 
         _mockTableService.Setup(x => x.GetTableEntriesAsync(It.IsAny<Expression<Func<FilmEntity, bool>>>()))
@@ -119,8 +119,8 @@ public class FilmSearchTests
 
         var films = new List<FilmEntity>
         {
-            new FilmEntity { RowKey = "1", Name = "Film 1", Developed = false, Iso = "400" },
-            new FilmEntity { RowKey = "2", Name = "Film 2", Developed = false, Iso = "200" }
+            new FilmEntity { Id = "1", Name = "Film 1", Developed = false, Iso = "400" },
+            new FilmEntity { Id = "2", Name = "Film 2", Developed = false, Iso = "200" }
         };
 
         _mockTableService.Setup(x => x.GetTableEntriesAsync(It.IsAny<Expression<Func<FilmEntity, bool>>>()))
@@ -142,15 +142,15 @@ public class FilmSearchTests
         // Arrange
         var searchDto = new FilmSearchDto
         {
-            DevelopedWithDevKitRowKey = "devkit1",
+            DevelopedWithDevKitId = "devkit1",
             Page = 1,
             PageSize = 5
         };
 
         var films = new List<FilmEntity>
         {
-            new FilmEntity { RowKey = "1", Name = "Film 1", PurchasedBy = EUsernameType.Angel, Developed = false, DevelopedWithDevKitRowKey = "devkit1", Iso = "400" },
-            new FilmEntity { RowKey = "2", Name = "Film 2", PurchasedBy = EUsernameType.Angel, Developed = false, DevelopedWithDevKitRowKey = "devkit2", Iso = "200" }
+            new FilmEntity { Id = "1", Name = "Film 1", PurchasedBy = EUsernameType.Angel, Developed = false, DevelopedWithDevKitId = "devkit1", Iso = "400" },
+            new FilmEntity { Id = "2", Name = "Film 2", PurchasedBy = EUsernameType.Angel, Developed = false, DevelopedWithDevKitId = "devkit2", Iso = "200" }
         };
 
         _mockTableService.Setup(x => x.GetTableEntriesAsync(It.IsAny<Expression<Func<FilmEntity, bool>>>()))
@@ -173,15 +173,15 @@ public class FilmSearchTests
         // Arrange
         var searchDto = new FilmSearchDto
         {
-            DevelopedInSessionRowKey = "session1",
+            DevelopedInSessionId = "session1",
             Page = 1,
             PageSize = 5
         };
 
         var films = new List<FilmEntity>
         {
-            new FilmEntity { RowKey = "1", Name = "Film 1", Developed = true, DevelopedInSessionRowKey = "session1", Iso = "400" },
-            new FilmEntity { RowKey = "2", Name = "Film 2", Developed = true, DevelopedInSessionRowKey = "session2", Iso = "200" }
+            new FilmEntity { Id = "1", Name = "Film 1", Developed = true, DevelopedInSessionId = "session1", Iso = "400" },
+            new FilmEntity { Id = "2", Name = "Film 2", Developed = true, DevelopedInSessionId = "session2", Iso = "200" }
         };
 
         _mockTableService.Setup(x => x.GetTableEntriesAsync(It.IsAny<Expression<Func<FilmEntity, bool>>>()))
@@ -213,9 +213,9 @@ public class FilmSearchTests
 
         var films = new List<FilmEntity>
         {
-            new FilmEntity { RowKey = "1", Name = "Test Film 1", Type = EFilmType.ColorNegative, PurchasedBy = EUsernameType.Angel, Developed = true, Iso = "400" },
-            new FilmEntity { RowKey = "2", Name = "Test Film 2", Type = EFilmType.ColorPositive, PurchasedBy = EUsernameType.Angel, Developed = true, Iso = "200" },
-            new FilmEntity { RowKey = "3", Name = "Other Film", Type = EFilmType.ColorNegative, PurchasedBy = EUsernameType.Cristiana, Developed = true, Iso = "400" }
+            new FilmEntity { Id = "1", Name = "Test Film 1", Type = EFilmType.ColorNegative, PurchasedBy = EUsernameType.Angel, Developed = true, Iso = "400" },
+            new FilmEntity { Id = "2", Name = "Test Film 2", Type = EFilmType.ColorPositive, PurchasedBy = EUsernameType.Angel, Developed = true, Iso = "200" },
+            new FilmEntity { Id = "3", Name = "Other Film", Type = EFilmType.ColorNegative, PurchasedBy = EUsernameType.Cristiana, Developed = true, Iso = "400" }
         };
 
         _mockTableService.Setup(x => x.GetTableEntriesAsync(It.IsAny<Expression<Func<FilmEntity, bool>>>()))
@@ -245,11 +245,11 @@ public class FilmSearchTests
 
         var films = new List<FilmEntity>
         {
-            new FilmEntity { RowKey = "1", Name = "Film 1", Developed = true, Iso = "400" },
-            new FilmEntity { RowKey = "2", Name = "Film 2", Developed = true, Iso = "200" },
-            new FilmEntity { RowKey = "3", Name = "Film 3", Developed = true, Iso = "400" },
-            new FilmEntity { RowKey = "4", Name = "Film 4", Developed = true, Iso = "200" },
-            new FilmEntity { RowKey = "5", Name = "Film 5", Developed = true, Iso = "400" }
+            new FilmEntity { Id = "1", Name = "Film 1", Developed = true, Iso = "400" },
+            new FilmEntity { Id = "2", Name = "Film 2", Developed = true, Iso = "200" },
+            new FilmEntity { Id = "3", Name = "Film 3", Developed = true, Iso = "400" },
+            new FilmEntity { Id = "4", Name = "Film 4", Developed = true, Iso = "200" },
+            new FilmEntity { Id = "5", Name = "Film 5", Developed = true, Iso = "400" }
         };
 
         _mockTableService.Setup(x => x.GetTableEntriesAsync(It.IsAny<Expression<Func<FilmEntity, bool>>>()))

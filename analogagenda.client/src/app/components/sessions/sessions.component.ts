@@ -63,7 +63,7 @@ export class SessionsComponent implements OnInit {
     this.router.navigate(['/sessions/new']);
   }
 
-  onSessionSelected(rowKey: string) {
+  onSessionSelected(id: string) {
     this.router.navigate(['/sessions/' + rowKey]);
   }
 

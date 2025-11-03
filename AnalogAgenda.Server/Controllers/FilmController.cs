@@ -1,5 +1,4 @@
 using AnalogAgenda.Server.Identity;
-using Azure.Data.Tables;
 using Azure.Storage.Blobs;
 using Configuration.Sections;
 using Database.DBObjects;
@@ -14,13 +13,10 @@ using System.Linq.Expressions;
 namespace AnalogAgenda.Server.Controllers;
 
 [Route("api/[controller]")]
-public class FilmController(Storage storageCfg, ITableService tablesService, IBlobService blobsService) : BaseEntityController<FilmEntity, FilmDto>(storageCfg, tablesService, blobsService)
+public class FilmController(Storage storageCfg, IDatabaseService databaseService, IBlobService blobsService) : BaseEntityController<FilmEntity, FilmDto>(storageCfg, databaseService, blobsService)
 {
-    private readonly TableClient filmsTable = tablesService.GetTable(TableName.Films);
     private readonly BlobContainerClient filmsContainer = blobsService.GetBlobContainer(ContainerName.films);
-    private readonly TableClient thumbnailsTable = tablesService.GetTable(TableName.UsedFilmThumbnails);
 
-    protected override TableClient GetTable() => filmsTable;
     protected override BlobContainerClient GetBlobContainer() => filmsContainer;
     protected override Guid GetDefaultImageId() => Constants.DefaultFilmImageId;
     protected override FilmEntity DtoToEntity(FilmDto dto) => dto.ToEntity();
@@ -54,7 +50,7 @@ public class FilmController(Storage storageCfg, ITableService tablesService, IBl
                     entity.ImageId = Constants.DefaultFilmImageId;
                 }
                 
-                await filmsTable.AddEntityAsync(entity);
+                await databaseService.AddAsync(entity);
                 
                 var createdDto = entity.ToDTO(storageCfg.AccountName);
                 createdDtos.Add(createdDto);
@@ -75,12 +71,12 @@ public class FilmController(Storage storageCfg, ITableService tablesService, IBl
         // For backward compatibility, if page is 0 or negative, return all films
         if (page <= 0)
         {
-            var entities = await tablesService.GetTableEntriesAsync<FilmEntity>();
+            var entities = await databaseService.GetAllAsync<FilmEntity>();
             var results = entities.Select(EntityToDto);
             return Ok(results);
         }
 
-        var pagedEntities = await tablesService.GetTableEntriesPagedAsync<FilmEntity>(page, pageSize, entities => entities.ApplyStandardSorting());
+        var pagedEntities = await databaseService.GetPagedAsync<FilmEntity>(page, pageSize, entities => entities.ApplyStandardSorting());
         var pagedResults = new PagedResponseDto<FilmDto>
         {
             Data = pagedEntities.Data.Select(EntityToDto),
@@ -137,7 +133,7 @@ public class FilmController(Storage storageCfg, ITableService tablesService, IBl
         // For backward compatibility, if page is 0 or negative, return all filtered films
         if (searchDto.Page <= 0)
         {
-            var entities = await tablesService.GetTableEntriesAsync(predicate);
+            var entities = await databaseService.GetAllAsync(predicate);
             var filteredEntities = ApplySearchFilters(entities, searchDto);
             var results = filteredEntities
                 .ApplyStandardSorting()
@@ -145,7 +141,7 @@ public class FilmController(Storage storageCfg, ITableService tablesService, IBl
             return Ok(results);
         }
 
-        var allEntities = await tablesService.GetTableEntriesAsync(predicate);
+        var allEntities = await databaseService.GetAllAsync(predicate);
         var searchFilteredEntities = ApplySearchFilters(allEntities, searchDto);
         var sortedEntities = searchFilteredEntities.ApplyStandardSorting().ToList();
         
@@ -173,7 +169,7 @@ public class FilmController(Storage storageCfg, ITableService tablesService, IBl
         if (searchDto.Page <= 0)
         {
             // Get all entities with status filter, then filter by user in memory
-            var allEntities = await tablesService.GetTableEntriesAsync(statusPredicate);
+            var allEntities = await databaseService.GetAllAsync(statusPredicate);
             var myEntities = allEntities
                 .Where(f => f.PurchasedBy == currentUserEnum);
             var filteredEntities = ApplySearchFilters(myEntities, searchDto);
@@ -184,7 +180,7 @@ public class FilmController(Storage storageCfg, ITableService tablesService, IBl
         }
 
         // For pagination, we need to get all status-filtered entities and then page them
-        var statusFilteredEntities = await tablesService.GetTableEntriesAsync(statusPredicate);
+        var statusFilteredEntities = await databaseService.GetAllAsync(statusPredicate);
         var myFilms = statusFilteredEntities
             .Where(f => f.PurchasedBy == currentUserEnum);
         var filteredFilms = ApplySearchFilters(myFilms, searchDto);
@@ -209,25 +205,26 @@ public class FilmController(Storage storageCfg, ITableService tablesService, IBl
     }
 
 
-    [HttpGet("{rowKey}")]
-    public async Task<IActionResult> GetFilmByRowKey(string rowKey)
+    [HttpGet("{id}")]
+    public async Task<IActionResult> GetFilmById(string id)
     {
-        return await GetEntityByRowKeyAsync(rowKey);
+        return await GetEntityByIdAsync(id);
     }
 
-    [HttpPut("{rowKey}")]
-    public async Task<IActionResult> UpdateFilm(string rowKey, [FromBody] FilmDto updateDto)
+    [HttpPut("{id}")]
+    public async Task<IActionResult> UpdateFilm(string id, [FromBody] FilmDto updateDto)
     {
         if (updateDto == null)
             return BadRequest("Invalid data.");
 
-        var existingEntity = await tablesService.GetTableEntryIfExistsAsync<FilmEntity>(rowKey);
+        var existingEntity = await databaseService.GetByIdAsync<FilmEntity>(id);
         if (existingEntity == null)
             return NotFound();
 
         try
         {
             var updatedEntity = updateDto.ToEntity();
+            updatedEntity.Id = id; // Preserve the ID
             updatedEntity.CreatedDate = existingEntity.CreatedDate;
             updatedEntity.UpdatedDate = DateTime.UtcNow;
             
@@ -237,7 +234,7 @@ public class FilmController(Storage storageCfg, ITableService tablesService, IBl
                 updatedEntity.ImageId = existingEntity.ImageId;
             }
             
-            await filmsTable.UpdateEntityAsync(updatedEntity, existingEntity.ETag, TableUpdateMode.Replace);
+            await databaseService.UpdateAsync(updatedEntity);
             return NoContent();
         }
         catch (Exception ex)
@@ -246,22 +243,21 @@ public class FilmController(Storage storageCfg, ITableService tablesService, IBl
         }
     }
 
-    [HttpDelete("{rowKey}")]
-    public async Task<IActionResult> DeleteFilm(string rowKey)
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> DeleteFilm(string id)
     {
         // First, delete all associated photos
-        await DeleteAssociatedPhotosAsync(rowKey);
+        await DeleteAssociatedPhotosAsync(id);
         
         // Then delete the film itself
-        return await DeleteEntityWithImageAsync(rowKey);
+        return await DeleteEntityWithImageAsync(id);
     }
 
-    private async Task DeleteAssociatedPhotosAsync(string filmRowId)
+    private async Task DeleteAssociatedPhotosAsync(string filmId)
     {
-        var photosTable = tablesService.GetTable(TableName.Photos);
         var photosContainer = blobsService.GetBlobContainer(ContainerName.photos);
         
-        var photos = await tablesService.GetTableEntriesAsync<PhotoEntity>(p => p.FilmRowId == filmRowId);
+        var photos = await databaseService.GetAllAsync<PhotoEntity>(p => p.FilmId == filmId);
         
         foreach (var photo in photos)
         {
@@ -272,7 +268,7 @@ public class FilmController(Storage storageCfg, ITableService tablesService, IBl
             }
             
             // Delete the table entry
-            await photosTable.DeleteEntityAsync(photo);
+            await databaseService.DeleteAsync(photo);
         }
     }
 
@@ -289,7 +285,7 @@ public class FilmController(Storage storageCfg, ITableService tablesService, IBl
 
         if (!string.IsNullOrEmpty(searchDto.Id))
         {
-            filteredFilms = filteredFilms.Where(f => f.RowKey.Contains(searchDto.Id, StringComparison.OrdinalIgnoreCase));
+            filteredFilms = filteredFilms.Where(f => f.Id.Contains(searchDto.Id, StringComparison.OrdinalIgnoreCase));
         }
 
         if (!string.IsNullOrEmpty(searchDto.Iso))
@@ -314,14 +310,14 @@ public class FilmController(Storage storageCfg, ITableService tablesService, IBl
             }
         }
 
-        if (!string.IsNullOrEmpty(searchDto.DevelopedWithDevKitRowKey))
+        if (!string.IsNullOrEmpty(searchDto.DevelopedWithDevKitId))
         {
-            filteredFilms = filteredFilms.Where(f => f.DevelopedWithDevKitRowKey == searchDto.DevelopedWithDevKitRowKey);
+            filteredFilms = filteredFilms.Where(f => f.DevelopedWithDevKitId == searchDto.DevelopedWithDevKitId);
         }
 
-        if (!string.IsNullOrEmpty(searchDto.DevelopedInSessionRowKey))
+        if (!string.IsNullOrEmpty(searchDto.DevelopedInSessionId))
         {
-            filteredFilms = filteredFilms.Where(f => f.DevelopedInSessionRowKey == searchDto.DevelopedInSessionRowKey);
+            filteredFilms = filteredFilms.Where(f => f.DevelopedInSessionId == searchDto.DevelopedInSessionId);
         }
 
         return filteredFilms;

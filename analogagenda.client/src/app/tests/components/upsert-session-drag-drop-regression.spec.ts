@@ -301,7 +301,7 @@ describe('UpsertSessionComponent - Drag Drop Bug Regression Tests', () => {
   });
 
   // Helper functions for creating test data
-  function createMockFilm(rowKey: string, name: string): FilmDto {
+  function createMockFilm(id: string, name: string): FilmDto {
     return {
       rowKey,
       name,
@@ -314,11 +314,11 @@ describe('UpsertSessionComponent - Drag Drop Bug Regression Tests', () => {
       imageUrl: `${name.toLowerCase().replace(' ', '')}.jpg`,
       description: `Test ${name}`,
       developed: true,
-      developedInSessionRowKey: 'session-1'
+      developedInSessionid: 'session-1'
     };
   }
 
-  function createMockDevKit(rowKey: string, name: string): DevKitDto {
+  function createMockDevKit(id: string, name: string): DevKitDto {
     return {
       rowKey,
       name,

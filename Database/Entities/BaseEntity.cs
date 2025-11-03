@@ -1,31 +1,28 @@
-﻿using Azure;
-using Azure.Data.Tables;
-using Database.DBObjects.Enums;
-using Database.Helpers;
+﻿using Database.Helpers;
 
 namespace Database.Entities;
 
-public abstract class BaseEntity(TableName table) : ITableEntity
+public abstract class BaseEntity
 {
-    protected TableName Table { get; } = table;
-    public TableName GetTable() => Table;
-
-
-    public string PartitionKey { get => Table.PartitionKey(); set => Table.PartitionKey(); }
-    public string RowKey { get => GetId(); set => GetId(); }
-    protected abstract int RowKeyLenght();
+    private string? _id;
+    
+    public string Id 
+    { 
+        get => _id ?? GetId();
+        set => _id = value;
+    }
+    
+    protected abstract int IdLength();
 
     public DateTime CreatedDate { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedDate { get; set; } = DateTime.UtcNow;
 
-
-    // housekeeping
-    public DateTimeOffset? Timestamp { get; set; }
-    public ETag ETag { get; set; }
-
     protected virtual string GetId()
     {
-        return IdGenerator.Get(RowKeyLenght(), PartitionKey, CreatedDate.Ticks.ToString());
+        if (_id != null) return _id;
+        
+        // Generate ID using the same logic as before (without PartitionKey)
+        _id = IdGenerator.Get(IdLength(), GetType().Name, CreatedDate.Ticks.ToString());
+        return _id;
     }
-
 }

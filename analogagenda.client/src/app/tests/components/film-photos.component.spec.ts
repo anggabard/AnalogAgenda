@@ -16,7 +16,7 @@ describe('FilmPhotosComponent', () => {
   let mockActivatedRoute: any;
 
   const mockFilm: FilmDto = {
-    rowKey: 'test-film-id',
+    id: 'test-film-id',
     name: 'Test Film',
     iso: '400',
     type: FilmType.ColorNegative,
@@ -30,9 +30,9 @@ describe('FilmPhotosComponent', () => {
   };
 
   const mockPhotos: PhotoDto[] = [
-    { rowKey: 'photo1', filmRowId: 'test-film-id', index: 1, imageUrl: 'image1.jpg', imageBase64: '' },
-    { rowKey: 'photo2', filmRowId: 'test-film-id', index: 2, imageUrl: 'image2.jpg', imageBase64: '' },
-    { rowKey: 'photo3', filmRowId: 'test-film-id', index: 3, imageUrl: 'image3.jpg', imageBase64: '' }
+    { id: 'photo1', filmId: 'test-film-id', index: 1, imageUrl: 'image1.jpg', imageBase64: '' },
+    { id: 'photo2', filmId: 'test-film-id', index: 2, imageUrl: 'image2.jpg', imageBase64: '' },
+    { id: 'photo3', filmId: 'test-film-id', index: 3, imageUrl: 'image3.jpg', imageBase64: '' }
   ];
 
   beforeEach(async () => {
@@ -315,7 +315,7 @@ describe('FilmPhotosComponent', () => {
       // Assert
       expect(mockPhotoService.deletePhoto).toHaveBeenCalledWith('photo1');
       expect(component.photos.length).toBe(2);
-      expect(component.photos.find(p => p.rowKey === 'photo1')).toBeUndefined();
+      expect(component.photos.find(p => p.id === 'photo1')).toBeUndefined();
       expect(component.isDeleteModalOpen).toBeFalsy();
     });
 

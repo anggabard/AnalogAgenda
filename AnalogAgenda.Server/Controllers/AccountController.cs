@@ -1,5 +1,4 @@
 ﻿using AnalogAgenda.Server.Identity;
-using Database.DBObjects.Enums;
 using Database.DTOs;
 using Database.Entities;
 using Database.Helpers;
@@ -13,12 +12,12 @@ using System.Security.Claims;
 namespace AnalogAgenda.Server.Controllers;
 
 [ApiController, Route("api/[controller]")]
-public class AccountController(ITableService tables) : ControllerBase
+public class AccountController(IDatabaseService database) : ControllerBase
 {
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginDto login)
     {
-        var users = await tables.GetTableEntriesAsync<UserEntity>(user => user.Email == login.Email.ToLowerInvariant());
+        var users = await database.GetAllAsync<UserEntity>(user => user.Email == login.Email.ToLowerInvariant());
 
         if (users.Count == 0) return Unauthorized("Bad creds");
 
@@ -29,7 +28,7 @@ public class AccountController(ITableService tables) : ControllerBase
 
         var claims = new[]
         {
-            new Claim(ClaimTypes.NameIdentifier, user.RowKey),
+            new Claim(ClaimTypes.NameIdentifier, user.Id),
             new Claim(ClaimTypes.Email,          user.Email),
             new Claim(ClaimTypes.Name,           user.Name)
         };
@@ -47,11 +46,9 @@ public class AccountController(ITableService tables) : ControllerBase
     [HttpPost("changePassword")]
     public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordDto dto)
     {
-        var usersTable = tables.GetTable(TableName.Users);
-        var result = await usersTable.GetEntityIfExistsAsync<UserEntity>(TableName.Users.PartitionKey(), User.RowKey());
+        var user = await database.GetByIdAsync<UserEntity>(User.Id());
 
-        if (!result.HasValue) return Problem("Something went terribly wrong.");
-        var user = result.Value!;
+        if (user == null) return Problem("Something went terribly wrong.");
 
         if (!PasswordHasher.VerifyPassword(dto.OldPassword, user.PasswordHash))
             return Unauthorized("Bad creds");
@@ -59,7 +56,7 @@ public class AccountController(ITableService tables) : ControllerBase
         user.PasswordHash = PasswordHasher.HashPassword(dto.NewPassword);
         user.UpdatedDate = DateTime.UtcNow;
 
-        await usersTable.UpdateEntityAsync(user, user.ETag);
+        await database.UpdateAsync(user);
 
         return Ok();
     }

@@ -14,7 +14,7 @@ describe('FilmSearchComponent State Persistence', () => {
 
   const mockDevKits: DevKitDto[] = [
     { 
-      rowKey: '1', 
+      id: '1', 
       name: 'Belini C41', 
       type: DevKitType.C41,
       url: '',
@@ -29,7 +29,7 @@ describe('FilmSearchComponent State Persistence', () => {
       expired: false
     },
     { 
-      rowKey: '2', 
+      id: '2', 
       name: 'Belini E6', 
       type: DevKitType.E6,
       url: '',
@@ -47,7 +47,7 @@ describe('FilmSearchComponent State Persistence', () => {
 
   const mockSessions: SessionDto[] = [
     { 
-      rowKey: '1', 
+      id: '1', 
       sessionDate: '2023-01-01', 
       location: 'Studio A',
       participants: '[]',
@@ -61,7 +61,7 @@ describe('FilmSearchComponent State Persistence', () => {
       imageBase64: ''
     },
     { 
-      rowKey: '2', 
+      id: '2', 
       sessionDate: '2023-01-02', 
       location: 'Studio B',
       participants: '[]',

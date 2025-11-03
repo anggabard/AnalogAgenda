@@ -1,5 +1,5 @@
 export interface UsedFilmThumbnailDto {
-  rowKey: string;
+  id: string;
   filmName: string;
   imageId: string;
   imageUrl: string;

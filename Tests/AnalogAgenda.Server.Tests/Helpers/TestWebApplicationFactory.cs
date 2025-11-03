@@ -14,7 +14,7 @@ public class TestWebApplicationFactory : WebApplicationFactory<AnalogAgenda.Serv
         {
             // Remove the real services
             var tableServiceDescriptor = services.SingleOrDefault(
-                d => d.ServiceType == typeof(ITableService));
+                d => d.ServiceType == typeof(IDatabaseService));
             if (tableServiceDescriptor != null)
             {
                 services.Remove(tableServiceDescriptor);
@@ -28,7 +28,7 @@ public class TestWebApplicationFactory : WebApplicationFactory<AnalogAgenda.Serv
             }
 
             // Add mock services
-            var mockTableService = new Mock<ITableService>();
+            var mockTableService = new Mock<IDatabaseService>();
             var mockBlobService = new Mock<IBlobService>();
 
             // Configure mock behaviors here as needed

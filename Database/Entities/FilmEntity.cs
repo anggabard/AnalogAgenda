@@ -6,8 +6,6 @@ namespace Database.Entities;
 
 public class FilmEntity : BaseEntity, IImageEntity
 {
-    public FilmEntity() : base(TableName.Films) { }
-
     public required string Name { get; set; }
 
     public required string Iso { get; set; }
@@ -28,19 +26,24 @@ public class FilmEntity : BaseEntity, IImageEntity
 
     public bool Developed { get; set; }
 
-    public string? DevelopedInSessionRowKey { get; set; }
+    public string? DevelopedInSessionId { get; set; }
 
-    public string? DevelopedWithDevKitRowKey { get; set; }
+    public string? DevelopedWithDevKitId { get; set; }
 
     public string ExposureDates { get; set; } = string.Empty;
 
-    protected override int RowKeyLenght() => 12;
+    // Navigation properties
+    public ICollection<PhotoEntity> Photos { get; set; } = new List<PhotoEntity>();
+    public SessionEntity? DevelopedInSession { get; set; }
+    public DevKitEntity? DevelopedWithDevKit { get; set; }
+
+    protected override int IdLength() => 12;
 
     public FilmDto ToDTO(string accountName)
     {
         return new FilmDto()
         {
-            RowKey = RowKey,
+            Id = Id,
             Name = Name,
             Iso = Iso,
             Type = Type.ToDisplayString(),
@@ -51,8 +54,8 @@ public class FilmEntity : BaseEntity, IImageEntity
             ImageUrl = ImageId == Guid.Empty ? string.Empty : BlobUrlHelper.GetUrlFromImageImageInfo(accountName, ContainerName.films.ToString(), ImageId),
             Description = Description,
             Developed = Developed,
-            DevelopedInSessionRowKey = DevelopedInSessionRowKey,
-            DevelopedWithDevKitRowKey = DevelopedWithDevKitRowKey,
+            DevelopedInSessionId = DevelopedInSessionId,
+            DevelopedWithDevKitId = DevelopedWithDevKitId,
             ExposureDates = ExposureDates
         };
     }

@@ -217,7 +217,7 @@ public class FilmDtoValidatorTests
     {
         return new FilmDto
         {
-            RowKey = "",
+            Id = "",
             Name = "Test Film",
             Iso = iso,
             Type = EFilmType.ColorNegative.ToString(),

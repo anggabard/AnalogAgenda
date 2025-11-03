@@ -4,7 +4,7 @@ namespace Database.DTOs;
 
 public class UsedDevKitThumbnailDto
 {
-    public string RowKey { get; set; } = string.Empty;
+    public string Id { get; set; } = string.Empty;
 
     public required string DevKitName { get; set; }
 
@@ -18,7 +18,7 @@ public class UsedDevKitThumbnailDto
     {
         return new UsedDevKitThumbnailEntity
         {
-            RowKey = RowKey,
+            Id = Id,
             DevKitName = DevKitName,
             ImageId = string.IsNullOrEmpty(ImageId) ? Guid.Empty : Guid.Parse(ImageId)
         };

@@ -228,8 +228,8 @@ describe('FilmsComponent State Persistence', () => {
 
   it('should clear only My Films when searching on My Films tab', () => {
     // Set up some initial data
-    component.myDevelopedFilms = [{ rowKey: '1', name: 'My Film' } as any];
-    component.allDevelopedFilms = [{ rowKey: '2', name: 'All Film' } as any];
+    component.myDevelopedFilms = [{ id: '1', name: 'My Film' } as any];
+    component.allDevelopedFilms = [{ id: '2', name: 'All Film' } as any];
 
     const searchParams = { name: 'test' };
     component.onSearch(searchParams);
@@ -245,8 +245,8 @@ describe('FilmsComponent State Persistence', () => {
 
   it('should clear only All Films when searching on All Films tab', () => {
     // Set up some initial data
-    component.myDevelopedFilms = [{ rowKey: '1', name: 'My Film' } as any];
-    component.allDevelopedFilms = [{ rowKey: '2', name: 'All Film' } as any];
+    component.myDevelopedFilms = [{ id: '1', name: 'My Film' } as any];
+    component.allDevelopedFilms = [{ id: '2', name: 'All Film' } as any];
     component.setActiveTab('all');
 
     const searchParams = { type: 'ColorNegative' };

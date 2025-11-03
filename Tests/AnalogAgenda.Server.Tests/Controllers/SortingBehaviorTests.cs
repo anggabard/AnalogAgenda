@@ -16,9 +16,9 @@ public class SortingBehaviorTests
         // Arrange
         var entities = new List<DevKitEntity>
         {
-            new() { RowKey = "3", Name = "Kit C", Url = "http://example.com", PurchasedOn = DateTime.Parse("2023-03-01") },
-            new() { RowKey = "1", Name = "Kit A", Url = "http://example.com", PurchasedOn = DateTime.Parse("2023-01-01") },
-            new() { RowKey = "2", Name = "Kit B", Url = "http://example.com", PurchasedOn = DateTime.Parse("2023-02-01") }
+            new() { Id = "3", Name = "Kit C", Url = "http://example.com", PurchasedOn = DateTime.Parse("2023-03-01") },
+            new() { Id = "1", Name = "Kit A", Url = "http://example.com", PurchasedOn = DateTime.Parse("2023-01-01") },
+            new() { Id = "2", Name = "Kit B", Url = "http://example.com", PurchasedOn = DateTime.Parse("2023-02-01") }
         };
 
         // Act
@@ -36,9 +36,9 @@ public class SortingBehaviorTests
         // Arrange
         var entities = new List<FilmEntity>
         {
-            new() { RowKey = "1", Name = "Film 1", Iso = "400", PurchasedBy = EUsernameType.Tudor, PurchasedOn = DateTime.Parse("2023-01-15") },
-            new() { RowKey = "2", Name = "Film 2", Iso = "400", PurchasedBy = EUsernameType.Angel, PurchasedOn = DateTime.Parse("2023-01-20") },
-            new() { RowKey = "3", Name = "Film 3", Iso = "400", PurchasedBy = EUsernameType.Angel, PurchasedOn = DateTime.Parse("2023-01-10") }
+            new() { Id = "1", Name = "Film 1", Iso = "400", PurchasedBy = EUsernameType.Tudor, PurchasedOn = DateTime.Parse("2023-01-15") },
+            new() { Id = "2", Name = "Film 2", Iso = "400", PurchasedBy = EUsernameType.Angel, PurchasedOn = DateTime.Parse("2023-01-20") },
+            new() { Id = "3", Name = "Film 3", Iso = "400", PurchasedBy = EUsernameType.Angel, PurchasedOn = DateTime.Parse("2023-01-10") }
         };
 
         // Act
@@ -59,9 +59,9 @@ public class SortingBehaviorTests
         // Arrange
         var entities = new List<FilmEntity>
         {
-            new() { RowKey = "2", Name = "Film A", Iso = "400", PurchasedOn = DateTime.Parse("2023-01-10") },
-            new() { RowKey = "1", Name = "Film B", Iso = "400", PurchasedOn = DateTime.Parse("2023-01-20") },
-            new() { RowKey = "3", Name = "Film C", Iso = "400", PurchasedOn = DateTime.Parse("2023-01-15") }
+            new() { Id = "2", Name = "Film A", Iso = "400", PurchasedOn = DateTime.Parse("2023-01-10") },
+            new() { Id = "1", Name = "Film B", Iso = "400", PurchasedOn = DateTime.Parse("2023-01-20") },
+            new() { Id = "3", Name = "Film C", Iso = "400", PurchasedOn = DateTime.Parse("2023-01-15") }
         };
 
         // Act
@@ -79,9 +79,9 @@ public class SortingBehaviorTests
         // Arrange
         var entities = new List<DevKitEntity>
         {
-            new() { RowKey = "3", Name = "Kit C", Url = "http://example.com", UpdatedDate = DateTime.Parse("2023-03-01") },
-            new() { RowKey = "1", Name = "Kit A", Url = "http://example.com", UpdatedDate = DateTime.Parse("2023-01-01") },
-            new() { RowKey = "2", Name = "Kit B", Url = "http://example.com", UpdatedDate = DateTime.Parse("2023-02-01") }
+            new() { Id = "3", Name = "Kit C", Url = "http://example.com", UpdatedDate = DateTime.Parse("2023-03-01") },
+            new() { Id = "1", Name = "Kit A", Url = "http://example.com", UpdatedDate = DateTime.Parse("2023-01-01") },
+            new() { Id = "2", Name = "Kit B", Url = "http://example.com", UpdatedDate = DateTime.Parse("2023-02-01") }
         };
 
         // Act - Apply default sorting (UpdatedDate descending)
@@ -112,7 +112,7 @@ public class SortingBehaviorTests
         // Arrange
         var entities = new List<DevKitEntity>
         {
-            new() { RowKey = "1", Name = "Kit A", Url = "http://example.com", PurchasedOn = DateTime.Parse("2023-01-01") }
+            new() { Id = "1", Name = "Kit A", Url = "http://example.com", PurchasedOn = DateTime.Parse("2023-01-01") }
         };
 
         // Act

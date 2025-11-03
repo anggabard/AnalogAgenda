@@ -86,16 +86,16 @@ describe('UpsertKitComponent', () => {
 
     // Assert
     expect(component.isInsert).toBeTrue();
-    expect(component.rowKey).toBeNull();
+    expect(component.id).toBeNull();
     expect(mockAccountService.whoAmI).toHaveBeenCalled();
     expect(component.form.get('purchasedBy')?.value).toBe('testuser');
   });
 
   it('should initialize in edit mode and load kit when ID is provided', () => {
     // Arrange
-    const testRowKey = 'test-row-key';
+    const testid = 'test-row-key';
     const mockKit: DevKitDto = {
-      rowKey: testRowKey,
+      id: testRowKey,
       name: 'Test Kit',
       url: 'http://example.com',
       type: DevKitType.C41,
@@ -118,7 +118,7 @@ describe('UpsertKitComponent', () => {
     component = fixture.componentInstance;
 
     // Manually set up for edit mode after component creation
-    component.rowKey = testRowKey;
+    component.id = testRowKey;
     component.isInsert = false;
 
     // Act - Trigger component initialization
@@ -126,7 +126,7 @@ describe('UpsertKitComponent', () => {
 
     // Assert
     expect(component.isInsert).toBeFalse();
-    expect(component.rowKey).toBe(testRowKey);
+    expect(component.id).toBe(testRowKey);
   });
 
 
@@ -169,14 +169,14 @@ describe('UpsertKitComponent', () => {
 
   it('should update existing kit when in edit mode', () => {
     // Arrange
-    const testRowKey = 'existing-key';
+    const testid = 'existing-key';
     mockActivatedRoute.snapshot.paramMap.get.and.returnValue(null);
     fixture = TestBed.createComponent(UpsertKitComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
     
     // Set up for edit mode
-    component.rowKey = testRowKey;
+    component.id = testRowKey;
     component.isInsert = false;
     component.form.patchValue({
       name: 'Updated Kit',
@@ -223,14 +223,14 @@ describe('UpsertKitComponent', () => {
 
   it('should handle update kit error', () => {
     // Arrange
-    const testRowKey = 'existing-key';
+    const testid = 'existing-key';
     mockActivatedRoute.snapshot.paramMap.get.and.returnValue(null);
     fixture = TestBed.createComponent(UpsertKitComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
     
     // Set up for edit mode
-    component.rowKey = testRowKey;
+    component.id = testRowKey;
     component.isInsert = false;
     component.form.patchValue({
       name: 'Updated Kit',
@@ -254,14 +254,14 @@ describe('UpsertKitComponent', () => {
 
   it('should delete kit successfully', () => {
     // Arrange
-    const testRowKey = 'test-key';
+    const testid = 'test-key';
     mockActivatedRoute.snapshot.paramMap.get.and.returnValue(null);
     fixture = TestBed.createComponent(UpsertKitComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
     
     // Set up for edit mode
-    component.rowKey = testRowKey;
+    component.id = testRowKey;
     component.isInsert = false;
     mockDevKitService.deleteById.and.returnValue(of({}));
 
@@ -275,14 +275,14 @@ describe('UpsertKitComponent', () => {
 
   it('should handle delete error', () => {
     // Arrange
-    const testRowKey = 'test-key';
+    const testid = 'test-key';
     mockActivatedRoute.snapshot.paramMap.get.and.returnValue(null);
     fixture = TestBed.createComponent(UpsertKitComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
     
     // Set up for edit mode
-    component.rowKey = testRowKey;
+    component.id = testRowKey;
     component.isInsert = false;
     mockDevKitService.deleteById.and.returnValue(throwError(() => 'Delete error'));
 
@@ -316,8 +316,8 @@ describe('UpsertKitComponent', () => {
 
     it('should perform thumbnail search when onThumbnailSearchClick is called', () => {
       const mockThumbnails = [
-        { rowKey: 'thumb1', devKitName: 'Bellini E6', imageId: 'img1', imageUrl: 'url1', imageBase64: '' },
-        { rowKey: 'thumb2', devKitName: 'Bellini C41', imageId: 'img2', imageUrl: 'url2', imageBase64: '' }
+        { id: 'thumb1', devKitName: 'Bellini E6', imageId: 'img1', imageUrl: 'url1', imageBase64: '' },
+        { id: 'thumb2', devKitName: 'Bellini C41', imageId: 'img2', imageUrl: 'url2', imageBase64: '' }
       ];
       mockThumbnailService.searchByDevKitName.and.returnValue(of(mockThumbnails));
 
@@ -330,7 +330,7 @@ describe('UpsertKitComponent', () => {
 
     it('should select thumbnail when onSelectThumbnail is called', () => {
       const mockThumbnail = { 
-        rowKey: 'thumb1', 
+        id: 'thumb1', 
         devKitName: 'Bellini E6', 
         imageId: 'img1', 
         imageUrl: 'url1', 
@@ -394,7 +394,7 @@ describe('UpsertKitComponent', () => {
       component.newThumbnailDevKitName = 'Test DevKit E6';
       
       const mockUploadedThumbnail = {
-        rowKey: 'thumb1',
+        id: 'thumb1',
         devKitName: 'Test DevKit E6',
         imageId: 'img1',
         imageUrl: 'url1',

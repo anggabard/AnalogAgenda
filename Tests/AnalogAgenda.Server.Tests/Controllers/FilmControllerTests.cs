@@ -17,7 +17,7 @@ namespace AnalogAgenda.Server.Tests.Controllers;
 public class FilmControllerTests
 {
     private readonly Storage _storage;
-    private readonly Mock<ITableService> _mockTableService;
+    private readonly Mock<IDatabaseService> _mockTableService;
     private readonly Mock<IBlobService> _mockBlobService;
     private readonly Mock<TableClient> _mockTableClient;
     private readonly Mock<BlobContainerClient> _mockBlobContainer;
@@ -26,7 +26,7 @@ public class FilmControllerTests
     public FilmControllerTests()
     {
         _storage = new Storage { AccountName = "testaccount" };
-        _mockTableService = new Mock<ITableService>();
+        _mockTableService = new Mock<IDatabaseService>();
         _mockBlobService = new Mock<IBlobService>();
         _mockTableClient = new Mock<TableClient>();
         _mockBlobContainer = new Mock<BlobContainerClient>();

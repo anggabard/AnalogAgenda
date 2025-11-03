@@ -1,9 +1,8 @@
 using System.Text.Json;
 using Database.DTOs;
 using Database.Entities;
-using Database.DBObjects.Enums;
 
-namespace Database.Tests.DTOs;
+namespace AnalogAgenda.Server.Tests.Database;
 
 public class SessionDtoTests
 {
@@ -13,6 +12,7 @@ public class SessionDtoTests
         // Arrange
         var sessionDto = new SessionDto
         {
+            Id = "test-id",
             Location = "Test Location",
             Participants = "[\"Angel\", \"Tudor\", \"Cristiana\"]"
         };
@@ -34,6 +34,7 @@ public class SessionDtoTests
         // Arrange
         var sessionDto = new SessionDto
         {
+            Id = "test-id",
             Location = "Test Location",
             Participants = ""
         };
@@ -52,6 +53,7 @@ public class SessionDtoTests
         // Arrange
         var sessionDto = new SessionDto
         {
+            Id = "test-id",
             Location = "Test Location",
             Participants = "[]"
         };
@@ -74,6 +76,7 @@ public class SessionDtoTests
         // Arrange
         var sessionDto = new SessionDto
         {
+            Id = "test-id",
             Location = "Test Location",
             Participants = "[]"
         };
@@ -94,13 +97,13 @@ public class SessionDtoTests
         // Arrange
         var sessionDto = new SessionDto
         {
-            RowKey = "test-session",
+            Id = "test-session",
             SessionDate = new DateOnly(2025, 10, 2),
             Location = "Angel's Home",
             Participants = "[\"Angel\", \"Tudor\"]",
             Description = "Test session description",
-            UsedSubstances = "[\"devkit1\"]",
-            DevelopedFilms = "[\"film1\", \"film2\"]",
+            UsedSubstances = "devkit1,devkit2", // Now comma-separated instead of JSON
+            DevelopedFilms = "film1,film2",     // Now comma-separated instead of JSON
             ImageUrl = ""
         };
 
@@ -108,13 +111,11 @@ public class SessionDtoTests
         var entity = sessionDto.ToEntity();
 
         // Assert
-        Assert.Equal("test-session", entity.RowKey);
+        Assert.Equal("test-session", entity.Id);
         Assert.Equal(new DateTime(2025, 10, 2, 0, 0, 0, DateTimeKind.Utc), entity.SessionDate);
         Assert.Equal("Angel's Home", entity.Location);
         Assert.Equal("[\"Angel\", \"Tudor\"]", entity.Participants);
         Assert.Equal("Test session description", entity.Description);
-        Assert.Equal("[\"devkit1\"]", entity.UsedSubstances);
-        Assert.Equal("[\"film1\", \"film2\"]", entity.DevelopedFilms);
         Assert.Equal(Guid.Empty, entity.ImageId);
     }
 }
@@ -125,39 +126,35 @@ public class SessionEntityTests
     public void ToDTO_ShouldConvertCorrectly_WithAllProperties()
     {
         // Arrange
+        var devKit1 = new DevKitEntity { Id = "devkit1", Name = "DevKit 1", Url = "http://example.com" };
+        var devKit2 = new DevKitEntity { Id = "devkit2", Name = "DevKit 2", Url = "http://example.com" };
+        var film1 = new FilmEntity { Id = "film1", Name = "Film 1", Iso = "400" };
+        var film2 = new FilmEntity { Id = "film2", Name = "Film 2", Iso = "200" };
+        
         var entity = new SessionEntity
         {
-            RowKey = "test-session",
+            Id = "test-session",
             SessionDate = new DateTime(2025, 10, 2, 0, 0, 0, DateTimeKind.Utc),
             Location = "Angel's Home",
             Participants = "[\"Angel\", \"Tudor\"]",
             Description = "Test session description",
-            UsedSubstances = "[\"devkit1\"]",
-            DevelopedFilms = "[\"film1\", \"film2\"]",
-            ImageId = Guid.Empty
+            ImageId = Guid.Empty,
+            UsedDevKits = new List<DevKitEntity> { devKit1, devKit2 },
+            DevelopedFilms = new List<FilmEntity> { film1, film2 }
         };
 
         // Act
         var dto = entity.ToDTO("testaccount");
 
         // Assert
-        Assert.Equal("test-session", dto.RowKey);
+        Assert.Equal("test-session", dto.Id);
         Assert.Equal(new DateOnly(2025, 10, 2), dto.SessionDate);
         Assert.Equal("Angel's Home", dto.Location);
         Assert.Equal("[\"Angel\", \"Tudor\"]", dto.Participants);
         Assert.Equal("Test session description", dto.Description);
-        Assert.Equal("[\"devkit1\"]", dto.UsedSubstances);
-        Assert.Equal("[\"film1\", \"film2\"]", dto.DevelopedFilms);
+        Assert.Equal("devkit1,devkit2", dto.UsedSubstances);
+        Assert.Equal("film1,film2", dto.DevelopedFilms);
         Assert.Equal(string.Empty, dto.ImageUrl);
     }
-
-    [Fact]
-    public void Constructor_ShouldSetCorrectTableName()
-    {
-        // Arrange & Act
-        var entity = new SessionEntity();
-
-        // Assert
-        Assert.Equal(TableName.Sessions, entity.TableName);
-    }
 }
+

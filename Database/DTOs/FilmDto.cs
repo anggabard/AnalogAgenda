@@ -8,7 +8,7 @@ namespace Database.DTOs;
 
 public class FilmDto
 {
-    public string RowKey { get; set; } = string.Empty;
+    public string Id { get; set; } = string.Empty;
 
     public required string Name { get; set; }
 
@@ -30,9 +30,9 @@ public class FilmDto
 
     public bool Developed { get; set; }
 
-    public string? DevelopedInSessionRowKey { get; set; }
+    public string? DevelopedInSessionId { get; set; }
 
-    public string? DevelopedWithDevKitRowKey { get; set; }
+    public string? DevelopedWithDevKitId { get; set; }
 
     public string ExposureDates { get; set; } = string.Empty;
 
@@ -46,7 +46,7 @@ public class FilmDto
     {
         return new FilmEntity
         {
-            RowKey = RowKey,
+            Id = Id,
             Name = Name,
             Iso = Iso,
             Type = Type.ToEnum<EFilmType>(),
@@ -57,8 +57,8 @@ public class FilmDto
             ImageId = string.IsNullOrEmpty(ImageUrl) ? Guid.Empty : BlobUrlHelper.GetImageInfoFromUrl(ImageUrl).ImageId,
             Description = Description,
             Developed = Developed,
-            DevelopedInSessionRowKey = DevelopedInSessionRowKey,
-            DevelopedWithDevKitRowKey = DevelopedWithDevKitRowKey,
+            DevelopedInSessionId = DevelopedInSessionId,
+            DevelopedWithDevKitId = DevelopedWithDevKitId,
             ExposureDates = ExposureDates
         };
     }

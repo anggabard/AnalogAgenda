@@ -1,6 +1,6 @@
 using Database.Helpers;
 
-namespace Database.Tests;
+namespace AnalogAgenda.Server.Tests.Database;
 
 public class BlobUrlHelperTests
 {
@@ -81,3 +81,4 @@ public class BlobUrlHelperTests
     }
 
 }
+

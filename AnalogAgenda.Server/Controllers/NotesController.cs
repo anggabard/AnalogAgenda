@@ -1,5 +1,4 @@
-﻿using Azure.Data.Tables;
-using Azure.Storage.Blobs;
+﻿using Azure.Storage.Blobs;
 using Configuration.Sections;
 using Database.DBObjects;
 using Database.DBObjects.Enums;
@@ -7,17 +6,16 @@ using Database.DTOs;
 using Database.Entities;
 using Database.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Database.Data;
 
 namespace AnalogAgenda.Server.Controllers;
 
 [Route("api/[controller]")]
-public class NotesController(Storage storageCfg, ITableService tablesService, IBlobService blobsService) : BaseEntityController<NoteEntity, NoteDto>(storageCfg, tablesService, blobsService)
+public class NotesController(Storage storageCfg, IDatabaseService databaseService, IBlobService blobsService, AnalogAgendaDbContext dbContext) : BaseEntityController<NoteEntity, NoteDto>(storageCfg, databaseService, blobsService)
 {
-    private readonly TableClient notesTable = tablesService.GetTable(TableName.Notes);
-    private readonly TableClient notesEntriesTable = tablesService.GetTable(TableName.NotesEntries);
     private readonly BlobContainerClient notesContainer = blobsService.GetBlobContainer(ContainerName.notes);
 
-    protected override TableClient GetTable() => notesTable;
     protected override BlobContainerClient GetBlobContainer() => notesContainer;
     protected override Guid GetDefaultImageId() => Constants.DefaultNoteImageId;
     protected override NoteEntity DtoToEntity(NoteDto dto) => dto.ToNoteEntity();
@@ -49,13 +47,13 @@ public class NotesController(Storage storageCfg, ITableService tablesService, IB
             return UnprocessableEntity("Failed to retrieve created note.");
         }
 
-        var entries = dto.ToNoteEntryEntities(createdNote.RowKey);
+        var entries = dto.ToNoteEntryEntities(createdNote.Id);
 
         try
         {
             foreach (var entry in entries)
             {
-                await notesEntriesTable.AddEntityAsync(entry);
+                await databaseService.AddAsync(entry);
             }
             
             return Created(string.Empty, createdNote);
@@ -63,17 +61,17 @@ public class NotesController(Storage storageCfg, ITableService tablesService, IB
         catch (Exception ex)
         {
             // If entries creation failed, clean up the note we just created
-            await DeleteNoteAndCleanupAsync(createdNote.RowKey);
+            await DeleteNoteAndCleanupAsync(createdNote.Id);
             return UnprocessableEntity($"Failed to create note entries: {ex.Message}");
         }
     }
 
-    private async Task DeleteNoteAndCleanupAsync(string noteRowKey)
+    private async Task DeleteNoteAndCleanupAsync(string noteId)
     {
         try
         {
             // Delete the note (this will also handle image cleanup via base controller logic)
-            await DeleteEntityWithImageAsync(noteRowKey);
+            await DeleteEntityWithImageAsync(noteId);
         }
         catch
         {
@@ -87,94 +85,90 @@ public class NotesController(Storage storageCfg, ITableService tablesService, IB
         // For backward compatibility, if page is 0 or negative, return all notes
         if (page <= 0)
         {
-            var notesEntities = await tablesService.GetTableEntriesAsync<NoteEntity>();
+            IQueryable<NoteEntity> query = dbContext.Notes;
+            
+            if (withEntries)
+            {
+                query = query.Include(n => n.Entries);
+            }
+
+            var notesEntities = await query.ToListAsync();
 
             if (!withEntries)
             {
                 return Ok(notesEntities.Select(EntityToDto));
             }
 
-            // Get all note entries in a single query instead of N+1 queries
-            var noteRowKeys = notesEntities.Select(n => n.RowKey).ToList();
-            var allEntryEntities = await tablesService.GetTableEntriesAsync<NoteEntryEntity>();
-            var entriesByNoteKey = allEntryEntities
-                .Where(entry => noteRowKeys.Contains(entry.NoteRowKey))
-                .GroupBy(entry => entry.NoteRowKey)
-                .ToDictionary(g => g.Key, g => g.ToList());
-
-            var results = notesEntities.Select(noteEntity =>
-                {
-                    var entryEntities = entriesByNoteKey.GetValueOrDefault(noteEntity.RowKey, new List<NoteEntryEntity>());
-                    return EntityToDtoWithEntries(noteEntity, entryEntities);
-                });
+            var results = notesEntities.Select(noteEntity => EntityToDtoWithEntries(noteEntity, noteEntity.Entries));
 
             return Ok(results);
         }
 
-        var pagedEntities = await tablesService.GetTableEntriesPagedAsync<NoteEntity>(page, pageSize);
+        // Paged query
+        IQueryable<NoteEntity> pagedQuery = dbContext.Notes;
+        
+        if (withEntries)
+        {
+            pagedQuery = pagedQuery.Include(n => n.Entries);
+        }
+
+        var totalCount = await pagedQuery.CountAsync();
+        var pagedEntities = await pagedQuery
+            .OrderByDescending(n => n.UpdatedDate)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
         
         if (!withEntries)
         {
             var pagedResults = new PagedResponseDto<NoteDto>
             {
-                Data = pagedEntities.Data.Select(EntityToDto),
-                TotalCount = pagedEntities.TotalCount,
-                PageSize = pagedEntities.PageSize,
-                CurrentPage = pagedEntities.CurrentPage
+                Data = pagedEntities.Select(EntityToDto),
+                TotalCount = totalCount,
+                PageSize = pageSize,
+                CurrentPage = page
             };
             return Ok(pagedResults);
         }
 
-        // Get all note entries in a single query instead of N+1 queries
-        var pagedNoteRowKeys = pagedEntities.Data.Select(n => n.RowKey).ToList();
-        var pagedAllEntryEntities = await tablesService.GetTableEntriesAsync<NoteEntryEntity>();
-        var pagedEntriesByNoteKey = pagedAllEntryEntities
-            .Where(entry => pagedNoteRowKeys.Contains(entry.NoteRowKey))
-            .GroupBy(entry => entry.NoteRowKey)
-            .ToDictionary(g => g.Key, g => g.ToList());
-
-        var notesWithEntries = pagedEntities.Data.Select(noteEntity =>
-            {
-                var entryEntities = pagedEntriesByNoteKey.GetValueOrDefault(noteEntity.RowKey, new List<NoteEntryEntity>());
-                return EntityToDtoWithEntries(noteEntity, entryEntities);
-            });
+        var notesWithEntries = pagedEntities.Select(noteEntity => EntityToDtoWithEntries(noteEntity, noteEntity.Entries));
 
         var pagedResultsWithEntries = new PagedResponseDto<NoteDto>
         {
             Data = notesWithEntries,
-            TotalCount = pagedEntities.TotalCount,
-            PageSize = pagedEntities.PageSize,
-            CurrentPage = pagedEntities.CurrentPage
+            TotalCount = totalCount,
+            PageSize = pageSize,
+            CurrentPage = page
         };
 
         return Ok(pagedResultsWithEntries);
     }
 
-    [HttpGet("{rowKey}")]
-    public async Task<IActionResult> GetNoteByRowKey(string rowKey)
+    [HttpGet("{id}")]
+    public async Task<IActionResult> GetNoteById(string id)
     {
-        var noteEntity = await tablesService.GetTableEntryIfExistsAsync<NoteEntity>(rowKey);
+        var noteEntity = await dbContext.Notes
+            .Include(n => n.Entries)
+            .FirstOrDefaultAsync(n => n.Id == id);
 
         if (noteEntity == null)
         {
-            return NotFound($"No Notes found with RowKey: {rowKey}");
+            return NotFound($"No Notes found with Id: {id}");
         }
 
-        var entryEntities = await tablesService.GetTableEntriesAsync<NoteEntryEntity>(entry => entry.NoteRowKey == noteEntity.RowKey);
-
-        return Ok(EntityToDtoWithEntries(noteEntity, entryEntities.OrderBy(entry => entry.Time).ToList()));
+        return Ok(EntityToDtoWithEntries(noteEntity, noteEntity.Entries.OrderBy(entry => entry.Time).ToList()));
     }
 
-    [HttpPut("{rowKey}")]
-    public async Task<IActionResult> UpdateNote(string rowKey, [FromBody] NoteDto updateDto)
+    [HttpPut("{id}")]
+    public async Task<IActionResult> UpdateNote(string id, [FromBody] NoteDto updateDto)
     {
-        return await UpdateNoteWithEntriesAsync(rowKey, updateDto);
+        return await UpdateNoteWithEntriesAsync(id, updateDto);
     }
 
-    private async Task<IActionResult> UpdateNoteWithEntriesAsync(string rowKey, NoteDto updateDto)
+    private async Task<IActionResult> UpdateNoteWithEntriesAsync(string id, NoteDto updateDto)
     {
         // First update the note using the base controller's image handling
-        var noteUpdateResult = await UpdateEntityWithImageAsync(rowKey, updateDto, dto => dto.ImageBase64);
+        var noteUpdateResult = await UpdateEntityWithImageAsync(id, updateDto, dto => dto.ImageBase64);
         
         if (noteUpdateResult is not NoContentResult)
         {
@@ -182,38 +176,38 @@ public class NotesController(Storage storageCfg, ITableService tablesService, IB
         }
 
         // If note update succeeded, update the note entries
-        return await UpdateNoteEntriesAsync(rowKey, updateDto);
+        return await UpdateNoteEntriesAsync(id, updateDto);
 
     }
 
-    private async Task<IActionResult> UpdateNoteEntriesAsync(string rowKey, NoteDto updateDto)
+    private async Task<IActionResult> UpdateNoteEntriesAsync(string id, NoteDto updateDto)
     {
         try
         {
-            var existingEntryEntities = await tablesService.GetTableEntriesAsync<NoteEntryEntity>(entry => entry.NoteRowKey == rowKey);
+            var existingEntryEntities = await databaseService.GetAllAsync<NoteEntryEntity>(entry => entry.NoteId == id);
             
             foreach (var noteEntryDto in updateDto.Entries)
             {
-                var updatedNoteEntryEntity = noteEntryDto.ToEntity(rowKey);
+                var updatedNoteEntryEntity = noteEntryDto.ToEntity(id);
 
-                if (string.IsNullOrEmpty(noteEntryDto.RowKey))
+                if (string.IsNullOrEmpty(noteEntryDto.Id))
                 {
-                    await notesEntriesTable.AddEntityAsync(updatedNoteEntryEntity);
+                    await databaseService.AddAsync(updatedNoteEntryEntity);
                     continue;
                 }
 
-                var existingEntryEntity = existingEntryEntities.FirstOrDefault(existingEntry => existingEntry.RowKey == noteEntryDto.RowKey);
+                var existingEntryEntity = existingEntryEntities.FirstOrDefault(existingEntry => existingEntry.Id == noteEntryDto.Id);
                 if (existingEntryEntity == null)
                     continue;
 
                 updatedNoteEntryEntity.CreatedDate = existingEntryEntity.CreatedDate;
                 updatedNoteEntryEntity.UpdatedDate = DateTime.UtcNow;
                 
-                await notesEntriesTable.UpdateEntityAsync(updatedNoteEntryEntity, existingEntryEntity.ETag, TableUpdateMode.Replace);
+                await databaseService.UpdateAsync(updatedNoteEntryEntity);
                 existingEntryEntities.Remove(existingEntryEntity);
             }
 
-            await tablesService.DeleteTableEntriesAsync(existingEntryEntities);
+            await databaseService.DeleteRangeAsync(existingEntryEntities);
 
             return NoContent();
         }
@@ -223,19 +217,19 @@ public class NotesController(Storage storageCfg, ITableService tablesService, IB
         }
     }
 
-    [HttpDelete("{rowKey}")]
-    public async Task<IActionResult> DeleteNote(string rowKey)
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> DeleteNote(string id)
     {
-        return await DeleteNoteWithEntriesAsync(rowKey);
+        return await DeleteNoteWithEntriesAsync(id);
     }
 
-    private async Task<IActionResult> DeleteNoteWithEntriesAsync(string rowKey)
+    private async Task<IActionResult> DeleteNoteWithEntriesAsync(string id)
     {
         // First delete note entries
-        await tablesService.DeleteTableEntriesAsync<NoteEntryEntity>(entry => entry.NoteRowKey == rowKey);
+        await databaseService.DeleteRangeAsync<NoteEntryEntity>(entry => entry.NoteId == id);
         
         // Then delete the note (this will also handle image cleanup via base controller)
-        return await DeleteEntityWithImageAsync(rowKey);
+        return await DeleteEntityWithImageAsync(id);
     }
 
 }

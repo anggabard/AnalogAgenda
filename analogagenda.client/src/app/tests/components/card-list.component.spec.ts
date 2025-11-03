@@ -216,7 +216,7 @@ describe('CardListComponent', () => {
   });
 
   // Helper function to create mock films
-  function createMockFilm(rowKey: string, name: string): FilmDto {
+  function createMockFilm(id: string, name: string): FilmDto {
     return {
       rowKey,
       name,

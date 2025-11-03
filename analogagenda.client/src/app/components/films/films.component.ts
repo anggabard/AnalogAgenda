@@ -166,7 +166,7 @@ export class FilmsComponent implements OnInit, OnDestroy {
     this.router.navigate(['/films/new']);
   }
 
-  onFilmSelected(rowKey: string) {
+  onFilmSelected(id: string) {
     this.router.navigate(['/films/' + rowKey]);
   }
 

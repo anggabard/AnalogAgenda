@@ -29,14 +29,14 @@ public class UsedFilmThumbnailEntityTests
         {
             FilmName = "Kodak Portra 400",
             ImageId = imageId,
-            RowKey = "test-row-key"
+            Id = "test-row-key"
         };
 
         // Act
         var dto = entity.ToDTO(accountName);
 
         // Assert
-        Assert.NotNull(dto.RowKey); // RowKey is auto-generated
+        Assert.NotNull(dto.Id); // Id is auto-generated
         Assert.Equal("Kodak Portra 400", dto.FilmName);
         Assert.Equal(imageId.ToString(), dto.ImageId);
         Assert.Contains("teststorage", dto.ImageUrl);
@@ -53,21 +53,21 @@ public class UsedFilmThumbnailEntityTests
         {
             FilmName = "Kodak Portra 400",
             ImageId = Guid.Empty,
-            RowKey = "test-row-key"
+            Id = "test-row-key"
         };
 
         // Act
         var dto = entity.ToDTO(accountName);
 
         // Assert
-        Assert.NotNull(dto.RowKey); // RowKey is auto-generated
+        Assert.NotNull(dto.Id); // Id is auto-generated
         Assert.Equal("Kodak Portra 400", dto.FilmName);
         Assert.Equal(Guid.Empty.ToString(), dto.ImageId);
         Assert.Empty(dto.ImageUrl);
     }
 
     [Fact]
-    public void RowKeyLength_ReturnsCorrectLength()
+    public void IdLength_ReturnsCorrectLength()
     {
         // Arrange
         var entity = new UsedFilmThumbnailEntity
@@ -77,7 +77,7 @@ public class UsedFilmThumbnailEntityTests
         };
 
         // Act & Assert
-        // RowKeyLenght is protected, so we can't test it directly
+        // IdLenght is protected, so we can't test it directly
         // We can test that the entity is created successfully
         Assert.NotNull(entity);
     }
