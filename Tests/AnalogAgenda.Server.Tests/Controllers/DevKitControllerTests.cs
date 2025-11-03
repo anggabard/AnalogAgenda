@@ -33,7 +33,7 @@ public class DevKitControllerTests : IDisposable
         _mockBlobService.Setup(x => x.GetBlobContainer(ContainerName.devkits))
                        .Returns(_mockContainerClient.Object);
 
-        _controller = new DevKitController(_storageConfig, _databaseService, _mockBlobService.Object);
+        _controller = new DevKitController(_storageConfig, _databaseService, _mockBlobService.Object, _dbContext);
     }
 
     public void Dispose()

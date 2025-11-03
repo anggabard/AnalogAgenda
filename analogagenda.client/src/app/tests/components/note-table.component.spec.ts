@@ -585,9 +585,9 @@ describe('NoteTableComponent', () => {
         imageUrl: '',
         imageBase64: '',
         entries: [
-          { id: '1', noteId: '', time: 3, step: 'PRESOAK', index: 0, temperatureMin: 38, temperatureMax: undefined, rules: [], overrides: [] },
-          { id: '2', noteId: '', time: 5, step: 'DEV', index: 1, temperatureMin: 38, temperatureMax: undefined, rules: [], overrides: [] },
-          { id: '3', noteId: '', time: 1, step: 'BLEACH', index: 2, temperatureMin: 38, temperatureMax: undefined, rules: [], overrides: [] }
+          { id: '1', noteId: '', time: 3, step: 'PRESOAK', details: '', index: 0, temperatureMin: 38, temperatureMax: undefined, rules: [], overrides: [] },
+          { id: '2', noteId: '', time: 5, step: 'DEV', details: '', index: 1, temperatureMin: 38, temperatureMax: undefined, rules: [], overrides: [] },
+          { id: '3', noteId: '', time: 1, step: 'BLEACH', details: '', index: 2, temperatureMin: 38, temperatureMax: undefined, rules: [], overrides: [] }
         ]
       };
 
@@ -995,3 +995,4 @@ describe('NoteTableComponent', () => {
     });
   });
 });
+

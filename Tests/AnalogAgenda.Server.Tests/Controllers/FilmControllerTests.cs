@@ -34,7 +34,7 @@ public class FilmControllerTests : IDisposable
         _mockBlobService.Setup(x => x.GetBlobContainer(ContainerName.films))
             .Returns(_mockBlobContainer.Object);
         
-        _controller = new FilmController(_storage, _databaseService, _mockBlobService.Object);
+        _controller = new FilmController(_storage, _databaseService, _mockBlobService.Object, _dbContext);
     }
 
     public void Dispose()
@@ -49,7 +49,7 @@ public class FilmControllerTests : IDisposable
         // Arrange & Act
         var testDb = InMemoryDbContextFactory.Create($"TestDb_{Guid.NewGuid()}");
         var dbService = new DatabaseService(testDb);
-        var controller = new FilmController(_storage, dbService, _mockBlobService.Object);
+        var controller = new FilmController(_storage, dbService, _mockBlobService.Object, testDb);
         testDb.Database.EnsureDeleted();
         testDb.Dispose();
 
