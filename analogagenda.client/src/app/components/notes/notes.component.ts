@@ -12,6 +12,10 @@ import { NoteDto, PagedResponseDto } from "../../DTOs";
 })
 export class NotesComponent extends BasePaginatedListComponent<NoteDto> {
 
+  // Merge modal state
+  isMergeModalOpen = false;
+  selectedNotesForMerge: Set<string> = new Set();
+
   constructor(private notesService: NotesService) {
     super();
   }
@@ -53,5 +57,57 @@ export class NotesComponent extends BasePaginatedListComponent<NoteDto> {
 
   onNewNoteClick(): void {
     this.onNewItemClick();
+  }
+
+  // Merge functionality
+  openMergeModal(): void {
+    this.isMergeModalOpen = true;
+    this.selectedNotesForMerge.clear();
+  }
+
+  closeMergeModal(): void {
+    this.isMergeModalOpen = false;
+    this.selectedNotesForMerge.clear();
+  }
+
+  toggleNoteSelection(noteId: string): void {
+    if (this.selectedNotesForMerge.has(noteId)) {
+      this.selectedNotesForMerge.delete(noteId);
+    } else {
+      this.selectedNotesForMerge.add(noteId);
+    }
+  }
+
+  isNoteSelected(noteId: string): boolean {
+    return this.selectedNotesForMerge.has(noteId);
+  }
+
+  canShowMergedNote(): boolean {
+    return this.selectedNotesForMerge.size >= 2;
+  }
+
+  showMergedNote(): void {
+    if (!this.canShowMergedNote()) return;
+
+    const compositeId = this.generateCompositeId();
+    this.router.navigate(['/notes/merge', compositeId]);
+    this.closeMergeModal();
+  }
+
+  private generateCompositeId(): string {
+    const selectedIds = Array.from(this.selectedNotesForMerge);
+    const compositeId = [];
+    
+    // Interleave characters from each note's id
+    // Note: NoteEntity has IdLength = 4, so each id is 4 characters
+    for (let charIndex = 0; charIndex < 4; charIndex++) {
+      for (const id of selectedIds) {
+        if (charIndex < id.length) {
+          compositeId.push(id[charIndex]);
+        }
+      }
+    }
+    
+    return compositeId.join('');
   }
 }

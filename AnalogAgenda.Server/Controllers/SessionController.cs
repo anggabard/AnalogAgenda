@@ -13,7 +13,7 @@ using Microsoft.EntityFrameworkCore;
 namespace AnalogAgenda.Server.Controllers;
 
 [Route("api/[controller]")]
-public class SessionController(Storage storageCfg, IDatabaseService databaseService, IBlobService blobsService, AnalogAgendaDbContext dbContext) : BaseEntityController<SessionEntity, SessionDto>(storageCfg, databaseService, blobsService)
+public class SessionController(Storage storageCfg, IDatabaseService databaseService, IBlobService blobsService, AnalogAgendaDbContext dbContext) : BaseEntityController<SessionEntity, SessionDto>(storageCfg, databaseService, blobsService, dbContext)
 {
     private readonly BlobContainerClient sessionsContainer = blobsService.GetBlobContainer(ContainerName.sessions);
 
@@ -190,65 +190,65 @@ public class SessionController(Storage storageCfg, IDatabaseService databaseServ
             // Process newly added films
             foreach (var filmId in addedFilms)
             {
-                var film = await databaseService.GetByIdAsync<FilmEntity>(filmId);
-                if (film != null)
+                // Find which devkit this film belongs to
+                string? devKitId = null;
+                foreach (var mapping in newSession.FilmToDevKitMapping)
                 {
-                    // Find which devkit this film belongs to
-                    string? devKitId = null;
-                    foreach (var mapping in newSession.FilmToDevKitMapping)
+                    if (mapping.Value.Contains(filmId))
                     {
-                        if (mapping.Value.Contains(filmId))
-                        {
-                            devKitId = mapping.Key;
-                            break;
-                        }
+                        devKitId = mapping.Key;
+                        break;
                     }
-                    
-                    // Update film properties
+                }
+                
+                // Update film properties safely
+                await UpdateFilmEntitySafelyAsync(filmId, film =>
+                {
                     film.Developed = true;
                     film.DevelopedInSessionId = newSession.Id;
                     film.DevelopedWithDevKitId = devKitId; // Can be null if film is unassigned
                     film.UpdatedDate = DateTime.UtcNow;
-                    await databaseService.UpdateAsync(film);
-                    
-                    // Increment devkit count if film is assigned to a devkit
-                    if (!string.IsNullOrEmpty(devKitId))
+                });
+                
+                // Increment devkit count if film is assigned to a devkit
+                if (!string.IsNullOrEmpty(devKitId))
+                {
+                    await UpdateDevKitEntitySafelyAsync(devKitId, devKit =>
                     {
-                        var devKit = await databaseService.GetByIdAsync<DevKitEntity>(devKitId);
-                        if (devKit != null)
-                        {
-                            devKit.FilmsDeveloped++;
-                            devKit.UpdatedDate = DateTime.UtcNow;
-                            await databaseService.UpdateAsync(devKit);
-                        }
-                    }
+                        devKit.FilmsDeveloped++;
+                        devKit.UpdatedDate = DateTime.UtcNow;
+                    });
                 }
             }
             
             // Process removed films (revert their state)
             foreach (var filmId in removedFilms)
             {
-                var film = await databaseService.GetByIdAsync<FilmEntity>(filmId);
-                if (film != null && film.Developed)
+                // Get film to check its current state and devkit reference
+                var filmInfo = await dbContext.Set<FilmEntity>()
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(f => f.Id == filmId);
+                
+                if (filmInfo != null && filmInfo.Developed)
                 {
                     // Decrement devkit count if film was assigned to one
-                    if (!string.IsNullOrEmpty(film.DevelopedWithDevKitId))
+                    if (!string.IsNullOrEmpty(filmInfo.DevelopedWithDevKitId))
                     {
-                        var devKit = await databaseService.GetByIdAsync<DevKitEntity>(film.DevelopedWithDevKitId);
-                        if (devKit != null)
+                        await UpdateDevKitEntitySafelyAsync(filmInfo.DevelopedWithDevKitId, devKit =>
                         {
                             devKit.FilmsDeveloped = Math.Max(0, devKit.FilmsDeveloped - 1);
                             devKit.UpdatedDate = DateTime.UtcNow;
-                            await databaseService.UpdateAsync(devKit);
-                        }
+                        });
                     }
                     
                     // Clear film references
-                    film.Developed = false;
-                    film.DevelopedInSessionId = null;
-                    film.DevelopedWithDevKitId = null;
-                    film.UpdatedDate = DateTime.UtcNow;
-                    await databaseService.UpdateAsync(film);
+                    await UpdateFilmEntitySafelyAsync(filmId, film =>
+                    {
+                        film.Developed = false;
+                        film.DevelopedInSessionId = null;
+                        film.DevelopedWithDevKitId = null;
+                        film.UpdatedDate = DateTime.UtcNow;
+                    });
                 }
             }
             
@@ -258,8 +258,12 @@ public class SessionController(Storage storageCfg, IDatabaseService databaseServ
                 var unchangedFilms = newDevelopedFilms.Intersect(originalDevelopedFilms).ToList();
                 foreach (var filmId in unchangedFilms)
                 {
-                    var film = await databaseService.GetByIdAsync<FilmEntity>(filmId);
-                    if (film != null)
+                    // Get film info without tracking
+                    var filmInfo = await dbContext.Set<FilmEntity>()
+                        .AsNoTracking()
+                        .FirstOrDefaultAsync(f => f.Id == filmId);
+                    
+                    if (filmInfo != null)
                     {
                         // Find new devkit for this film
                         string? newDevKitId = null;
@@ -273,36 +277,34 @@ public class SessionController(Storage storageCfg, IDatabaseService databaseServ
                         }
                         
                         // Check if devkit changed
-                        if (film.DevelopedWithDevKitId != newDevKitId)
+                        if (filmInfo.DevelopedWithDevKitId != newDevKitId)
                         {
                             // Decrement old devkit count
-                            if (!string.IsNullOrEmpty(film.DevelopedWithDevKitId))
+                            if (!string.IsNullOrEmpty(filmInfo.DevelopedWithDevKitId))
                             {
-                                var oldDevKit = await databaseService.GetByIdAsync<DevKitEntity>(film.DevelopedWithDevKitId);
-                                if (oldDevKit != null)
+                                await UpdateDevKitEntitySafelyAsync(filmInfo.DevelopedWithDevKitId, devKit =>
                                 {
-                                    oldDevKit.FilmsDeveloped = Math.Max(0, oldDevKit.FilmsDeveloped - 1);
-                                    oldDevKit.UpdatedDate = DateTime.UtcNow;
-                                    await databaseService.UpdateAsync(oldDevKit);
-                                }
+                                    devKit.FilmsDeveloped = Math.Max(0, devKit.FilmsDeveloped - 1);
+                                    devKit.UpdatedDate = DateTime.UtcNow;
+                                });
                             }
                             
                             // Increment new devkit count
                             if (!string.IsNullOrEmpty(newDevKitId))
                             {
-                                var newDevKit = await databaseService.GetByIdAsync<DevKitEntity>(newDevKitId);
-                                if (newDevKit != null)
+                                await UpdateDevKitEntitySafelyAsync(newDevKitId, devKit =>
                                 {
-                                    newDevKit.FilmsDeveloped++;
-                                    newDevKit.UpdatedDate = DateTime.UtcNow;
-                                    await databaseService.UpdateAsync(newDevKit);
-                                }
+                                    devKit.FilmsDeveloped++;
+                                    devKit.UpdatedDate = DateTime.UtcNow;
+                                });
                             }
                             
                             // Update film's devkit reference
-                            film.DevelopedWithDevKitId = newDevKitId;
-                            film.UpdatedDate = DateTime.UtcNow;
-                            await databaseService.UpdateAsync(film);
+                            await UpdateFilmEntitySafelyAsync(filmId, film =>
+                            {
+                                film.DevelopedWithDevKitId = newDevKitId;
+                                film.UpdatedDate = DateTime.UtcNow;
+                            });
                         }
                     }
                 }
@@ -328,27 +330,31 @@ public class SessionController(Storage storageCfg, IDatabaseService databaseServ
             // Revert each film's state
             foreach (var filmId in developedFilms)
             {
-                var film = await databaseService.GetByIdAsync<FilmEntity>(filmId);
-                if (film != null && film.Developed)
+                // Get film info without tracking
+                var filmInfo = await dbContext.Set<FilmEntity>()
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(f => f.Id == filmId);
+                
+                if (filmInfo != null && filmInfo.Developed)
                 {
                     // Decrement devkit count if film was assigned to one
-                    if (!string.IsNullOrEmpty(film.DevelopedWithDevKitId))
+                    if (!string.IsNullOrEmpty(filmInfo.DevelopedWithDevKitId))
                     {
-                        var devKit = await databaseService.GetByIdAsync<DevKitEntity>(film.DevelopedWithDevKitId);
-                        if (devKit != null)
+                        await UpdateDevKitEntitySafelyAsync(filmInfo.DevelopedWithDevKitId, devKit =>
                         {
                             devKit.FilmsDeveloped = Math.Max(0, devKit.FilmsDeveloped - 1);
                             devKit.UpdatedDate = DateTime.UtcNow;
-                            await databaseService.UpdateAsync(devKit);
-                        }
+                        });
                     }
                     
                     // Clear film references
-                    film.Developed = false;
-                    film.DevelopedInSessionId = null;
-                    film.DevelopedWithDevKitId = null;
-                    film.UpdatedDate = DateTime.UtcNow;
-                    await databaseService.UpdateAsync(film);
+                    await UpdateFilmEntitySafelyAsync(filmId, film =>
+                    {
+                        film.Developed = false;
+                        film.DevelopedInSessionId = null;
+                        film.DevelopedWithDevKitId = null;
+                        film.UpdatedDate = DateTime.UtcNow;
+                    });
                 }
             }
         }
@@ -356,5 +362,103 @@ public class SessionController(Storage storageCfg, IDatabaseService databaseServ
         {
             Console.WriteLine($"Error reverting session business logic: {ex.Message}");
         }
+    }
+    
+    /// <summary>
+    /// Safely updates a FilmEntity by loading without tracking, applying changes, and saving.
+    /// This avoids EF Core tracking conflicts when the same entity might be tracked elsewhere.
+    /// </summary>
+    private async Task UpdateFilmEntitySafelyAsync(string filmId, Action<FilmEntity> updateAction)
+    {
+        // Load entity without tracking
+        var existingEntity = await dbContext.Set<FilmEntity>()
+            .AsNoTracking()
+            .FirstOrDefaultAsync(f => f.Id == filmId);
+        
+        if (existingEntity == null)
+            return;
+        
+        // Apply updates to the existing entity (creating a new instance)
+        var updatedEntity = new FilmEntity
+        {
+            Id = existingEntity.Id,
+            CreatedDate = existingEntity.CreatedDate,
+            UpdatedDate = DateTime.UtcNow,
+            Name = existingEntity.Name,
+            Iso = existingEntity.Iso,
+            Type = existingEntity.Type,
+            NumberOfExposures = existingEntity.NumberOfExposures,
+            Cost = existingEntity.Cost,
+            PurchasedBy = existingEntity.PurchasedBy,
+            PurchasedOn = existingEntity.PurchasedOn,
+            ImageId = existingEntity.ImageId,
+            Description = existingEntity.Description,
+            Developed = existingEntity.Developed,
+            DevelopedInSessionId = existingEntity.DevelopedInSessionId,
+            DevelopedWithDevKitId = existingEntity.DevelopedWithDevKitId,
+            ExposureDates = existingEntity.ExposureDates
+        };
+        
+        // Apply the update action
+        updateAction(updatedEntity);
+        
+        // Attach and update
+        dbContext.Set<FilmEntity>().Attach(updatedEntity);
+        dbContext.Entry(updatedEntity).State = EntityState.Modified;
+        
+        // Clear navigation properties
+        dbContext.Entry(updatedEntity).Reference(f => f.DevelopedWithDevKit).CurrentValue = null;
+        dbContext.Entry(updatedEntity).Reference(f => f.DevelopedInSession).CurrentValue = null;
+        dbContext.Entry(updatedEntity).Collection(f => f.Photos).IsLoaded = false;
+        
+        await dbContext.SaveChangesAsync();
+    }
+    
+    /// <summary>
+    /// Safely updates a DevKitEntity by loading without tracking, applying changes, and saving.
+    /// This avoids EF Core tracking conflicts when the same entity might be tracked elsewhere.
+    /// </summary>
+    private async Task UpdateDevKitEntitySafelyAsync(string devKitId, Action<DevKitEntity> updateAction)
+    {
+        // Load entity without tracking
+        var existingEntity = await dbContext.Set<DevKitEntity>()
+            .AsNoTracking()
+            .FirstOrDefaultAsync(d => d.Id == devKitId);
+        
+        if (existingEntity == null)
+            return;
+        
+        // Apply updates to the existing entity (creating a new instance)
+        var updatedEntity = new DevKitEntity
+        {
+            Id = existingEntity.Id,
+            CreatedDate = existingEntity.CreatedDate,
+            UpdatedDate = DateTime.UtcNow,
+            Name = existingEntity.Name,
+            Url = existingEntity.Url,
+            Type = existingEntity.Type,
+            PurchasedBy = existingEntity.PurchasedBy,
+            PurchasedOn = existingEntity.PurchasedOn,
+            MixedOn = existingEntity.MixedOn,
+            ValidForWeeks = existingEntity.ValidForWeeks,
+            ValidForFilms = existingEntity.ValidForFilms,
+            FilmsDeveloped = existingEntity.FilmsDeveloped,
+            ImageId = existingEntity.ImageId,
+            Description = existingEntity.Description,
+            Expired = existingEntity.Expired
+        };
+        
+        // Apply the update action
+        updateAction(updatedEntity);
+        
+        // Attach and update
+        dbContext.Set<DevKitEntity>().Attach(updatedEntity);
+        dbContext.Entry(updatedEntity).State = EntityState.Modified;
+        
+        // Clear navigation properties
+        dbContext.Entry(updatedEntity).Collection(d => d.DevelopedFilms).IsLoaded = false;
+        dbContext.Entry(updatedEntity).Collection(d => d.UsedInSessions).IsLoaded = false;
+        
+        await dbContext.SaveChangesAsync();
     }
 }

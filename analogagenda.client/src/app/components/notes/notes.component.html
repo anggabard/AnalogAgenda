@@ -1,6 +1,7 @@
 <div class="container">
     <div class="header">
         <button class="add-note" (click)="onNewNoteClick()">+ New Note +</button>
+        <button class="add-note merge-notes" (click)="openMergeModal()">Merge Notes</button>
     </div>
 
     <div class="notes-section">
@@ -23,3 +24,43 @@
         <span class="title">{{note.name}}</span>
     </div>
 </ng-template>
+
+<!-- Merge Modal -->
+<div class="modal-overlay" *ngIf="isMergeModalOpen" (click)="closeMergeModal()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+            <h3>Merge Notes</h3>
+            <button class="modal-close" (click)="closeMergeModal()">✕</button>
+        </div>
+        <div class="modal-body">
+            <p style="text-align: center; margin-bottom: 20px; color: #666;">Select 2 or more notes to merge:</p>
+            <div class="items-grid">
+                <div *ngFor="let note of notes" 
+                     class="item-card"
+                     [class.selected]="isNoteSelected(note.id)"
+                     (click)="toggleNoteSelection(note.id)">
+                    <div class="item-content">
+                        <div class="item-info">
+                            <img [src]="note.imageUrl" alt="{{note.name}}" class="item-image" />
+                            <div class="item-details">
+                                <span class="item-name">{{ note.name }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="item-checkbox">
+                        <input type="checkbox" 
+                               [checked]="isNoteSelected(note.id)"
+                               readonly />
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer" *ngIf="selectedNotesForMerge.size >= 2">
+                <button class="btn btn-primary" 
+                        [disabled]="!canShowMergedNote()"
+                        (click)="showMergedNote()">
+                    Merge {{ selectedNotesForMerge.size }} Note{{ selectedNotesForMerge.size > 1 ? 's' : '' }}
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

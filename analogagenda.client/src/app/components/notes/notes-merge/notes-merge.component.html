@@ -1,0 +1,70 @@
+<div *ngIf="loading" class="loading">
+    <p>Loading merged note...</p>
+</div>
+
+<div *ngIf="error" class="error">
+    <p>{{ error }}</p>
+</div>
+
+<div *ngIf="notes.length > 0 && !loading" class="merged-note-container">
+    <!-- Title -->
+    <div class="note-header">
+        <div class="title-section">
+            <h1 class="note-title">{{ mergedName }}</h1>
+        </div>
+        
+        <div class="film-counter">
+            <button type="button" class="film-btn film-decrement" (click)="decrementFilmCount()" [disabled]="filmCount <= 1">-1</button>
+            <span class="film-count">{{ filmCount }}</span>
+            <button type="button" class="film-btn film-increment" (click)="incrementFilmCount()" [disabled]="filmCount >= 100">+1</button>
+        </div>
+    </div>
+
+    <!-- Merged Table -->
+    <div class="table-wrapper">
+        <table>
+            <thead>
+                <tr>
+                    <th>Start Time (min)</th>
+                    <th>Step</th>
+                    <th>Substance</th>
+                    <th>Temperature (°C)</th>
+                    <th>Details</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr *ngFor="let entry of sortedEntries; let i = index" [class.out-done-row]="isOutDoneRow(entry)">
+                    <td data-label="Start Time (min)">
+                        <span>{{ formatTimeForDisplay(entry.startTime) }}</span>
+                    </td>
+                    <td data-label="Step">
+                        <span>{{ entry.step }}</span>
+                    </td>
+                    <td data-label="Substance">
+                        <span class="substance-name">{{ entry.substance }}</span>
+                    </td>
+                    <td data-label="Temperature (°C)">
+                        <span *ngIf="!isOutDoneRow(entry)">
+                            {{ entry.temperatureMin | number:'1.1-1' }}°C
+                            <span *ngIf="entry.temperatureMax">- {{ entry.temperatureMax | number:'1.1-1' }}°C</span>
+                        </span>
+                        <span *ngIf="isOutDoneRow(entry)"></span>
+                    </td>
+                    <td data-label="Details">
+                        <span>{{ entry.details }}</span>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Side Notes -->
+    <div class="form-wrapper" *ngIf="mergedSideNote">
+        <div class="form-row">
+            <div class="textarea-group">
+                <label>Side Notes</label>
+                <div class="side-notes-display">{{ mergedSideNote }}</div>
+            </div>
+        </div>
+    </div>
+</div>

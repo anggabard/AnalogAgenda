@@ -23,5 +23,9 @@ export class NotesService extends BasePaginatedService<NoteDto> {
     return this.getFilteredPaged('', page, pageSize, withEntries ? { withEntries: 'true' } : undefined);
   }
 
+  getMergedNotes(compositeId: string): Observable<NoteDto[]> {
+    return this.get<NoteDto[]>(`merge/${compositeId}`);
+  }
+
   // Note: getById(), update(), deleteById() are inherited from BasePaginatedService
 }

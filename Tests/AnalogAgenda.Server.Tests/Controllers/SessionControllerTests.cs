@@ -48,20 +48,20 @@ public class SessionControllerTests : IDisposable
     }
 
     [Fact]
-    public async Task GetSessionByRowKey_WithInvalidRowKey_ReturnsNotFound()
+    public async Task GetSessionById_WithInvalidId_ReturnsNotFound()
     {
         // Arrange
-        var rowKey = "nonexistent-session";
+        var id = "nonexistent-session";
 
-        _mockTableService.Setup(x => x.GetByIdAsync<SessionEntity>(rowKey))
+        _mockTableService.Setup(x => x.GetByIdAsync<SessionEntity>(id))
             .ReturnsAsync((SessionEntity?)null);
 
         // Act
-        var result = await _controller.GetSessionById(rowKey);
+        var result = await _controller.GetSessionById(id);
 
         // Assert
         var notFoundResult = Assert.IsType<NotFoundObjectResult>(result);
-        Assert.Equal($"No Session found with Id: {rowKey}", notFoundResult.Value);
+        Assert.Equal($"No Session found with Id: {id}", notFoundResult.Value);
     }
 
     [Fact]

@@ -132,7 +132,7 @@ namespace AnalogAgenda.Functions
                 };
             }
 
-            response.WriteString(System.Text.Json.JsonSerializer.Serialize(status));
+            await response.WriteStringAsync(System.Text.Json.JsonSerializer.Serialize(status));
 
             return response;
         }

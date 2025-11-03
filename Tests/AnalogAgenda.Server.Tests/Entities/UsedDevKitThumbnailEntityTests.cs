@@ -1,4 +1,3 @@
-using Database.DBObjects.Enums;
 using Database.Entities;
 
 namespace AnalogAgenda.Server.Tests.Entities;

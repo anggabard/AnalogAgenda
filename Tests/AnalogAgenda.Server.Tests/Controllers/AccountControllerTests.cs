@@ -1,4 +1,6 @@
 using AnalogAgenda.Server.Controllers;
+using AnalogAgenda.Server.Tests.Helpers;
+using Database.Data;
 using Database.DTOs;
 using Database.Entities;
 using Database.Helpers;
@@ -12,36 +14,38 @@ using System.Security.Claims;
 
 namespace AnalogAgenda.Server.Tests.Controllers;
 
-public class AccountControllerTests
+public class AccountControllerTests : IDisposable
 {
     private readonly Mock<IDatabaseService> _mockTableService;
+    private readonly AnalogAgendaDbContext _dbContext;
     private readonly AccountController _controller;
 
     public AccountControllerTests()
     {
         _mockTableService = new Mock<IDatabaseService>();
-        _controller = new AccountController(_mockTableService.Object);
-        
+        _dbContext = InMemoryDbContextFactory.Create("$AccountTestDb_${Guid.NewGuid()}");
+        _controller = new AccountController(_mockTableService.Object, _dbContext);
+
         // Setup HttpContext with authentication services
         var services = new ServiceCollection();
         var mockAuthService = new Mock<IAuthenticationService>();
         var mockServiceProvider = new Mock<IServiceProvider>();
-        
+
         mockServiceProvider.Setup(x => x.GetService(typeof(IAuthenticationService)))
             .Returns(mockAuthService.Object);
-        
+
         mockAuthService.Setup(x => x.SignInAsync(
-            It.IsAny<HttpContext>(), 
-            It.IsAny<string>(), 
-            It.IsAny<ClaimsPrincipal>(), 
+            It.IsAny<HttpContext>(),
+            It.IsAny<string>(),
+            It.IsAny<ClaimsPrincipal>(),
             It.IsAny<AuthenticationProperties>()))
             .Returns(Task.CompletedTask);
-        
+
         var httpContext = new DefaultHttpContext
         {
             RequestServices = mockServiceProvider.Object
         };
-        
+
         _controller.ControllerContext = new ControllerContext()
         {
             HttpContext = httpContext
@@ -124,7 +128,7 @@ public class AccountControllerTests
         };
         var identity = new ClaimsIdentity(claims, "Test");
         var principal = new ClaimsPrincipal(identity);
-        
+
         _controller.ControllerContext.HttpContext.User = principal;
 
         // Act
@@ -137,4 +141,12 @@ public class AccountControllerTests
         Assert.Equal("test@example.com", identityDto.Email);
     }
 
+    public void Dispose()
+    {
+        _dbContext.Database.EnsureDeleted();
+        _dbContext.Dispose();
+    }
 }
+
+
+

@@ -6,12 +6,16 @@ public class NoteEntryEntity : BaseEntity
 {
     public string NoteId { get; set; } = default!;
     public required double Time { get; set; }
-    public required string Process { get; set; }
-    public required string Film { get; set; }
+    public required string Step { get; set; }
     public string Details { get; set; } = string.Empty;
+    public int Index { get; set; }
+    public double TemperatureMin { get; set; }
+    public double? TemperatureMax { get; set; }
 
-    // Navigation property
+    // Navigation properties
     public NoteEntity Note { get; set; } = default!;
+    public ICollection<NoteEntryRuleEntity> Rules { get; set; } = [];
+    public ICollection<NoteEntryOverrideEntity> Overrides { get; set; } = [];
 
     protected override int IdLength() => 8;
 
@@ -22,9 +26,13 @@ public class NoteEntryEntity : BaseEntity
             Id = Id,
             NoteId = NoteId,
             Time = Time,
-            Process = Process,
-            Film = Film,
+            Step = Step,
             Details = Details,
+            Index = Index,
+            TemperatureMin = TemperatureMin,
+            TemperatureMax = TemperatureMax,
+            Rules = [.. Rules.Select(r => r.ToDTO())],
+            Overrides = [.. Overrides.Select(o => o.ToDTO())],
         };
     }
 }

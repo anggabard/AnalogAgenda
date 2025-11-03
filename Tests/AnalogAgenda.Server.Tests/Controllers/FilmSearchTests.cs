@@ -33,7 +33,7 @@ public class FilmSearchTests : IDisposable
         _mockBlobService = new Mock<IBlobService>();
         _storageConfig = new Storage { AccountName = "test" };
         
-        _controller = new FilmController(_storageConfig, _databaseService, _mockBlobService.Object);
+        _controller = new FilmController(_storageConfig, _databaseService, _mockBlobService.Object, _dbContext);
         
         // Setup mock user identity
         var claims = new List<Claim> { new Claim(ClaimTypes.Name, "Angel") };

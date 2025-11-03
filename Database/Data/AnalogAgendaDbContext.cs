@@ -13,6 +13,8 @@ public class AnalogAgendaDbContext : DbContext
     public DbSet<UserEntity> Users { get; set; }
     public DbSet<NoteEntity> Notes { get; set; }
     public DbSet<NoteEntryEntity> NoteEntries { get; set; }
+    public DbSet<NoteEntryRuleEntity> NoteEntryRules { get; set; }
+    public DbSet<NoteEntryOverrideEntity> NoteEntryOverrides { get; set; }
     public DbSet<DevKitEntity> DevKits { get; set; }
     public DbSet<FilmEntity> Films { get; set; }
     public DbSet<PhotoEntity> Photos { get; set; }
@@ -54,10 +56,40 @@ public class AnalogAgendaDbContext : DbContext
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Id).HasMaxLength(50);
             entity.Property(e => e.NoteId).IsRequired().HasMaxLength(50);
-            entity.Property(e => e.Process).IsRequired().HasMaxLength(500);
-            entity.Property(e => e.Film).IsRequired().HasMaxLength(500);
+            entity.Property(e => e.Step).IsRequired().HasMaxLength(500);
             entity.Property(e => e.Details).HasMaxLength(1000);
             entity.HasIndex(e => e.NoteId);
+            
+            // Relationships with rules and overrides
+            entity.HasMany(e => e.Rules)
+                .WithOne(r => r.NoteEntry)
+                .HasForeignKey(r => r.NoteEntryId)
+                .OnDelete(DeleteBehavior.Cascade);
+                
+            entity.HasMany(e => e.Overrides)
+                .WithOne(o => o.NoteEntry)
+                .HasForeignKey(o => o.NoteEntryId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // Configure NoteEntryRuleEntity
+        modelBuilder.Entity<NoteEntryRuleEntity>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).HasMaxLength(50);
+            entity.Property(e => e.NoteEntryId).IsRequired().HasMaxLength(50);
+            entity.HasIndex(e => e.NoteEntryId);
+        });
+
+        // Configure NoteEntryOverrideEntity
+        modelBuilder.Entity<NoteEntryOverrideEntity>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).HasMaxLength(50);
+            entity.Property(e => e.NoteEntryId).IsRequired().HasMaxLength(50);
+            entity.Property(e => e.Step).HasMaxLength(500);
+            entity.Property(e => e.Details).HasMaxLength(1000);
+            entity.HasIndex(e => e.NoteEntryId);
         });
 
         // Configure FilmEntity
