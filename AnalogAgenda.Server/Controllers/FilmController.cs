@@ -252,10 +252,6 @@ public class FilmController(Storage storageCfg, IDatabaseService databaseService
         if (entity == null)
             return NotFound();
         
-        // Delete image blob if not default
-        if (entity.ImageId != Constants.DefaultFilmImageId)
-            await filmsContainer.DeleteBlobAsync(entity.ImageId.ToString());
-        
         await databaseService.DeleteAsync(entity);
         return NoContent();
     }
