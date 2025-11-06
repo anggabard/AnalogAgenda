@@ -39,6 +39,32 @@ public class FilmEntity : BaseEntity, IImageEntity
 
     protected override int IdLength() => 12;
 
+    public void Update(FilmDto dto)
+    {
+        Name = dto.Name;
+        Iso = dto.Iso;
+        Type = dto.Type.ToEnum<EFilmType>();
+        NumberOfExposures = dto.NumberOfExposures;
+        Cost = dto.Cost;
+        PurchasedBy = dto.PurchasedBy.ToEnum<EUsernameType>();
+        PurchasedOn = dto.PurchasedOn.ToDateTime(TimeOnly.MinValue);
+        Description = dto.Description;
+        Developed = dto.Developed;
+        DevelopedInSessionId = dto.DevelopedInSessionId;
+        DevelopedWithDevKitId = dto.DevelopedWithDevKitId;
+        ExposureDates = dto.ExposureDates;
+        
+        // Update ImageId if provided in the URL (extracted from ImageUrl)
+        if (!string.IsNullOrEmpty(dto.ImageUrl))
+        {
+            var extractedImageId = BlobUrlHelper.GetImageInfoFromUrl(dto.ImageUrl).ImageId;
+            if (extractedImageId != Guid.Empty)
+            {
+                ImageId = extractedImageId;
+            }
+        }
+    }
+
     public FilmDto ToDTO(string accountName)
     {
         return new FilmDto()

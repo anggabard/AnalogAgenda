@@ -17,6 +17,14 @@ public class NoteEntity : BaseEntity, IImageEntity
 
     protected override int IdLength() => 4;
 
+    public void Update(NoteDto dto)
+    {
+        Name = dto.Name;
+        SideNote = dto.SideNote;
+        
+        // ImageId is handled in the controller (uploaded to blob storage)
+    }
+
     public NoteDto ToDTO(string accountName)
     {
         return new NoteDto()

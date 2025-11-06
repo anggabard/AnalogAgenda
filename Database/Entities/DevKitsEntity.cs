@@ -38,6 +38,31 @@ public class DevKitEntity : BaseEntity, IImageEntity
 
     public DateTime GetExpirationDate() => MixedOn.AddDays(7 * ValidForWeeks);
 
+    public void Update(DevKitDto dto)
+    {
+        Name = dto.Name;
+        Url = dto.Url;
+        Type = dto.Type.ToEnum<EDevKitType>();
+        PurchasedBy = dto.PurchasedBy.ToEnum<EUsernameType>();
+        PurchasedOn = dto.PurchasedOn.ToDateTime(TimeOnly.MinValue);
+        MixedOn = dto.MixedOn.ToDateTime(TimeOnly.MinValue);
+        ValidForWeeks = dto.ValidForWeeks;
+        ValidForFilms = dto.ValidForFilms;
+        FilmsDeveloped = dto.FilmsDeveloped;
+        Description = dto.Description;
+        Expired = dto.Expired;
+        
+        // Update ImageId if provided in the URL (extracted from ImageUrl)
+        if (!string.IsNullOrEmpty(dto.ImageUrl))
+        {
+            var extractedImageId = BlobUrlHelper.GetImageInfoFromUrl(dto.ImageUrl).ImageId;
+            if (extractedImageId != Guid.Empty)
+            {
+                ImageId = extractedImageId;
+            }
+        }
+    }
+
     public DevKitDto ToDTO(string accountName)
     {
         return new DevKitDto()

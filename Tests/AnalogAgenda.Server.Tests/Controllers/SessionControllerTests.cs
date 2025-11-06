@@ -25,7 +25,7 @@ public class SessionControllerTests : IDisposable
         _mockTableService = new Mock<IDatabaseService>();
         _mockBlobService = new Mock<IBlobService>();
         _dbContext = InMemoryDbContextFactory.Create($"SessionTestDb_{Guid.NewGuid()}");
-        _controller = new SessionController(_mockStorage.Object, _mockTableService.Object, _mockBlobService.Object, _dbContext);
+        _controller = new SessionController(_mockStorage.Object, _mockTableService.Object, _mockBlobService.Object);
     }
     
     public void Dispose()
@@ -38,10 +38,7 @@ public class SessionControllerTests : IDisposable
     public void SessionController_Constructor_InitializesCorrectly()
     {
         // Arrange & Act
-        var testDb = InMemoryDbContextFactory.Create($"TestDb_{Guid.NewGuid()}");
-        var controller = new SessionController(_mockStorage.Object, _mockTableService.Object, _mockBlobService.Object, testDb);
-        testDb.Database.EnsureDeleted();
-        testDb.Dispose();
+        var controller = new SessionController(_mockStorage.Object, _mockTableService.Object, _mockBlobService.Object);
 
         // Assert
         Assert.NotNull(controller);
@@ -68,13 +65,9 @@ public class SessionControllerTests : IDisposable
     public void SessionController_HasCorrectRoute()
     {
         // Arrange & Act
-        var testDb = InMemoryDbContextFactory.Create($"TestDb_{Guid.NewGuid()}");
-        var controller = new SessionController(_mockStorage.Object, _mockTableService.Object, _mockBlobService.Object, testDb);
-        testDb.Database.EnsureDeleted();
-        testDb.Dispose();
+        var controller = new SessionController(_mockStorage.Object, _mockTableService.Object, _mockBlobService.Object);
 
         // Assert
         Assert.NotNull(controller);
-        // The route attribute is applied at the class level, so we just verify the controller exists
     }
 }

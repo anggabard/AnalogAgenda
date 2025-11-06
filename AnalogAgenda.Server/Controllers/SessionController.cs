@@ -1,72 +1,78 @@
+using AnalogAgenda.Server.Helpers;
 using Azure.Storage.Blobs;
 using Configuration.Sections;
 using Database.DBObjects;
 using Database.DBObjects.Enums;
 using Database.DTOs;
 using Database.Entities;
-using Database.Data;
 using Database.Helpers;
 using Database.Services.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace AnalogAgenda.Server.Controllers;
 
-[Route("api/[controller]")]
-public class SessionController(Storage storageCfg, IDatabaseService databaseService, IBlobService blobsService, AnalogAgendaDbContext dbContext) : BaseEntityController<SessionEntity, SessionDto>(storageCfg, databaseService, blobsService, dbContext)
+[Route("api/[controller]"), ApiController, Authorize]
+public class SessionController(Storage storageCfg, IDatabaseService databaseService, IBlobService blobsService) : ControllerBase
 {
+    private readonly Storage storageCfg = storageCfg;
+    private readonly IDatabaseService databaseService = databaseService;
+    private readonly IBlobService blobsService = blobsService;
     private readonly BlobContainerClient sessionsContainer = blobsService.GetBlobContainer(ContainerName.sessions);
-
-    protected override BlobContainerClient GetBlobContainer() => sessionsContainer;
-    protected override Guid GetDefaultImageId() => Constants.DefaultSessionImageId;
-    protected override SessionEntity DtoToEntity(SessionDto dto) => dto.ToEntity();
-    protected override SessionDto EntityToDto(SessionEntity entity) => entity.ToDTO(storageCfg.AccountName);
 
     [HttpPost]
     public async Task<IActionResult> CreateNewSession([FromBody] SessionDto dto)
     {
-        var result = await CreateEntityWithImageAsync(dto, dto => dto.ImageBase64);
-        
-        // If creation was successful, process the business logic
-        if (result is CreatedResult createdResult)
+        var imageId = Constants.DefaultSessionImageId;
+        try
         {
-            if (createdResult.Value is SessionDto createdSession)
+            var imageBase64 = dto.ImageBase64;
+            if (!string.IsNullOrEmpty(imageBase64))
             {
-                // Copy the filmToDevKitMapping from the original DTO
-                createdSession.FilmToDevKitMapping = dto.FilmToDevKitMapping;
-                await ProcessSessionBusinessLogic(createdSession, null);
+                imageId = Guid.NewGuid();
+                await BlobImageHelper.UploadBase64ImageWithContentTypeAsync(sessionsContainer, imageBase64, imageId);
             }
+
+            var entity = dto.ToEntity();
+            entity.ImageId = imageId;
+
+            await databaseService.AddAsync(entity);
+            
+            // Return the created entity as DTO
+            var createdDto = entity.ToDTO(storageCfg.AccountName);
+            
+            // Copy the filmToDevKitMapping from the original DTO
+            createdDto.FilmToDevKitMapping = dto.FilmToDevKitMapping;
+            await ProcessSessionBusinessLogic(createdDto, null);
+            
+            return Created(string.Empty, createdDto);
         }
-        
-        return result;
+        catch (Exception ex)
+        {
+            if (imageId != Constants.DefaultSessionImageId)
+                await sessionsContainer.GetBlobClient(imageId.ToString()).DeleteIfExistsAsync();
+
+            return UnprocessableEntity(ex.Message);
+        }
     }
 
     [HttpGet]
     public async Task<IActionResult> GetAllSessions([FromQuery] int page = 1, [FromQuery] int pageSize = 5)
     {
-        IQueryable<SessionEntity> query = dbContext.Sessions
-            .Include(s => s.UsedDevKits)
-            .Include(s => s.DevelopedFilms);
-        
+        // For backward compatibility, if page is 0 or negative, return all sessions
         if (page <= 0)
         {
-            var entities = await query.ApplyStandardSorting().ToListAsync();
-            return Ok(entities.Select(EntityToDto));
+            var entities = await databaseService.GetAllAsync<SessionEntity>();
+            return Ok(entities.Select(e => e.ToDTO(storageCfg.AccountName)));
         }
 
-        var totalCount = await query.CountAsync();
-        var pagedEntities = await query
-            .ApplyStandardSorting()
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .ToListAsync();
-
+        var pagedEntities = await databaseService.GetPagedAsync<SessionEntity>(page, pageSize, entities => entities.ApplyStandardSorting());
         var pagedResults = new PagedResponseDto<SessionDto>
         {
-            Data = pagedEntities.Select(EntityToDto),
-            TotalCount = totalCount,
-            PageSize = pageSize,
-            CurrentPage = page
+            Data = pagedEntities.Data.Select(e => e.ToDTO(storageCfg.AccountName)),
+            TotalCount = pagedEntities.TotalCount,
+            PageSize = pagedEntities.PageSize,
+            CurrentPage = pagedEntities.CurrentPage
         };
 
         return Ok(pagedResults);
@@ -75,19 +81,15 @@ public class SessionController(Storage storageCfg, IDatabaseService databaseServ
     [HttpGet("{id}")]
     public async Task<IActionResult> GetSessionById(string id)
     {
-        var sessionEntity = await dbContext.Sessions
-            .Include(s => s.DevelopedFilms)
-            .ThenInclude(f => f.DevelopedWithDevKit)
-            .Include(s => s.UsedDevKits)
-            .FirstOrDefaultAsync(s => s.Id == id);
+        var sessionEntity = await databaseService.GetByIdAsync<SessionEntity>(id);
             
         if (sessionEntity == null)
             return NotFound($"No Session found with Id: {id}");
 
-        var sessionDto = EntityToDto(sessionEntity);
+        var sessionDto = sessionEntity.ToDTO(storageCfg.AccountName);
         
         // Populate FilmToDevKitMapping based on loaded relationships
-        await PopulateFilmToDevKitMapping(sessionDto, sessionEntity);
+        await PopulateFilmToDevKitMapping(sessionDto, null);
         
         return Ok(sessionDto);
     }
@@ -135,19 +137,40 @@ public class SessionController(Storage storageCfg, IDatabaseService databaseServ
     [HttpPut("{id}")]
     public async Task<IActionResult> UpdateSession(string id, [FromBody] SessionDto updateDto)
     {
+        if (updateDto == null)
+            return BadRequest("Invalid data.");
+
         // Get the original session first
         var originalSession = await databaseService.GetByIdAsync<SessionEntity>(id);
-        SessionDto? originalDto = originalSession?.ToDTO(storageCfg.AccountName);
+        if (originalSession == null)
+            return NotFound();
         
-        var result = await UpdateEntityWithImageAsync(id, updateDto, dto => dto.ImageBase64);
+        SessionDto? originalDto = originalSession.ToDTO(storageCfg.AccountName);
         
-        // If update was successful, process the business logic
-        if (result is NoContentResult)
+        // Handle image update if provided
+        var imageBase64 = updateDto.ImageBase64;
+        if (!string.IsNullOrEmpty(imageBase64))
         {
-            await ProcessSessionBusinessLogic(updateDto, originalDto);
+            if (originalSession.ImageId != Constants.DefaultSessionImageId)
+            {
+                await sessionsContainer.DeleteBlobAsync(originalSession.ImageId.ToString());
+            }
+
+            var newImageId = Guid.NewGuid();
+            await BlobImageHelper.UploadBase64ImageWithContentTypeAsync(sessionsContainer, imageBase64, newImageId);
+            originalSession.ImageId = newImageId;
         }
+
+        // Update entity using the Update method
+        originalSession.Update(updateDto);
         
-        return result;
+        // UpdateAsync will handle UpdatedDate
+        await databaseService.UpdateAsync(originalSession);
+        
+        // Process the business logic
+        await ProcessSessionBusinessLogic(updateDto, originalDto);
+        
+        return NoContent();
     }
 
     [HttpDelete("{id}")]
@@ -155,17 +178,21 @@ public class SessionController(Storage storageCfg, IDatabaseService databaseServ
     {
         // Get the session before deletion to revert business logic
         var sessionToDelete = await databaseService.GetByIdAsync<SessionEntity>(id);
-        SessionDto? sessionDto = sessionToDelete?.ToDTO(storageCfg.AccountName);
+        if (sessionToDelete == null)
+            return NotFound();
         
-        var result = await DeleteEntityWithImageAsync(id);
+        SessionDto? sessionDto = sessionToDelete.ToDTO(storageCfg.AccountName);
         
-        // If deletion was successful, revert the business logic
-        if (result is NoContentResult && sessionDto != null)
-        {
-            await RevertSessionBusinessLogic(sessionDto);
-        }
+        // Delete image blob if not default
+        if (sessionToDelete.ImageId != Constants.DefaultSessionImageId)
+            await sessionsContainer.DeleteBlobAsync(sessionToDelete.ImageId.ToString());
         
-        return result;
+        await databaseService.DeleteAsync(sessionToDelete);
+        
+        // Revert the business logic
+        await RevertSessionBusinessLogic(sessionDto);
+        
+        return NoContent();
     }
     
     /// <summary>
@@ -206,7 +233,6 @@ public class SessionController(Storage storageCfg, IDatabaseService databaseServ
                     film.Developed = true;
                     film.DevelopedInSessionId = newSession.Id;
                     film.DevelopedWithDevKitId = devKitId; // Can be null if film is unassigned
-                    film.UpdatedDate = DateTime.UtcNow;
                 });
                 
                 // Increment devkit count if film is assigned to a devkit
@@ -215,7 +241,6 @@ public class SessionController(Storage storageCfg, IDatabaseService databaseServ
                     await UpdateDevKitEntitySafelyAsync(devKitId, devKit =>
                     {
                         devKit.FilmsDeveloped++;
-                        devKit.UpdatedDate = DateTime.UtcNow;
                     });
                 }
             }
@@ -224,9 +249,7 @@ public class SessionController(Storage storageCfg, IDatabaseService databaseServ
             foreach (var filmId in removedFilms)
             {
                 // Get film to check its current state and devkit reference
-                var filmInfo = await dbContext.Set<FilmEntity>()
-                    .AsNoTracking()
-                    .FirstOrDefaultAsync(f => f.Id == filmId);
+                var filmInfo = await databaseService.GetByIdAsync<FilmEntity>(filmId);
                 
                 if (filmInfo != null && filmInfo.Developed)
                 {
@@ -236,7 +259,6 @@ public class SessionController(Storage storageCfg, IDatabaseService databaseServ
                         await UpdateDevKitEntitySafelyAsync(filmInfo.DevelopedWithDevKitId, devKit =>
                         {
                             devKit.FilmsDeveloped = Math.Max(0, devKit.FilmsDeveloped - 1);
-                            devKit.UpdatedDate = DateTime.UtcNow;
                         });
                     }
                     
@@ -246,7 +268,6 @@ public class SessionController(Storage storageCfg, IDatabaseService databaseServ
                         film.Developed = false;
                         film.DevelopedInSessionId = null;
                         film.DevelopedWithDevKitId = null;
-                        film.UpdatedDate = DateTime.UtcNow;
                     });
                 }
             }
@@ -257,10 +278,8 @@ public class SessionController(Storage storageCfg, IDatabaseService databaseServ
                 var unchangedFilms = newDevelopedFilms.Intersect(originalDevelopedFilms).ToList();
                 foreach (var filmId in unchangedFilms)
                 {
-                    // Get film info without tracking
-                    var filmInfo = await dbContext.Set<FilmEntity>()
-                        .AsNoTracking()
-                        .FirstOrDefaultAsync(f => f.Id == filmId);
+                    // Get film info
+                    var filmInfo = await databaseService.GetByIdAsync<FilmEntity>(filmId);
                     
                     if (filmInfo != null)
                     {
@@ -284,7 +303,6 @@ public class SessionController(Storage storageCfg, IDatabaseService databaseServ
                                 await UpdateDevKitEntitySafelyAsync(filmInfo.DevelopedWithDevKitId, devKit =>
                                 {
                                     devKit.FilmsDeveloped = Math.Max(0, devKit.FilmsDeveloped - 1);
-                                    devKit.UpdatedDate = DateTime.UtcNow;
                                 });
                             }
                             
@@ -294,7 +312,6 @@ public class SessionController(Storage storageCfg, IDatabaseService databaseServ
                                 await UpdateDevKitEntitySafelyAsync(newDevKitId, devKit =>
                                 {
                                     devKit.FilmsDeveloped++;
-                                    devKit.UpdatedDate = DateTime.UtcNow;
                                 });
                             }
                             
@@ -302,7 +319,6 @@ public class SessionController(Storage storageCfg, IDatabaseService databaseServ
                             await UpdateFilmEntitySafelyAsync(filmId, film =>
                             {
                                 film.DevelopedWithDevKitId = newDevKitId;
-                                film.UpdatedDate = DateTime.UtcNow;
                             });
                         }
                     }
@@ -329,10 +345,8 @@ public class SessionController(Storage storageCfg, IDatabaseService databaseServ
             // Revert each film's state
             foreach (var filmId in developedFilms)
             {
-                // Get film info without tracking
-                var filmInfo = await dbContext.Set<FilmEntity>()
-                    .AsNoTracking()
-                    .FirstOrDefaultAsync(f => f.Id == filmId);
+                // Get film info
+                var filmInfo = await databaseService.GetByIdAsync<FilmEntity>(filmId);
                 
                 if (filmInfo != null && filmInfo.Developed)
                 {
@@ -342,7 +356,6 @@ public class SessionController(Storage storageCfg, IDatabaseService databaseServ
                         await UpdateDevKitEntitySafelyAsync(filmInfo.DevelopedWithDevKitId, devKit =>
                         {
                             devKit.FilmsDeveloped = Math.Max(0, devKit.FilmsDeveloped - 1);
-                            devKit.UpdatedDate = DateTime.UtcNow;
                         });
                     }
                     
@@ -352,7 +365,6 @@ public class SessionController(Storage storageCfg, IDatabaseService databaseServ
                         film.Developed = false;
                         film.DevelopedInSessionId = null;
                         film.DevelopedWithDevKitId = null;
-                        film.UpdatedDate = DateTime.UtcNow;
                     });
                 }
             }
@@ -364,100 +376,38 @@ public class SessionController(Storage storageCfg, IDatabaseService databaseServ
     }
     
     /// <summary>
-    /// Safely updates a FilmEntity by loading without tracking, applying changes, and saving.
-    /// This avoids EF Core tracking conflicts when the same entity might be tracked elsewhere.
+    /// Safely updates a FilmEntity by loading, applying changes, and using UpdateAsync.
     /// </summary>
     private async Task UpdateFilmEntitySafelyAsync(string filmId, Action<FilmEntity> updateAction)
     {
-        // Load entity without tracking
-        var existingEntity = await dbContext.Set<FilmEntity>()
-            .AsNoTracking()
-            .FirstOrDefaultAsync(f => f.Id == filmId);
+        // Load existing entity
+        var existingEntity = await databaseService.GetByIdAsync<FilmEntity>(filmId);
         
         if (existingEntity == null)
             return;
         
-        // Apply updates to the existing entity (creating a new instance)
-        var updatedEntity = new FilmEntity
-        {
-            Id = existingEntity.Id,
-            CreatedDate = existingEntity.CreatedDate,
-            UpdatedDate = DateTime.UtcNow,
-            Name = existingEntity.Name,
-            Iso = existingEntity.Iso,
-            Type = existingEntity.Type,
-            NumberOfExposures = existingEntity.NumberOfExposures,
-            Cost = existingEntity.Cost,
-            PurchasedBy = existingEntity.PurchasedBy,
-            PurchasedOn = existingEntity.PurchasedOn,
-            ImageId = existingEntity.ImageId,
-            Description = existingEntity.Description,
-            Developed = existingEntity.Developed,
-            DevelopedInSessionId = existingEntity.DevelopedInSessionId,
-            DevelopedWithDevKitId = existingEntity.DevelopedWithDevKitId,
-            ExposureDates = existingEntity.ExposureDates
-        };
+        // Apply the update action to get the modified entity
+        updateAction(existingEntity);
         
-        // Apply the update action
-        updateAction(updatedEntity);
-        
-        // Attach and update
-        dbContext.Set<FilmEntity>().Attach(updatedEntity);
-        dbContext.Entry(updatedEntity).State = EntityState.Modified;
-        
-        // Clear navigation properties
-        dbContext.Entry(updatedEntity).Reference(f => f.DevelopedWithDevKit).CurrentValue = null;
-        dbContext.Entry(updatedEntity).Reference(f => f.DevelopedInSession).CurrentValue = null;
-        dbContext.Entry(updatedEntity).Collection(f => f.Photos).IsLoaded = false;
-        
-        await dbContext.SaveChangesAsync();
+        // UpdateAsync will handle UpdatedDate automatically
+        await databaseService.UpdateAsync(existingEntity);
     }
     
     /// <summary>
-    /// Safely updates a DevKitEntity by loading without tracking, applying changes, and saving.
-    /// This avoids EF Core tracking conflicts when the same entity might be tracked elsewhere.
+    /// Safely updates a DevKitEntity by loading, applying changes, and using UpdateAsync.
     /// </summary>
     private async Task UpdateDevKitEntitySafelyAsync(string devKitId, Action<DevKitEntity> updateAction)
     {
-        // Load entity without tracking
-        var existingEntity = await dbContext.Set<DevKitEntity>()
-            .AsNoTracking()
-            .FirstOrDefaultAsync(d => d.Id == devKitId);
+        // Load existing entity
+        var existingEntity = await databaseService.GetByIdAsync<DevKitEntity>(devKitId);
         
         if (existingEntity == null)
             return;
         
-        // Apply updates to the existing entity (creating a new instance)
-        var updatedEntity = new DevKitEntity
-        {
-            Id = existingEntity.Id,
-            CreatedDate = existingEntity.CreatedDate,
-            UpdatedDate = DateTime.UtcNow,
-            Name = existingEntity.Name,
-            Url = existingEntity.Url,
-            Type = existingEntity.Type,
-            PurchasedBy = existingEntity.PurchasedBy,
-            PurchasedOn = existingEntity.PurchasedOn,
-            MixedOn = existingEntity.MixedOn,
-            ValidForWeeks = existingEntity.ValidForWeeks,
-            ValidForFilms = existingEntity.ValidForFilms,
-            FilmsDeveloped = existingEntity.FilmsDeveloped,
-            ImageId = existingEntity.ImageId,
-            Description = existingEntity.Description,
-            Expired = existingEntity.Expired
-        };
+        // Apply the update action to get the modified entity
+        updateAction(existingEntity);
         
-        // Apply the update action
-        updateAction(updatedEntity);
-        
-        // Attach and update
-        dbContext.Set<DevKitEntity>().Attach(updatedEntity);
-        dbContext.Entry(updatedEntity).State = EntityState.Modified;
-        
-        // Clear navigation properties
-        dbContext.Entry(updatedEntity).Collection(d => d.DevelopedFilms).IsLoaded = false;
-        dbContext.Entry(updatedEntity).Collection(d => d.UsedInSessions).IsLoaded = false;
-        
-        await dbContext.SaveChangesAsync();
+        // UpdateAsync will handle UpdatedDate automatically
+        await databaseService.UpdateAsync(existingEntity);
     }
 }

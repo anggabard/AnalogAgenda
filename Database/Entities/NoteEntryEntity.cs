@@ -19,6 +19,16 @@ public class NoteEntryEntity : BaseEntity
 
     protected override int IdLength() => 8;
 
+    public void Update(NoteEntryDto dto)
+    {
+        Time = dto.Time;
+        Step = dto.Step;
+        Details = dto.Details;
+        Index = dto.Index;
+        TemperatureMin = dto.TemperatureMin;
+        TemperatureMax = dto.TemperatureMax;
+    }
+
     public NoteEntryDto ToDTO()
     {
         return new NoteEntryDto
