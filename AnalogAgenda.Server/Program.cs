@@ -7,6 +7,7 @@ using Database.Services.Interfaces;
 using FluentValidation;
 using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -92,6 +93,27 @@ builder.Services.AddCors(options =>
 });
 
 var app = builder.Build();
+
+// Apply pending migrations automatically on startup (Development only)
+// In production, migrations should be run via a separate job/process before deployment
+if (app.Environment.IsDevelopment())
+{
+    using (var scope = app.Services.CreateScope())
+    {
+        var dbContext = scope.ServiceProvider.GetRequiredService<AnalogAgendaDbContext>();
+        try
+        {
+            // Ensure database is created and apply all pending migrations
+            dbContext.Database.Migrate();
+            app.Logger.LogInformation("Database migrations applied successfully.");
+        }
+        catch (Exception ex)
+        {
+            app.Logger.LogError(ex, "An error occurred while applying database migrations.");
+            throw; // Re-throw to prevent the app from starting with an incorrect database state
+        }
+    }
+}
 
 app.MapDefaultEndpoints();
 

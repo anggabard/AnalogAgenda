@@ -19,10 +19,6 @@ public abstract class BaseEntity
 
     protected virtual string GetId()
     {
-        if (_id != null) return _id;
-        
-        // Generate ID using the same logic as before (without PartitionKey)
-        _id = IdGenerator.Get(IdLength(), GetType().Name, CreatedDate.Ticks.ToString());
-        return _id;
+        return IdGenerator.Get(IdLength(), GetType().Name, CreatedDate.Ticks.ToString());
     }
 }
