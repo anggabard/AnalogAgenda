@@ -86,9 +86,6 @@ public class DatabaseService(AnalogAgendaDbContext context) : IDatabaseService
 
     public async Task<T> AddAsync<T>(T entity) where T : BaseEntity
     {
-        entity.CreatedDate = DateTime.UtcNow;
-        entity.UpdatedDate = DateTime.UtcNow;
-        
         await _context.Set<T>().AddAsync(entity);
         await _context.SaveChangesAsync();
         return entity;

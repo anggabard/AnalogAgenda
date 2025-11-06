@@ -1,22 +1,18 @@
 using AnalogAgenda.Server.Controllers;
 using AnalogAgenda.Server.Tests.Helpers;
-using Azure.Storage.Blobs;
 using Configuration.Sections;
 using Database.Data;
-using Database.DTOs;
-using Database.Entities;
 using Database.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
 
 namespace AnalogAgenda.Server.Tests.Controllers;
 
-public class SessionControllerTests : IDisposable
+public class SessionControllerTests
 {
     private readonly Mock<Storage> _mockStorage;
     private readonly Mock<IDatabaseService> _mockTableService;
     private readonly Mock<IBlobService> _mockBlobService;
-    private readonly AnalogAgendaDbContext _dbContext;
     private readonly SessionController _controller;
 
     public SessionControllerTests()
@@ -24,16 +20,9 @@ public class SessionControllerTests : IDisposable
         _mockStorage = new Mock<Storage>();
         _mockTableService = new Mock<IDatabaseService>();
         _mockBlobService = new Mock<IBlobService>();
-        _dbContext = InMemoryDbContextFactory.Create($"SessionTestDb_{Guid.NewGuid()}");
         _controller = new SessionController(_mockStorage.Object, _mockTableService.Object, _mockBlobService.Object);
     }
     
-    public void Dispose()
-    {
-        _dbContext.Database.EnsureDeleted();
-        _dbContext.Dispose();
-    }
-
     [Fact]
     public void SessionController_Constructor_InitializesCorrectly()
     {
@@ -49,9 +38,6 @@ public class SessionControllerTests : IDisposable
     {
         // Arrange
         var id = "nonexistent-session";
-
-        _mockTableService.Setup(x => x.GetByIdAsync<SessionEntity>(id))
-            .ReturnsAsync((SessionEntity?)null);
 
         // Act
         var result = await _controller.GetSessionById(id);

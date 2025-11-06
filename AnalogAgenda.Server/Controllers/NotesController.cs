@@ -59,7 +59,6 @@ public class NotesController(Storage storageCfg, IDatabaseService databaseServic
     private async Task<IActionResult> CreateNoteWithEntriesAsync(NoteDto dto)
     {
         var imageId = Constants.DefaultNoteImageId;
-        var creationDate = DateTime.UtcNow;
         
         try
         {
@@ -72,8 +71,6 @@ public class NotesController(Storage storageCfg, IDatabaseService databaseServic
 
             var entity = dto.ToNoteEntity();
             entity.ImageId = imageId;
-            entity.CreatedDate = creationDate;
-            entity.UpdatedDate = creationDate;
 
             await databaseService.AddAsync(entity);
             
