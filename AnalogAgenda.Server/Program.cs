@@ -33,6 +33,18 @@ builder.Services.AddStorageConfigBinding();
 builder.Services.AddScoped<IDatabaseService, DatabaseService>();
 builder.Services.AddSingleton<IBlobService, BlobService>();
 
+// Configure Kestrel to accept larger request bodies (for bulk photo uploads: 36 photos × 50MB each + base64 overhead)
+builder.Services.Configure<Microsoft.AspNetCore.Server.Kestrel.Core.KestrelServerOptions>(options =>
+{
+    options.Limits.MaxRequestBodySize = 3L * 1024 * 1024 * 1024; // 3GB to accommodate bulk uploads of base64-encoded 50MB images
+});
+
+// Configure form options for multipart form data
+builder.Services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(options =>
+{
+    options.MultipartBodyLengthLimit = 3L * 1024 * 1024 * 1024; // 3GB
+});
+
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(opt =>
     {

@@ -121,16 +121,16 @@ describe('FileUploadHelper', () => {
 
     it('should return invalid for files that are too large', () => {
       // Arrange
-      const largeContent = 'x'.repeat(15 * 1024 * 1024); // 15MB
+      const largeContent = 'x'.repeat(60 * 1024 * 1024); // 60MB
       const largeFile = new File([largeContent], 'large.jpg', { type: 'image/jpeg' });
       const fileList = [largeFile];
 
       // Act
-      const result = FileUploadHelper.validateFiles(fileList, 10); // 10MB limit
+      const result = FileUploadHelper.validateFiles(fileList, 50); // 50MB limit
 
       // Assert
       expect(result.isValid).toBeFalsy();
-      expect(result.errors).toContain('File 1: File size must be less than 10MB'); // Based on actual implementation
+      expect(result.errors).toContain('File 1: File size must be less than 50MB'); // Based on actual implementation
     });
 
     it('should return invalid for unsupported file types', () => {
@@ -148,17 +148,17 @@ describe('FileUploadHelper', () => {
 
     it('should handle multiple validation errors', () => {
       // Arrange
-      const largeContent = 'x'.repeat(15 * 1024 * 1024); // 15MB
+      const largeContent = 'x'.repeat(60 * 1024 * 1024); // 60MB
       const largeFile = new File([largeContent], 'large.txt', { type: 'text/plain' });
       const fileList = [largeFile];
 
       // Act
-      const result = FileUploadHelper.validateFiles(fileList, 10);
+      const result = FileUploadHelper.validateFiles(fileList, 50);
 
       // Assert
       expect(result.isValid).toBeFalsy();
       expect(result.errors.length).toBe(2);
-      expect(result.errors).toContain('File 1: File size must be less than 10MB'); // Based on actual implementation
+      expect(result.errors).toContain('File 1: File size must be less than 50MB'); // Based on actual implementation
       expect(result.errors).toContain('File 1: File type text/plain is not allowed'); // Based on actual implementation
     });
   });
