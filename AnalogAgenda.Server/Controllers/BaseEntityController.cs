@@ -97,31 +97,33 @@ public abstract class BaseEntityController<TEntity, TDto>(Storage storageCfg, ID
         updatedEntity.ImageId = imageId;
         updatedEntity.UpdatedDate = DateTime.UtcNow;
 
-        // Attach and update the entity using Entry API to avoid tracking conflicts
-        dbContext.Set<TEntity>().Attach(updatedEntity);
-        dbContext.Entry(updatedEntity).State = EntityState.Modified;
-        
-        // Clear all navigation properties to avoid tracking conflicts
-        // This is a generic approach - specific controllers can override if needed
-        var entityType = dbContext.Model.FindEntityType(typeof(TEntity));
-        if (entityType != null)
-        {
-            foreach (var navigation in entityType.GetNavigations())
-            {
-                var navigationProperty = typeof(TEntity).GetProperty(navigation.Name);
-                if (navigationProperty != null)
-                {
-                    if (navigation.IsCollection)
-                    {
-                        dbContext.Entry(updatedEntity).Collection(navigation.Name).IsLoaded = false;
-                    }
-                    else
-                    {
-                        dbContext.Entry(updatedEntity).Reference(navigation.Name).CurrentValue = null;
-                    }
-                }
-            }
-        }
+        dbContext.Update(updatedEntity);
+
+        //// Attach and update the entity using Entry API to avoid tracking conflicts
+        //dbContext.Set<TEntity>().Attach(updatedEntity);
+        //dbContext.Entry(updatedEntity).State = EntityState.Modified;
+
+        //// Clear all navigation properties to avoid tracking conflicts
+        //// This is a generic approach - specific controllers can override if needed
+        //var entityType = dbContext.Model.FindEntityType(typeof(TEntity));
+        //if (entityType != null)
+        //{
+        //    foreach (var navigation in entityType.GetNavigations())
+        //    {
+        //        var navigationProperty = typeof(TEntity).GetProperty(navigation.Name);
+        //        if (navigationProperty != null)
+        //        {
+        //            if (navigation.IsCollection)
+        //            {
+        //                dbContext.Entry(updatedEntity).Collection(navigation.Name).IsLoaded = false;
+        //            }
+        //            else
+        //            {
+        //                dbContext.Entry(updatedEntity).Reference(navigation.Name).CurrentValue = null;
+        //            }
+        //        }
+        //    }
+        //}
 
         await dbContext.SaveChangesAsync();
 

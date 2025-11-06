@@ -4,11 +4,11 @@ namespace Database.Entities;
 
 public abstract class BaseEntity
 {
-    private string? _id;
+    private string? _id = null;
     
     public string Id 
     { 
-        get => _id ?? GetId();
+        get => string.IsNullOrEmpty(_id) ? (_id = GetId()) : _id;
         set => _id = value;
     }
     
@@ -17,8 +17,5 @@ public abstract class BaseEntity
     public DateTime CreatedDate { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedDate { get; set; } = DateTime.UtcNow;
 
-    protected virtual string GetId()
-    {
-        return IdGenerator.Get(IdLength(), GetType().Name, CreatedDate.Ticks.ToString());
-    }
+    protected virtual string GetId() => IdGenerator.Get(IdLength(), GetType().Name, CreatedDate.Ticks.ToString());
 }

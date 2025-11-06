@@ -17,8 +17,8 @@ public class SessionEntity : BaseEntity, IImageEntity
     public string Description { get; set; } = string.Empty;
 
     // Navigation properties - converting from JSON arrays to proper relationships
-    public ICollection<DevKitEntity> UsedDevKits { get; set; } = new List<DevKitEntity>();
-    public ICollection<FilmEntity> DevelopedFilms { get; set; } = new List<FilmEntity>();
+    public ICollection<DevKitEntity> UsedDevKits { get; set; } = [];
+    public ICollection<FilmEntity> DevelopedFilms { get; set; } = [];
 
     protected override int IdLength() => 10;
 

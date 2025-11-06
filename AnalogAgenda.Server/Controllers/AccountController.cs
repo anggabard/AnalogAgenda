@@ -67,7 +67,7 @@ public class AccountController(IDatabaseService database, AnalogAgendaDbContext 
             Name = existingEntity.Name,
             Email = existingEntity.Email,
             PasswordHash = PasswordHasher.HashPassword(dto.NewPassword),
-            IsSubscraibed = existingEntity.IsSubscraibed
+            IsSubscribed = existingEntity.IsSubscribed  
         };
 
         // Attach and update

@@ -10,7 +10,7 @@ public class UserEntity : BaseEntity
 
     public string PasswordHash { get; set; } = default!;
 
-    public bool IsSubscraibed { get; set; } = false;
+    public bool IsSubscribed { get; set; } = false;
 
     protected override string GetId()
     {

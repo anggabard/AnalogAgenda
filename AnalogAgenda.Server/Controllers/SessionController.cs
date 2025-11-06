@@ -30,8 +30,7 @@ public class SessionController(Storage storageCfg, IDatabaseService databaseServ
         // If creation was successful, process the business logic
         if (result is CreatedResult createdResult)
         {
-            var createdSession = createdResult.Value as SessionDto;
-            if (createdSession != null)
+            if (createdResult.Value is SessionDto createdSession)
             {
                 // Copy the filmToDevKitMapping from the original DTO
                 createdSession.FilmToDevKitMapping = dto.FilmToDevKitMapping;
