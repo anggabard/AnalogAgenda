@@ -24,6 +24,7 @@ public class PhotoController(Storage storageCfg, IDatabaseService databaseServic
     protected override PhotoDto EntityToDto(PhotoEntity entity) => entity.ToDTO(storageCfg.AccountName);
 
     [HttpPost]
+    [RequestSizeLimit(150 * 1024 * 1024)] // 150MB limit to support base64-encoded 50MB image
     public async Task<IActionResult> CreatePhoto([FromBody] PhotoCreateDto dto)
     {
         if (string.IsNullOrWhiteSpace(dto.ImageBase64))
@@ -51,6 +52,7 @@ public class PhotoController(Storage storageCfg, IDatabaseService databaseServic
     }
 
     [HttpPost("bulk")]
+    [RequestSizeLimit(3L * 1024 * 1024 * 1024)] // 3GB limit to support bulk uploads (e.g., 36 × 50MB base64-encoded images)
     public async Task<IActionResult> UploadPhotos([FromBody] PhotoBulkUploadDto bulkDto)
     {
         if (bulkDto?.Photos == null || bulkDto.Photos.Count == 0)

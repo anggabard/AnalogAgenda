@@ -60,7 +60,7 @@ export class FileUploadHelper {
    */
   static validateFiles(
     files: FileList | File[],
-    maxSizeInMB: number = 10,
+    maxSizeInMB: number = 50,
     allowedTypes: string[] = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp']
   ): { isValid: boolean; errors: string[] } {
     const errors: string[] = [];

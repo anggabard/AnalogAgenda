@@ -18,7 +18,7 @@ public static class EmailNotificationHelper
         string subject,
         string htmlContent)
     {
-        var users = await databaseService.GetAllAsync<UserEntity>(user => user.IsSubscraibed);
+        var users = await databaseService.GetAllAsync<UserEntity>(user => user.IsSubscribed);
         var receivers = users.Select(userEntity => userEntity.Email);
 
         if (!receivers.Any())
