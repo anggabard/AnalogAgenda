@@ -1,5 +1,4 @@
 import { FileUploadHelper } from '../../helpers/file-upload.helper';
-import { PhotoUploadDto } from '../../DTOs';
 
 describe('FileUploadHelper', () => {
   describe('selectFiles', () => {
@@ -69,7 +68,7 @@ describe('FileUploadHelper', () => {
       // Mock filesToBase64 method
       spyOn(FileUploadHelper, 'filesToBase64').and.returnValue(Promise.resolve([base64Data]));
 
-      const createDto = (imageBase64: string): PhotoUploadDto => ({
+      const createDto = (imageBase64: string) => ({
         imageBase64
       });
 
@@ -90,7 +89,7 @@ describe('FileUploadHelper', () => {
       // Mock filesToBase64 method
       spyOn(FileUploadHelper, 'filesToBase64').and.returnValue(Promise.resolve(base64Data));
 
-      const createDto = (imageBase64: string): PhotoUploadDto => ({
+      const createDto = (imageBase64: string) => ({
         imageBase64
       });
 
@@ -160,6 +159,71 @@ describe('FileUploadHelper', () => {
       expect(result.errors.length).toBe(2);
       expect(result.errors).toContain('File 1: File size must be less than 50MB'); // Based on actual implementation
       expect(result.errors).toContain('File 1: File type text/plain is not allowed'); // Based on actual implementation
+    });
+  });
+
+  describe('extractIndexFromFilename', () => {
+    it('should extract valid index from numeric filename', () => {
+      // Act & Assert
+      expect(FileUploadHelper.extractIndexFromFilename('45.jpg')).toBe(45);
+      expect(FileUploadHelper.extractIndexFromFilename('1.png')).toBe(1);
+      expect(FileUploadHelper.extractIndexFromFilename('999.gif')).toBe(999);
+      expect(FileUploadHelper.extractIndexFromFilename('0.webp')).toBe(0);
+    });
+
+    it('should extract valid index from filename with leading zeros', () => {
+      // Act & Assert
+      expect(FileUploadHelper.extractIndexFromFilename('002.jpg')).toBe(2);
+      expect(FileUploadHelper.extractIndexFromFilename('045.png')).toBe(45);
+      expect(FileUploadHelper.extractIndexFromFilename('000.gif')).toBe(0);
+      expect(FileUploadHelper.extractIndexFromFilename('099.webp')).toBe(99);
+    });
+
+    it('should return null for non-numeric filenames', () => {
+      // Act & Assert
+      expect(FileUploadHelper.extractIndexFromFilename('photo-45.jpg')).toBeNull();
+      expect(FileUploadHelper.extractIndexFromFilename('photo.jpg')).toBeNull();
+      expect(FileUploadHelper.extractIndexFromFilename('DSC_1234.jpg')).toBeNull();
+      expect(FileUploadHelper.extractIndexFromFilename('image_45.png')).toBeNull();
+    });
+
+    it('should return null for numbers out of range (0-999)', () => {
+      // Act & Assert
+      expect(FileUploadHelper.extractIndexFromFilename('1000.jpg')).toBeNull();
+      expect(FileUploadHelper.extractIndexFromFilename('1234.png')).toBeNull();
+      expect(FileUploadHelper.extractIndexFromFilename('9999.gif')).toBeNull();
+    });
+
+    it('should return null for filenames with alphanumeric characters', () => {
+      // Act & Assert
+      expect(FileUploadHelper.extractIndexFromFilename('45a.jpg')).toBeNull();
+      expect(FileUploadHelper.extractIndexFromFilename('a45.png')).toBeNull();
+      expect(FileUploadHelper.extractIndexFromFilename('4-5.gif')).toBeNull();
+      expect(FileUploadHelper.extractIndexFromFilename('4 5.webp')).toBeNull();
+    });
+
+    it('should handle files without extensions', () => {
+      // Act & Assert
+      expect(FileUploadHelper.extractIndexFromFilename('45')).toBe(45);
+      expect(FileUploadHelper.extractIndexFromFilename('002')).toBe(2);
+      expect(FileUploadHelper.extractIndexFromFilename('photo')).toBeNull();
+    });
+
+    it('should handle various file extensions', () => {
+      // Act & Assert
+      expect(FileUploadHelper.extractIndexFromFilename('5.jpg')).toBe(5);
+      expect(FileUploadHelper.extractIndexFromFilename('5.jpeg')).toBe(5);
+      expect(FileUploadHelper.extractIndexFromFilename('5.png')).toBe(5);
+      expect(FileUploadHelper.extractIndexFromFilename('5.gif')).toBe(5);
+      expect(FileUploadHelper.extractIndexFromFilename('5.webp')).toBe(5);
+      expect(FileUploadHelper.extractIndexFromFilename('5.tiff')).toBe(5);
+    });
+
+    it('should return null for negative numbers', () => {
+      // Note: The regex should not match negative numbers, but the parseInt would handle them
+      // Act & Assert
+      expect(FileUploadHelper.extractIndexFromFilename('-5.jpg')).toBeNull();
+      expect(FileUploadHelper.extractIndexFromFilename('-10.png')).toBeNull();
     });
   });
 });

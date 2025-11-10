@@ -1,7 +1,7 @@
 import { Component, inject, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { PhotoService, FilmService } from '../../../services';
-import { PhotoDto, FilmDto, PhotoUploadDto, PhotoBulkUploadDto } from '../../../DTOs';
+import { PhotoDto, FilmDto } from '../../../DTOs';
 
 @Component({
     selector: 'app-film-photos',
@@ -12,7 +12,7 @@ import { PhotoDto, FilmDto, PhotoUploadDto, PhotoBulkUploadDto } from '../../../
 export class FilmPhotosComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
-  private photoService = inject(PhotoService);
+  public photoService = inject(PhotoService);
   private filmService = inject(FilmService);
 
   filmId: string = '';
@@ -34,6 +34,8 @@ export class FilmPhotosComponent implements OnInit {
   
   // Upload loading state
   uploadLoading = false;
+  uploadProgress = 0;
+  uploadTotal = 0;
   
   // Touch handling
   private touchStartX = 0;
@@ -211,44 +213,34 @@ export class FilmPhotosComponent implements OnInit {
     fileInput.click();
   }
 
-  private processPhotoUploads(files: FileList) {
+  private async processPhotoUploads(files: FileList) {
     this.uploadLoading = true;
     this.errorMessage = null;
+    this.uploadProgress = 0;
+    this.uploadTotal = files.length;
     
-    const photos: PhotoUploadDto[] = [];
-    let processedCount = 0;
-    
-    Array.from(files).forEach((file, index) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        photos.push({
-          imageBase64: reader.result as string
-        });
-        
-        processedCount++;
-        if (processedCount === files.length) {
-          // All files processed, upload them
-          const uploadDto: PhotoBulkUploadDto = {
-            filmId: this.filmId,
-            photos: photos
-          };
-          
-          this.photoService.uploadPhotos(uploadDto).subscribe({
-            next: () => {
-              this.uploadLoading = false;
-              // Reload photos to show the newly uploaded ones
-              this.loadFilmAndPhotos();
-            },
-            error: (err) => {
-              this.uploadLoading = false;
-              this.errorMessage = 'There was an error uploading the photos.';
-            }
-          });
+    try {
+      await this.photoService.uploadMultiplePhotos(
+        this.filmId,
+        files,
+        this.photos,
+        (current, total) => {
+          this.uploadProgress = current;
+          this.uploadTotal = total;
         }
-      };
-      
-      reader.readAsDataURL(file);
-    });
+      );
+
+      // All uploads successful
+      this.uploadLoading = false;
+      this.uploadProgress = 0;
+      this.uploadTotal = 0;
+      this.loadFilmAndPhotos();
+    } catch (err) {
+      this.uploadLoading = false;
+      this.uploadProgress = 0;
+      this.uploadTotal = 0;
+      this.errorMessage = 'There was an error uploading the photos.';
+    }
   }
 
   onTouchStart(event: TouchEvent) {

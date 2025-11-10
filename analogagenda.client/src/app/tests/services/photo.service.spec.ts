@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
 import { PhotoService } from '../../services/implementations/photo.service';
-import { PhotoDto, PhotoBulkUploadDto, PhotoCreateDto } from '../../DTOs';
+import { PhotoDto, PhotoCreateDto } from '../../DTOs';
 import { TestConfig } from '../test.config';
 
 describe('PhotoService', () => {
@@ -67,58 +67,6 @@ describe('PhotoService', () => {
       // Assert HTTP call
       const req = httpMock.expectOne(`${baseUrl}`);
       req.flush('Film not found', { status: 404, statusText: 'Not Found' });
-    });
-  });
-
-  describe('uploadPhotos', () => {
-    it('should upload multiple photos', () => {
-      // Arrange
-      const uploadDto: PhotoBulkUploadDto = {
-        filmId: 'test-film-id',
-        photos: [
-          { imageBase64: 'data:image/jpeg;base64,photo1data' },
-          { imageBase64: 'data:image/jpeg;base64,photo2data' }
-        ]
-      };
-      
-      const mockResponse: PhotoDto[] = [
-        createMockPhoto('photo1', 'test-film-id', 1),
-        createMockPhoto('photo2', 'test-film-id', 2)
-      ];
-
-      // Act
-      service.uploadPhotos(uploadDto).subscribe((response: any) => {
-        // Assert
-        expect(response).toEqual(mockResponse);
-        expect(response.length).toBe(2);
-      });
-
-      // Assert HTTP call
-      const req = httpMock.expectOne(`${baseUrl}/bulk`);
-      expect(req.request.method).toBe('POST');
-      expect(req.request.body).toEqual(uploadDto);
-      req.flush(mockResponse);
-    });
-
-    it('should handle error when uploading photos', () => {
-      // Arrange
-      const uploadDto: PhotoBulkUploadDto = {
-        filmId: 'test-film-id',
-        photos: []
-      };
-
-      // Act
-      service.uploadPhotos(uploadDto).subscribe({
-        next: () => fail('Should have failed'),
-        error: (error) => {
-          // Assert
-          expect(error.status).toBe(400);
-        }
-      });
-
-      // Assert HTTP call
-      const req = httpMock.expectOne(`${baseUrl}/bulk`);
-      req.flush('No photos provided', { status: 400, statusText: 'Bad Request' });
     });
   });
 
@@ -273,6 +221,190 @@ describe('PhotoService', () => {
       // Assert HTTP call
       const req = httpMock.expectOne(`${baseUrl}/${id}`);
       req.flush('Photo not found', { status: 404, statusText: 'Not Found' });
+    });
+  });
+
+  describe('getPreviewUrl', () => {
+    it('should return correct preview URL for a photo', () => {
+      // Arrange
+      const photoId = 'test-photo-id-123';
+      const expectedUrl = `${baseUrl}/preview/${photoId}`;
+
+      // Act
+      const result = service.getPreviewUrl(photoId);
+
+      // Assert
+      expect(result).toBe(expectedUrl);
+    });
+
+    it('should handle photo IDs with special characters', () => {
+      // Arrange
+      const photoId = 'photo-id-with-dashes-123';
+      const expectedUrl = `${baseUrl}/preview/${photoId}`;
+
+      // Act
+      const result = service.getPreviewUrl(photoId);
+
+      // Assert
+      expect(result).toBe(expectedUrl);
+    });
+
+    it('should not make HTTP call - just return URL string', () => {
+      // Arrange
+      const photoId = 'test-photo-id';
+
+      // Act
+      const result = service.getPreviewUrl(photoId);
+
+      // Assert
+      expect(typeof result).toBe('string');
+      expect(result).toContain('/preview/');
+      expect(result).toContain(photoId);
+      
+      // Verify no HTTP call was made
+      httpMock.expectNone(`${baseUrl}/preview/${photoId}`);
+    });
+  });
+
+  describe('uploadMultiplePhotos', () => {
+    it('should upload multiple photos in parallel with numeric filenames', (done) => {
+      // Arrange
+      const filmId = 'test-film-id';
+      const file1 = new File(['test1'], '5.jpg', { type: 'image/jpeg' });
+      const file2 = new File(['test2'], '10.jpg', { type: 'image/jpeg' });
+      const files = [file1, file2];
+      const existingPhotos: PhotoDto[] = [];
+      
+      let progressCallCount = 0;
+      const onProgress = jasmine.createSpy('onProgress').and.callFake((current: number, total: number) => {
+        progressCallCount++;
+        expect(total).toBe(2);
+        expect(current).toBeGreaterThan(0);
+        expect(current).toBeLessThanOrEqual(2);
+      });
+
+      const mockResponse1: PhotoDto = createMockPhoto('photo1', filmId, 5);
+      const mockResponse2: PhotoDto = createMockPhoto('photo2', filmId, 10);
+
+      // Act
+      service.uploadMultiplePhotos(filmId, files, existingPhotos, onProgress).then(() => {
+        // Assert after upload completes
+        expect(progressCallCount).toBe(2);
+        expect(onProgress).toHaveBeenCalledTimes(2);
+        done();
+      }).catch(err => done.fail(err));
+
+      // Wait for requests to be made, then respond
+      setTimeout(() => {
+        const reqs = httpMock.match(req => req.url === baseUrl && req.method === 'POST');
+        expect(reqs.length).toBe(2);
+        
+        // Check first request (index 5)
+        expect(reqs[0].request.body.index).toBe(5);
+        expect(reqs[0].request.body.filmId).toBe(filmId);
+        reqs[0].flush(mockResponse1);
+        
+        // Check second request (index 10)
+        expect(reqs[1].request.body.index).toBe(10);
+        expect(reqs[1].request.body.filmId).toBe(filmId);
+        reqs[1].flush(mockResponse2);
+      }, 100);
+    });
+
+    it('should use next available index for non-numeric filenames', (done) => {
+      // Arrange
+      const filmId = 'test-film-id';
+      const file1 = new File(['test1'], 'photo1.jpg', { type: 'image/jpeg' });
+      const file2 = new File(['test2'], 'photo2.jpg', { type: 'image/jpeg' });
+      const files = [file1, file2];
+      const existingPhotos: PhotoDto[] = [
+        createMockPhoto('existing1', filmId, 5),
+        createMockPhoto('existing2', filmId, 8)
+      ];
+
+      const mockResponse1: PhotoDto = createMockPhoto('photo1', filmId, 9);
+      const mockResponse2: PhotoDto = createMockPhoto('photo2', filmId, 10);
+
+      // Act
+      service.uploadMultiplePhotos(filmId, files, existingPhotos).then(() => {
+        done();
+      }).catch(err => done.fail(err));
+
+      // Wait for requests to be made, then respond
+      setTimeout(() => {
+        const reqs = httpMock.match(req => req.url === baseUrl && req.method === 'POST');
+        expect(reqs.length).toBe(2);
+        
+        // Both should use auto-assigned indices starting from 9 (max existing + 1)
+        expect(reqs[0].request.body.index).toBe(9);
+        expect(reqs[1].request.body.index).toBe(10);
+        
+        reqs[0].flush(mockResponse1);
+        reqs[1].flush(mockResponse2);
+      }, 100);
+    });
+
+    it('should sort files by index before uploading', (done) => {
+      // Arrange
+      const filmId = 'test-film-id';
+      const file1 = new File(['test1'], '45.jpg', { type: 'image/jpeg' });
+      const file2 = new File(['test2'], '2.jpg', { type: 'image/jpeg' });
+      const file3 = new File(['test3'], '10.jpg', { type: 'image/jpeg' });
+      const files = [file1, file2, file3]; // Unsorted
+      const existingPhotos: PhotoDto[] = [];
+
+      const mockResponse1: PhotoDto = createMockPhoto('photo1', filmId, 2);
+      const mockResponse2: PhotoDto = createMockPhoto('photo2', filmId, 10);
+      const mockResponse3: PhotoDto = createMockPhoto('photo3', filmId, 45);
+
+      // Act
+      service.uploadMultiplePhotos(filmId, files, existingPhotos).then(() => {
+        done();
+      }).catch(err => done.fail(err));
+
+      // Wait for requests to be made, then respond
+      setTimeout(() => {
+        // Assert - files should be uploaded in sorted order (2, 10, 45)
+        const reqs = httpMock.match(req => req.url === baseUrl && req.method === 'POST');
+        expect(reqs.length).toBe(3);
+        
+        expect(reqs[0].request.body.index).toBe(2);
+        expect(reqs[1].request.body.index).toBe(10);
+        expect(reqs[2].request.body.index).toBe(45);
+        
+        reqs[0].flush(mockResponse1);
+        reqs[1].flush(mockResponse2);
+        reqs[2].flush(mockResponse3);
+      }, 100);
+    });
+
+    it('should handle files with leading zeros in filenames', (done) => {
+      // Arrange
+      const filmId = 'test-film-id';
+      const file1 = new File(['test1'], '002.jpg', { type: 'image/jpeg' });
+      const file2 = new File(['test2'], '045.jpg', { type: 'image/jpeg' });
+      const files = [file1, file2];
+      const existingPhotos: PhotoDto[] = [];
+
+      const mockResponse1: PhotoDto = createMockPhoto('photo1', filmId, 2);
+      const mockResponse2: PhotoDto = createMockPhoto('photo2', filmId, 45);
+
+      // Act
+      service.uploadMultiplePhotos(filmId, files, existingPhotos).then(() => {
+        done();
+      }).catch(err => done.fail(err));
+
+      // Wait for requests to be made, then respond
+      setTimeout(() => {
+        const reqs = httpMock.match(req => req.url === baseUrl && req.method === 'POST');
+        expect(reqs.length).toBe(2);
+        
+        expect(reqs[0].request.body.index).toBe(2); // 002 -> 2
+        expect(reqs[1].request.body.index).toBe(45); // 045 -> 45
+        
+        reqs[0].flush(mockResponse1);
+        reqs[1].flush(mockResponse2);
+      }, 100);
     });
   });
 

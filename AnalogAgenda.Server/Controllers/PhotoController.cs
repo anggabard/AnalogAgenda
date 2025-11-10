@@ -1,4 +1,6 @@
+using System.IO.Compression;
 using AnalogAgenda.Server.Helpers;
+using AnalogAgenda.Server.Services.Interfaces;
 using Azure.Storage.Blobs;
 using Configuration.Sections;
 using Database.DBObjects.Enums;
@@ -8,17 +10,25 @@ using Database.Helpers;
 using Database.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System.IO.Compression;
 
 namespace AnalogAgenda.Server.Controllers;
 
 [Route("api/[controller]"), ApiController, Authorize]
-public class PhotoController(Storage storageCfg, IDatabaseService databaseService, IBlobService blobsService) : ControllerBase
+public class PhotoController(
+    Storage storageCfg,
+    IDatabaseService databaseService,
+    IBlobService blobsService,
+    IImageCacheService imageCacheService
+) : ControllerBase
 {
     private readonly Storage storageCfg = storageCfg;
     private readonly IDatabaseService databaseService = databaseService;
     private readonly IBlobService blobsService = blobsService;
+    private readonly IImageCacheService imageCacheService = imageCacheService;
     private readonly BlobContainerClient photosContainer = blobsService.GetBlobContainer(ContainerName.photos);
+
+    private const int MaxPreviewDimension = 1200;
+    private const int PreviewQuality = 80;
 
     [HttpPost]
     [RequestSizeLimit(150 * 1024 * 1024)] // 150MB limit to support base64-encoded 50MB image
@@ -30,28 +40,60 @@ public class PhotoController(Storage storageCfg, IDatabaseService databaseServic
         if (!await FilmExists(dto.FilmId))
             return NotFound("Film not found.");
 
-        int nextIndex = await GetNextPhotoIndexAsync(dto.FilmId);
+        // Use provided index if valid (0-999), otherwise get next available
+        int photoIndex;
+        if (dto.Index.HasValue && dto.Index.Value >= 0 && dto.Index.Value <= 999)
+        {
+            photoIndex = dto.Index.Value;
+        }
+        else
+        {
+            photoIndex = await GetNextPhotoIndexAsync(dto.FilmId);
+        }
+
+        // Check if a photo with this index already exists and delete it (to maintain index uniqueness)
+        var existingPhoto = await databaseService.GetAllAsync<PhotoEntity>(p =>
+            p.FilmId == dto.FilmId && p.Index == photoIndex
+        );
+        if (existingPhoto.Count > 0)
+        {
+            var photoToReplace = existingPhoto.First();
+
+            // Delete old image blob
+            if (photoToReplace.ImageId != Guid.Empty)
+            {
+                await photosContainer.DeleteBlobAsync(photoToReplace.ImageId.ToString());
+                imageCacheService.RemovePreview(photoToReplace.ImageId);
+            }
+
+            // Delete old photo entity
+            await databaseService.DeleteAsync(photoToReplace);
+        }
 
         var imageId = Guid.NewGuid();
         try
         {
-            await BlobImageHelper.UploadBase64ImageWithContentTypeAsync(photosContainer, dto.ImageBase64, imageId);
+            await BlobImageHelper.UploadBase64ImageWithContentTypeAsync(
+                photosContainer,
+                dto.ImageBase64,
+                imageId
+            );
 
             var photoDto = new PhotoDto
             {
                 FilmId = dto.FilmId,
-                Index = nextIndex,
-                ImageBase64 = dto.ImageBase64
+                Index = photoIndex,
+                ImageBase64 = dto.ImageBase64,
             };
-            
+
             var entity = photoDto.ToEntity();
             entity.ImageId = imageId;
 
             await databaseService.AddAsync(entity);
-            
+
             // Auto-mark film as developed when photo is uploaded
             await MarkFilmAsDeveloped(dto.FilmId);
-            
+
             // Return the created entity as DTO
             var createdDto = entity.ToDTO(storageCfg.AccountName);
             return Created(string.Empty, createdDto);
@@ -59,59 +101,6 @@ public class PhotoController(Storage storageCfg, IDatabaseService databaseServic
         catch (Exception ex)
         {
             await photosContainer.GetBlobClient(imageId.ToString()).DeleteIfExistsAsync();
-            return UnprocessableEntity(ex.Message);
-        }
-    }
-
-    [HttpPost("bulk")]
-    [RequestSizeLimit(3L * 1024 * 1024 * 1024)] // 3GB limit to support bulk uploads (e.g., 36 × 50MB base64-encoded images)
-    public async Task<IActionResult> UploadPhotos([FromBody] PhotoBulkUploadDto bulkDto)
-    {
-        if (bulkDto?.Photos == null || bulkDto.Photos.Count == 0)
-            return BadRequest("No photos provided.");
-
-        // Validate all photos have base64 data
-        if (bulkDto.Photos.Any(p => string.IsNullOrWhiteSpace(p.ImageBase64)))
-            return BadRequest("All photos must have image data.");
-
-        if (!await FilmExists(bulkDto.FilmId))
-            return NotFound("Film not found.");
-
-        int nextIndex = await GetNextPhotoIndexAsync(bulkDto.FilmId);
-
-        var uploadedImageIds = new List<Guid>();
-
-        try
-        {
-            foreach (var photoDto in bulkDto.Photos)
-            {
-                var imageId = Guid.NewGuid();
-                await BlobImageHelper.UploadBase64ImageWithContentTypeAsync(photosContainer, photoDto.ImageBase64, imageId);
-                uploadedImageIds.Add(imageId);
-
-                var photoEntity = new PhotoEntity
-                {
-                    FilmId = bulkDto.FilmId,
-                    Index = nextIndex++,
-                    ImageId = imageId
-                };
-
-                await databaseService.AddAsync(photoEntity);
-            }
-
-            // Auto-mark film as developed when photos are uploaded
-            await MarkFilmAsDeveloped(bulkDto.FilmId);
-
-            return NoContent();
-        }
-        catch (Exception ex)
-        {
-            // Cleanup uploaded blobs on failure
-            foreach (var imageId in uploadedImageIds)
-            {
-                await photosContainer.GetBlobClient(imageId.ToString()).DeleteIfExistsAsync();
-            }
-
             return UnprocessableEntity(ex.Message);
         }
     }
@@ -128,6 +117,48 @@ public class PhotoController(Storage storageCfg, IDatabaseService databaseServic
         return Ok(sortedPhotos);
     }
 
+    [HttpGet("preview/{id}")]
+    public async Task<IActionResult> GetPreview(string id)
+    {
+        var photoEntity = await databaseService.GetByIdAsync<PhotoEntity>(id);
+        if (photoEntity == null)
+            return NotFound("Photo not found.");
+
+        // Check cache first
+        if (
+            imageCacheService.TryGetPreview(photoEntity.ImageId, out var cachedImage)
+            && cachedImage != null
+        )
+        {
+            var (imageBytes, contentType) = cachedImage.Value;
+            return File(imageBytes, contentType);
+        }
+
+        try
+        {
+            // Download and resize image using helper
+            var (previewBytes, contentType) = await BlobImageHelper.DownloadAndResizeImageAsync(
+                photosContainer,
+                photoEntity.ImageId,
+                MaxPreviewDimension,
+                PreviewQuality
+            );
+
+            // Cache the preview with content type
+            imageCacheService.SetPreview(photoEntity.ImageId, previewBytes, contentType);
+
+            return File(previewBytes, contentType);
+        }
+        catch (FileNotFoundException)
+        {
+            return NotFound("Image not found in storage.");
+        }
+        catch (Exception ex)
+        {
+            return UnprocessableEntity($"Error generating preview: {ex.Message}");
+        }
+    }
+
     [HttpGet("download/{id}")]
     public async Task<IActionResult> DownloadPhoto(string id)
     {
@@ -142,10 +173,14 @@ public class PhotoController(Storage storageCfg, IDatabaseService databaseServic
 
         try
         {
-            var base64WithType = await BlobImageHelper.DownloadImageAsBase64WithContentTypeAsync(photosContainer, photoEntity.ImageId);
+            var base64WithType = await BlobImageHelper.DownloadImageAsBase64WithContentTypeAsync(
+                photosContainer,
+                photoEntity.ImageId
+            );
             var contentType = BlobImageHelper.GetContentTypeFromBase64(base64WithType);
             var fileExtension = BlobImageHelper.GetFileExtensionFromBase64(base64WithType);
-            var fileName = $"{photoEntity.Index:D3}-{SanitizeFileName(filmEntity!.Name)}.{fileExtension}";
+            var fileName =
+                $"{photoEntity.Index:D3}-{SanitizeFileName(filmEntity!.Name)}.{fileExtension}";
 
             // Extract bytes from base64 data URL
             var base64Data = base64WithType.Split(',')[1];
@@ -180,13 +215,19 @@ public class PhotoController(Storage storageCfg, IDatabaseService databaseServic
                     var blobClient = photosContainer.GetBlobClient(photo.ImageId.ToString());
                     if (await blobClient.ExistsAsync())
                     {
-                        var base64WithType = await BlobImageHelper.DownloadImageAsBase64WithContentTypeAsync(photosContainer, photo.ImageId);
-                        var fileExtension = BlobImageHelper.GetFileExtensionFromBase64(base64WithType);
+                        var base64WithType =
+                            await BlobImageHelper.DownloadImageAsBase64WithContentTypeAsync(
+                                photosContainer,
+                                photo.ImageId
+                            );
+                        var fileExtension = BlobImageHelper.GetFileExtensionFromBase64(
+                            base64WithType
+                        );
                         var fileName = $"{photo.Index:D3}.{fileExtension}";
 
                         var zipEntry = archive.CreateEntry(fileName);
                         using var zipStream = zipEntry.Open();
-                        
+
                         // Extract bytes from base64 data URL
                         var base64Data = base64WithType.Split(',')[1];
                         var bytes = Convert.FromBase64String(base64Data);
@@ -212,11 +253,14 @@ public class PhotoController(Storage storageCfg, IDatabaseService databaseServic
         var entity = await databaseService.GetByIdAsync<PhotoEntity>(id);
         if (entity == null)
             return NotFound();
-        
+
         // Delete image blob (photos always have real images, no default)
         if (entity.ImageId != Guid.Empty)
+        {
             await photosContainer.DeleteBlobAsync(entity.ImageId.ToString());
-        
+            imageCacheService.RemovePreview(entity.ImageId);
+        }
+
         await databaseService.DeleteAsync(entity);
         return NoContent();
     }
@@ -235,7 +279,9 @@ public class PhotoController(Storage storageCfg, IDatabaseService databaseServic
 
     private async Task<int> GetNextPhotoIndexAsync(string filmId)
     {
-        var existingPhotos = await databaseService.GetAllAsync<PhotoEntity>(p => p.FilmId == filmId);
+        var existingPhotos = await databaseService.GetAllAsync<PhotoEntity>(p =>
+            p.FilmId == filmId
+        );
         return existingPhotos.Count != 0 ? existingPhotos.Max(p => p.Index) + 1 : 1;
     }
 
@@ -243,15 +289,14 @@ public class PhotoController(Storage storageCfg, IDatabaseService databaseServic
     {
         // Load existing entity
         var existingEntity = await databaseService.GetByIdAsync<FilmEntity>(filmId);
-        
+
         if (existingEntity != null && !existingEntity.Developed)
         {
             // Update the entity
             existingEntity.Developed = true;
-            
+
             // UpdateAsync will handle UpdatedDate automatically
             await databaseService.UpdateAsync(existingEntity);
         }
     }
 }
-

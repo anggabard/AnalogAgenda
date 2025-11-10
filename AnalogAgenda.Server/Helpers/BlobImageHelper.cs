@@ -1,5 +1,8 @@
 ﻿using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.Formats.Jpeg;
 using System.Text.RegularExpressions;
 
 namespace AnalogAgenda.Server.Helpers;
@@ -90,5 +93,58 @@ public static class BlobImageHelper
             "image/tiff" => "tiff",
             _ => "jpg" // Default to jpg for unknown types
         };
+    }
+
+    /// <summary>
+    /// Downloads an image from blob storage, resizes it to a preview size, and returns as JPEG bytes with content type
+    /// </summary>
+    /// <param name="blobContainerClient">The blob container client</param>
+    /// <param name="blobName">The blob name (ImageId)</param>
+    /// <param name="maxDimension">Maximum width or height in pixels</param>
+    /// <param name="quality">JPEG quality (1-100)</param>
+    /// <returns>Tuple of (resized image bytes, content type)</returns>
+    public static async Task<(byte[] imageBytes, string contentType)> DownloadAndResizeImageAsync(
+        BlobContainerClient blobContainerClient, 
+        Guid blobName, 
+        int maxDimension = 1200, 
+        int quality = 80)
+    {
+        var blobClient = blobContainerClient.GetBlobClient(blobName.ToString());
+
+        if (!await blobClient.ExistsAsync())
+            throw new FileNotFoundException($"Blob with name {blobName} does not exist.");
+
+        // Download the full image
+        using var memoryStream = new MemoryStream();
+        await blobClient.DownloadToAsync(memoryStream);
+        memoryStream.Position = 0;
+
+        // Resize using ImageSharp
+        using var image = await Image.LoadAsync(memoryStream);
+        
+        // Calculate new dimensions maintaining aspect ratio
+        var width = image.Width;
+        var height = image.Height;
+        
+        if (width > maxDimension || height > maxDimension)
+        {
+            if (width > height)
+            {
+                height = (int)((double)height / width * maxDimension);
+                width = maxDimension;
+            }
+            else
+            {
+                width = (int)((double)width / height * maxDimension);
+                height = maxDimension;
+            }
+            
+            image.Mutate(x => x.Resize(width, height));
+        }
+
+        // Convert to JPEG with specified quality and return with content type
+        using var outputStream = new MemoryStream();
+        await image.SaveAsJpegAsync(outputStream, new JpegEncoder { Quality = quality });
+        return (outputStream.ToArray(), "image/jpeg");
     }
 }

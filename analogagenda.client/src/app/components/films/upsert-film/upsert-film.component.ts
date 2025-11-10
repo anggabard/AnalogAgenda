@@ -5,7 +5,7 @@ import { switchMap, debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { BaseUpsertComponent } from '../../common/base-upsert/base-upsert.component';
 import { FilmService, PhotoService, SessionService, DevKitService, UsedFilmThumbnailService } from '../../../services';
 import { FilmType, UsernameType } from '../../../enums';
-import { FilmDto, PhotoBulkUploadDto, PhotoUploadDto, SessionDto, DevKitDto, UsedFilmThumbnailDto, ExposureDateEntry } from '../../../DTOs';
+import { FilmDto, PhotoCreateDto, SessionDto, DevKitDto, UsedFilmThumbnailDto, ExposureDateEntry } from '../../../DTOs';
 import { FileUploadHelper } from '../../../helpers/file-upload.helper';
 import { DateHelper } from '../../../helpers/date.helper';
 import { ErrorHandlingHelper } from '../../../helpers/error-handling.helper';
@@ -386,31 +386,22 @@ export class UpsertFilmComponent extends BaseUpsertComponent<FilmDto> implements
         return;
       }
 
-      // Convert files to photo DTOs using helper
-      const photos = await FileUploadHelper.filesToPhotoUploadDtos(
-        files, 
-        (imageBase64) => ({ imageBase64 } as PhotoUploadDto)
+      // Use photoService to upload multiple photos with progress tracking
+      // Since this is upsert-film page, we pass empty array (no existing photos)
+      await this.photoService.uploadMultiplePhotos(
+        this.id!,
+        files,
+        [], // No existing photos on initial upload
+        () => {} // No progress callback needed here
       );
 
-      const uploadDto: PhotoBulkUploadDto = {
-        filmId: this.id!,
-        photos: photos
-      };
-      
-      this.photoService.uploadPhotos(uploadDto).subscribe({
-        next: () => {
-          this.loading = false;
-          // Navigate to the film photos page
-          this.router.navigate(['/films', this.id, 'photos']);
-        },
-        error: (err) => {
-          this.loading = false;
-          this.errorMessage = ErrorHandlingHelper.handleError(err, 'photo upload');
-        }
-      });
+      // All uploads successful
+      this.loading = false;
+      // Navigate to the film photos page
+      this.router.navigate(['/films', this.id, 'photos']);
     } catch (error) {
       this.loading = false;
-      this.errorMessage = ErrorHandlingHelper.handleError(error, 'photo processing');
+      this.errorMessage = ErrorHandlingHelper.handleError(error, 'photo upload');
     }
   }
 
