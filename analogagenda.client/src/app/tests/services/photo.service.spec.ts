@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
 import { PhotoService } from '../../services/implementations/photo.service';
-import { PhotoDto, PhotoBulkUploadDto, PhotoCreateDto } from '../../DTOs';
+import { PhotoDto, PhotoCreateDto } from '../../DTOs';
 import { TestConfig } from '../test.config';
 
 describe('PhotoService', () => {
@@ -67,58 +67,6 @@ describe('PhotoService', () => {
       // Assert HTTP call
       const req = httpMock.expectOne(`${baseUrl}`);
       req.flush('Film not found', { status: 404, statusText: 'Not Found' });
-    });
-  });
-
-  describe('uploadPhotos', () => {
-    it('should upload multiple photos', () => {
-      // Arrange
-      const uploadDto: PhotoBulkUploadDto = {
-        filmId: 'test-film-id',
-        photos: [
-          { imageBase64: 'data:image/jpeg;base64,photo1data' },
-          { imageBase64: 'data:image/jpeg;base64,photo2data' }
-        ]
-      };
-      
-      const mockResponse: PhotoDto[] = [
-        createMockPhoto('photo1', 'test-film-id', 1),
-        createMockPhoto('photo2', 'test-film-id', 2)
-      ];
-
-      // Act
-      service.uploadPhotos(uploadDto).subscribe((response: any) => {
-        // Assert
-        expect(response).toEqual(mockResponse);
-        expect(response.length).toBe(2);
-      });
-
-      // Assert HTTP call
-      const req = httpMock.expectOne(`${baseUrl}/bulk`);
-      expect(req.request.method).toBe('POST');
-      expect(req.request.body).toEqual(uploadDto);
-      req.flush(mockResponse);
-    });
-
-    it('should handle error when uploading photos', () => {
-      // Arrange
-      const uploadDto: PhotoBulkUploadDto = {
-        filmId: 'test-film-id',
-        photos: []
-      };
-
-      // Act
-      service.uploadPhotos(uploadDto).subscribe({
-        next: () => fail('Should have failed'),
-        error: (error) => {
-          // Assert
-          expect(error.status).toBe(400);
-        }
-      });
-
-      // Assert HTTP call
-      const req = httpMock.expectOne(`${baseUrl}/bulk`);
-      req.flush('No photos provided', { status: 400, statusText: 'Bad Request' });
     });
   });
 
@@ -273,6 +221,48 @@ describe('PhotoService', () => {
       // Assert HTTP call
       const req = httpMock.expectOne(`${baseUrl}/${id}`);
       req.flush('Photo not found', { status: 404, statusText: 'Not Found' });
+    });
+  });
+
+  describe('getPreviewUrl', () => {
+    it('should return correct preview URL for a photo', () => {
+      // Arrange
+      const photoId = 'test-photo-id-123';
+      const expectedUrl = `${baseUrl}/preview/${photoId}`;
+
+      // Act
+      const result = service.getPreviewUrl(photoId);
+
+      // Assert
+      expect(result).toBe(expectedUrl);
+    });
+
+    it('should handle photo IDs with special characters', () => {
+      // Arrange
+      const photoId = 'photo-id-with-dashes-123';
+      const expectedUrl = `${baseUrl}/preview/${photoId}`;
+
+      // Act
+      const result = service.getPreviewUrl(photoId);
+
+      // Assert
+      expect(result).toBe(expectedUrl);
+    });
+
+    it('should not make HTTP call - just return URL string', () => {
+      // Arrange
+      const photoId = 'test-photo-id';
+
+      // Act
+      const result = service.getPreviewUrl(photoId);
+
+      // Assert
+      expect(typeof result).toBe('string');
+      expect(result).toContain('/preview/');
+      expect(result).toContain(photoId);
+      
+      // Verify no HTTP call was made
+      httpMock.expectNone(`${baseUrl}/preview/${photoId}`);
     });
   });
 

@@ -4,7 +4,7 @@ import { of, throwError } from 'rxjs';
 import { FilmsComponent } from '../../components/films/films.component';
 import { CardListComponent } from '../../components/common/card-list/card-list.component';
 import { FilmSearchComponent } from '../../components/films/film-search/film-search.component';
-import { FilmService, AccountService } from '../../services';
+import { FilmService, AccountService, LocalStorageService } from '../../services';
 import { FilmDto, IdentityDto, PagedResponseDto } from '../../DTOs';
 import { FilmType, UsernameType } from '../../enums';
 import { TestConfig } from '../test.config';
@@ -14,6 +14,7 @@ describe('FilmsComponent', () => {
   let fixture: ComponentFixture<FilmsComponent>;
   let mockFilmService: jasmine.SpyObj<FilmService>;
   let mockAccountService: jasmine.SpyObj<AccountService>;
+  let mockLocalStorageService: jasmine.SpyObj<LocalStorageService>;
   let mockRouter: jasmine.SpyObj<Router>;
 
   const mockIdentity: IdentityDto = {
@@ -29,7 +30,11 @@ describe('FilmsComponent', () => {
       'getNotDevelopedFilmsPaged'
     ]);
     const accountServiceSpy = jasmine.createSpyObj('AccountService', ['whoAmI']);
+    const localStorageServiceSpy = jasmine.createSpyObj('LocalStorageService', ['getState', 'saveState', 'clearState']);
     const routerSpy = TestConfig.createRouterSpy();
+    
+    // Mock LocalStorageService to return null/empty state (no persisted state in tests)
+    localStorageServiceSpy.getState.and.returnValue(null);
 
     // Set up default return values using TestConfig helpers
     const emptyPagedResponse = TestConfig.createEmptyPagedResponse<FilmDto>();
@@ -48,6 +53,7 @@ describe('FilmsComponent', () => {
       providers: [
         { provide: FilmService, useValue: filmServiceSpy },
         { provide: AccountService, useValue: accountServiceSpy },
+        { provide: LocalStorageService, useValue: localStorageServiceSpy },
         { provide: Router, useValue: routerSpy }
       ]
     }).compileComponents();
@@ -56,6 +62,7 @@ describe('FilmsComponent', () => {
     component = fixture.componentInstance;
     mockFilmService = TestBed.inject(FilmService) as jasmine.SpyObj<FilmService>;
     mockAccountService = TestBed.inject(AccountService) as jasmine.SpyObj<AccountService>;
+    mockLocalStorageService = TestBed.inject(LocalStorageService) as jasmine.SpyObj<LocalStorageService>;
     mockRouter = TestBed.inject(Router) as jasmine.SpyObj<Router>;
   });
 

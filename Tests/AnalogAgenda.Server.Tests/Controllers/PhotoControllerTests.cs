@@ -1,4 +1,5 @@
 using AnalogAgenda.Server.Controllers;
+using AnalogAgenda.Server.Services.Interfaces;
 using AnalogAgenda.Server.Tests.Helpers;
 using Azure.Storage.Blobs;
 using Configuration.Sections;
@@ -18,6 +19,7 @@ public class PhotoControllerTests : IDisposable
     private readonly AnalogAgendaDbContext _dbContext;
     private readonly IDatabaseService _databaseService;
     private readonly Mock<IBlobService> _mockBlobService;
+    private readonly Mock<IImageCacheService> _mockImageCacheService;
     private readonly Mock<BlobContainerClient> _mockPhotosContainerClient;
     private readonly Mock<BlobContainerClient> _mockFilmsContainerClient;
     private readonly Mock<BlobClient> _mockBlobClient;
@@ -29,6 +31,7 @@ public class PhotoControllerTests : IDisposable
         _dbContext = InMemoryDbContextFactory.Create($"PhotoTestDb_{Guid.NewGuid()}");
         _databaseService = new DatabaseService(_dbContext);
         _mockBlobService = new Mock<IBlobService>();
+        _mockImageCacheService = new Mock<IImageCacheService>();
         _mockPhotosContainerClient = new Mock<BlobContainerClient>();
         _mockFilmsContainerClient = new Mock<BlobContainerClient>();
         _mockBlobClient = new Mock<BlobClient>();
@@ -40,7 +43,7 @@ public class PhotoControllerTests : IDisposable
         _mockPhotosContainerClient.Setup(x => x.GetBlobClient(It.IsAny<string>()))
                                  .Returns(_mockBlobClient.Object);
 
-        _controller = new PhotoController(_storageConfig, _databaseService, _mockBlobService.Object);
+        _controller = new PhotoController(_storageConfig, _databaseService, _mockBlobService.Object, _mockImageCacheService.Object);
     }
 
     public void Dispose()
@@ -85,41 +88,99 @@ public class PhotoControllerTests : IDisposable
     }
 
     [Fact]
-    public async Task UploadPhotos_WithEmptyPhotosList_ReturnsBadRequest()
+    public async Task CreatePhoto_WithCustomIndex_UsesProvidedIndex()
     {
         // Arrange
-        var bulkDto = new PhotoBulkUploadDto
+        var filmId = "test-film-id";
+        var film = new FilmEntity { Id = filmId, Name = "Test Film", Iso = "400" };
+        await _databaseService.AddAsync(film);
+
+        var photoDto = new PhotoCreateDto
         {
-            FilmId = "test-film-id",
-            Photos = new List<PhotoUploadDto>()
+            FilmId = filmId,
+            ImageBase64 = "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJ",
+            Index = 45
         };
 
         // Act
-        var result = await _controller.UploadPhotos(bulkDto);
+        var result = await _controller.CreatePhoto(photoDto);
 
         // Assert
-        Assert.IsType<BadRequestObjectResult>(result);
+        var createdResult = Assert.IsType<CreatedResult>(result);
+        var createdPhoto = Assert.IsType<PhotoDto>(createdResult.Value);
+        Assert.Equal(45, createdPhoto.Index);
     }
 
     [Fact]
-    public async Task UploadPhotos_WithInvalidBase64_ReturnsBadRequest()
+    public async Task CreatePhoto_WithoutIndex_UsesNextAvailableIndex()
     {
         // Arrange
-        var bulkDto = new PhotoBulkUploadDto
+        var filmId = "test-film-id";
+        var film = new FilmEntity { Id = filmId, Name = "Test Film", Iso = "400" };
+        await _databaseService.AddAsync(film);
+
+        // Add existing photo with index 5
+        var existingPhoto = new PhotoEntity { FilmId = filmId, Index = 5, ImageId = Guid.NewGuid() };
+        await _databaseService.AddAsync(existingPhoto);
+
+        var photoDto = new PhotoCreateDto
         {
-            FilmId = "test-film-id",
-            Photos = new List<PhotoUploadDto>
-            {
-                new PhotoUploadDto { ImageBase64 = "data:image/jpeg;base64,validdata" },
-                new PhotoUploadDto { ImageBase64 = "" } // Invalid
-            }
+            FilmId = filmId,
+            ImageBase64 = "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJ"
         };
 
         // Act
-        var result = await _controller.UploadPhotos(bulkDto);
+        var result = await _controller.CreatePhoto(photoDto);
 
         // Assert
-        Assert.IsType<BadRequestObjectResult>(result);
+        var createdResult = Assert.IsType<CreatedResult>(result);
+        var createdPhoto = Assert.IsType<PhotoDto>(createdResult.Value);
+        Assert.Equal(6, createdPhoto.Index);
+    }
+
+    [Fact]
+    public async Task GetPreview_WithNonExistentPhoto_ReturnsNotFound()
+    {
+        // Arrange
+        var id = "non-existent-photo";
+
+        // Act
+        var result = await _controller.GetPreview(id);
+
+        // Assert
+        Assert.IsType<NotFoundObjectResult>(result);
+    }
+
+    [Fact]
+    public async Task GetPreview_WithCachedImage_ReturnsFromCache()
+    {
+        // Arrange
+        var photoId = "test-photo-id";
+        var imageId = Guid.NewGuid();
+        var filmId = "test-film-id";
+        var film = new FilmEntity { Id = filmId, Name = "Test Film", Iso = "400" };
+        await _databaseService.AddAsync(film);
+
+        var photo = new PhotoEntity { Id = photoId, FilmId = filmId, Index = 1, ImageId = imageId };
+        await _databaseService.AddAsync(photo);
+
+        var cachedBytes = new byte[] { 1, 2, 3, 4, 5 };
+        var contentType = "image/jpeg";
+        (byte[] imageBytes, string contentType)? cachedImage = (cachedBytes, contentType);
+
+        _mockImageCacheService.Setup(x => x.TryGetPreview(imageId, out cachedImage))
+            .Returns(true);
+
+        // Act
+        var result = await _controller.GetPreview(photoId);
+
+        // Assert
+        var fileResult = Assert.IsType<FileContentResult>(result);
+        Assert.Equal(cachedBytes, fileResult.FileContents);
+        Assert.Equal(contentType, fileResult.ContentType);
+        
+        // Verify cache was checked
+        _mockImageCacheService.Verify(x => x.TryGetPreview(imageId, out cachedImage), Times.Once);
     }
 
     [Fact]
