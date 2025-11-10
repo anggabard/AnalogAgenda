@@ -8,9 +8,12 @@ public interface IDatabaseService
 {
     Task<List<T>> GetAllAsync<T>() where T : BaseEntity;
     Task<List<T>> GetAllAsync<T>(Expression<Func<T, bool>> predicate) where T : BaseEntity;
+    Task<List<T>> GetAllWithIncludesAsync<T>(params Expression<Func<T, object>>[] includes) where T : BaseEntity;
     Task<PagedResponseDto<T>> GetPagedAsync<T>(int page = 1, int pageSize = 10, Func<IQueryable<T>, IOrderedQueryable<T>>? sortFunc = null) where T : BaseEntity;
     Task<PagedResponseDto<T>> GetPagedAsync<T>(Expression<Func<T, bool>> predicate, int page = 1, int pageSize = 10, Func<IQueryable<T>, IOrderedQueryable<T>>? sortFunc = null) where T : BaseEntity;
+    Task<PagedResponseDto<T>> GetPagedWithIncludesAsync<T>(int page = 1, int pageSize = 10, Func<IQueryable<T>, IOrderedQueryable<T>>? sortFunc = null, params Expression<Func<T, object>>[] includes) where T : BaseEntity;
     Task<T?> GetByIdAsync<T>(string id) where T : BaseEntity;
+    Task<T?> GetByIdWithIncludesAsync<T>(string id, params Expression<Func<T, object>>[] includes) where T : BaseEntity;
     Task<bool> ExistsAsync<T>(string id) where T : BaseEntity;
     Task<bool> ExistsAsync<T>(Expression<Func<T, bool>> predicate) where T : BaseEntity;
     Task<T> AddAsync<T>(T entity) where T : BaseEntity;

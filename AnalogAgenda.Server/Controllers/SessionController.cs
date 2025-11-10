@@ -36,6 +36,9 @@ public class SessionController(Storage storageCfg, IDatabaseService databaseServ
             var entity = dto.ToEntity();
             entity.ImageId = imageId;
 
+            // Sync navigation properties before saving
+            await SyncNavigationPropertiesAsync(entity, dto);
+
             await databaseService.AddAsync(entity);
             
             // Return the created entity as DTO
@@ -62,11 +65,18 @@ public class SessionController(Storage storageCfg, IDatabaseService databaseServ
         // For backward compatibility, if page is 0 or negative, return all sessions
         if (page <= 0)
         {
-            var entities = await databaseService.GetAllAsync<SessionEntity>();
+            var entities = await databaseService.GetAllWithIncludesAsync<SessionEntity>(
+                s => s.UsedDevKits, 
+                s => s.DevelopedFilms);
             return Ok(entities.Select(e => e.ToDTO(storageCfg.AccountName)));
         }
 
-        var pagedEntities = await databaseService.GetPagedAsync<SessionEntity>(page, pageSize, entities => entities.ApplyStandardSorting());
+        var pagedEntities = await databaseService.GetPagedWithIncludesAsync<SessionEntity>(
+            page, 
+            pageSize, 
+            entities => entities.ApplyStandardSorting(),
+            s => s.UsedDevKits, 
+            s => s.DevelopedFilms);
         var pagedResults = new PagedResponseDto<SessionDto>
         {
             Data = pagedEntities.Data.Select(e => e.ToDTO(storageCfg.AccountName)),
@@ -81,7 +91,11 @@ public class SessionController(Storage storageCfg, IDatabaseService databaseServ
     [HttpGet("{id}")]
     public async Task<IActionResult> GetSessionById(string id)
     {
-        var sessionEntity = await databaseService.GetByIdAsync<SessionEntity>(id);
+        // Load session with navigation properties
+        var sessionEntity = await databaseService.GetByIdWithIncludesAsync<SessionEntity>(
+            id, 
+            s => s.UsedDevKits, 
+            s => s.DevelopedFilms);
             
         if (sessionEntity == null)
             return NotFound($"No Session found with Id: {id}");
@@ -89,9 +103,42 @@ public class SessionController(Storage storageCfg, IDatabaseService databaseServ
         var sessionDto = sessionEntity.ToDTO(storageCfg.AccountName);
         
         // Populate FilmToDevKitMapping based on loaded relationships
-        await PopulateFilmToDevKitMapping(sessionDto, null);
+        await PopulateFilmToDevKitMapping(sessionDto, sessionEntity);
         
         return Ok(sessionDto);
+    }
+    
+    /// <summary>
+    /// Syncs navigation properties on SessionEntity from SessionDto.
+    /// Loads DevKit and Film entities and populates UsedDevKits and DevelopedFilms collections.
+    /// </summary>
+    private async Task SyncNavigationPropertiesAsync(SessionEntity entity, SessionDto dto)
+    {
+        // Clear existing collections
+        entity.UsedDevKits.Clear();
+        entity.DevelopedFilms.Clear();
+        
+        // Populate UsedDevKits (many-to-many)
+        var devKitIds = dto.UsedSubstancesList ?? [];
+        foreach (var devKitId in devKitIds)
+        {
+            var devKit = await databaseService.GetByIdAsync<DevKitEntity>(devKitId);
+            if (devKit != null)
+            {
+                entity.UsedDevKits.Add(devKit);
+            }
+        }
+        
+        // Populate DevelopedFilms (one-to-many)
+        var filmIds = dto.DevelopedFilmsList ?? [];
+        foreach (var filmId in filmIds)
+        {
+            var film = await databaseService.GetByIdAsync<FilmEntity>(filmId);
+            if (film != null)
+            {
+                entity.DevelopedFilms.Add(film);
+            }
+        }
     }
     
     private async Task PopulateFilmToDevKitMapping(SessionDto sessionDto, SessionEntity? sessionEntity = null)
@@ -140,8 +187,11 @@ public class SessionController(Storage storageCfg, IDatabaseService databaseServ
         if (updateDto == null)
             return BadRequest("Invalid data.");
 
-        // Get the original session first
-        var originalSession = await databaseService.GetByIdAsync<SessionEntity>(id);
+        // Get the original session first with navigation properties
+        var originalSession = await databaseService.GetByIdWithIncludesAsync<SessionEntity>(
+            id, 
+            s => s.UsedDevKits, 
+            s => s.DevelopedFilms);
         if (originalSession == null)
             return NotFound();
         
@@ -163,6 +213,9 @@ public class SessionController(Storage storageCfg, IDatabaseService databaseServ
 
         // Update entity using the Update method
         originalSession.Update(updateDto);
+        
+        // Sync navigation properties before updating
+        await SyncNavigationPropertiesAsync(originalSession, updateDto);
         
         // UpdateAsync will handle UpdatedDate
         await databaseService.UpdateAsync(originalSession);

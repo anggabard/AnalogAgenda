@@ -53,13 +53,8 @@ public class NotesController(Storage storageCfg, IDatabaseService databaseServic
     [HttpPost]
     public async Task<IActionResult> CreateNewNote([FromBody] NoteDto dto)
     {
-        return await CreateNoteWithEntriesAsync(dto);
-    }
-
-    private async Task<IActionResult> CreateNoteWithEntriesAsync(NoteDto dto)
-    {
         var imageId = Constants.DefaultNoteImageId;
-        
+
         try
         {
             var imageBase64 = dto.ImageBase64;
@@ -73,20 +68,20 @@ public class NotesController(Storage storageCfg, IDatabaseService databaseServic
             entity.ImageId = imageId;
 
             await databaseService.AddAsync(entity);
-            
+
             // Return the created entity as DTO
             var createdNote = entity.ToDTO(storageCfg.AccountName);
-            
+
             var entries = dto.ToNoteEntryEntities(createdNote.Id);
 
             foreach (var entry in entries)
             {
                 await databaseService.AddAsync(entry);
             }
-            
+
             // Save rules and overrides for each entry
             await SaveRulesAndOverridesAsync(dto.Entries);
-            
+
             return Created(string.Empty, createdNote);
         }
         catch (Exception ex)
@@ -131,37 +126,6 @@ public class NotesController(Storage storageCfg, IDatabaseService databaseServic
         
         // Save new rules and overrides
         await SaveRulesAndOverridesForEntryAsync(entry);
-    }
-
-    private async Task DeleteNoteAndCleanupAsync(string noteId)
-    {
-        try
-        {
-            // Get all entry IDs for this note
-            var entries = await databaseService.GetAllAsync<NoteEntryEntity>(e => e.NoteId == noteId);
-            var entryIds = entries.Select(e => e.Id).ToList();
-            
-            // Delete rules and overrides for all entries
-            await databaseService.DeleteRangeAsync<NoteEntryRuleEntity>(r => entryIds.Contains(r.NoteEntryId));
-            await databaseService.DeleteRangeAsync<NoteEntryOverrideEntity>(o => entryIds.Contains(o.NoteEntryId));
-            
-            // Delete note entries
-            await databaseService.DeleteRangeAsync<NoteEntryEntity>(entry => entry.NoteId == noteId);
-            
-            // Delete the note with image cleanup
-            var entity = await databaseService.GetByIdAsync<NoteEntity>(noteId);
-            if (entity != null)
-            {
-                if (entity.ImageId != Constants.DefaultNoteImageId)
-                    await notesContainer.DeleteBlobAsync(entity.ImageId.ToString());
-                
-                await databaseService.DeleteAsync(entity);
-            }
-        }
-        catch
-        {
-            // Swallow cleanup errors - the original error is more important
-        }
     }
 
     [HttpGet]
@@ -242,17 +206,12 @@ public class NotesController(Storage storageCfg, IDatabaseService databaseServic
     [HttpPut("{id}")]
     public async Task<IActionResult> UpdateNote(string id, [FromBody] NoteDto updateDto)
     {
-        return await UpdateNoteWithEntriesAsync(id, updateDto);
-    }
-
-    private async Task<IActionResult> UpdateNoteWithEntriesAsync(string id, NoteDto updateDto)
-    {
         if (updateDto == null)
             return BadRequest("Invalid data.");
 
         // Load existing entity
         var existingEntity = await databaseService.GetByIdAsync<NoteEntity>(id);
-        
+
         if (existingEntity == null)
             return NotFound();
 
@@ -272,13 +231,12 @@ public class NotesController(Storage storageCfg, IDatabaseService databaseServic
 
         // Update entity using the Update method
         existingEntity.Update(updateDto);
-        
+
         // UpdateAsync will handle UpdatedDate
         await databaseService.UpdateAsync(existingEntity);
 
         // If note update succeeded, update the note entries
         return await UpdateNoteEntriesAsync(id, updateDto);
-
     }
 
     private async Task<IActionResult> UpdateNoteEntriesAsync(string id, NoteDto updateDto)
@@ -430,6 +388,4 @@ public class NotesController(Storage storageCfg, IDatabaseService databaseServic
         
         return noteIds;
     }
-
-
 }
