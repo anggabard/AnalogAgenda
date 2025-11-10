@@ -194,11 +194,11 @@ export class UpsertSessionComponent extends BaseUpsertComponent<SessionDto> impl
       location: formValue.location,
       participants: JSON.stringify(this.participants),
       description: formValue.description || '',
-      usedSubstances: JSON.stringify(this.sessionDevKits.map(sdk => sdk.devKit.id)),
-      developedFilms: JSON.stringify([
+      usedSubstances: this.sessionDevKits.map(sdk => sdk.devKit.id).join(','),
+      developedFilms: [
         ...this.unassignedFilms.map(f => f.id),
         ...this.sessionDevKits.flatMap(sdk => sdk.assignedFilms.map(f => f.id))
-      ]),
+      ].join(','),
       imageUrl: formValue.imageUrl || '',
       imageBase64: formValue.imageBase64 || '',
       filmToDevKitMapping: filmToDevKitMapping

@@ -1,28 +1,25 @@
 using AnalogAgenda.Server.Identity;
 using Azure.Storage.Blobs;
 using Configuration.Sections;
-using Database.Data;
 using Database.DBObjects;
 using Database.DBObjects.Enums;
 using Database.DTOs;
 using Database.Entities;
 using Database.Helpers;
 using Database.Services.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
 
 namespace AnalogAgenda.Server.Controllers;
 
-[Route("api/[controller]")]
-public class FilmController(Storage storageCfg, IDatabaseService databaseService, IBlobService blobsService, AnalogAgendaDbContext dbContext) : BaseEntityController<FilmEntity, FilmDto>(storageCfg, databaseService, blobsService, dbContext)
+[Route("api/[controller]"), ApiController, Authorize]
+public class FilmController(Storage storageCfg, IDatabaseService databaseService, IBlobService blobsService) : ControllerBase
 {
+    private readonly Storage storageCfg = storageCfg;
+    private readonly IDatabaseService databaseService = databaseService;
+    private readonly IBlobService blobsService = blobsService;
     private readonly BlobContainerClient filmsContainer = blobsService.GetBlobContainer(ContainerName.films);
-
-    protected override BlobContainerClient GetBlobContainer() => filmsContainer;
-    protected override Guid GetDefaultImageId() => Constants.DefaultFilmImageId;
-    protected override FilmEntity DtoToEntity(FilmDto dto) => dto.ToEntity();
-    protected override FilmDto EntityToDto(FilmEntity entity) => entity.ToDTO(storageCfg.AccountName);
 
     [HttpPost]
     public async Task<IActionResult> CreateNewFilm([FromBody] FilmDto dto, [FromQuery] int bulkCount = 1)
@@ -74,14 +71,14 @@ public class FilmController(Storage storageCfg, IDatabaseService databaseService
         if (page <= 0)
         {
             var entities = await databaseService.GetAllAsync<FilmEntity>();
-            var results = entities.Select(EntityToDto);
+            var results = entities.Select(e => e.ToDTO(storageCfg.AccountName));
             return Ok(results);
         }
 
         var pagedEntities = await databaseService.GetPagedAsync<FilmEntity>(page, pageSize, entities => entities.ApplyStandardSorting());
         var pagedResults = new PagedResponseDto<FilmDto>
         {
-            Data = pagedEntities.Data.Select(EntityToDto),
+            Data = pagedEntities.Data.Select(e => e.ToDTO(storageCfg.AccountName)),
             TotalCount = pagedEntities.TotalCount,
             PageSize = pagedEntities.PageSize,
             CurrentPage = pagedEntities.CurrentPage
@@ -139,7 +136,7 @@ public class FilmController(Storage storageCfg, IDatabaseService databaseService
             var filteredEntities = ApplySearchFilters(entities, searchDto);
             var results = filteredEntities
                 .ApplyStandardSorting()
-                .Select(EntityToDto);
+                .Select(e => e.ToDTO(storageCfg.AccountName));
             return Ok(results);
         }
 
@@ -154,7 +151,7 @@ public class FilmController(Storage storageCfg, IDatabaseService databaseService
 
         var pagedResults = new PagedResponseDto<FilmDto>
         {
-            Data = pagedData.Select(EntityToDto),
+            Data = pagedData.Select(e => e.ToDTO(storageCfg.AccountName)),
             TotalCount = totalCount,
             PageSize = searchDto.PageSize,
             CurrentPage = searchDto.Page
@@ -177,7 +174,7 @@ public class FilmController(Storage storageCfg, IDatabaseService databaseService
             var filteredEntities = ApplySearchFilters(myEntities, searchDto);
             var results = filteredEntities
                 .ApplyUserFilteredSorting()
-                .Select(EntityToDto);
+                .Select(e => e.ToDTO(storageCfg.AccountName));
             return Ok(results);
         }
 
@@ -197,7 +194,7 @@ public class FilmController(Storage storageCfg, IDatabaseService databaseService
 
         var pagedResults = new PagedResponseDto<FilmDto>
         {
-            Data = pagedData.Select(EntityToDto),
+            Data = pagedData.Select(e => e.ToDTO(storageCfg.AccountName)),
             TotalCount = totalCount,
             PageSize = searchDto.PageSize,
             CurrentPage = searchDto.Page
@@ -210,7 +207,11 @@ public class FilmController(Storage storageCfg, IDatabaseService databaseService
     [HttpGet("{id}")]
     public async Task<IActionResult> GetFilmById(string id)
     {
-        return await GetEntityByIdAsync(id);
+        var entity = await databaseService.GetByIdAsync<FilmEntity>(id);
+        if (entity == null)
+            return NotFound($"No Film found with Id: {id}");
+        
+        return Ok(entity.ToDTO(storageCfg.AccountName));
     }
 
     [HttpPut("{id}")]
@@ -219,39 +220,19 @@ public class FilmController(Storage storageCfg, IDatabaseService databaseService
         if (updateDto == null)
             return BadRequest("Invalid data.");
 
-        // Load entity without tracking to avoid conflicts with navigation properties
-        var existingEntity = await dbContext.Set<FilmEntity>()
-            .AsNoTracking()
-            .FirstOrDefaultAsync(e => e.Id == id);
+        // Load existing entity
+        var existingEntity = await databaseService.GetByIdAsync<FilmEntity>(id);
         
         if (existingEntity == null)
             return NotFound();
 
         try
         {
-            // Create entity from DTO using ToEntity() method
-            var updatedEntity = updateDto.ToEntity();
-            updatedEntity.Id = id; // Preserve the ID
-            updatedEntity.CreatedDate = existingEntity.CreatedDate; // Preserve CreatedDate
-            updatedEntity.UpdatedDate = DateTime.UtcNow;
+            // Update entity using the Update method
+            existingEntity.Update(updateDto);
             
-            // If no ImageUrl provided, keep existing ImageId
-            if (updatedEntity.ImageId == Guid.Empty)
-            {
-                updatedEntity.ImageId = existingEntity.ImageId;
-            }
-            
-            // Attach and update the entity using Entry API
-            // This avoids tracking conflicts with navigation properties
-            dbContext.Set<FilmEntity>().Attach(updatedEntity);
-            dbContext.Entry(updatedEntity).State = Microsoft.EntityFrameworkCore.EntityState.Modified;
-            
-            // Clear navigation properties to avoid tracking conflicts
-            dbContext.Entry(updatedEntity).Reference(f => f.DevelopedWithDevKit).CurrentValue = null;
-            dbContext.Entry(updatedEntity).Reference(f => f.DevelopedInSession).CurrentValue = null;
-            dbContext.Entry(updatedEntity).Collection(f => f.Photos).IsLoaded = false;
-            
-            await dbContext.SaveChangesAsync();
+            // UpdateAsync will handle UpdatedDate
+            await databaseService.UpdateAsync(existingEntity);
             return NoContent();
         }
         catch (Exception ex)
@@ -267,7 +248,12 @@ public class FilmController(Storage storageCfg, IDatabaseService databaseService
         await DeleteAssociatedPhotosAsync(id);
         
         // Then delete the film itself
-        return await DeleteEntityWithImageAsync(id);
+        var entity = await databaseService.GetByIdAsync<FilmEntity>(id);
+        if (entity == null)
+            return NotFound();
+        
+        await databaseService.DeleteAsync(entity);
+        return NoContent();
     }
 
     private async Task DeleteAssociatedPhotosAsync(string filmId)

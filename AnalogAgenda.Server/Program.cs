@@ -115,9 +115,18 @@ if (app.Environment.IsDevelopment())
         var dbContext = scope.ServiceProvider.GetRequiredService<AnalogAgendaDbContext>();
         try
         {
-            // Ensure database is created and apply all pending migrations
-            dbContext.Database.Migrate();
-            app.Logger.LogInformation("Database migrations applied successfully.");
+            // Check if there are pending migrations before applying
+            var pendingMigrations = await dbContext.Database.GetPendingMigrationsAsync();
+            if (pendingMigrations.Any())
+            {
+                app.Logger.LogInformation("Applying {Count} pending migrations...", pendingMigrations.Count());
+                await dbContext.Database.MigrateAsync();
+                app.Logger.LogInformation("Database migrations applied successfully.");
+            }
+            else
+            {
+                app.Logger.LogInformation("No pending migrations. Database is up to date.");
+            }
         }
         catch (Exception ex)
         {

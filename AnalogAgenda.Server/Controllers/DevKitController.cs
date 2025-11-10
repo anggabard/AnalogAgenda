@@ -1,27 +1,24 @@
 ﻿using Azure.Storage.Blobs;
 using Configuration.Sections;
-using Database.Data;
 using Database.DBObjects;
 using Database.DBObjects.Enums;
 using Database.DTOs;
 using Database.Entities;
 using Database.Helpers;
 using Database.Services.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
 
 namespace AnalogAgenda.Server.Controllers;
 
-[Route("api/[controller]")]
-public class DevKitController(Storage storageCfg, IDatabaseService databaseService, IBlobService blobsService, AnalogAgendaDbContext dbContext) : BaseEntityController<DevKitEntity, DevKitDto>(storageCfg, databaseService, blobsService, dbContext)
+[Route("api/[controller]"), ApiController, Authorize]
+public class DevKitController(Storage storageCfg, IDatabaseService databaseService, IBlobService blobsService) : ControllerBase
 {
+    private readonly Storage storageCfg = storageCfg;
+    private readonly IDatabaseService databaseService = databaseService;
+    private readonly IBlobService blobsService = blobsService;
     private readonly BlobContainerClient devKitsContainer = blobsService.GetBlobContainer(ContainerName.devkits);
-
-    protected override BlobContainerClient GetBlobContainer() => devKitsContainer;
-    protected override Guid GetDefaultImageId() => Constants.DefaultDevKitImageId;
-    protected override DevKitEntity DtoToEntity(DevKitDto dto) => dto.ToEntity();
-    protected override DevKitDto EntityToDto(DevKitEntity entity) => entity.ToDTO(storageCfg.AccountName);
 
     [HttpPost]
     public async Task<IActionResult> CreateNewKit([FromBody] DevKitDto dto)
@@ -50,12 +47,23 @@ public class DevKitController(Storage storageCfg, IDatabaseService databaseServi
     [HttpGet]
     public async Task<IActionResult> GetAllKits([FromQuery] int page = 1, [FromQuery] int pageSize = 5)
     {
-        return await GetEntitiesWithBackwardCompatibilityAsync(
-            page, 
-            pageSize,
-            entities => entities.ApplyStandardSorting(),
-            sorted => sorted.Select(EntityToDto)
-        );
+        if (page <= 0)
+        {
+            var entities = await databaseService.GetAllAsync<DevKitEntity>();
+            var results = entities.ApplyStandardSorting().Select(e => e.ToDTO(storageCfg.AccountName));
+            return Ok(results);
+        }
+
+        var pagedEntities = await databaseService.GetPagedAsync<DevKitEntity>(page, pageSize, entities => entities.ApplyStandardSorting());
+        var pagedResults = new PagedResponseDto<DevKitDto>
+        {
+            Data = pagedEntities.Data.Select(e => e.ToDTO(storageCfg.AccountName)),
+            TotalCount = pagedEntities.TotalCount,
+            PageSize = pagedEntities.PageSize,
+            CurrentPage = pagedEntities.CurrentPage
+        };
+
+        return Ok(pagedResults);
     }
 
     [HttpGet("available")]
@@ -75,19 +83,33 @@ public class DevKitController(Storage storageCfg, IDatabaseService databaseServi
         int page = 1, 
         int pageSize = 5)
     {
-        return await GetFilteredEntitiesWithBackwardCompatibilityAsync(
-            predicate,
-            page, 
-            pageSize,
-            entities => entities.ApplyStandardSorting(),
-            sorted => sorted.Select(EntityToDto)
-        );
+        if (page <= 0)
+        {
+            var entities = await databaseService.GetAllAsync(predicate);
+            var results = entities.ApplyStandardSorting().Select(e => e.ToDTO(storageCfg.AccountName));
+            return Ok(results);
+        }
+
+        var pagedEntities = await databaseService.GetPagedAsync(predicate, page, pageSize, entities => entities.ApplyStandardSorting());
+        var pagedResults = new PagedResponseDto<DevKitDto>
+        {
+            Data = pagedEntities.Data.Select(e => e.ToDTO(storageCfg.AccountName)),
+            TotalCount = pagedEntities.TotalCount,
+            PageSize = pagedEntities.PageSize,
+            CurrentPage = pagedEntities.CurrentPage
+        };
+
+        return Ok(pagedResults);
     }
 
     [HttpGet("{id}")]
     public async Task<IActionResult> GetKitById(string id)
     {
-        return await GetEntityByIdAsync(id);
+        var entity = await databaseService.GetByIdAsync<DevKitEntity>(id);
+        if (entity == null)
+            return NotFound($"No DevKit found with Id: {id}");
+        
+        return Ok(entity.ToDTO(storageCfg.AccountName));
     }
 
     [HttpPut("{id}")]
@@ -96,38 +118,19 @@ public class DevKitController(Storage storageCfg, IDatabaseService databaseServi
         if (updateDto == null)
             return BadRequest("Invalid data.");
 
-        // Load entity without tracking to avoid conflicts with navigation properties
-        var existingEntity = await dbContext.Set<DevKitEntity>()
-            .AsNoTracking()
-            .FirstOrDefaultAsync(e => e.Id == id);
+        // Load existing entity
+        var existingEntity = await databaseService.GetByIdAsync<DevKitEntity>(id);
         
         if (existingEntity == null)
             return NotFound();
 
         try
         {
-            // Create entity from DTO using ToEntity() method
-            var updatedEntity = updateDto.ToEntity();
-            updatedEntity.Id = id; // Preserve the ID
-            updatedEntity.CreatedDate = existingEntity.CreatedDate; // Preserve CreatedDate
-            updatedEntity.UpdatedDate = DateTime.UtcNow;
+            // Update entity using the Update method
+            existingEntity.Update(updateDto);
             
-            // If no ImageUrl provided, keep existing ImageId
-            if (updatedEntity.ImageId == Guid.Empty)
-            {
-                updatedEntity.ImageId = existingEntity.ImageId;
-            }
-            
-            // Attach and update the entity using Entry API
-            // This avoids tracking conflicts with navigation properties
-            dbContext.Set<DevKitEntity>().Attach(updatedEntity);
-            dbContext.Entry(updatedEntity).State = Microsoft.EntityFrameworkCore.EntityState.Modified;
-            
-            // Clear navigation properties to avoid tracking conflicts
-            dbContext.Entry(updatedEntity).Collection(d => d.DevelopedFilms).IsLoaded = false;
-            dbContext.Entry(updatedEntity).Collection(d => d.UsedInSessions).IsLoaded = false;
-            
-            await dbContext.SaveChangesAsync();
+            // UpdateAsync will handle UpdatedDate
+            await databaseService.UpdateAsync(existingEntity);
             return NoContent();
         }
         catch (Exception ex)
@@ -139,7 +142,16 @@ public class DevKitController(Storage storageCfg, IDatabaseService databaseServi
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteKit(string id)
     {
-        return await DeleteEntityWithImageAsync(id);
+        var entity = await databaseService.GetByIdAsync<DevKitEntity>(id);
+        if (entity == null)
+            return NotFound();
+        
+        // Delete image blob if not default
+        if (entity.ImageId != Constants.DefaultDevKitImageId)
+            await devKitsContainer.DeleteBlobAsync(entity.ImageId.ToString());
+        
+        await databaseService.DeleteAsync(entity);
+        return NoContent();
     }
 
 }

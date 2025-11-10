@@ -22,6 +22,16 @@ public class SessionEntity : BaseEntity, IImageEntity
 
     protected override int IdLength() => 10;
 
+    public void Update(SessionDto dto)
+    {
+        SessionDate = dto.SessionDate.ToDateTime(TimeOnly.MinValue);
+        Location = dto.Location;
+        Participants = dto.Participants;
+        Description = dto.Description;
+        
+        // ImageId is handled in the controller (uploaded to blob storage)
+    }
+
     public SessionDto ToDTO(string accountName)
     {
         return new SessionDto()

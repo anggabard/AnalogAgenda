@@ -47,14 +47,13 @@ jobs:
         $azTenantId = az keyvault secret show --vault-name $kvName --name "az-tenant-id" --query "value" -o tsv
         $azClientSecret = az keyvault secret show --vault-name $kvName --name "az-client-secret" --query "value" -o tsv
         $sqlPassword = az keyvault secret show --vault-name $kvName --name "sql-password" --query "value" -o tsv
+        $sqlConnectionString = az keyvault secret show --vault-name $kvName --name "sql-connection-string" --query "value" -o tsv
         
         Write-Host "::add-mask::$acrUsername"
         Write-Host "::add-mask::$acrPassword"
         Write-Host "::add-mask::$azClientSecret"
         Write-Host "::add-mask::$sqlPassword"
-        
-        # Construct SQL connection string
-        $sqlConnectionString = "Server=tcp:sql-analogagenda-prod.database.windows.net,1433;Database=AnalogAgendaDb;User ID=sqladmin;Password=$sqlPassword;Encrypt=True;TrustServerCertificate=False;"
+        Write-Host "::add-mask::$sqlConnectionString"
         
         echo "ACR_USERNAME=$acrUsername" >> $env:GITHUB_ENV
         echo "ACR_PASSWORD=$acrPassword" >> $env:GITHUB_ENV

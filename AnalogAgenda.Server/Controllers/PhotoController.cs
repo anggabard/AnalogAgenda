@@ -1,27 +1,24 @@
 using AnalogAgenda.Server.Helpers;
 using Azure.Storage.Blobs;
 using Configuration.Sections;
-using Database.Data;
 using Database.DBObjects.Enums;
 using Database.DTOs;
 using Database.Entities;
 using Database.Helpers;
 using Database.Services.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using System.IO.Compression;
 
 namespace AnalogAgenda.Server.Controllers;
 
-[Route("api/[controller]")]
-public class PhotoController(Storage storageCfg, IDatabaseService databaseService, IBlobService blobsService, AnalogAgendaDbContext dbContext) : BaseEntityController<PhotoEntity, PhotoDto>(storageCfg, databaseService, blobsService, dbContext)
+[Route("api/[controller]"), ApiController, Authorize]
+public class PhotoController(Storage storageCfg, IDatabaseService databaseService, IBlobService blobsService) : ControllerBase
 {
+    private readonly Storage storageCfg = storageCfg;
+    private readonly IDatabaseService databaseService = databaseService;
+    private readonly IBlobService blobsService = blobsService;
     private readonly BlobContainerClient photosContainer = blobsService.GetBlobContainer(ContainerName.photos);
-
-    protected override BlobContainerClient GetBlobContainer() => photosContainer;
-    protected override Guid GetDefaultImageId() => Guid.Empty; // Photos always have real images, no default needed
-    protected override PhotoEntity DtoToEntity(PhotoDto dto) => dto.ToEntity();
-    protected override PhotoDto EntityToDto(PhotoEntity entity) => entity.ToDTO(storageCfg.AccountName);
 
     [HttpPost]
     [RequestSizeLimit(150 * 1024 * 1024)] // 150MB limit to support base64-encoded 50MB image
@@ -35,20 +32,35 @@ public class PhotoController(Storage storageCfg, IDatabaseService databaseServic
 
         int nextIndex = await GetNextPhotoIndexAsync(dto.FilmId);
 
-        var result = await CreateEntityWithImageAsync(new PhotoDto
+        var imageId = Guid.NewGuid();
+        try
         {
-            FilmId = dto.FilmId,
-            Index = nextIndex,
-            ImageBase64 = dto.ImageBase64
-        }, photoDto => photoDto.ImageBase64);
+            await BlobImageHelper.UploadBase64ImageWithContentTypeAsync(photosContainer, dto.ImageBase64, imageId);
 
-        // Auto-mark film as developed when photo is uploaded
-        if (result is CreatedResult)
-        {
+            var photoDto = new PhotoDto
+            {
+                FilmId = dto.FilmId,
+                Index = nextIndex,
+                ImageBase64 = dto.ImageBase64
+            };
+            
+            var entity = photoDto.ToEntity();
+            entity.ImageId = imageId;
+
+            await databaseService.AddAsync(entity);
+            
+            // Auto-mark film as developed when photo is uploaded
             await MarkFilmAsDeveloped(dto.FilmId);
+            
+            // Return the created entity as DTO
+            var createdDto = entity.ToDTO(storageCfg.AccountName);
+            return Created(string.Empty, createdDto);
         }
-
-        return result;
+        catch (Exception ex)
+        {
+            await photosContainer.GetBlobClient(imageId.ToString()).DeleteIfExistsAsync();
+            return UnprocessableEntity(ex.Message);
+        }
     }
 
     [HttpPost("bulk")]
@@ -110,7 +122,7 @@ public class PhotoController(Storage storageCfg, IDatabaseService databaseServic
         var photos = await databaseService.GetAllAsync<PhotoEntity>(p => p.FilmId == filmId);
         var sortedPhotos = photos
             .ApplyStandardSorting()
-            .Select(EntityToDto)
+            .Select(e => e.ToDTO(storageCfg.AccountName))
             .ToList();
 
         return Ok(sortedPhotos);
@@ -197,7 +209,16 @@ public class PhotoController(Storage storageCfg, IDatabaseService databaseServic
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeletePhoto(string id)
     {
-        return await DeleteEntityWithImageAsync(id);
+        var entity = await databaseService.GetByIdAsync<PhotoEntity>(id);
+        if (entity == null)
+            return NotFound();
+        
+        // Delete image blob (photos always have real images, no default)
+        if (entity.ImageId != Guid.Empty)
+            await photosContainer.DeleteBlobAsync(entity.ImageId.ToString());
+        
+        await databaseService.DeleteAsync(entity);
+        return NoContent();
     }
 
     private static string SanitizeFileName(string fileName)
@@ -220,44 +241,16 @@ public class PhotoController(Storage storageCfg, IDatabaseService databaseServic
 
     private async Task MarkFilmAsDeveloped(string filmId)
     {
-        // Load entity without tracking to avoid conflicts
-        var existingEntity = await dbContext.Set<FilmEntity>()
-            .AsNoTracking()
-            .FirstOrDefaultAsync(f => f.Id == filmId);
+        // Load existing entity
+        var existingEntity = await databaseService.GetByIdAsync<FilmEntity>(filmId);
         
         if (existingEntity != null && !existingEntity.Developed)
         {
-            // Create updated entity
-            var updatedEntity = new FilmEntity
-            {
-                Id = existingEntity.Id,
-                CreatedDate = existingEntity.CreatedDate,
-                UpdatedDate = DateTime.UtcNow,
-                Name = existingEntity.Name,
-                Iso = existingEntity.Iso,
-                Type = existingEntity.Type,
-                NumberOfExposures = existingEntity.NumberOfExposures,
-                Cost = existingEntity.Cost,
-                PurchasedBy = existingEntity.PurchasedBy,
-                PurchasedOn = existingEntity.PurchasedOn,
-                ImageId = existingEntity.ImageId,
-                Description = existingEntity.Description,
-                Developed = true, // Mark as developed
-                DevelopedInSessionId = existingEntity.DevelopedInSessionId,
-                DevelopedWithDevKitId = existingEntity.DevelopedWithDevKitId,
-                ExposureDates = existingEntity.ExposureDates
-            };
+            // Update the entity
+            existingEntity.Developed = true;
             
-            // Attach and update
-            dbContext.Set<FilmEntity>().Attach(updatedEntity);
-            dbContext.Entry(updatedEntity).State = Microsoft.EntityFrameworkCore.EntityState.Modified;
-            
-            // Clear navigation properties
-            dbContext.Entry(updatedEntity).Reference(f => f.DevelopedWithDevKit).CurrentValue = null;
-            dbContext.Entry(updatedEntity).Reference(f => f.DevelopedInSession).CurrentValue = null;
-            dbContext.Entry(updatedEntity).Collection(f => f.Photos).IsLoaded = false;
-            
-            await dbContext.SaveChangesAsync();
+            // UpdateAsync will handle UpdatedDate automatically
+            await databaseService.UpdateAsync(existingEntity);
         }
     }
 }

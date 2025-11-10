@@ -1,25 +1,23 @@
-﻿using Azure.Storage.Blobs;
+﻿using AnalogAgenda.Server.Helpers;
+using Azure.Storage.Blobs;
 using Configuration.Sections;
 using Database.DBObjects;
 using Database.DBObjects.Enums;
 using Database.DTOs;
 using Database.Entities;
 using Database.Services.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using Database.Data;
 
 namespace AnalogAgenda.Server.Controllers;
 
-[Route("api/[controller]")]
-public class NotesController(Storage storageCfg, IDatabaseService databaseService, IBlobService blobsService, AnalogAgendaDbContext dbContext) : BaseEntityController<NoteEntity, NoteDto>(storageCfg, databaseService, blobsService, dbContext)
+[Route("api/[controller]"), ApiController, Authorize]
+public class NotesController(Storage storageCfg, IDatabaseService databaseService, IBlobService blobsService) : ControllerBase
 {
+    private readonly Storage storageCfg = storageCfg;
+    private readonly IDatabaseService databaseService = databaseService;
+    private readonly IBlobService blobsService = blobsService;
     private readonly BlobContainerClient notesContainer = blobsService.GetBlobContainer(ContainerName.notes);
-
-    protected override BlobContainerClient GetBlobContainer() => notesContainer;
-    protected override Guid GetDefaultImageId() => Constants.DefaultNoteImageId;
-    protected override NoteEntity DtoToEntity(NoteDto dto) => dto.ToNoteEntity();
-    protected override NoteDto EntityToDto(NoteEntity entity) => entity.ToDTO(storageCfg.AccountName);
     
     private async Task<NoteDto> EntityToDtoWithEntriesAsync(NoteEntity entity, IEnumerable<NoteEntryEntity> entries)
     {
@@ -27,12 +25,8 @@ public class NotesController(Storage storageCfg, IDatabaseService databaseServic
         var entryIds = entryList.Select(e => e.Id).ToList();
         
         // Get rules and overrides for all entries
-        var rules = await dbContext.NoteEntryRules
-            .Where(r => entryIds.Contains(r.NoteEntryId))
-            .ToListAsync();
-        var overrides = await dbContext.NoteEntryOverrides
-            .Where(o => entryIds.Contains(o.NoteEntryId))
-            .ToListAsync();
+        var rules = await databaseService.GetAllAsync<NoteEntryRuleEntity>(r => entryIds.Contains(r.NoteEntryId));
+        var overrides = await databaseService.GetAllAsync<NoteEntryOverrideEntity>(o => entryIds.Contains(o.NoteEntryId));
         
         var rulesByEntry = rules
             .GroupBy(r => r.NoteEntryId)
@@ -59,45 +53,43 @@ public class NotesController(Storage storageCfg, IDatabaseService databaseServic
     [HttpPost]
     public async Task<IActionResult> CreateNewNote([FromBody] NoteDto dto)
     {
-        return await CreateNoteWithEntriesAsync(dto);
-    }
-
-    private async Task<IActionResult> CreateNoteWithEntriesAsync(NoteDto dto)
-    {
-        // First create the note using the base controller's image handling
-        var creationDate = DateTime.UtcNow;
-        var noteCreationResult = await CreateEntityWithImageAsync(dto, dto => dto.ImageBase64, creationDate);
-        
-        if (noteCreationResult is not CreatedResult createdResult)
-        {
-            return noteCreationResult; // Return error if note creation failed
-        }
-
-        // If note creation succeeded, create the note entries
-        if (createdResult.Value is not NoteDto createdNote)
-        {
-            return UnprocessableEntity("Failed to retrieve created note.");
-        }
-
-        var entries = dto.ToNoteEntryEntities(createdNote.Id);
+        var imageId = Constants.DefaultNoteImageId;
 
         try
         {
+            var imageBase64 = dto.ImageBase64;
+            if (!string.IsNullOrEmpty(imageBase64))
+            {
+                imageId = Guid.NewGuid();
+                await BlobImageHelper.UploadBase64ImageWithContentTypeAsync(notesContainer, imageBase64, imageId);
+            }
+
+            var entity = dto.ToNoteEntity();
+            entity.ImageId = imageId;
+
+            await databaseService.AddAsync(entity);
+
+            // Return the created entity as DTO
+            var createdNote = entity.ToDTO(storageCfg.AccountName);
+
+            var entries = dto.ToNoteEntryEntities(createdNote.Id);
+
             foreach (var entry in entries)
             {
                 await databaseService.AddAsync(entry);
             }
-            
+
             // Save rules and overrides for each entry
             await SaveRulesAndOverridesAsync(dto.Entries);
-            
+
             return Created(string.Empty, createdNote);
         }
         catch (Exception ex)
         {
-            // If entries creation failed, clean up the note we just created
-            await DeleteNoteAndCleanupAsync(createdNote.Id);
-            return UnprocessableEntity($"Failed to create note entries: {ex.Message}");
+            if (imageId != Constants.DefaultNoteImageId)
+                await notesContainer.GetBlobClient(imageId.ToString()).DeleteIfExistsAsync();
+
+            return UnprocessableEntity($"Failed to create note: {ex.Message}");
         }
     }
 
@@ -136,59 +128,25 @@ public class NotesController(Storage storageCfg, IDatabaseService databaseServic
         await SaveRulesAndOverridesForEntryAsync(entry);
     }
 
-    private async Task DeleteNoteAndCleanupAsync(string noteId)
-    {
-        try
-        {
-            // Get all entry IDs for this note
-            var entryIds = await dbContext.NoteEntries
-                .Where(e => e.NoteId == noteId)
-                .Select(e => e.Id)
-                .ToListAsync();
-            
-            // Delete rules and overrides for all entries
-            await databaseService.DeleteRangeAsync<NoteEntryRuleEntity>(r => entryIds.Contains(r.NoteEntryId));
-            await databaseService.DeleteRangeAsync<NoteEntryOverrideEntity>(o => entryIds.Contains(o.NoteEntryId));
-            
-            // Delete note entries
-            await databaseService.DeleteRangeAsync<NoteEntryEntity>(entry => entry.NoteId == noteId);
-            
-            // Delete the note (this will also handle image cleanup via base controller logic)
-            await DeleteEntityWithImageAsync(noteId);
-        }
-        catch
-        {
-            // Swallow cleanup errors - the original error is more important
-        }
-    }
-
     [HttpGet]
     public async Task<IActionResult> GetAllNotes([FromQuery] bool withEntries = false, [FromQuery] int page = 1, [FromQuery] int pageSize = 5)
     {
         // For backward compatibility, if page is 0 or negative, return all notes
         if (page <= 0)
         {
-            IQueryable<NoteEntity> query = dbContext.Notes;
-            
-            if (withEntries)
-            {
-                query = query.Include(n => n.Entries)
-                    .ThenInclude(e => e.Rules)
-                    .Include(n => n.Entries)
-                    .ThenInclude(e => e.Overrides);
-            }
-
-            var notesEntities = await query.ToListAsync();
+            var notesEntities = await databaseService.GetAllAsync<NoteEntity>();
 
             if (!withEntries)
             {
-                return Ok(notesEntities.Select(EntityToDto));
+                return Ok(notesEntities.Select(e => e.ToDTO(storageCfg.AccountName)));
             }
 
             var results = new List<NoteDto>();
             foreach (var noteEntity in notesEntities)
             {
-                var noteDto = await EntityToDtoWithEntriesAsync(noteEntity, noteEntity.Entries);
+                // Load entries for this note
+                var entries = await databaseService.GetAllAsync<NoteEntryEntity>(e => e.NoteId == noteEntity.Id);
+                var noteDto = await EntityToDtoWithEntriesAsync(noteEntity, entries);
                 results.Add(noteDto);
             }
 
@@ -196,48 +154,35 @@ public class NotesController(Storage storageCfg, IDatabaseService databaseServic
         }
 
         // Paged query
-        IQueryable<NoteEntity> pagedQuery = dbContext.Notes;
-        
-        if (withEntries)
-        {
-            pagedQuery = pagedQuery.Include(n => n.Entries)
-                .ThenInclude(e => e.Rules)
-                .Include(n => n.Entries)
-                .ThenInclude(e => e.Overrides);
-        }
-
-        var totalCount = await pagedQuery.CountAsync();
-        var pagedEntities = await pagedQuery
-            .OrderByDescending(n => n.UpdatedDate)
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .ToListAsync();
+        var pagedEntities = await databaseService.GetPagedAsync<NoteEntity>(page, pageSize);
         
         if (!withEntries)
         {
             var pagedResults = new PagedResponseDto<NoteDto>
             {
-                Data = pagedEntities.Select(EntityToDto),
-                TotalCount = totalCount,
-                PageSize = pageSize,
-                CurrentPage = page
+                Data = pagedEntities.Data.Select(e => e.ToDTO(storageCfg.AccountName)),
+                TotalCount = pagedEntities.TotalCount,
+                PageSize = pagedEntities.PageSize,
+                CurrentPage = pagedEntities.CurrentPage
             };
             return Ok(pagedResults);
         }
 
         var notesWithEntries = new List<NoteDto>();
-        foreach (var noteEntity in pagedEntities)
+        foreach (var noteEntity in pagedEntities.Data)
         {
-            var noteDto = await EntityToDtoWithEntriesAsync(noteEntity, noteEntity.Entries);
+            // Load entries for this note
+            var entries = await databaseService.GetAllAsync<NoteEntryEntity>(e => e.NoteId == noteEntity.Id);
+            var noteDto = await EntityToDtoWithEntriesAsync(noteEntity, entries);
             notesWithEntries.Add(noteDto);
         }
 
         var pagedResultsWithEntries = new PagedResponseDto<NoteDto>
         {
             Data = notesWithEntries,
-            TotalCount = totalCount,
-            PageSize = pageSize,
-            CurrentPage = page
+            TotalCount = pagedEntities.TotalCount,
+            PageSize = pagedEntities.PageSize,
+            CurrentPage = pagedEntities.CurrentPage
         };
 
         return Ok(pagedResultsWithEntries);
@@ -246,79 +191,85 @@ public class NotesController(Storage storageCfg, IDatabaseService databaseServic
     [HttpGet("{id}")]
     public async Task<IActionResult> GetNoteById(string id)
     {
-        var noteEntity = await dbContext.Notes
-            .Include(n => n.Entries)
-                .ThenInclude(e => e.Rules)
-            .Include(n => n.Entries)
-                .ThenInclude(e => e.Overrides)
-            .FirstOrDefaultAsync(n => n.Id == id);
+        var noteEntity = await databaseService.GetByIdAsync<NoteEntity>(id);
 
         if (noteEntity == null)
         {
             return NotFound($"No Notes found with Id: {id}");
         }
 
-        return Ok(await EntityToDtoWithEntriesAsync(noteEntity, noteEntity.Entries.OrderBy(entry => entry.Time).ToList()));
+        // Load entries for this note
+        var entries = await databaseService.GetAllAsync<NoteEntryEntity>(e => e.NoteId == id);
+        return Ok(await EntityToDtoWithEntriesAsync(noteEntity, entries.OrderBy(entry => entry.Time).ToList()));
     }
 
     [HttpPut("{id}")]
     public async Task<IActionResult> UpdateNote(string id, [FromBody] NoteDto updateDto)
     {
-        return await UpdateNoteWithEntriesAsync(id, updateDto);
-    }
+        if (updateDto == null)
+            return BadRequest("Invalid data.");
 
-    private async Task<IActionResult> UpdateNoteWithEntriesAsync(string id, NoteDto updateDto)
-    {
-        // First update the note using the base controller's image handling
-        var noteUpdateResult = await UpdateEntityWithImageAsync(id, updateDto, dto => dto.ImageBase64);
-        
-        if (noteUpdateResult is not NoContentResult)
+        // Load existing entity
+        var existingEntity = await databaseService.GetByIdAsync<NoteEntity>(id);
+
+        if (existingEntity == null)
+            return NotFound();
+
+        // Handle image update if provided
+        var imageBase64 = updateDto.ImageBase64;
+        if (!string.IsNullOrEmpty(imageBase64))
         {
-            return noteUpdateResult; // Return error if note update failed
+            if (existingEntity.ImageId != Constants.DefaultNoteImageId)
+            {
+                await notesContainer.DeleteBlobAsync(existingEntity.ImageId.ToString());
+            }
+
+            var newImageId = Guid.NewGuid();
+            await BlobImageHelper.UploadBase64ImageWithContentTypeAsync(notesContainer, imageBase64, newImageId);
+            existingEntity.ImageId = newImageId;
         }
+
+        // Update entity using the Update method
+        existingEntity.Update(updateDto);
+
+        // UpdateAsync will handle UpdatedDate
+        await databaseService.UpdateAsync(existingEntity);
 
         // If note update succeeded, update the note entries
         return await UpdateNoteEntriesAsync(id, updateDto);
-
     }
 
     private async Task<IActionResult> UpdateNoteEntriesAsync(string id, NoteDto updateDto)
     {
         try
         {
+            // Load existing entries
             var existingEntryEntities = await databaseService.GetAllAsync<NoteEntryEntity>(entry => entry.NoteId == id);
             
             foreach (var noteEntryDto in updateDto.Entries)
             {
-                var updatedNoteEntryEntity = noteEntryDto.ToEntity(id);
-
+                // Handle new entries
                 if (string.IsNullOrEmpty(noteEntryDto.Id))
                 {
-                    await databaseService.AddAsync(updatedNoteEntryEntity);
+                    var newEntry = noteEntryDto.ToEntity(id);
+                    await databaseService.AddAsync(newEntry);
                     // Save rules and overrides for new entry using the generated ID
                     var entryDtoWithId = noteEntryDto;
-                    entryDtoWithId.Id = updatedNoteEntryEntity.Id; // Get the generated ID
+                    entryDtoWithId.Id = newEntry.Id; // Get the generated ID
                     await SaveRulesAndOverridesForEntryAsync(entryDtoWithId);
                     continue;
                 }
 
+                // Handle existing entries
                 var existingEntryEntity = existingEntryEntities.FirstOrDefault(existingEntry => existingEntry.Id == noteEntryDto.Id);
                 if (existingEntryEntity == null)
                     continue;
 
-                updatedNoteEntryEntity.CreatedDate = existingEntryEntity.CreatedDate;
-                updatedNoteEntryEntity.UpdatedDate = DateTime.UtcNow;
+                // Update entity using the Update method
+                existingEntryEntity.Update(noteEntryDto);
                 
-                // Update safely using Entry API to avoid tracking conflicts
-                dbContext.Set<NoteEntryEntity>().Attach(updatedNoteEntryEntity);
-                dbContext.Entry(updatedNoteEntryEntity).State = EntityState.Modified;
-                
-                // Clear navigation properties to avoid tracking conflicts
-                dbContext.Entry(updatedNoteEntryEntity).Reference(e => e.Note).CurrentValue = null;
-                dbContext.Entry(updatedNoteEntryEntity).Collection(e => e.Rules).IsLoaded = false;
-                dbContext.Entry(updatedNoteEntryEntity).Collection(e => e.Overrides).IsLoaded = false;
-                
-                await dbContext.SaveChangesAsync();
+                // UpdateAsync will handle UpdatedDate automatically
+                await databaseService.UpdateAsync(existingEntryEntity);
                 
                 // Update rules and overrides for existing entry
                 await UpdateRulesAndOverridesForEntryAsync(noteEntryDto);
@@ -349,10 +300,8 @@ public class NotesController(Storage storageCfg, IDatabaseService databaseServic
     private async Task<IActionResult> DeleteNoteWithEntriesAsync(string id)
     {
         // Get entry IDs first
-        var entryIds = await dbContext.NoteEntries
-            .Where(e => e.NoteId == id)
-            .Select(e => e.Id)
-            .ToListAsync();
+        var entries = await databaseService.GetAllAsync<NoteEntryEntity>(e => e.NoteId == id);
+        var entryIds = entries.Select(e => e.Id).ToList();
         
         // Delete rules and overrides for all entries
         await databaseService.DeleteRangeAsync<NoteEntryRuleEntity>(r => entryIds.Contains(r.NoteEntryId));
@@ -361,8 +310,17 @@ public class NotesController(Storage storageCfg, IDatabaseService databaseServic
         // Delete note entries
         await databaseService.DeleteRangeAsync<NoteEntryEntity>(entry => entry.NoteId == id);
         
-        // Then delete the note (this will also handle image cleanup via base controller)
-        return await DeleteEntityWithImageAsync(id);
+        // Then delete the note with image cleanup
+        var entity = await databaseService.GetByIdAsync<NoteEntity>(id);
+        if (entity == null)
+            return NotFound();
+        
+        // Delete image blob if not default
+        if (entity.ImageId != Constants.DefaultNoteImageId)
+            await notesContainer.DeleteBlobAsync(entity.ImageId.ToString());
+        
+        await databaseService.DeleteAsync(entity);
+        return NoContent();
     }
 
     [HttpGet("merge/{compositeId}")]
@@ -382,15 +340,12 @@ public class NotesController(Storage storageCfg, IDatabaseService databaseServic
             var notes = new List<NoteDto>();
             foreach (var noteId in noteIds)
             {
-                var noteEntity = await dbContext.Notes
-                    .Include(n => n.Entries)
-                        .ThenInclude(e => e.Rules)
-                    .Include(n => n.Entries)
-                        .ThenInclude(e => e.Overrides)
-                    .FirstOrDefaultAsync(n => n.Id == noteId);
+                var noteEntity = await databaseService.GetByIdAsync<NoteEntity>(noteId);
                 if (noteEntity == null) continue;
 
-                var noteDto = await EntityToDtoWithEntriesAsync(noteEntity, noteEntity.Entries.OrderBy(e => e.Time).ToList());
+                // Load entries for this note
+                var entries = await databaseService.GetAllAsync<NoteEntryEntity>(e => e.NoteId == noteId);
+                var noteDto = await EntityToDtoWithEntriesAsync(noteEntity, entries.OrderBy(e => e.Time).ToList());
                 notes.Add(noteDto);
             }
 
@@ -433,6 +388,4 @@ public class NotesController(Storage storageCfg, IDatabaseService databaseServic
         
         return noteIds;
     }
-
-
 }

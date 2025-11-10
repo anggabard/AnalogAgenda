@@ -21,6 +21,18 @@ public class DatabaseService(AnalogAgendaDbContext context) : IDatabaseService
         return await _context.Set<T>().Where(predicate).ToListAsync();
     }
 
+    public async Task<List<T>> GetAllWithIncludesAsync<T>(params Expression<Func<T, object>>[] includes) where T : BaseEntity
+    {
+        IQueryable<T> query = _context.Set<T>();
+        
+        foreach (var include in includes)
+        {
+            query = query.Include(include);
+        }
+        
+        return await query.ToListAsync();
+    }
+
     public async Task<PagedResponseDto<T>> GetPagedAsync<T>(
         int page = 1, 
         int pageSize = 10, 
@@ -37,6 +49,22 @@ public class DatabaseService(AnalogAgendaDbContext context) : IDatabaseService
         Func<IQueryable<T>, IOrderedQueryable<T>>? sortFunc = null) where T : BaseEntity
     {
         var query = _context.Set<T>().Where(predicate);
+        return await GetPagedInternalAsync(query, page, pageSize, sortFunc);
+    }
+
+    public async Task<PagedResponseDto<T>> GetPagedWithIncludesAsync<T>(
+        int page = 1, 
+        int pageSize = 10, 
+        Func<IQueryable<T>, IOrderedQueryable<T>>? sortFunc = null, 
+        params Expression<Func<T, object>>[] includes) where T : BaseEntity
+    {
+        IQueryable<T> query = _context.Set<T>();
+        
+        foreach (var include in includes)
+        {
+            query = query.Include(include);
+        }
+        
         return await GetPagedInternalAsync(query, page, pageSize, sortFunc);
     }
 
@@ -74,6 +102,18 @@ public class DatabaseService(AnalogAgendaDbContext context) : IDatabaseService
         return await _context.Set<T>().FirstOrDefaultAsync(e => e.Id == id);
     }
 
+    public async Task<T?> GetByIdWithIncludesAsync<T>(string id, params Expression<Func<T, object>>[] includes) where T : BaseEntity
+    {
+        IQueryable<T> query = _context.Set<T>();
+        
+        foreach (var include in includes)
+        {
+            query = query.Include(include);
+        }
+        
+        return await query.FirstOrDefaultAsync(e => e.Id == id);
+    }
+
     public async Task<bool> ExistsAsync<T>(string id) where T : BaseEntity
     {
         return await _context.Set<T>().AnyAsync(e => e.Id == id);
@@ -86,9 +126,9 @@ public class DatabaseService(AnalogAgendaDbContext context) : IDatabaseService
 
     public async Task<T> AddAsync<T>(T entity) where T : BaseEntity
     {
-        entity.CreatedDate = DateTime.UtcNow;
-        entity.UpdatedDate = DateTime.UtcNow;
-        
+        if (string.IsNullOrEmpty(entity.Id))
+            entity.Id = entity.GetId();
+
         await _context.Set<T>().AddAsync(entity);
         await _context.SaveChangesAsync();
         return entity;

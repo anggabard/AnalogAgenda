@@ -40,7 +40,7 @@ public class PhotoControllerTests : IDisposable
         _mockPhotosContainerClient.Setup(x => x.GetBlobClient(It.IsAny<string>()))
                                  .Returns(_mockBlobClient.Object);
 
-        _controller = new PhotoController(_storageConfig, _databaseService, _mockBlobService.Object, _dbContext);
+        _controller = new PhotoController(_storageConfig, _databaseService, _mockBlobService.Object);
     }
 
     public void Dispose()

@@ -33,7 +33,7 @@ public class SimpleNotesControllerTests : IDisposable
         _mockBlobService.Setup(x => x.GetBlobContainer(ContainerName.notes))
                        .Returns(_mockContainerClient.Object);
 
-        _controller = new NotesController(_storageConfig, _databaseService, _mockBlobService.Object, _dbContext);
+        _controller = new NotesController(_storageConfig, _databaseService, _mockBlobService.Object);
     }
 
     [Fact]
