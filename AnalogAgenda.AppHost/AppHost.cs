@@ -2,7 +2,8 @@ var builder = DistributedApplication.CreateBuilder(args);
 
 // Add SQL Server and Database
 var sqlServer = builder.AddSqlServer("sql")
-    .WithDataVolume();
+    .WithDataVolume()
+    .WithLifetime(ContainerLifetime.Persistent);
 
 var database = sqlServer.AddDatabase("analogagendadb");
 
