@@ -3,10 +3,9 @@ import { FormGroup, Validators, AbstractControl, ValidationErrors } from '@angul
 import { Observable, forkJoin, Subject } from 'rxjs';
 import { switchMap, debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { BaseUpsertComponent } from '../../common/base-upsert/base-upsert.component';
-import { FilmService, PhotoService, SessionService, DevKitService, UsedFilmThumbnailService } from '../../../services';
+import { FilmService, SessionService, DevKitService, UsedFilmThumbnailService } from '../../../services';
 import { FilmType, UsernameType } from '../../../enums';
-import { FilmDto, PhotoCreateDto, SessionDto, DevKitDto, UsedFilmThumbnailDto, ExposureDateEntry } from '../../../DTOs';
-import { FileUploadHelper } from '../../../helpers/file-upload.helper';
+import { FilmDto, SessionDto, DevKitDto, UsedFilmThumbnailDto, ExposureDateEntry } from '../../../DTOs';
 import { DateHelper } from '../../../helpers/date.helper';
 import { ErrorHandlingHelper } from '../../../helpers/error-handling.helper';
 
@@ -19,8 +18,7 @@ import { ErrorHandlingHelper } from '../../../helpers/error-handling.helper';
 export class UpsertFilmComponent extends BaseUpsertComponent<FilmDto> implements OnInit {
 
   constructor(
-    private filmService: FilmService, 
-    private photoService: PhotoService,
+    private filmService: FilmService,
     private sessionService: SessionService,
     private devKitService: DevKitService,
     private thumbnailService: UsedFilmThumbnailService
@@ -358,51 +356,6 @@ export class UpsertFilmComponent extends BaseUpsertComponent<FilmDto> implements
 
   protected getEntityName(): string {
     return 'Film';
-  }
-
-  // Film-specific functionality (photo uploads) - now using helper
-  async onUploadPhotos(): Promise<void> {
-    try {
-      const files = await FileUploadHelper.selectFiles(true, 'image/*');
-      if (!files) return; // User cancelled
-
-      await this.processPhotoUploads(files);
-    } catch (error) {
-      this.loading = false;
-      this.errorMessage = ErrorHandlingHelper.handleError(error, 'photo file selection');
-    }
-  }
-
-  private async processPhotoUploads(files: FileList): Promise<void> {
-    this.loading = true;
-    this.errorMessage = null;
-    
-    try {
-      // Validate files before processing
-      const validation = FileUploadHelper.validateFiles(files);
-      if (!validation.isValid) {
-        this.errorMessage = validation.errors.join('; ');
-        this.loading = false;
-        return;
-      }
-
-      // Use photoService to upload multiple photos with progress tracking
-      // Since this is upsert-film page, we pass empty array (no existing photos)
-      await this.photoService.uploadMultiplePhotos(
-        this.id!,
-        files,
-        [], // No existing photos on initial upload
-        () => {} // No progress callback needed here
-      );
-
-      // All uploads successful
-      this.loading = false;
-      // Navigate to the film photos page
-      this.router.navigate(['/films', this.id, 'photos']);
-    } catch (error) {
-      this.loading = false;
-      this.errorMessage = ErrorHandlingHelper.handleError(error, 'photo upload');
-    }
   }
 
   onViewPhotos(): void {

@@ -267,7 +267,7 @@ describe('PhotoService', () => {
   });
 
   describe('uploadMultiplePhotos', () => {
-    it('should upload multiple photos sequentially with numeric filenames', (done) => {
+    it('should upload multiple photos sequentially and call callback with PhotoDto', (done) => {
       // Arrange
       const filmId = 'test-film-id';
       const file1 = new File(['test1'], '5.jpg', { type: 'image/jpeg' });
@@ -275,22 +275,29 @@ describe('PhotoService', () => {
       const files = [file1, file2];
       const existingPhotos: PhotoDto[] = [];
       
-      let progressCallCount = 0;
-      const onProgress = jasmine.createSpy('onProgress').and.callFake((current: number, total: number) => {
-        progressCallCount++;
-        expect(total).toBe(2);
-        expect(current).toBeGreaterThan(0);
-        expect(current).toBeLessThanOrEqual(2);
-      });
+      const uploadedPhotos: PhotoDto[] = [];
+      const onPhotoUploaded = jasmine.createSpy('onPhotoUploaded').and.callFake(
+        (photo: PhotoDto, current: number, total: number) => {
+          uploadedPhotos.push(photo);
+          expect(total).toBe(2);
+          expect(current).toBeGreaterThan(0);
+          expect(current).toBeLessThanOrEqual(2);
+          expect(photo).toBeDefined();
+          expect(photo.id).toBeDefined();
+          expect(photo.index).toBeDefined();
+        }
+      );
 
       const mockResponse1: PhotoDto = createMockPhoto('photo1', filmId, 5);
       const mockResponse2: PhotoDto = createMockPhoto('photo2', filmId, 10);
 
       // Act
-      service.uploadMultiplePhotos(filmId, files, existingPhotos, onProgress).then(() => {
+      service.uploadMultiplePhotos(filmId, files, existingPhotos, onPhotoUploaded).then(() => {
         // Assert after upload completes
-        expect(progressCallCount).toBe(2);
-        expect(onProgress).toHaveBeenCalledTimes(2);
+        expect(uploadedPhotos.length).toBe(2);
+        expect(uploadedPhotos[0].index).toBe(5);
+        expect(uploadedPhotos[1].index).toBe(10);
+        expect(onPhotoUploaded).toHaveBeenCalledTimes(2);
         done();
       }).catch(err => done.fail(err));
 
@@ -328,8 +335,16 @@ describe('PhotoService', () => {
       const mockResponse1: PhotoDto = createMockPhoto('photo1', filmId, 9);
       const mockResponse2: PhotoDto = createMockPhoto('photo2', filmId, 10);
 
+      const uploadedPhotos: PhotoDto[] = [];
+      const onPhotoUploaded = (photo: PhotoDto) => {
+        uploadedPhotos.push(photo);
+      };
+
       // Act
-      service.uploadMultiplePhotos(filmId, files, existingPhotos).then(() => {
+      service.uploadMultiplePhotos(filmId, files, existingPhotos, onPhotoUploaded).then(() => {
+        expect(uploadedPhotos.length).toBe(2);
+        expect(uploadedPhotos[0].index).toBe(9);
+        expect(uploadedPhotos[1].index).toBe(10);
         done();
       }).catch(err => done.fail(err));
 
@@ -364,8 +379,17 @@ describe('PhotoService', () => {
       const mockResponse2: PhotoDto = createMockPhoto('photo2', filmId, 10);
       const mockResponse3: PhotoDto = createMockPhoto('photo3', filmId, 45);
 
+      const uploadedPhotos: PhotoDto[] = [];
+
       // Act
-      service.uploadMultiplePhotos(filmId, files, existingPhotos).then(() => {
+      service.uploadMultiplePhotos(filmId, files, existingPhotos, (photo) => {
+        uploadedPhotos.push(photo);
+      }).then(() => {
+        // Assert upload order is correct (sorted by index)
+        expect(uploadedPhotos.length).toBe(3);
+        expect(uploadedPhotos[0].index).toBe(2);
+        expect(uploadedPhotos[1].index).toBe(10);
+        expect(uploadedPhotos[2].index).toBe(45);
         done();
       }).catch(err => done.fail(err));
 
@@ -406,8 +430,15 @@ describe('PhotoService', () => {
       const mockResponse1: PhotoDto = createMockPhoto('photo1', filmId, 2);
       const mockResponse2: PhotoDto = createMockPhoto('photo2', filmId, 45);
 
+      const uploadedPhotos: PhotoDto[] = [];
+
       // Act
-      service.uploadMultiplePhotos(filmId, files, existingPhotos).then(() => {
+      service.uploadMultiplePhotos(filmId, files, existingPhotos, (photo) => {
+        uploadedPhotos.push(photo);
+      }).then(() => {
+        expect(uploadedPhotos.length).toBe(2);
+        expect(uploadedPhotos[0].index).toBe(2);
+        expect(uploadedPhotos[1].index).toBe(45);
         done();
       }).catch(err => done.fail(err));
 

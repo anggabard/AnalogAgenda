@@ -224,7 +224,14 @@ export class FilmPhotosComponent implements OnInit {
         this.filmId,
         files,
         this.photos,
-        (current, total) => {
+        (uploadedPhoto, current, total) => {
+          // Add photo to array immediately so it appears in the grid
+          this.photos.push(uploadedPhoto);
+          
+          // Sort photos by index to maintain correct order
+          this.photos.sort((a, b) => a.index - b.index);
+          
+          // Update progress
           this.uploadProgress = current;
           this.uploadTotal = total;
         }
@@ -234,6 +241,9 @@ export class FilmPhotosComponent implements OnInit {
       this.uploadLoading = false;
       this.uploadProgress = 0;
       this.uploadTotal = 0;
+      
+      // Optionally reload to ensure sync with backend (in case of any discrepancies)
+      // This also ensures the film's "developed" status is updated
       this.loadFilmAndPhotos();
     } catch (err) {
       this.uploadLoading = false;

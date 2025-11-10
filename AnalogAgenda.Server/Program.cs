@@ -38,9 +38,6 @@ builder.Services.AddSingleton<IBlobService, BlobService>();
 // Register image cache service (singleton for in-memory cache)
 builder.Services.AddSingleton<IImageCacheService, InMemoryImageCacheService>();
 
-// Register preview generation service with concurrency limit (singleton to share semaphore)
-builder.Services.AddSingleton<PreviewGenerationService>();
-
 // Configure Kestrel to accept larger request bodies (for bulk photo uploads: 36 photos × 50MB each + base64 overhead)
 builder.Services.Configure<Microsoft.AspNetCore.Server.Kestrel.Core.KestrelServerOptions>(options =>
 {

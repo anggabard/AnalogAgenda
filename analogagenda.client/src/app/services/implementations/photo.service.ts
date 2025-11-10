@@ -41,19 +41,19 @@ export class PhotoService extends BaseService {
   }
 
   /**
-   * Upload multiple photos sequentially with smart indexing
+   * Upload multiple photos sequentially with smart indexing and live callback
    * (Sequential to prevent memory issues with large images on the backend)
    * @param filmId The ID of the film
    * @param files The files to upload
    * @param existingPhotos Existing photos for the film (to calculate next available index)
-   * @param onProgress Optional callback for progress updates
+   * @param onPhotoUploaded Optional callback called after each photo uploads successfully
    * @returns Promise that resolves when all uploads complete
    */
   async uploadMultiplePhotos(
     filmId: string,
     files: FileList | File[],
     existingPhotos: PhotoDto[],
-    onProgress?: (current: number, total: number) => void
+    onPhotoUploaded?: (uploadedPhoto: PhotoDto, current: number, total: number) => void
   ): Promise<void> {
     const fileArray = Array.from(files);
     let uploadedCount = 0;
@@ -88,11 +88,12 @@ export class PhotoService extends BaseService {
         index: index !== null ? index : currentAutoIndex++
       };
 
-      await lastValueFrom(this.createPhoto(photoDto));
+      // Upload and get the created photo
+      const uploadedPhoto = await lastValueFrom(this.createPhoto(photoDto));
       
       uploadedCount++;
-      if (onProgress) {
-        onProgress(uploadedCount, fileArray.length);
+      if (onPhotoUploaded) {
+        onPhotoUploaded(uploadedPhoto, uploadedCount, fileArray.length);
       }
     }
   }

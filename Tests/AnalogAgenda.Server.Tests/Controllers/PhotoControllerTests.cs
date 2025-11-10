@@ -1,5 +1,4 @@
 using AnalogAgenda.Server.Controllers;
-using AnalogAgenda.Server.Services.Implementations;
 using AnalogAgenda.Server.Services.Interfaces;
 using AnalogAgenda.Server.Tests.Helpers;
 using Azure.Storage.Blobs;
@@ -21,7 +20,6 @@ public class PhotoControllerTests : IDisposable
     private readonly IDatabaseService _databaseService;
     private readonly Mock<IBlobService> _mockBlobService;
     private readonly Mock<IImageCacheService> _mockImageCacheService;
-    private readonly PreviewGenerationService _previewGenerationService;
     private readonly Mock<BlobContainerClient> _mockPhotosContainerClient;
     private readonly Mock<BlobContainerClient> _mockFilmsContainerClient;
     private readonly Mock<BlobClient> _mockBlobClient;
@@ -34,7 +32,6 @@ public class PhotoControllerTests : IDisposable
         _databaseService = new DatabaseService(_dbContext);
         _mockBlobService = new Mock<IBlobService>();
         _mockImageCacheService = new Mock<IImageCacheService>();
-        _previewGenerationService = new PreviewGenerationService();
         _mockPhotosContainerClient = new Mock<BlobContainerClient>();
         _mockFilmsContainerClient = new Mock<BlobContainerClient>();
         _mockBlobClient = new Mock<BlobClient>();
@@ -46,7 +43,7 @@ public class PhotoControllerTests : IDisposable
         _mockPhotosContainerClient.Setup(x => x.GetBlobClient(It.IsAny<string>()))
                                  .Returns(_mockBlobClient.Object);
 
-        _controller = new PhotoController(_storageConfig, _databaseService, _mockBlobService.Object, _mockImageCacheService.Object, _previewGenerationService);
+        _controller = new PhotoController(_storageConfig, _databaseService, _mockBlobService.Object, _mockImageCacheService.Object);
     }
 
     public void Dispose()

@@ -1,6 +1,5 @@
 using System.IO.Compression;
 using AnalogAgenda.Server.Helpers;
-using AnalogAgenda.Server.Services.Implementations;
 using AnalogAgenda.Server.Services.Interfaces;
 using Azure.Storage.Blobs;
 using Configuration.Sections;
@@ -19,15 +18,13 @@ public class PhotoController(
     Storage storageCfg,
     IDatabaseService databaseService,
     IBlobService blobsService,
-    IImageCacheService imageCacheService,
-    PreviewGenerationService previewGenerationService
+    IImageCacheService imageCacheService
 ) : ControllerBase
 {
     private readonly Storage storageCfg = storageCfg;
     private readonly IDatabaseService databaseService = databaseService;
     private readonly IBlobService blobsService = blobsService;
     private readonly IImageCacheService imageCacheService = imageCacheService;
-    private readonly PreviewGenerationService previewGenerationService = previewGenerationService;
     private readonly BlobContainerClient photosContainer = blobsService.GetBlobContainer(ContainerName.photos);
 
     private const int MaxPreviewDimension = 1200;
@@ -139,17 +136,13 @@ public class PhotoController(
 
         try
         {
-            // Use semaphore to limit concurrent preview generation (prevent memory exhaustion)
-            var (previewBytes, contentType) = await previewGenerationService.ExecuteWithLimitAsync(async () =>
-            {
-                // Download and resize image using helper
-                return await BlobImageHelper.DownloadAndResizeImageAsync(
-                    photosContainer,
-                    photoEntity.ImageId,
-                    MaxPreviewDimension,
-                    PreviewQuality
-                );
-            });
+            // Download and resize image using helper
+            var (previewBytes, contentType) = await BlobImageHelper.DownloadAndResizeImageAsync(
+                photosContainer,
+                photoEntity.ImageId,
+                MaxPreviewDimension,
+                PreviewQuality
+            );
 
             // Cache the preview with content type
             imageCacheService.SetPreview(photoEntity.ImageId, previewBytes, contentType);
