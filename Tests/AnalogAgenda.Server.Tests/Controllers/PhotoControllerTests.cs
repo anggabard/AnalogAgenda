@@ -184,6 +184,48 @@ public class PhotoControllerTests : IDisposable
     }
 
     [Fact]
+    public async Task CreatePhoto_WithExistingIndex_ReplacesExistingPhoto()
+    {
+        // Arrange
+        var filmId = "test-film-id";
+        var film = new FilmEntity { Id = filmId, Name = "Test Film", Iso = "400" };
+        await _databaseService.AddAsync(film);
+
+        // Create existing photo with index 5
+        var existingImageId = Guid.NewGuid();
+        var existingPhoto = new PhotoEntity 
+        { 
+            FilmId = filmId, 
+            Index = 5, 
+            ImageId = existingImageId 
+        };
+        await _databaseService.AddAsync(existingPhoto);
+
+        var newPhotoDto = new PhotoCreateDto
+        {
+            FilmId = filmId,
+            ImageBase64 = "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJ",
+            Index = 5 // Same index as existing photo
+        };
+
+        // Act
+        var result = await _controller.CreatePhoto(newPhotoDto);
+
+        // Assert
+        var createdResult = Assert.IsType<CreatedResult>(result);
+        var createdPhoto = Assert.IsType<PhotoDto>(createdResult.Value);
+        Assert.Equal(5, createdPhoto.Index);
+        
+        // Verify old photo was deleted
+        var allPhotos = await _databaseService.GetAllAsync<PhotoEntity>(p => p.FilmId == filmId);
+        Assert.Single(allPhotos); // Only one photo should exist
+        Assert.NotEqual(existingImageId, allPhotos.First().ImageId); // New ImageId, not old one
+        
+        // Verify cache was cleared for old image
+        _mockImageCacheService.Verify(x => x.RemovePreview(existingImageId), Times.Once);
+    }
+
+    [Fact]
     public async Task GetPhotosByFilmId_WithValidFilmId_ReturnsOkWithPhotos()
     {
         // Arrange

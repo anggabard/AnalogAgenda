@@ -386,36 +386,14 @@ export class UpsertFilmComponent extends BaseUpsertComponent<FilmDto> implements
         return;
       }
 
-      // Convert FileList to array and extract indices from filenames
-      const filesWithIndices = Array.from(files).map(file => ({
-        file,
-        index: FileUploadHelper.extractIndexFromFilename(file.name)
-      }));
-
-      // Sort by index (nulls go to end)
-      filesWithIndices.sort((a, b) => {
-        if (a.index === null && b.index === null) return 0;
-        if (a.index === null) return 1;
-        if (b.index === null) return -1;
-        return a.index - b.index;
-      });
-
-      // Get next available index for files without explicit indices
-      // Since this is on the upsert-film page, we start from 1 if no photos exist yet
-      let nextAvailableIndex = 1;
-      
-      // Process files sequentially
-      for (const { file, index } of filesWithIndices) {
-        const base64 = await FileUploadHelper.fileToBase64(file);
-        
-        const photoDto: PhotoCreateDto = {
-          filmId: this.id!,
-          imageBase64: base64,
-          index: index !== null ? index : nextAvailableIndex++
-        };
-
-        await this.photoService.createPhoto(photoDto).toPromise();
-      }
+      // Use photoService to upload multiple photos with progress tracking
+      // Since this is upsert-film page, we pass empty array (no existing photos)
+      await this.photoService.uploadMultiplePhotos(
+        this.id!,
+        files,
+        [], // No existing photos on initial upload
+        () => {} // No progress callback needed here
+      );
 
       // All uploads successful
       this.loading = false;

@@ -1,8 +1,7 @@
 import { Component, inject, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { PhotoService, FilmService } from '../../../services';
-import { PhotoDto, FilmDto, PhotoCreateDto } from '../../../DTOs';
-import { FileUploadHelper } from '../../../helpers/file-upload.helper';
+import { PhotoDto, FilmDto } from '../../../DTOs';
 
 @Component({
     selector: 'app-film-photos',
@@ -221,36 +220,15 @@ export class FilmPhotosComponent implements OnInit {
     this.uploadTotal = files.length;
     
     try {
-      // Convert FileList to array and extract indices from filenames
-      const filesWithIndices = Array.from(files).map(file => ({
-        file,
-        index: FileUploadHelper.extractIndexFromFilename(file.name)
-      }));
-
-      // Sort by index (nulls go to end)
-      filesWithIndices.sort((a, b) => {
-        if (a.index === null && b.index === null) return 0;
-        if (a.index === null) return 1;
-        if (b.index === null) return -1;
-        return a.index - b.index;
-      });
-
-      // Get next available index for files without explicit indices
-      let nextAvailableIndex = await this.getNextAvailableIndex();
-      
-      // Process files sequentially
-      for (const { file, index } of filesWithIndices) {
-        const base64 = await FileUploadHelper.fileToBase64(file);
-        
-        const photoDto: PhotoCreateDto = {
-          filmId: this.filmId,
-          imageBase64: base64,
-          index: index !== null ? index : nextAvailableIndex++
-        };
-
-        await this.photoService.createPhoto(photoDto).toPromise();
-        this.uploadProgress++;
-      }
+      await this.photoService.uploadMultiplePhotos(
+        this.filmId,
+        files,
+        this.photos,
+        (current, total) => {
+          this.uploadProgress = current;
+          this.uploadTotal = total;
+        }
+      );
 
       // All uploads successful
       this.uploadLoading = false;
@@ -263,13 +241,6 @@ export class FilmPhotosComponent implements OnInit {
       this.uploadTotal = 0;
       this.errorMessage = 'There was an error uploading the photos.';
     }
-  }
-
-  private async getNextAvailableIndex(): Promise<number> {
-    if (this.photos.length === 0) {
-      return 1;
-    }
-    return Math.max(...this.photos.map(p => p.index)) + 1;
   }
 
   onTouchStart(event: TouchEvent) {
