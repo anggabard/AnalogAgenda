@@ -15,12 +15,6 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
 
-// Add Application Insights for Production only
-if (!builder.Environment.IsDevelopment())
-{
-    builder.Services.AddApplicationInsightsTelemetry();
-}
-
 // Add SQL Server DbContext via Aspire
 builder.AddSqlServerDbContext<AnalogAgendaDbContext>("analogagendadb");
 

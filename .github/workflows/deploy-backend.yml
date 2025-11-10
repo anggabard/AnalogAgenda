@@ -48,14 +48,12 @@ jobs:
         $azClientSecret = az keyvault secret show --vault-name $kvName --name "az-client-secret" --query "value" -o tsv
         $sqlPassword = az keyvault secret show --vault-name $kvName --name "sql-password" --query "value" -o tsv
         $sqlConnectionString = az keyvault secret show --vault-name $kvName --name "sql-connection-string" --query "value" -o tsv
-        $appInsightsConnectionString = az keyvault secret show --vault-name $kvName --name "application-insights-connection-string" --query "value" -o tsv
         
         Write-Host "::add-mask::$acrUsername"
         Write-Host "::add-mask::$acrPassword"
         Write-Host "::add-mask::$azClientSecret"
         Write-Host "::add-mask::$sqlPassword"
         Write-Host "::add-mask::$sqlConnectionString"
-        Write-Host "::add-mask::$appInsightsConnectionString"
         
         echo "ACR_USERNAME=$acrUsername" >> $env:GITHUB_ENV
         echo "ACR_PASSWORD=$acrPassword" >> $env:GITHUB_ENV
@@ -63,7 +61,6 @@ jobs:
         echo "AZ_TENANT_ID=$azTenantId" >> $env:GITHUB_ENV
         echo "AZ_CLIENT_SECRET=$azClientSecret" >> $env:GITHUB_ENV
         echo "SQL_CONNECTION_STRING=$sqlConnectionString" >> $env:GITHUB_ENV
-        echo "APP_INSIGHTS_CONNECTION_STRING=$appInsightsConnectionString" >> $env:GITHUB_ENV
         
         Write-Host "✅ Secrets fetched from Key Vault"
 
@@ -83,7 +80,6 @@ jobs:
           -replace 'AZ_CLIENT_ID', $env:AZ_CLIENT_ID `
           -replace 'AZ_TENANT_ID', $env:AZ_TENANT_ID `
           -replace 'AZ_CLIENT_SECRET', $env:AZ_CLIENT_SECRET `
-          -replace 'APPLICATION_INSIGHTS_CONNECTION_STRING', $env:APP_INSIGHTS_CONNECTION_STRING `
           | Set-Content $filePath
 
     - name: Build and push Docker image
