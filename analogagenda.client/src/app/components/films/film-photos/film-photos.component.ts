@@ -1,7 +1,8 @@
 import { Component, inject, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { PhotoService, FilmService } from '../../../services';
-import { PhotoDto, FilmDto, PhotoUploadDto, PhotoBulkUploadDto } from '../../../DTOs';
+import { PhotoDto, FilmDto, PhotoCreateDto } from '../../../DTOs';
+import { FileUploadHelper } from '../../../helpers/file-upload.helper';
 
 @Component({
     selector: 'app-film-photos',
@@ -12,7 +13,7 @@ import { PhotoDto, FilmDto, PhotoUploadDto, PhotoBulkUploadDto } from '../../../
 export class FilmPhotosComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
-  private photoService = inject(PhotoService);
+  public photoService = inject(PhotoService);
   private filmService = inject(FilmService);
 
   filmId: string = '';
@@ -34,6 +35,8 @@ export class FilmPhotosComponent implements OnInit {
   
   // Upload loading state
   uploadLoading = false;
+  uploadProgress = 0;
+  uploadTotal = 0;
   
   // Touch handling
   private touchStartX = 0;
@@ -211,44 +214,62 @@ export class FilmPhotosComponent implements OnInit {
     fileInput.click();
   }
 
-  private processPhotoUploads(files: FileList) {
+  private async processPhotoUploads(files: FileList) {
     this.uploadLoading = true;
     this.errorMessage = null;
+    this.uploadProgress = 0;
+    this.uploadTotal = files.length;
     
-    const photos: PhotoUploadDto[] = [];
-    let processedCount = 0;
-    
-    Array.from(files).forEach((file, index) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        photos.push({
-          imageBase64: reader.result as string
-        });
-        
-        processedCount++;
-        if (processedCount === files.length) {
-          // All files processed, upload them
-          const uploadDto: PhotoBulkUploadDto = {
-            filmId: this.filmId,
-            photos: photos
-          };
-          
-          this.photoService.uploadPhotos(uploadDto).subscribe({
-            next: () => {
-              this.uploadLoading = false;
-              // Reload photos to show the newly uploaded ones
-              this.loadFilmAndPhotos();
-            },
-            error: (err) => {
-              this.uploadLoading = false;
-              this.errorMessage = 'There was an error uploading the photos.';
-            }
-          });
-        }
-      };
+    try {
+      // Convert FileList to array and extract indices from filenames
+      const filesWithIndices = Array.from(files).map(file => ({
+        file,
+        index: FileUploadHelper.extractIndexFromFilename(file.name)
+      }));
+
+      // Sort by index (nulls go to end)
+      filesWithIndices.sort((a, b) => {
+        if (a.index === null && b.index === null) return 0;
+        if (a.index === null) return 1;
+        if (b.index === null) return -1;
+        return a.index - b.index;
+      });
+
+      // Get next available index for files without explicit indices
+      let nextAvailableIndex = await this.getNextAvailableIndex();
       
-      reader.readAsDataURL(file);
-    });
+      // Process files sequentially
+      for (const { file, index } of filesWithIndices) {
+        const base64 = await FileUploadHelper.fileToBase64(file);
+        
+        const photoDto: PhotoCreateDto = {
+          filmId: this.filmId,
+          imageBase64: base64,
+          index: index !== null ? index : nextAvailableIndex++
+        };
+
+        await this.photoService.createPhoto(photoDto).toPromise();
+        this.uploadProgress++;
+      }
+
+      // All uploads successful
+      this.uploadLoading = false;
+      this.uploadProgress = 0;
+      this.uploadTotal = 0;
+      this.loadFilmAndPhotos();
+    } catch (err) {
+      this.uploadLoading = false;
+      this.uploadProgress = 0;
+      this.uploadTotal = 0;
+      this.errorMessage = 'There was an error uploading the photos.';
+    }
+  }
+
+  private async getNextAvailableIndex(): Promise<number> {
+    if (this.photos.length === 0) {
+      return 1;
+    }
+    return Math.max(...this.photos.map(p => p.index)) + 1;
   }
 
   onTouchStart(event: TouchEvent) {

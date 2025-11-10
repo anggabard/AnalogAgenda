@@ -1,4 +1,6 @@
 using AnalogAgenda.Server.Middleware;
+using AnalogAgenda.Server.Services.Implementations;
+using AnalogAgenda.Server.Services.Interfaces;
 using AnalogAgenda.Server.Validators;
 using Configuration;
 using Database.Data;
@@ -32,6 +34,9 @@ builder.Services.AddStorageConfigBinding();
 // Register database and blob services
 builder.Services.AddScoped<IDatabaseService, DatabaseService>();
 builder.Services.AddSingleton<IBlobService, BlobService>();
+
+// Register image cache service (singleton for in-memory cache)
+builder.Services.AddSingleton<IImageCacheService, InMemoryImageCacheService>();
 
 // Configure Kestrel to accept larger request bodies (for bulk photo uploads: 36 photos × 50MB each + base64 overhead)
 builder.Services.Configure<Microsoft.AspNetCore.Server.Kestrel.Core.KestrelServerOptions>(options =>

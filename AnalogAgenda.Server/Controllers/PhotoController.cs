@@ -1,4 +1,5 @@
 using AnalogAgenda.Server.Helpers;
+using AnalogAgenda.Server.Services.Interfaces;
 using Azure.Storage.Blobs;
 using Configuration.Sections;
 using Database.DBObjects.Enums;
@@ -13,12 +14,16 @@ using System.IO.Compression;
 namespace AnalogAgenda.Server.Controllers;
 
 [Route("api/[controller]"), ApiController, Authorize]
-public class PhotoController(Storage storageCfg, IDatabaseService databaseService, IBlobService blobsService) : ControllerBase
+public class PhotoController(Storage storageCfg, IDatabaseService databaseService, IBlobService blobsService, IImageCacheService imageCacheService) : ControllerBase
 {
     private readonly Storage storageCfg = storageCfg;
     private readonly IDatabaseService databaseService = databaseService;
     private readonly IBlobService blobsService = blobsService;
+    private readonly IImageCacheService imageCacheService = imageCacheService;
     private readonly BlobContainerClient photosContainer = blobsService.GetBlobContainer(ContainerName.photos);
+    
+    private const int MaxPreviewDimension = 1200;
+    private const int PreviewQuality = 80;
 
     [HttpPost]
     [RequestSizeLimit(150 * 1024 * 1024)] // 150MB limit to support base64-encoded 50MB image
@@ -30,7 +35,16 @@ public class PhotoController(Storage storageCfg, IDatabaseService databaseServic
         if (!await FilmExists(dto.FilmId))
             return NotFound("Film not found.");
 
-        int nextIndex = await GetNextPhotoIndexAsync(dto.FilmId);
+        // Use provided index if valid (0-999), otherwise get next available
+        int photoIndex;
+        if (dto.Index.HasValue && dto.Index.Value >= 0 && dto.Index.Value <= 999)
+        {
+            photoIndex = dto.Index.Value;
+        }
+        else
+        {
+            photoIndex = await GetNextPhotoIndexAsync(dto.FilmId);
+        }
 
         var imageId = Guid.NewGuid();
         try
@@ -40,7 +54,7 @@ public class PhotoController(Storage storageCfg, IDatabaseService databaseServic
             var photoDto = new PhotoDto
             {
                 FilmId = dto.FilmId,
-                Index = nextIndex,
+                Index = photoIndex,
                 ImageBase64 = dto.ImageBase64
             };
             
@@ -63,58 +77,6 @@ public class PhotoController(Storage storageCfg, IDatabaseService databaseServic
         }
     }
 
-    [HttpPost("bulk")]
-    [RequestSizeLimit(3L * 1024 * 1024 * 1024)] // 3GB limit to support bulk uploads (e.g., 36 × 50MB base64-encoded images)
-    public async Task<IActionResult> UploadPhotos([FromBody] PhotoBulkUploadDto bulkDto)
-    {
-        if (bulkDto?.Photos == null || bulkDto.Photos.Count == 0)
-            return BadRequest("No photos provided.");
-
-        // Validate all photos have base64 data
-        if (bulkDto.Photos.Any(p => string.IsNullOrWhiteSpace(p.ImageBase64)))
-            return BadRequest("All photos must have image data.");
-
-        if (!await FilmExists(bulkDto.FilmId))
-            return NotFound("Film not found.");
-
-        int nextIndex = await GetNextPhotoIndexAsync(bulkDto.FilmId);
-
-        var uploadedImageIds = new List<Guid>();
-
-        try
-        {
-            foreach (var photoDto in bulkDto.Photos)
-            {
-                var imageId = Guid.NewGuid();
-                await BlobImageHelper.UploadBase64ImageWithContentTypeAsync(photosContainer, photoDto.ImageBase64, imageId);
-                uploadedImageIds.Add(imageId);
-
-                var photoEntity = new PhotoEntity
-                {
-                    FilmId = bulkDto.FilmId,
-                    Index = nextIndex++,
-                    ImageId = imageId
-                };
-
-                await databaseService.AddAsync(photoEntity);
-            }
-
-            // Auto-mark film as developed when photos are uploaded
-            await MarkFilmAsDeveloped(bulkDto.FilmId);
-
-            return NoContent();
-        }
-        catch (Exception ex)
-        {
-            // Cleanup uploaded blobs on failure
-            foreach (var imageId in uploadedImageIds)
-            {
-                await photosContainer.GetBlobClient(imageId.ToString()).DeleteIfExistsAsync();
-            }
-
-            return UnprocessableEntity(ex.Message);
-        }
-    }
 
     [HttpGet("film/{filmId}")]
     public async Task<IActionResult> GetPhotosByFilmId(string filmId)
@@ -126,6 +88,44 @@ public class PhotoController(Storage storageCfg, IDatabaseService databaseServic
             .ToList();
 
         return Ok(sortedPhotos);
+    }
+
+    [HttpGet("preview/{id}")]
+    public async Task<IActionResult> GetPreview(string id)
+    {
+        var photoEntity = await databaseService.GetByIdAsync<PhotoEntity>(id);
+        if (photoEntity == null)
+            return NotFound("Photo not found.");
+
+        // Check cache first
+        if (imageCacheService.TryGetPreview(photoEntity.ImageId, out var cachedImage) && cachedImage != null)
+        {
+            var (imageBytes, contentType) = cachedImage.Value;
+            return File(imageBytes, contentType);
+        }
+
+        try
+        {
+            // Download and resize image using helper
+            var (previewBytes, contentType) = await BlobImageHelper.DownloadAndResizeImageAsync(
+                photosContainer, 
+                photoEntity.ImageId, 
+                MaxPreviewDimension, 
+                PreviewQuality);
+
+            // Cache the preview with content type
+            imageCacheService.SetPreview(photoEntity.ImageId, previewBytes, contentType);
+
+            return File(previewBytes, contentType);
+        }
+        catch (FileNotFoundException)
+        {
+            return NotFound("Image not found in storage.");
+        }
+        catch (Exception ex)
+        {
+            return UnprocessableEntity($"Error generating preview: {ex.Message}");
+        }
     }
 
     [HttpGet("download/{id}")]
@@ -215,7 +215,10 @@ public class PhotoController(Storage storageCfg, IDatabaseService databaseServic
         
         // Delete image blob (photos always have real images, no default)
         if (entity.ImageId != Guid.Empty)
+        {
             await photosContainer.DeleteBlobAsync(entity.ImageId.ToString());
+            imageCacheService.RemovePreview(entity.ImageId);
+        }
         
         await databaseService.DeleteAsync(entity);
         return NoContent();

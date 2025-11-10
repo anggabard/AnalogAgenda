@@ -5,7 +5,7 @@ import { switchMap, debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { BaseUpsertComponent } from '../../common/base-upsert/base-upsert.component';
 import { FilmService, PhotoService, SessionService, DevKitService, UsedFilmThumbnailService } from '../../../services';
 import { FilmType, UsernameType } from '../../../enums';
-import { FilmDto, PhotoBulkUploadDto, PhotoUploadDto, SessionDto, DevKitDto, UsedFilmThumbnailDto, ExposureDateEntry } from '../../../DTOs';
+import { FilmDto, PhotoCreateDto, SessionDto, DevKitDto, UsedFilmThumbnailDto, ExposureDateEntry } from '../../../DTOs';
 import { FileUploadHelper } from '../../../helpers/file-upload.helper';
 import { DateHelper } from '../../../helpers/date.helper';
 import { ErrorHandlingHelper } from '../../../helpers/error-handling.helper';
@@ -386,31 +386,44 @@ export class UpsertFilmComponent extends BaseUpsertComponent<FilmDto> implements
         return;
       }
 
-      // Convert files to photo DTOs using helper
-      const photos = await FileUploadHelper.filesToPhotoUploadDtos(
-        files, 
-        (imageBase64) => ({ imageBase64 } as PhotoUploadDto)
-      );
+      // Convert FileList to array and extract indices from filenames
+      const filesWithIndices = Array.from(files).map(file => ({
+        file,
+        index: FileUploadHelper.extractIndexFromFilename(file.name)
+      }));
 
-      const uploadDto: PhotoBulkUploadDto = {
-        filmId: this.id!,
-        photos: photos
-      };
-      
-      this.photoService.uploadPhotos(uploadDto).subscribe({
-        next: () => {
-          this.loading = false;
-          // Navigate to the film photos page
-          this.router.navigate(['/films', this.id, 'photos']);
-        },
-        error: (err) => {
-          this.loading = false;
-          this.errorMessage = ErrorHandlingHelper.handleError(err, 'photo upload');
-        }
+      // Sort by index (nulls go to end)
+      filesWithIndices.sort((a, b) => {
+        if (a.index === null && b.index === null) return 0;
+        if (a.index === null) return 1;
+        if (b.index === null) return -1;
+        return a.index - b.index;
       });
+
+      // Get next available index for files without explicit indices
+      // Since this is on the upsert-film page, we start from 1 if no photos exist yet
+      let nextAvailableIndex = 1;
+      
+      // Process files sequentially
+      for (const { file, index } of filesWithIndices) {
+        const base64 = await FileUploadHelper.fileToBase64(file);
+        
+        const photoDto: PhotoCreateDto = {
+          filmId: this.id!,
+          imageBase64: base64,
+          index: index !== null ? index : nextAvailableIndex++
+        };
+
+        await this.photoService.createPhoto(photoDto).toPromise();
+      }
+
+      // All uploads successful
+      this.loading = false;
+      // Navigate to the film photos page
+      this.router.navigate(['/films', this.id, 'photos']);
     } catch (error) {
       this.loading = false;
-      this.errorMessage = ErrorHandlingHelper.handleError(error, 'photo processing');
+      this.errorMessage = ErrorHandlingHelper.handleError(error, 'photo upload');
     }
   }
 

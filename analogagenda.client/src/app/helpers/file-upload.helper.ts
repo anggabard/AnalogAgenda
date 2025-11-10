@@ -80,4 +80,24 @@ export class FileUploadHelper {
 
     return { isValid: errors.length === 0, errors };
   }
+
+  /**
+   * Extracts a numeric index from a filename if the entire name (without extension) is a number between 0 and 999
+   * Examples: "45.jpg" -> 45, "002.jpg" -> 2, "photo-45.jpg" -> null, "1234.png" -> null (out of range)
+   */
+  static extractIndexFromFilename(filename: string): number | null {
+    // Remove extension
+    const nameWithoutExt = filename.substring(0, filename.lastIndexOf('.')) || filename;
+    
+    // Check if the entire name (without extension) is a valid number
+    // Allow leading zeros (e.g., "002" -> 2)
+    const parsed = parseInt(nameWithoutExt, 10);
+    
+    // Verify it's a valid number, in range 0-999, and the original string contains only digits
+    if (!isNaN(parsed) && parsed >= 0 && parsed <= 999 && /^\d+$/.test(nameWithoutExt)) {
+      return parsed;
+    }
+    
+    return null;
+  }
 }

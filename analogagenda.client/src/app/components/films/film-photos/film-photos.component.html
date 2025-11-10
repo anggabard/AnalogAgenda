@@ -20,7 +20,12 @@
     <p>No photos found for this film.</p>
     <button class="add-photos-btn" [disabled]="uploadLoading" (click)="onUploadPhotos()">
       <span class="button-content" [class.loading]="uploadLoading">
-        📸 Add Photos
+        <ng-container *ngIf="uploadLoading && uploadTotal > 0">
+          📸 Uploading {{ uploadProgress }}/{{ uploadTotal }}
+        </ng-container>
+        <ng-container *ngIf="!uploadLoading || uploadTotal === 0">
+          📸 Add Photos
+        </ng-container>
       </span>
       <svg *ngIf="uploadLoading" class="button-spinner" viewBox="0 0 24 24">
         <circle class="spinner-bg" cx="12" cy="12" r="10" stroke-width="4"></circle>
@@ -38,7 +43,12 @@
       <div class="action-buttons">
         <button class="add-photos-btn" [disabled]="uploadLoading" (click)="onUploadPhotos()">
           <span class="button-content" [class.loading]="uploadLoading">
-            📸 Add Photos
+            <ng-container *ngIf="uploadLoading && uploadTotal > 0">
+              📸 Uploading {{ uploadProgress }}/{{ uploadTotal }}
+            </ng-container>
+            <ng-container *ngIf="!uploadLoading || uploadTotal === 0">
+              📸 Add Photos
+            </ng-container>
           </span>
           <svg *ngIf="uploadLoading" class="button-spinner" viewBox="0 0 24 24">
             <circle class="spinner-bg" cx="12" cy="12" r="10" stroke-width="4"></circle>
@@ -64,7 +74,7 @@
         (click)="openPreview(photo)"
       >
         <div class="photo-thumbnail">
-          <img [src]="photo.imageUrl" [alt]="'Photo ' + photo.index" />
+          <img [src]="photoService.getPreviewUrl(photo.id)" [alt]="'Photo ' + photo.index" />
         </div>
         <div class="photo-info">
           <span class="photo-index">#{{ photo.index.toString().padStart(3, '0') }}</span>
@@ -98,7 +108,7 @@
 
       <img 
         *ngIf="currentPreviewPhoto" 
-        [src]="currentPreviewPhoto.imageUrl" 
+        [src]="photoService.getPreviewUrl(currentPreviewPhoto.id)" 
         [alt]="'Photo ' + currentPreviewPhoto.index" 
       />
       <div class="preview-actions">

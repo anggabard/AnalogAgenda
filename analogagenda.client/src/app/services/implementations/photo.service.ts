@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { PhotoDto, PhotoBulkUploadDto, PhotoCreateDto } from '../../DTOs';
+import { PhotoDto, PhotoCreateDto } from '../../DTOs';
 import { Observable } from 'rxjs';
 import { BaseService } from '../base.service';
 
@@ -12,11 +12,6 @@ export class PhotoService extends BaseService {
   // Create a single photo
   createPhoto(photoDto: PhotoCreateDto): Observable<PhotoDto> {
     return this.post<PhotoDto>('', photoDto);
-  }
-
-  // Upload multiple photos for a film
-  uploadPhotos(uploadDto: PhotoBulkUploadDto): Observable<void> {
-    return this.post<void>('bulk', uploadDto);
   }
 
   // Get all photos for a specific film
@@ -37,5 +32,10 @@ export class PhotoService extends BaseService {
   // Delete a photo
   deletePhoto(id: string): Observable<any> {
     return this.delete(id);
+  }
+
+  // Get preview URL for a photo (returns minified version)
+  getPreviewUrl(photoId: string): string {
+    return `${this.baseUrl}/preview/${photoId}`;
   }
 }

@@ -6,16 +6,8 @@ export interface PhotoDto extends HasImageDto {
   index: number;
 }
 
-export interface PhotoBulkUploadDto {
-  filmId: string;
-  photos: PhotoUploadDto[];
-}
-
-export interface PhotoUploadDto {
-  imageBase64: string;
-}
-
 export interface PhotoCreateDto {
   filmId: string;
   imageBase64: string;
+  index?: number; // Optional index (0-999). If not provided, next available index is used
 }
