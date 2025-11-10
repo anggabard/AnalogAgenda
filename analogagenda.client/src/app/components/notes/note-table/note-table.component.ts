@@ -64,6 +64,7 @@ export class NoteTableComponent implements OnInit {
     this.notesService.getById(id).subscribe({
       next: (note: NoteDto) => {
         this.note = note;
+        this.sortEntriesByIndex();
         this.originalNote = JSON.parse(JSON.stringify(this.note));
       },
       error: (err: any) => {
@@ -86,6 +87,7 @@ export class NoteTableComponent implements OnInit {
       this.router.navigate(['/notes']);
     } else if (this.originalNote) {
       this.note = JSON.parse(JSON.stringify(this.originalNote));
+      this.sortEntriesByIndex();
     }
     this.isEditMode = false;
   }
@@ -162,6 +164,10 @@ export class NoteTableComponent implements OnInit {
   removeRow(index: number) {
     if (this.note.entries.length > 1) {
       this.note.entries.splice(index, 1);
+      // Re-index entries after removal
+      this.note.entries.forEach((entry, i) => {
+        entry.index = i;
+      });
     }
   }
 
@@ -169,8 +175,14 @@ export class NoteTableComponent implements OnInit {
     const originalEntry = this.note.entries[index];
     var copyEntry = JSON.parse(JSON.stringify(originalEntry));
     copyEntry.id = '';
-    copyEntry.index = this.note.entries.length;
+    copyEntry.index = originalEntry.index + 1;
 
+    // Increment indices for all entries after the copied row
+    for (let i = index + 1; i < this.note.entries.length; i++) {
+      this.note.entries[i].index++;
+    }
+
+    // Insert the copied entry right after the original
     this.note.entries.splice(index + 1, 0, copyEntry);
   }
 
@@ -644,6 +656,11 @@ export class NoteTableComponent implements OnInit {
         console.error(err);
       }
     });
+  }
+
+  /** Sort entries by index */
+  sortEntriesByIndex(): void {
+    this.note.entries.sort((a, b) => a.index - b.index);
   }
 
   // Time conversion helpers (using TimeHelper utility)

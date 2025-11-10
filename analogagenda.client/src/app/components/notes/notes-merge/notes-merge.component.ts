@@ -41,6 +41,8 @@ export class NotesMergeComponent implements OnInit {
     this.notesService.getMergedNotes(compositeId).subscribe({
       next: (notes: NoteDto[]) => {
         this.notes = notes;
+        // Sort entries by index for each note before merging
+        this.notes.forEach(note => this.sortEntriesByIndex(note));
         this.mergedName = notes.map(n => n.name).join(' + ');
         this.mergedSideNote = notes.map(n => n.sideNote).filter(s => s).join('\n\n');
         this.mergedImageUrl = notes[0]?.imageUrl || '';
@@ -58,6 +60,9 @@ export class NotesMergeComponent implements OnInit {
   /** Recalculate entries as if all processes start at the same time, then sort by start time */
   recalculateAndSortEntries(): void {
     if (this.notes.length === 0) return;
+
+    // Ensure entries are sorted by index for each note before processing
+    this.notes.forEach(note => this.sortEntriesByIndex(note));
 
     // Recreate merged entries with effective times based on film count
     const allEntries: MergedNoteEntryDto[] = [];
@@ -216,6 +221,11 @@ export class NotesMergeComponent implements OnInit {
   /** Check if an entry is an OUT/DONE row */
   isOutDoneRow(entry: MergedNoteEntryDto): boolean {
     return entry.step === 'OUT/DONE';
+  }
+
+  /** Sort entries by index for a note */
+  private sortEntriesByIndex(note: NoteDto): void {
+    note.entries.sort((a, b) => a.index - b.index);
   }
 
   /** Format time for display using TimeHelper */
