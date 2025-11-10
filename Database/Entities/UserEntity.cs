@@ -12,7 +12,7 @@ public class UserEntity : BaseEntity
 
     public bool IsSubscribed { get; set; } = false;
 
-    protected override string GetId()
+    public override string GetId()
     {
         return IdGenerator.Get(IdLength(), GetType().Name, Name, Email, CreatedDate.Ticks.ToString());
     }

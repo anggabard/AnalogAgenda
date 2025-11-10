@@ -86,6 +86,9 @@ public class DatabaseService(AnalogAgendaDbContext context) : IDatabaseService
 
     public async Task<T> AddAsync<T>(T entity) where T : BaseEntity
     {
+        if (string.IsNullOrEmpty(entity.Id))
+            entity.Id = entity.GetId();
+
         await _context.Set<T>().AddAsync(entity);
         await _context.SaveChangesAsync();
         return entity;
