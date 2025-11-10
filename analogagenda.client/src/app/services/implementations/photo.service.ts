@@ -41,7 +41,8 @@ export class PhotoService extends BaseService {
   }
 
   /**
-   * Upload multiple photos in parallel with smart indexing
+   * Upload multiple photos sequentially with smart indexing
+   * (Sequential to prevent memory issues with large images on the backend)
    * @param filmId The ID of the film
    * @param files The files to upload
    * @param existingPhotos Existing photos for the film (to calculate next available index)
@@ -77,8 +78,8 @@ export class PhotoService extends BaseService {
       : Math.max(...existingPhotos.map(p => p.index)) + 1;
     let currentAutoIndex = nextAvailableIndex;
 
-    // Prepare all photo uploads
-    const uploadPromises = filesWithIndices.map(async ({ file, index }) => {
+    // Upload photos sequentially to prevent memory issues with large images
+    for (const { file, index } of filesWithIndices) {
       const base64 = await FileUploadHelper.fileToBase64(file);
 
       const photoDto: PhotoCreateDto = {
@@ -93,9 +94,6 @@ export class PhotoService extends BaseService {
       if (onProgress) {
         onProgress(uploadedCount, fileArray.length);
       }
-    });
-
-    // Send all uploads in parallel
-    await Promise.all(uploadPromises);
+    }
   }
 }

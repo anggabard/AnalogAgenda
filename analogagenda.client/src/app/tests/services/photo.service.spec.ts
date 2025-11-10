@@ -267,7 +267,7 @@ describe('PhotoService', () => {
   });
 
   describe('uploadMultiplePhotos', () => {
-    it('should upload multiple photos in parallel with numeric filenames', (done) => {
+    it('should upload multiple photos sequentially with numeric filenames', (done) => {
       // Arrange
       const filmId = 'test-film-id';
       const file1 = new File(['test1'], '5.jpg', { type: 'image/jpeg' });
@@ -294,21 +294,24 @@ describe('PhotoService', () => {
         done();
       }).catch(err => done.fail(err));
 
-      // Wait for requests to be made, then respond
+      // Respond to requests as they come in (sequential)
       setTimeout(() => {
-        const reqs = httpMock.match(req => req.url === baseUrl && req.method === 'POST');
-        expect(reqs.length).toBe(2);
+        // First request (index 5)
+        const req1 = httpMock.expectOne(baseUrl);
+        expect(req1.request.method).toBe('POST');
+        expect(req1.request.body.index).toBe(5);
+        expect(req1.request.body.filmId).toBe(filmId);
+        req1.flush(mockResponse1);
         
-        // Check first request (index 5)
-        expect(reqs[0].request.body.index).toBe(5);
-        expect(reqs[0].request.body.filmId).toBe(filmId);
-        reqs[0].flush(mockResponse1);
-        
-        // Check second request (index 10)
-        expect(reqs[1].request.body.index).toBe(10);
-        expect(reqs[1].request.body.filmId).toBe(filmId);
-        reqs[1].flush(mockResponse2);
-      }, 100);
+        // Second request (index 10) - comes after first completes
+        setTimeout(() => {
+          const req2 = httpMock.expectOne(baseUrl);
+          expect(req2.request.method).toBe('POST');
+          expect(req2.request.body.index).toBe(10);
+          expect(req2.request.body.filmId).toBe(filmId);
+          req2.flush(mockResponse2);
+        }, 10);
+      }, 10);
     });
 
     it('should use next available index for non-numeric filenames', (done) => {
@@ -330,18 +333,22 @@ describe('PhotoService', () => {
         done();
       }).catch(err => done.fail(err));
 
-      // Wait for requests to be made, then respond
+      // Respond to requests sequentially
       setTimeout(() => {
-        const reqs = httpMock.match(req => req.url === baseUrl && req.method === 'POST');
-        expect(reqs.length).toBe(2);
+        // First request (auto-assigned index 9)
+        const req1 = httpMock.expectOne(baseUrl);
+        expect(req1.request.method).toBe('POST');
+        expect(req1.request.body.index).toBe(9);
+        req1.flush(mockResponse1);
         
-        // Both should use auto-assigned indices starting from 9 (max existing + 1)
-        expect(reqs[0].request.body.index).toBe(9);
-        expect(reqs[1].request.body.index).toBe(10);
-        
-        reqs[0].flush(mockResponse1);
-        reqs[1].flush(mockResponse2);
-      }, 100);
+        // Second request (auto-assigned index 10)
+        setTimeout(() => {
+          const req2 = httpMock.expectOne(baseUrl);
+          expect(req2.request.method).toBe('POST');
+          expect(req2.request.body.index).toBe(10);
+          req2.flush(mockResponse2);
+        }, 10);
+      }, 10);
     });
 
     it('should sort files by index before uploading', (done) => {
@@ -362,20 +369,30 @@ describe('PhotoService', () => {
         done();
       }).catch(err => done.fail(err));
 
-      // Wait for requests to be made, then respond
+      // Respond to requests sequentially in sorted order
       setTimeout(() => {
-        // Assert - files should be uploaded in sorted order (2, 10, 45)
-        const reqs = httpMock.match(req => req.url === baseUrl && req.method === 'POST');
-        expect(reqs.length).toBe(3);
+        // First request should be index 2 (sorted order)
+        const req1 = httpMock.expectOne(baseUrl);
+        expect(req1.request.method).toBe('POST');
+        expect(req1.request.body.index).toBe(2);
+        req1.flush(mockResponse1);
         
-        expect(reqs[0].request.body.index).toBe(2);
-        expect(reqs[1].request.body.index).toBe(10);
-        expect(reqs[2].request.body.index).toBe(45);
-        
-        reqs[0].flush(mockResponse1);
-        reqs[1].flush(mockResponse2);
-        reqs[2].flush(mockResponse3);
-      }, 100);
+        setTimeout(() => {
+          // Second request should be index 10
+          const req2 = httpMock.expectOne(baseUrl);
+          expect(req2.request.method).toBe('POST');
+          expect(req2.request.body.index).toBe(10);
+          req2.flush(mockResponse2);
+          
+          setTimeout(() => {
+            // Third request should be index 45
+            const req3 = httpMock.expectOne(baseUrl);
+            expect(req3.request.method).toBe('POST');
+            expect(req3.request.body.index).toBe(45);
+            req3.flush(mockResponse3);
+          }, 10);
+        }, 10);
+      }, 10);
     });
 
     it('should handle files with leading zeros in filenames', (done) => {
@@ -394,17 +411,22 @@ describe('PhotoService', () => {
         done();
       }).catch(err => done.fail(err));
 
-      // Wait for requests to be made, then respond
+      // Respond to requests sequentially
       setTimeout(() => {
-        const reqs = httpMock.match(req => req.url === baseUrl && req.method === 'POST');
-        expect(reqs.length).toBe(2);
+        // First request (002 -> 2)
+        const req1 = httpMock.expectOne(baseUrl);
+        expect(req1.request.method).toBe('POST');
+        expect(req1.request.body.index).toBe(2);
+        req1.flush(mockResponse1);
         
-        expect(reqs[0].request.body.index).toBe(2); // 002 -> 2
-        expect(reqs[1].request.body.index).toBe(45); // 045 -> 45
-        
-        reqs[0].flush(mockResponse1);
-        reqs[1].flush(mockResponse2);
-      }, 100);
+        setTimeout(() => {
+          // Second request (045 -> 45)
+          const req2 = httpMock.expectOne(baseUrl);
+          expect(req2.request.method).toBe('POST');
+          expect(req2.request.body.index).toBe(45);
+          req2.flush(mockResponse2);
+        }, 10);
+      }, 10);
     });
   });
 
