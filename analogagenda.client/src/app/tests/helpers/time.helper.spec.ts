@@ -1,4 +1,4 @@
-import { TimeHelper } from './time.helper';
+import { TimeHelper } from '../../helpers/time.helper';
 
 describe('TimeHelper', () => {
   describe('decimalMinutesToMinSec', () => {
