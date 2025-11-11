@@ -47,15 +47,20 @@ public class PhotoController(
         };
 
         // Save to database
-        await databaseService.AddAsync(keyEntity);
+        var dbEntity = await databaseService.AddAsync(keyEntity);
 
-        // Return key as plain string
-        return Ok(key);
+        // Return key and KeyId
+        var response = new UploadKeyDto
+        {
+            Key = key,
+            KeyId = dbEntity.Id
+        };
+        return Ok(response);
     }
 
     [HttpGet("ValidateUploadKey")]
     [AllowAnonymous]
-    public async Task<IActionResult> ValidateUploadKey([FromQuery] string key, [FromQuery] string filmId)
+    public async Task<IActionResult> ValidateUploadKey([FromQuery] string key, [FromQuery] string keyId, [FromQuery] string filmId)
     {
         // Regenerate expected key
         var expectedKey = IdGenerator.Get(16, filmId, securityCfg.Salt);
@@ -64,15 +69,17 @@ public class PhotoController(
         if (expectedKey != key)
             return Forbid();
 
-        // Query Keys table for key
-        var keyEntity = await databaseService.GetAllAsync<KeyEntity>(k => k.Key == key);
-        if (keyEntity.Count == 0)
+        // Query Keys table for key with matching KeyId
+        var keyEntity = await databaseService.GetByIdAsync<KeyEntity>(keyId);
+        if (keyEntity == null)
             return Forbid();
 
-        var foundKey = keyEntity.First();
+        // Verify the key from DB matches the provided key (prevents key reuse)
+        if (keyEntity.Key != key)
+            return Forbid();
 
         // Check ExpirationDate is greater than UTC Now
-        if (foundKey.ExpirationDate <= DateTime.UtcNow)
+        if (keyEntity.ExpirationDate <= DateTime.UtcNow)
             return Forbid();
 
         // All validations passed

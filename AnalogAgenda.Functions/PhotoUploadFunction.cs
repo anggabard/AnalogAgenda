@@ -45,39 +45,30 @@ public class PhotoUploadFunction(
 
         try
         {
-            // Extract Key query parameter
+            // Extract Key and KeyId query parameters
             var key = req.Query["Key"].ToString() ?? string.Empty;
+            var keyId = req.Query["KeyId"].ToString() ?? string.Empty;
 
-            // Read and deserialize request body
-            // Read body into memory to avoid stream consumption issues
-            string requestBody;
-            using (var memoryStream = new MemoryStream())
-            {
-                await req.Body.CopyToAsync(memoryStream);
-                memoryStream.Position = 0;
-                using var reader = new StreamReader(memoryStream);
-                requestBody = await reader.ReadToEndAsync();
-            }
-            if (string.IsNullOrWhiteSpace(requestBody))
-            {
-                response.StatusCode = HttpStatusCode.BadRequest;
-                await response.WriteStringAsync(JsonSerializer.Serialize(new { error = "Request body is required." }));
-                return response;
-            }
-
+            // Deserialize request body using ReadFromJsonAsync
+            // This method handles stream reading properly for Azure Functions isolated worker
+            // JSON options are configured globally in Program.cs for case-insensitive property matching
             PhotoCreateDto? dto;
             try
             {
-                dto = JsonSerializer.Deserialize<PhotoCreateDto>(requestBody, new JsonSerializerOptions
-                {
-                    PropertyNameCaseInsensitive = true
-                });
+                dto = await req.ReadFromJsonAsync<PhotoCreateDto>();
             }
             catch (JsonException ex)
             {
                 _logger.LogError(ex, "Failed to deserialize request body");
                 response.StatusCode = HttpStatusCode.BadRequest;
                 await response.WriteStringAsync(JsonSerializer.Serialize(new { error = "Invalid JSON format." }));
+                return response;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error reading request body");
+                response.StatusCode = HttpStatusCode.BadRequest;
+                await response.WriteStringAsync(JsonSerializer.Serialize(new { error = "Error reading request body." }));
                 return response;
             }
 
@@ -89,7 +80,7 @@ public class PhotoUploadFunction(
             }
 
             // Validate key with backend
-            if (string.IsNullOrWhiteSpace(key))
+            if (string.IsNullOrWhiteSpace(key) || string.IsNullOrWhiteSpace(keyId))
             {
                 response.StatusCode = HttpStatusCode.Forbidden;
                 await response.WriteStringAsync(JsonSerializer.Serialize(new { error = "Unauthorized." }));
@@ -98,7 +89,7 @@ public class PhotoUploadFunction(
 
             try
             {
-                var validationUrl = $"{backendApiUrl}/api/Photo/ValidateUploadKey?key={Uri.EscapeDataString(key)}&filmId={Uri.EscapeDataString(dto.FilmId)}";
+                var validationUrl = $"{backendApiUrl}/api/Photo/ValidateUploadKey?key={Uri.EscapeDataString(key)}&keyId={Uri.EscapeDataString(keyId)}&filmId={Uri.EscapeDataString(dto.FilmId)}";
                 var validationResponse = await httpClient.GetAsync(validationUrl);
                 
                 if (!validationResponse.IsSuccessStatusCode)

@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { PhotoDto, PhotoCreateDto } from '../../DTOs';
+import { PhotoDto, PhotoCreateDto, UploadKeyDto } from '../../DTOs';
 import { Observable, lastValueFrom } from 'rxjs';
 import { BaseService } from '../base.service';
 import { FileUploadHelper } from '../../helpers/file-upload.helper';
@@ -15,13 +15,13 @@ export class PhotoService extends BaseService {
   constructor() { super('Photo'); }
 
   // Get upload key for a film
-  getUploadKey(filmId: string): Observable<string> {
-    return this.get<string>(`UploadKey?filmId=${filmId}`, { responseType: 'text' });
+  getUploadKey(filmId: string): Observable<UploadKeyDto> {
+    return this.get<UploadKeyDto>(`UploadKey?filmId=${filmId}`);
   }
 
   // Create a single photo via Azure Function
-  createPhoto(photoDto: PhotoCreateDto, key: string): Observable<PhotoDto> {
-    const url = `${environment.functionsUrl}/api/photo/upload?Key=${encodeURIComponent(key)}`;
+  createPhoto(photoDto: PhotoCreateDto, key: string, keyId: string): Observable<PhotoDto> {
+    const url = `${environment.functionsUrl}/api/photo/upload?Key=${encodeURIComponent(key)}&KeyId=${encodeURIComponent(keyId)}`;
     // Don't use withCredentials for Azure Function (different domain, CORS handled by Function)
     return this.http.post<PhotoDto>(url, photoDto, {
       withCredentials: false
@@ -75,8 +75,8 @@ export class PhotoService extends BaseService {
     existingPhotos: PhotoDto[],
     onPhotoUploaded?: (uploadedPhoto: PhotoDto, current: number, total: number) => void
   ): Promise<void> {
-    // Get upload key first
-    const key = await lastValueFrom(this.getUploadKey(filmId));
+    // Get upload key and keyId first
+    const { key, keyId } = await lastValueFrom(this.getUploadKey(filmId));
 
     const fileArray = Array.from(files);
 
@@ -110,8 +110,8 @@ export class PhotoService extends BaseService {
         index: index !== null ? index : currentAutoIndex++
       };
 
-      // Upload via Function with key
-      const uploadedPhoto = await lastValueFrom(this.createPhoto(photoDto, key));
+      // Upload via Function with key and keyId
+      const uploadedPhoto = await lastValueFrom(this.createPhoto(photoDto, key, keyId));
       
       if (onPhotoUploaded) {
         onPhotoUploaded(uploadedPhoto, fileIndex + 1, fileArray.length);
