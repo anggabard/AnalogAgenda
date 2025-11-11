@@ -26,8 +26,7 @@ public class PhotoUploadFunction(
 
     [Function("PhotoUpload")]
     public async Task<HttpResponseData> Run(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "api/photo/upload")] HttpRequestData req,
-        FunctionContext executionContext)
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "photo/upload")] HttpRequestData req)
     {
         _logger.LogInformation("Photo upload HTTP trigger function executed");
 

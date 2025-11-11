@@ -8,6 +8,7 @@ describe('PhotoService', () => {
   let service: PhotoService;
   let httpMock: HttpTestingController;
   const baseUrl = 'https://localhost:7125/api/Photo';
+  const functionsUrl = 'https://analogagenda.azurewebsites.net';
 
   beforeEach(() => {
     TestConfig.configureTestBed({
@@ -26,7 +27,7 @@ describe('PhotoService', () => {
   });
 
   describe('createPhoto', () => {
-    it('should create a single photo', () => {
+    it('should create a single photo via Functions', () => {
       // Arrange
       const createDto: PhotoCreateDto = {
         filmId: 'test-film-id',
@@ -41,10 +42,11 @@ describe('PhotoService', () => {
         expect(response).toEqual(mockResponse);
       });
 
-      // Assert HTTP call
-      const req = httpMock.expectOne(`${baseUrl}`);
+      // Assert HTTP call to Functions endpoint
+      const req = httpMock.expectOne(`${functionsUrl}/api/photo/upload`);
       expect(req.request.method).toBe('POST');
       expect(req.request.body).toEqual(createDto);
+      expect(req.request.withCredentials).toBe(true);
       req.flush(mockResponse);
     });
 
@@ -64,8 +66,8 @@ describe('PhotoService', () => {
         }
       });
 
-      // Assert HTTP call
-      const req = httpMock.expectOne(`${baseUrl}`);
+      // Assert HTTP call to Functions endpoint
+      const req = httpMock.expectOne(`${functionsUrl}/api/photo/upload`);
       req.flush('Film not found', { status: 404, statusText: 'Not Found' });
     });
   });
@@ -225,25 +227,37 @@ describe('PhotoService', () => {
   });
 
   describe('getPreviewUrl', () => {
-    it('should return correct preview URL for a photo', () => {
+    it('should return correct preview URL from blob storage', () => {
       // Arrange
-      const photoId = 'test-photo-id-123';
-      const expectedUrl = `${baseUrl}/preview/${photoId}`;
+      const photo: PhotoDto = {
+        id: 'test-photo-id-123',
+        filmId: 'test-film-id',
+        index: 1,
+        imageUrl: 'https://analogagendastorage.blob.core.windows.net/photos/12345678-1234-1234-1234-123456789012',
+        imageBase64: ''
+      };
+      const expectedUrl = 'https://analogagendastorage.blob.core.windows.net/photos/preview/12345678-1234-1234-1234-123456789012';
 
       // Act
-      const result = service.getPreviewUrl(photoId);
+      const result = service.getPreviewUrl(photo);
 
       // Assert
       expect(result).toBe(expectedUrl);
     });
 
-    it('should handle photo IDs with special characters', () => {
+    it('should extract account name and imageId from ImageUrl', () => {
       // Arrange
-      const photoId = 'photo-id-with-dashes-123';
-      const expectedUrl = `${baseUrl}/preview/${photoId}`;
+      const photo: PhotoDto = {
+        id: 'test-photo-id',
+        filmId: 'test-film-id',
+        index: 1,
+        imageUrl: 'https://mystorageaccount.blob.core.windows.net/photos/abcdef12-3456-7890-abcd-ef1234567890',
+        imageBase64: ''
+      };
+      const expectedUrl = 'https://mystorageaccount.blob.core.windows.net/photos/preview/abcdef12-3456-7890-abcd-ef1234567890';
 
       // Act
-      const result = service.getPreviewUrl(photoId);
+      const result = service.getPreviewUrl(photo);
 
       // Assert
       expect(result).toBe(expectedUrl);
@@ -251,23 +265,29 @@ describe('PhotoService', () => {
 
     it('should not make HTTP call - just return URL string', () => {
       // Arrange
-      const photoId = 'test-photo-id';
+      const photo: PhotoDto = {
+        id: 'test-photo-id',
+        filmId: 'test-film-id',
+        index: 1,
+        imageUrl: 'https://analogagendastorage.blob.core.windows.net/photos/12345678-1234-1234-1234-123456789012',
+        imageBase64: ''
+      };
 
       // Act
-      const result = service.getPreviewUrl(photoId);
+      const result = service.getPreviewUrl(photo);
 
       // Assert
       expect(typeof result).toBe('string');
-      expect(result).toContain('/preview/');
-      expect(result).toContain(photoId);
+      expect(result).toContain('/photos/preview/');
+      expect(result).toContain('12345678-1234-1234-1234-123456789012');
       
       // Verify no HTTP call was made
-      httpMock.expectNone(`${baseUrl}/preview/${photoId}`);
+      httpMock.expectNone(`${baseUrl}/preview/${photo.id}`);
     });
   });
 
   describe('uploadMultiplePhotos', () => {
-    it('should upload multiple photos sequentially and call callback with PhotoDto', (done) => {
+    it('should upload multiple photos in parallel and call callback with PhotoDto', (done) => {
       // Arrange
       const filmId = 'test-film-id';
       const file1 = new File(['test1'], '5.jpg', { type: 'image/jpeg' });
@@ -295,29 +315,33 @@ describe('PhotoService', () => {
       service.uploadMultiplePhotos(filmId, files, existingPhotos, onPhotoUploaded).then(() => {
         // Assert after upload completes
         expect(uploadedPhotos.length).toBe(2);
-        expect(uploadedPhotos[0].index).toBe(5);
-        expect(uploadedPhotos[1].index).toBe(10);
+        // Order may vary with parallel uploads, so check both indices exist
+        const indices = uploadedPhotos.map(p => p.index).sort();
+        expect(indices).toEqual([5, 10]);
         expect(onPhotoUploaded).toHaveBeenCalledTimes(2);
         done();
       }).catch(err => done.fail(err));
 
-      // Respond to requests as they come in (sequential)
+      // Respond to parallel requests (both may come at once)
       setTimeout(() => {
-        // First request (index 5)
-        const req1 = httpMock.expectOne(baseUrl);
-        expect(req1.request.method).toBe('POST');
-        expect(req1.request.body.index).toBe(5);
-        expect(req1.request.body.filmId).toBe(filmId);
-        req1.flush(mockResponse1);
+        // Both requests should come in parallel
+        const requests = httpMock.match((req) => 
+          req.url === `${functionsUrl}/api/photo/upload` && req.method === 'POST'
+        );
+        expect(requests.length).toBe(2);
         
-        // Second request (index 10) - comes after first completes
-        setTimeout(() => {
-          const req2 = httpMock.expectOne(baseUrl);
-          expect(req2.request.method).toBe('POST');
-          expect(req2.request.body.index).toBe(10);
-          expect(req2.request.body.filmId).toBe(filmId);
-          req2.flush(mockResponse2);
-        }, 10);
+        // Find requests by index
+        const req1 = requests.find(r => r.request.body.index === 5);
+        const req2 = requests.find(r => r.request.body.index === 10);
+        
+        expect(req1).toBeDefined();
+        expect(req2).toBeDefined();
+        expect(req1!.request.body.filmId).toBe(filmId);
+        expect(req2!.request.body.filmId).toBe(filmId);
+        
+        // Flush responses
+        req1!.flush(mockResponse1);
+        req2!.flush(mockResponse2);
       }, 10);
     });
 
@@ -343,26 +367,23 @@ describe('PhotoService', () => {
       // Act
       service.uploadMultiplePhotos(filmId, files, existingPhotos, onPhotoUploaded).then(() => {
         expect(uploadedPhotos.length).toBe(2);
-        expect(uploadedPhotos[0].index).toBe(9);
-        expect(uploadedPhotos[1].index).toBe(10);
+        const indices = uploadedPhotos.map(p => p.index).sort();
+        expect(indices).toEqual([9, 10]);
         done();
       }).catch(err => done.fail(err));
 
-      // Respond to requests sequentially
+      // Respond to parallel requests
       setTimeout(() => {
-        // First request (auto-assigned index 9)
-        const req1 = httpMock.expectOne(baseUrl);
-        expect(req1.request.method).toBe('POST');
-        expect(req1.request.body.index).toBe(9);
-        req1.flush(mockResponse1);
+        const requests = httpMock.match((req) => 
+          req.url === `${functionsUrl}/api/photo/upload` && req.method === 'POST'
+        );
+        expect(requests.length).toBe(2);
         
-        // Second request (auto-assigned index 10)
-        setTimeout(() => {
-          const req2 = httpMock.expectOne(baseUrl);
-          expect(req2.request.method).toBe('POST');
-          expect(req2.request.body.index).toBe(10);
-          req2.flush(mockResponse2);
-        }, 10);
+        const req1 = requests.find(r => r.request.body.index === 9);
+        const req2 = requests.find(r => r.request.body.index === 10);
+        
+        req1!.flush(mockResponse1);
+        req2!.flush(mockResponse2);
       }, 10);
     });
 
@@ -385,37 +406,27 @@ describe('PhotoService', () => {
       service.uploadMultiplePhotos(filmId, files, existingPhotos, (photo) => {
         uploadedPhotos.push(photo);
       }).then(() => {
-        // Assert upload order is correct (sorted by index)
+        // Assert all photos uploaded (order may vary with parallel uploads)
         expect(uploadedPhotos.length).toBe(3);
-        expect(uploadedPhotos[0].index).toBe(2);
-        expect(uploadedPhotos[1].index).toBe(10);
-        expect(uploadedPhotos[2].index).toBe(45);
+        const indices = uploadedPhotos.map(p => p.index).sort();
+        expect(indices).toEqual([2, 10, 45]);
         done();
       }).catch(err => done.fail(err));
 
-      // Respond to requests sequentially in sorted order
+      // Respond to parallel requests
       setTimeout(() => {
-        // First request should be index 2 (sorted order)
-        const req1 = httpMock.expectOne(baseUrl);
-        expect(req1.request.method).toBe('POST');
-        expect(req1.request.body.index).toBe(2);
-        req1.flush(mockResponse1);
+        const requests = httpMock.match((req) => 
+          req.url === `${functionsUrl}/api/photo/upload` && req.method === 'POST'
+        );
+        expect(requests.length).toBe(3);
         
-        setTimeout(() => {
-          // Second request should be index 10
-          const req2 = httpMock.expectOne(baseUrl);
-          expect(req2.request.method).toBe('POST');
-          expect(req2.request.body.index).toBe(10);
-          req2.flush(mockResponse2);
-          
-          setTimeout(() => {
-            // Third request should be index 45
-            const req3 = httpMock.expectOne(baseUrl);
-            expect(req3.request.method).toBe('POST');
-            expect(req3.request.body.index).toBe(45);
-            req3.flush(mockResponse3);
-          }, 10);
-        }, 10);
+        const req1 = requests.find(r => r.request.body.index === 2);
+        const req2 = requests.find(r => r.request.body.index === 10);
+        const req3 = requests.find(r => r.request.body.index === 45);
+        
+        req1!.flush(mockResponse1);
+        req2!.flush(mockResponse2);
+        req3!.flush(mockResponse3);
       }, 10);
     });
 
@@ -437,26 +448,23 @@ describe('PhotoService', () => {
         uploadedPhotos.push(photo);
       }).then(() => {
         expect(uploadedPhotos.length).toBe(2);
-        expect(uploadedPhotos[0].index).toBe(2);
-        expect(uploadedPhotos[1].index).toBe(45);
+        const indices = uploadedPhotos.map(p => p.index).sort();
+        expect(indices).toEqual([2, 45]);
         done();
       }).catch(err => done.fail(err));
 
-      // Respond to requests sequentially
+      // Respond to parallel requests
       setTimeout(() => {
-        // First request (002 -> 2)
-        const req1 = httpMock.expectOne(baseUrl);
-        expect(req1.request.method).toBe('POST');
-        expect(req1.request.body.index).toBe(2);
-        req1.flush(mockResponse1);
+        const requests = httpMock.match((req) => 
+          req.url === `${functionsUrl}/api/photo/upload` && req.method === 'POST'
+        );
+        expect(requests.length).toBe(2);
         
-        setTimeout(() => {
-          // Second request (045 -> 45)
-          const req2 = httpMock.expectOne(baseUrl);
-          expect(req2.request.method).toBe('POST');
-          expect(req2.request.body.index).toBe(45);
-          req2.flush(mockResponse2);
-        }, 10);
+        const req1 = requests.find(r => r.request.body.index === 2);
+        const req2 = requests.find(r => r.request.body.index === 45);
+        
+        req1!.flush(mockResponse1);
+        req2!.flush(mockResponse2);
       }, 10);
     });
   });
@@ -467,7 +475,7 @@ describe('PhotoService', () => {
       id,
       filmId,
       index,
-      imageUrl: `test-image-url-${index}`,
+      imageUrl: `https://analogagendastorage.blob.core.windows.net/photos/${id}-${index}`,
       imageBase64: ''
     };
   }
