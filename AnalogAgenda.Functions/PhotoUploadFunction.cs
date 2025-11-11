@@ -37,7 +37,7 @@ public class PhotoUploadFunction(
         // Handle CORS preflight request
         if (req.Method == "OPTIONS")
         {
-            return CorsHelper.HandlePreflightRequest(req);
+            return await CorsHelper.HandlePreflightRequestAsync(req);
         }
 
         var response = req.CreateResponse(HttpStatusCode.OK);
