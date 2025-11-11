@@ -8,7 +8,6 @@ using Database.Helpers;
 using Database.Services.Interfaces;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System.Net;
 using System.Text.Json;
@@ -20,12 +19,12 @@ public class PhotoUploadFunction(
     IDatabaseService databaseService,
     IBlobService blobService,
     Storage storageCfg,
-    IConfiguration configuration,
+    Security securityCfg,
     HttpClient httpClient)
 {
     private readonly ILogger _logger = loggerFactory.CreateLogger<PhotoUploadFunction>();
     private readonly BlobContainerClient photosContainer = blobService.GetBlobContainer(ContainerName.photos);
-    private readonly string backendApiUrl = configuration["BackendApiUrl"] ?? "https://api.analogagenda.site";
+    private readonly string backendApiUrl = securityCfg.BackendApiUrl ?? "https://api.analogagenda.site";
     private const int MaxPreviewDimension = 1200;
     private const int PreviewQuality = 80;
 

@@ -17,8 +17,8 @@ builder.ConfigureFunctionsWebApplication();
 builder.Services.AddSmtpConfigBinding();
 builder.Services.AddAzureAdConfigBinding();
 builder.Services.AddStorageConfigBinding();
-builder.Services.AddContainerRegistryConfigBinding();
 builder.Services.AddSecurityConfigBinding();
+builder.Services.AddContainerRegistryConfigBinding();
 
 // Add DbContext for Azure Functions
 var connectionString = builder.Configuration.GetConnectionString("AnalogAgendaDb");
