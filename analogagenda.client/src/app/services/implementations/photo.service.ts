@@ -14,11 +14,15 @@ export class PhotoService extends BaseService {
 
   constructor() { super('Photo'); }
 
+  // Get upload key for a film
+  getUploadKey(filmId: string): Observable<string> {
+    return this.get<string>(`UploadKey?filmId=${filmId}`, { responseType: 'text' });
+  }
+
   // Create a single photo via Azure Function
-  createPhoto(photoDto: PhotoCreateDto): Observable<PhotoDto> {
-    return this.http.post<PhotoDto>(`${environment.functionsUrl}/api/photo/upload`, photoDto, {
-      withCredentials: true
-    });
+  createPhoto(photoDto: PhotoCreateDto, key: string): Observable<PhotoDto> {
+    const url = `${environment.functionsUrl}/api/photo/upload?Key=${encodeURIComponent(key)}`
+    return this.http.post<PhotoDto>(url, photoDto);
   }
 
   // Get all photos for a specific film
@@ -68,6 +72,9 @@ export class PhotoService extends BaseService {
     existingPhotos: PhotoDto[],
     onPhotoUploaded?: (uploadedPhoto: PhotoDto, current: number, total: number) => void
   ): Promise<void> {
+    // Get upload key first
+    const key = await lastValueFrom(this.getUploadKey(filmId));
+
     const fileArray = Array.from(files);
 
     // Extract indices from filenames
@@ -100,8 +107,8 @@ export class PhotoService extends BaseService {
         index: index !== null ? index : currentAutoIndex++
       };
 
-      // Upload via Function (parallel uploads are now safe!)
-      const uploadedPhoto = await lastValueFrom(this.createPhoto(photoDto));
+      // Upload via Function with key
+      const uploadedPhoto = await lastValueFrom(this.createPhoto(photoDto, key));
       
       if (onPhotoUploaded) {
         onPhotoUploaded(uploadedPhoto, fileIndex + 1, fileArray.length);

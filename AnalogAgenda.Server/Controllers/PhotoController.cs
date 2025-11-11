@@ -15,16 +15,69 @@ namespace AnalogAgenda.Server.Controllers;
 [Route("api/[controller]"), ApiController, Authorize]
 public class PhotoController(
     Storage storageCfg,
+    Security securityCfg,
     IDatabaseService databaseService,
     IBlobService blobsService,
     IImageCacheService imageCacheService
 ) : ControllerBase
 {
     private readonly Storage storageCfg = storageCfg;
+    private readonly Security securityCfg = securityCfg;
     private readonly IDatabaseService databaseService = databaseService;
     private readonly IBlobService blobsService = blobsService;
     private readonly IImageCacheService imageCacheService = imageCacheService;
     private readonly BlobContainerClient photosContainer = blobsService.GetBlobContainer(ContainerName.photos);
+
+    [HttpGet("UploadKey")]
+    public async Task<IActionResult> GetUploadKey([FromQuery] string filmId)
+    {
+        // Validate filmId exists
+        var film = await databaseService.GetByIdAsync<FilmEntity>(filmId);
+        if (film == null)
+            return NotFound("Film not found.");
+
+        // Generate key using IdGenerator
+        var key = IdGenerator.Get(16, filmId, securityCfg.Salt);
+
+        // Create KeyEntity
+        var keyEntity = new KeyEntity
+        {
+            Key = key,
+            ExpirationDate = DateTime.UtcNow.AddMinutes(3)
+        };
+
+        // Save to database
+        await databaseService.AddAsync(keyEntity);
+
+        // Return key as plain string
+        return Ok(key);
+    }
+
+    [HttpGet("ValidateUploadKey")]
+    [AllowAnonymous]
+    public async Task<IActionResult> ValidateUploadKey([FromQuery] string key, [FromQuery] string filmId)
+    {
+        // Regenerate expected key
+        var expectedKey = IdGenerator.Get(16, filmId, securityCfg.Salt);
+
+        // Check if generated key matches provided key
+        if (expectedKey != key)
+            return Forbid();
+
+        // Query Keys table for key
+        var keyEntity = await databaseService.GetAllAsync<KeyEntity>(k => k.Key == key);
+        if (keyEntity.Count == 0)
+            return Forbid();
+
+        var foundKey = keyEntity.First();
+
+        // Check ExpirationDate is greater than UTC Now
+        if (foundKey.ExpirationDate <= DateTime.UtcNow)
+            return Forbid();
+
+        // All validations passed
+        return Ok();
+    }
 
     [HttpGet("film/{filmId}")]
     public async Task<IActionResult> GetPhotosByFilmId(string filmId)

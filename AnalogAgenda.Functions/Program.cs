@@ -13,9 +13,11 @@ var builder = FunctionsApplication.CreateBuilder(args);
 
 builder.ConfigureFunctionsWebApplication();
 
+
 builder.Services.AddSmtpConfigBinding();
 builder.Services.AddAzureAdConfigBinding();
 builder.Services.AddStorageConfigBinding();
+builder.Services.AddSecurityConfigBinding();
 builder.Services.AddContainerRegistryConfigBinding();
 
 // Add DbContext for Azure Functions
@@ -30,5 +32,6 @@ builder.Services.AddSingleton<IEmailSender, EmailSender>();
 builder.Services.AddScoped<IDatabaseService, DatabaseService>();
 builder.Services.AddSingleton<IContainerRegistryService, ContainerRegistryService>();
 builder.Services.AddSingleton<IBlobService, BlobService>();
+builder.Services.AddHttpClient();
 
 builder.Build().Run();
