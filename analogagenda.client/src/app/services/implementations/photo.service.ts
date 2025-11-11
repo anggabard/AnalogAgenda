@@ -16,9 +16,7 @@ export class PhotoService extends BaseService {
 
   // Create a single photo via Azure Function
   createPhoto(photoDto: PhotoCreateDto): Observable<PhotoDto> {
-    return this.http.post<PhotoDto>(`${environment.functionsUrl}/api/photo/upload`, photoDto, {
-      withCredentials: true
-    });
+    return this.http.post<PhotoDto>(`${environment.functionsUrl}/api/photo/upload`, photoDto);
   }
 
   // Get all photos for a specific film

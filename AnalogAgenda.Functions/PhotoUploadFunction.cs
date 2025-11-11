@@ -1,3 +1,4 @@
+using AnalogAgenda.Functions.Helpers;
 using Azure.Storage.Blobs;
 using Configuration.Sections;
 using Database.DBObjects.Enums;
@@ -26,12 +27,19 @@ public class PhotoUploadFunction(
 
     [Function("PhotoUpload")]
     public async Task<HttpResponseData> Run(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "photo/upload")] HttpRequestData req)
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post", "options", Route = "photo/upload")] HttpRequestData req)
     {
         _logger.LogInformation("Photo upload HTTP trigger function executed");
 
+        // Handle CORS preflight request
+        if (req.Method == "OPTIONS")
+        {
+            return CorsHelper.HandlePreflightRequest(req);
+        }
+
         var response = req.CreateResponse(HttpStatusCode.OK);
         response.Headers.Add("Content-Type", "application/json; charset=utf-8");
+        CorsHelper.AddCorsHeaders(response);
 
         try
         {

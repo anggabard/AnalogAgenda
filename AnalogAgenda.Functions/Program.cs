@@ -13,6 +13,7 @@ var builder = FunctionsApplication.CreateBuilder(args);
 
 builder.ConfigureFunctionsWebApplication();
 
+
 builder.Services.AddSmtpConfigBinding();
 builder.Services.AddAzureAdConfigBinding();
 builder.Services.AddStorageConfigBinding();
