@@ -1,4 +1,3 @@
-using AnalogAgenda.Functions.Helpers;
 using Azure.Storage.Blobs;
 using Configuration.Sections;
 using Database.DBObjects.Enums;
@@ -24,7 +23,7 @@ public class PhotoUploadFunction(
 {
     private readonly ILogger _logger = loggerFactory.CreateLogger<PhotoUploadFunction>();
     private readonly BlobContainerClient photosContainer = blobService.GetBlobContainer(ContainerName.photos);
-    private readonly string backendApiUrl = securityCfg.BackendApiUrl ?? "https://api.analogagenda.site";
+    private readonly string backendApiUrl = securityCfg.BackendApiUrl ?? throw new ArgumentNullException(nameof(securityCfg.BackendApiUrl));
     private const int MaxPreviewDimension = 1200;
     private const int PreviewQuality = 80;
 
@@ -34,15 +33,15 @@ public class PhotoUploadFunction(
     {
         _logger.LogInformation("Photo upload HTTP trigger function executed");
 
-        // Handle CORS preflight request
         if (req.Method == "OPTIONS")
         {
-            return await CorsHelper.HandlePreflightRequestAsync(req);
+            var optionsResponse = req.CreateResponse(HttpStatusCode.OK);
+            await optionsResponse.WriteStringAsync(string.Empty);
+            return optionsResponse;
         }
 
         var response = req.CreateResponse(HttpStatusCode.OK);
         response.Headers.Add("Content-Type", "application/json; charset=utf-8");
-        CorsHelper.AddCorsHeaders(response);
 
         try
         {
@@ -50,7 +49,15 @@ public class PhotoUploadFunction(
             var key = req.Query["Key"].ToString() ?? string.Empty;
 
             // Read and deserialize request body
-            var requestBody = await new StreamReader(req.Body).ReadToEndAsync();
+            // Read body into memory to avoid stream consumption issues
+            string requestBody;
+            using (var memoryStream = new MemoryStream())
+            {
+                await req.Body.CopyToAsync(memoryStream);
+                memoryStream.Position = 0;
+                using var reader = new StreamReader(memoryStream);
+                requestBody = await reader.ReadToEndAsync();
+            }
             if (string.IsNullOrWhiteSpace(requestBody))
             {
                 response.StatusCode = HttpStatusCode.BadRequest;
