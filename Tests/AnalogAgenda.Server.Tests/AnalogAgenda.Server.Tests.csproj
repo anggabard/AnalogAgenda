@@ -28,7 +28,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\AnalogAgenda.Server\AnalogAgenda.Server.csproj" />
-    <ProjectReference Include="..\..\Database\Database.csproj" />
   </ItemGroup>
 
   <ItemGroup>

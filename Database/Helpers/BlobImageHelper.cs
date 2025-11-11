@@ -1,11 +1,11 @@
-﻿using Azure.Storage.Blobs;
+using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using System.Text.RegularExpressions;
 
-namespace AnalogAgenda.Server.Helpers;
+namespace Database.Helpers;
 
 public static class BlobImageHelper
 {
@@ -28,6 +28,58 @@ public static class BlobImageHelper
         });
     }
 
+    public static async Task UploadPreviewImageAsync(
+        BlobContainerClient blobContainerClient, 
+        string base64Image, 
+        Guid blobName,
+        int maxDimension = 1200,
+        int quality = 80)
+    {
+        (var imageBytes, var _) = ParseBase64Image(base64Image);
+
+        // Resize using ImageSharp
+        using var image = await Image.LoadAsync(new MemoryStream(imageBytes));
+        
+        // Calculate new dimensions maintaining aspect ratio
+        var width = image.Width;
+        var height = image.Height;
+        
+        if (width > maxDimension || height > maxDimension)
+        {
+            if (width > height)
+            {
+                height = (int)((double)height / width * maxDimension);
+                width = maxDimension;
+            }
+            else
+            {
+                width = (int)((double)width / height * maxDimension);
+                height = maxDimension;
+            }
+            
+            image.Mutate(x => x.Resize(width, height));
+        }
+
+        // Convert to JPEG with specified quality
+        using var outputStream = new MemoryStream();
+        await image.SaveAsJpegAsync(outputStream, new JpegEncoder { Quality = quality });
+        
+        // Upload preview to preview subfolder
+        var previewBlobName = $"preview/{blobName}";
+        var previewBlobClient = blobContainerClient.GetBlobClient(previewBlobName);
+
+        outputStream.Position = 0;
+        var headers = new BlobHttpHeaders
+        {
+            ContentType = "image/jpeg"
+        };
+
+        await previewBlobClient.UploadAsync(outputStream, new BlobUploadOptions
+        {
+            HttpHeaders = headers
+        });
+    }
+
     public static async Task<string> DownloadImageAsBase64WithContentTypeAsync(BlobContainerClient blobContainerClient, Guid blobName)
     {
         var blobClient = blobContainerClient.GetBlobClient(blobName.ToString());
@@ -45,30 +97,6 @@ public static class BlobImageHelper
 
         string base64 = Convert.ToBase64String(imageBytes);
         return $"data:{contentType};base64,{base64}";
-    }
-
-    private static (byte[] imageBytes, string contentType) ParseBase64Image(string base64String)
-    {
-        if (string.IsNullOrWhiteSpace(base64String))
-            throw new ArgumentException("Base64 string is null or empty.", nameof(base64String));
-
-        var dataParts = base64String.Split(',');
-
-        if (dataParts.Length != 2)
-            throw new FormatException("The base64 string is not in the correct format.");
-
-        var metadata = dataParts[0];
-        var base64Data = dataParts[1];
-
-        var match = Regex.Match(metadata, @"data:(?<type>.+?);base64");
-
-        if (!match.Success)
-            throw new FormatException("Could not parse content type from base64 string.");
-
-        var contentType = match.Groups["type"].Value;
-        var data = Convert.FromBase64String(base64Data);
-
-        return (data, contentType);
     }
 
     public static string GetContentTypeFromBase64(string base64WithType)
@@ -147,4 +175,29 @@ public static class BlobImageHelper
         await image.SaveAsJpegAsync(outputStream, new JpegEncoder { Quality = quality });
         return (outputStream.ToArray(), "image/jpeg");
     }
+
+    private static (byte[] imageBytes, string contentType) ParseBase64Image(string base64String)
+    {
+        if (string.IsNullOrWhiteSpace(base64String))
+            throw new ArgumentException("Base64 string is null or empty.", nameof(base64String));
+
+        var dataParts = base64String.Split(',');
+
+        if (dataParts.Length != 2)
+            throw new FormatException("The base64 string is not in the correct format.");
+
+        var metadata = dataParts[0];
+        var base64Data = dataParts[1];
+
+        var match = Regex.Match(metadata, @"data:(?<type>.+?);base64");
+
+        if (!match.Success)
+            throw new FormatException("Could not parse content type from base64 string.");
+
+        var contentType = match.Groups["type"].Value;
+        var data = Convert.FromBase64String(base64Data);
+
+        return (data, contentType);
+    }
 }
+

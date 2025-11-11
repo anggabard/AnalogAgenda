@@ -1,5 +1,4 @@
 using System.IO.Compression;
-using AnalogAgenda.Server.Helpers;
 using AnalogAgenda.Server.Services.Interfaces;
 using Azure.Storage.Blobs;
 using Configuration.Sections;
@@ -26,84 +25,6 @@ public class PhotoController(
     private readonly IBlobService blobsService = blobsService;
     private readonly IImageCacheService imageCacheService = imageCacheService;
     private readonly BlobContainerClient photosContainer = blobsService.GetBlobContainer(ContainerName.photos);
-
-    private const int MaxPreviewDimension = 1200;
-    private const int PreviewQuality = 80;
-
-    [HttpPost]
-    [RequestSizeLimit(150 * 1024 * 1024)] // 150MB limit to support base64-encoded 50MB image
-    public async Task<IActionResult> CreatePhoto([FromBody] PhotoCreateDto dto)
-    {
-        if (string.IsNullOrWhiteSpace(dto.ImageBase64))
-            return BadRequest("Image data is required.");
-
-        if (!await FilmExists(dto.FilmId))
-            return NotFound("Film not found.");
-
-        // Use provided index if valid (0-999), otherwise get next available
-        int photoIndex;
-        if (dto.Index.HasValue && dto.Index.Value >= 0 && dto.Index.Value <= 999)
-        {
-            photoIndex = dto.Index.Value;
-        }
-        else
-        {
-            photoIndex = await GetNextPhotoIndexAsync(dto.FilmId);
-        }
-
-        // Check if a photo with this index already exists and delete it (to maintain index uniqueness)
-        var existingPhoto = await databaseService.GetAllAsync<PhotoEntity>(p =>
-            p.FilmId == dto.FilmId && p.Index == photoIndex
-        );
-        if (existingPhoto.Count > 0)
-        {
-            var photoToReplace = existingPhoto.First();
-
-            // Delete old image blob
-            if (photoToReplace.ImageId != Guid.Empty)
-            {
-                await photosContainer.DeleteBlobAsync(photoToReplace.ImageId.ToString());
-                imageCacheService.RemovePreview(photoToReplace.ImageId);
-            }
-
-            // Delete old photo entity
-            await databaseService.DeleteAsync(photoToReplace);
-        }
-
-        var imageId = Guid.NewGuid();
-        try
-        {
-            await BlobImageHelper.UploadBase64ImageWithContentTypeAsync(
-                photosContainer,
-                dto.ImageBase64,
-                imageId
-            );
-
-            var photoDto = new PhotoDto
-            {
-                FilmId = dto.FilmId,
-                Index = photoIndex,
-                ImageBase64 = dto.ImageBase64,
-            };
-
-            var entity = photoDto.ToEntity();
-            entity.ImageId = imageId;
-
-            await databaseService.AddAsync(entity);
-
-            // Auto-mark film as developed when photo is uploaded
-            await MarkFilmAsDeveloped(dto.FilmId);
-
-            // Return the created entity as DTO
-            var createdDto = entity.ToDTO(storageCfg.AccountName);
-            return Created(string.Empty, createdDto);
-        }
-        catch (Exception ex)
-        {
-            await photosContainer.GetBlobClient(imageId.ToString()).DeleteIfExistsAsync();
-            return UnprocessableEntity(ex.Message);
-        }
-    }
 
     [HttpGet("film/{filmId}")]
     public async Task<IActionResult> GetPhotosByFilmId(string filmId)
@@ -136,26 +57,29 @@ public class PhotoController(
 
         try
         {
-            // Download and resize image using helper
-            var (previewBytes, contentType) = await BlobImageHelper.DownloadAndResizeImageAsync(
-                photosContainer,
-                photoEntity.ImageId,
-                MaxPreviewDimension,
-                PreviewQuality
-            );
+            // Serve preview directly from blob storage (preview/{imageId})
+            var previewBlobClient = photosContainer.GetBlobClient($"preview/{photoEntity.ImageId}");
+            
+            if (!await previewBlobClient.ExistsAsync())
+            {
+                return NotFound("Preview not found in storage.");
+            }
+
+            var response = await previewBlobClient.DownloadAsync();
+            var contentType = response.Value.Details.ContentType ?? "image/jpeg";
+            
+            using var memoryStream = new MemoryStream();
+            await response.Value.Content.CopyToAsync(memoryStream);
+            var previewBytes = memoryStream.ToArray();
 
             // Cache the preview with content type
             imageCacheService.SetPreview(photoEntity.ImageId, previewBytes, contentType);
 
             return File(previewBytes, contentType);
         }
-        catch (FileNotFoundException)
-        {
-            return NotFound("Image not found in storage.");
-        }
         catch (Exception ex)
         {
-            return UnprocessableEntity($"Error generating preview: {ex.Message}");
+            return UnprocessableEntity($"Error loading preview: {ex.Message}");
         }
     }
 
@@ -166,10 +90,9 @@ public class PhotoController(
         if (photoEntity == null)
             return NotFound("Photo not found.");
 
-        if (!await FilmExists(photoEntity.FilmId))
-            return NotFound("Associated film not found.");
-
         var filmEntity = await databaseService.GetByIdAsync<FilmEntity>(photoEntity.FilmId);
+        if (filmEntity == null)
+            return NotFound("Associated film not found.");
 
         try
         {
@@ -254,10 +177,11 @@ public class PhotoController(
         if (entity == null)
             return NotFound();
 
-        // Delete image blob (photos always have real images, no default)
+        // Delete image blob and preview blob (photos always have real images, no default)
         if (entity.ImageId != Guid.Empty)
         {
             await photosContainer.DeleteBlobAsync(entity.ImageId.ToString());
+            await photosContainer.DeleteBlobAsync($"preview/{entity.ImageId}");
             imageCacheService.RemovePreview(entity.ImageId);
         }
 
@@ -270,33 +194,5 @@ public class PhotoController(
         var invalidChars = Path.GetInvalidFileNameChars();
         var sanitized = new string(fileName.Where(c => !invalidChars.Contains(c)).ToArray());
         return string.IsNullOrWhiteSpace(sanitized) ? "photo" : sanitized;
-    }
-
-    private async Task<bool> FilmExists(string filmId)
-    {
-        return await databaseService.GetByIdAsync<FilmEntity>(filmId) != null;
-    }
-
-    private async Task<int> GetNextPhotoIndexAsync(string filmId)
-    {
-        var existingPhotos = await databaseService.GetAllAsync<PhotoEntity>(p =>
-            p.FilmId == filmId
-        );
-        return existingPhotos.Count != 0 ? existingPhotos.Max(p => p.Index) + 1 : 1;
-    }
-
-    private async Task MarkFilmAsDeveloped(string filmId)
-    {
-        // Load existing entity
-        var existingEntity = await databaseService.GetByIdAsync<FilmEntity>(filmId);
-
-        if (existingEntity != null && !existingEntity.Developed)
-        {
-            // Update the entity
-            existingEntity.Developed = true;
-
-            // UpdateAsync will handle UpdatedDate automatically
-            await databaseService.UpdateAsync(existingEntity);
-        }
     }
 }

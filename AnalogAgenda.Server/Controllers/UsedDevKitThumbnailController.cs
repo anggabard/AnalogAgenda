@@ -1,4 +1,4 @@
-using AnalogAgenda.Server.Helpers;
+using Database.Helpers;
 using Azure.Storage.Blobs;
 using Configuration.Sections;
 using Database.DBObjects.Enums;

@@ -1,18 +1,24 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { PhotoDto, PhotoCreateDto } from '../../DTOs';
 import { Observable, lastValueFrom } from 'rxjs';
 import { BaseService } from '../base.service';
 import { FileUploadHelper } from '../../helpers/file-upload.helper';
+import { HttpClient } from '@angular/common/http';
+import { environment } from '../../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class PhotoService extends BaseService {
+  private http = inject(HttpClient);
+
   constructor() { super('Photo'); }
 
-  // Create a single photo
+  // Create a single photo via Azure Function
   createPhoto(photoDto: PhotoCreateDto): Observable<PhotoDto> {
-    return this.post<PhotoDto>('', photoDto);
+    return this.http.post<PhotoDto>(`${environment.functionsUrl}/api/photo/upload`, photoDto, {
+      withCredentials: true
+    });
   }
 
   // Get all photos for a specific film
@@ -35,14 +41,21 @@ export class PhotoService extends BaseService {
     return this.delete(id);
   }
 
-  // Get preview URL for a photo (returns minified version)
-  getPreviewUrl(photoId: string): string {
-    return `${this.baseUrl}/preview/${photoId}`;
+  // Get preview URL for a photo (returns direct blob storage URL)
+  getPreviewUrl(photo: PhotoDto): string {
+    // Extract account name and imageId from ImageUrl
+    // ImageUrl format: https://{accountName}.blob.core.windows.net/photos/{imageId}
+    const url = new URL(photo.imageUrl);
+    const pathParts = url.pathname.split('/').filter(p => p);
+    const imageId = pathParts[1];
+    const accountName = url.hostname.split('.')[0];
+    // Construct preview URL: https://{accountName}.blob.core.windows.net/photos/preview/{imageId}
+    return `https://${accountName}.blob.core.windows.net/photos/preview/${imageId}`;
   }
 
   /**
-   * Upload multiple photos sequentially with smart indexing and live callback
-   * (Sequential to prevent memory issues with large images on the backend)
+   * Upload multiple photos in parallel with smart indexing and live callback
+   * (Azure Functions can handle parallel uploads with auto-scaling)
    * @param filmId The ID of the film
    * @param files The files to upload
    * @param existingPhotos Existing photos for the film (to calculate next available index)
@@ -56,7 +69,6 @@ export class PhotoService extends BaseService {
     onPhotoUploaded?: (uploadedPhoto: PhotoDto, current: number, total: number) => void
   ): Promise<void> {
     const fileArray = Array.from(files);
-    let uploadedCount = 0;
 
     // Extract indices from filenames
     const filesWithIndices = fileArray.map(file => ({
@@ -78,8 +90,8 @@ export class PhotoService extends BaseService {
       : Math.max(...existingPhotos.map(p => p.index)) + 1;
     let currentAutoIndex = nextAvailableIndex;
 
-    // Upload photos sequentially to prevent memory issues with large images
-    for (const { file, index } of filesWithIndices) {
+    // Prepare all upload promises
+    const uploadPromises = filesWithIndices.map(async ({ file, index }, fileIndex) => {
       const base64 = await FileUploadHelper.fileToBase64(file);
 
       const photoDto: PhotoCreateDto = {
@@ -88,13 +100,17 @@ export class PhotoService extends BaseService {
         index: index !== null ? index : currentAutoIndex++
       };
 
-      // Upload and get the created photo
+      // Upload via Function (parallel uploads are now safe!)
       const uploadedPhoto = await lastValueFrom(this.createPhoto(photoDto));
       
-      uploadedCount++;
       if (onPhotoUploaded) {
-        onPhotoUploaded(uploadedPhoto, uploadedCount, fileArray.length);
+        onPhotoUploaded(uploadedPhoto, fileIndex + 1, fileArray.length);
       }
-    }
+      
+      return uploadedPhoto;
+    });
+
+    // Wait for all uploads to complete (Functions auto-scale to handle parallel requests)
+    await Promise.all(uploadPromises);
   }
 }

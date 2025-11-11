@@ -29,5 +29,6 @@ if (!string.IsNullOrEmpty(connectionString))
 builder.Services.AddSingleton<IEmailSender, EmailSender>();
 builder.Services.AddScoped<IDatabaseService, DatabaseService>();
 builder.Services.AddSingleton<IContainerRegistryService, ContainerRegistryService>();
+builder.Services.AddSingleton<IBlobService, BlobService>();
 
 builder.Build().Run();
