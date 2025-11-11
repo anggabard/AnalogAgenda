@@ -1,5 +1,4 @@
-using AnalogAgenda.Server.Helpers;
-using Xunit;
+using Database.Helpers;
 
 namespace AnalogAgenda.Server.Tests.Helpers;
 

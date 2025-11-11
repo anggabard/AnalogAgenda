@@ -74,7 +74,7 @@
         (click)="openPreview(photo)"
       >
         <div class="photo-thumbnail">
-          <img [src]="photoService.getPreviewUrl(photo.id)" [alt]="'Photo ' + photo.index" />
+          <img [src]="photoService.getPreviewUrl(photo)" [alt]="'Photo ' + photo.index" />
         </div>
         <div class="photo-info">
           <span class="photo-index">#{{ photo.index.toString().padStart(3, '0') }}</span>
@@ -108,7 +108,7 @@
 
       <img 
         *ngIf="currentPreviewPhoto" 
-        [src]="photoService.getPreviewUrl(currentPreviewPhoto.id)" 
+        [src]="photoService.getPreviewUrl(currentPreviewPhoto!)" 
         [alt]="'Photo ' + currentPreviewPhoto.index" 
       />
       <div class="preview-actions">
