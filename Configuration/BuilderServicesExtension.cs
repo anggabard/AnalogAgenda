@@ -29,4 +29,10 @@ public static class BuilderServicesExtension
         services.AddOptions<ContainerRegistry>().BindConfiguration("ContainerRegistry").ValidateOnStart();
         services.AddSingleton(sp => sp.GetRequiredService<IOptions<ContainerRegistry>>().Value);
     }
+
+    public static void AddSecurityConfigBinding(this IServiceCollection services)
+    {
+        services.AddOptions<Security>().BindConfiguration("Security").ValidateOnStart();
+        services.AddSingleton(sp => sp.GetRequiredService<IOptions<Security>>().Value);
+    }
 }

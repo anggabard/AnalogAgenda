@@ -30,6 +30,7 @@ builder.Services.AddScoped<IValidator<Database.DTOs.ChangePasswordDto>, ChangePa
 builder.Services.AddScoped<IValidator<Database.DTOs.FilmDto>, FilmDtoValidator>();
 builder.Services.AddAzureAdConfigBinding();
 builder.Services.AddStorageConfigBinding();
+builder.Services.AddSecurityConfigBinding();
 
 // Register database and blob services
 builder.Services.AddScoped<IDatabaseService, DatabaseService>();

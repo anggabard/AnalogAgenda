@@ -8,6 +8,7 @@ using Database.Helpers;
 using Database.Services.Interfaces;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System.Net;
 using System.Text.Json;
@@ -18,10 +19,13 @@ public class PhotoUploadFunction(
     ILoggerFactory loggerFactory,
     IDatabaseService databaseService,
     IBlobService blobService,
-    Storage storageCfg)
+    Storage storageCfg,
+    IConfiguration configuration,
+    HttpClient httpClient)
 {
     private readonly ILogger _logger = loggerFactory.CreateLogger<PhotoUploadFunction>();
     private readonly BlobContainerClient photosContainer = blobService.GetBlobContainer(ContainerName.photos);
+    private readonly string backendApiUrl = configuration["BackendApiUrl"] ?? "https://api.analogagenda.site";
     private const int MaxPreviewDimension = 1200;
     private const int PreviewQuality = 80;
 
@@ -43,6 +47,9 @@ public class PhotoUploadFunction(
 
         try
         {
+            // Extract Key query parameter
+            var key = req.Query["Key"].ToString() ?? string.Empty;
+
             // Read and deserialize request body
             var requestBody = await new StreamReader(req.Body).ReadToEndAsync();
             if (string.IsNullOrWhiteSpace(requestBody))
@@ -72,6 +79,34 @@ public class PhotoUploadFunction(
             {
                 response.StatusCode = HttpStatusCode.BadRequest;
                 await response.WriteStringAsync(JsonSerializer.Serialize(new { error = "Image data is required." }));
+                return response;
+            }
+
+            // Validate key with backend
+            if (string.IsNullOrWhiteSpace(key))
+            {
+                response.StatusCode = HttpStatusCode.Forbidden;
+                await response.WriteStringAsync(JsonSerializer.Serialize(new { error = "Unauthorized." }));
+                return response;
+            }
+
+            try
+            {
+                var validationUrl = $"{backendApiUrl}/api/Photo/ValidateUploadKey?key={Uri.EscapeDataString(key)}&filmId={Uri.EscapeDataString(dto.FilmId)}";
+                var validationResponse = await httpClient.GetAsync(validationUrl);
+                
+                if (!validationResponse.IsSuccessStatusCode)
+                {
+                    response.StatusCode = HttpStatusCode.Forbidden;
+                    await response.WriteStringAsync(JsonSerializer.Serialize(new { error = "Unauthorized." }));
+                    return response;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error validating upload key");
+                response.StatusCode = HttpStatusCode.Forbidden;
+                await response.WriteStringAsync(JsonSerializer.Serialize(new { error = "Unauthorized." }));
                 return response;
             }
 

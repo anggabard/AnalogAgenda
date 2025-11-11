@@ -18,6 +18,7 @@ builder.Services.AddSmtpConfigBinding();
 builder.Services.AddAzureAdConfigBinding();
 builder.Services.AddStorageConfigBinding();
 builder.Services.AddContainerRegistryConfigBinding();
+builder.Services.AddSecurityConfigBinding();
 
 // Add DbContext for Azure Functions
 var connectionString = builder.Configuration.GetConnectionString("AnalogAgendaDb");
@@ -31,5 +32,6 @@ builder.Services.AddSingleton<IEmailSender, EmailSender>();
 builder.Services.AddScoped<IDatabaseService, DatabaseService>();
 builder.Services.AddSingleton<IContainerRegistryService, ContainerRegistryService>();
 builder.Services.AddSingleton<IBlobService, BlobService>();
+builder.Services.AddHttpClient();
 
 builder.Build().Run();
