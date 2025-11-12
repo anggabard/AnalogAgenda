@@ -1,5 +1,5 @@
 export const environment = {
   production: false,
   apiUrl: 'https://localhost:7125',
-  functionsUrl: 'https://analogagenda.azurewebsites.net'
+  functionsUrl: 'http://localhost:7283'
 };

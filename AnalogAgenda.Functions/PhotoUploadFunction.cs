@@ -10,6 +10,7 @@ using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.DurableTask;
 using Microsoft.DurableTask.Client;
 using Microsoft.Extensions.Logging;
+using System.IO;
 using System.Net;
 using System.Text.Json;
 
@@ -38,26 +39,31 @@ public class PhotoUploadFunction(
 
         if (req.Method == "OPTIONS")
         {
-            var optionsResponse = req.CreateResponse(HttpStatusCode.OK);
-            await optionsResponse.WriteStringAsync(string.Empty);
-            return optionsResponse;
+            return await Helpers.CorsHelper.HandlePreflightRequestAsync(req);
         }
 
         var response = req.CreateResponse(HttpStatusCode.OK);
         response.Headers.Add("Content-Type", "application/json; charset=utf-8");
+        Helpers.CorsHelper.AddCorsHeaders(response, req);
 
         try
         {
-            // Deserialize request body
+            // Deserialize request body - read stream manually to avoid stream consumption issues
             PhotoBatchUploadDto? batchDto;
             try
             {
-                batchDto = await req.ReadFromJsonAsync<PhotoBatchUploadDto>();
+                using var reader = new StreamReader(req.Body);
+                var bodyString = await reader.ReadToEndAsync();
+                batchDto = JsonSerializer.Deserialize<PhotoBatchUploadDto>(bodyString, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
             }
             catch (JsonException ex)
             {
                 _logger.LogError(ex, "Failed to deserialize request body");
                 response.StatusCode = HttpStatusCode.BadRequest;
+                Helpers.CorsHelper.AddCorsHeaders(response, req);
                 await response.WriteStringAsync(JsonSerializer.Serialize(new { error = "Invalid JSON format." }));
                 return response;
             }
@@ -65,6 +71,7 @@ public class PhotoUploadFunction(
             {
                 _logger.LogError(ex, "Error reading request body");
                 response.StatusCode = HttpStatusCode.BadRequest;
+                Helpers.CorsHelper.AddCorsHeaders(response, req);
                 await response.WriteStringAsync(JsonSerializer.Serialize(new { error = "Error reading request body." }));
                 return response;
             }
@@ -72,6 +79,7 @@ public class PhotoUploadFunction(
             if (batchDto == null || batchDto.Photos == null || batchDto.Photos.Length == 0)
             {
                 response.StatusCode = HttpStatusCode.BadRequest;
+                Helpers.CorsHelper.AddCorsHeaders(response, req);
                 await response.WriteStringAsync(JsonSerializer.Serialize(new { error = "At least one photo is required." }));
                 return response;
             }
@@ -80,6 +88,7 @@ public class PhotoUploadFunction(
             if (batchDto.Photos.Any(p => string.IsNullOrWhiteSpace(p.ImageBase64)))
             {
                 response.StatusCode = HttpStatusCode.BadRequest;
+                Helpers.CorsHelper.AddCorsHeaders(response, req);
                 await response.WriteStringAsync(JsonSerializer.Serialize(new { error = "All photos must have image data." }));
                 return response;
             }
@@ -88,6 +97,7 @@ public class PhotoUploadFunction(
             if (string.IsNullOrWhiteSpace(batchDto.Key) || string.IsNullOrWhiteSpace(batchDto.KeyId))
             {
                 response.StatusCode = HttpStatusCode.Forbidden;
+                Helpers.CorsHelper.AddCorsHeaders(response, req);
                 await response.WriteStringAsync(JsonSerializer.Serialize(new { error = "Unauthorized." }));
                 return response;
             }
@@ -95,11 +105,23 @@ public class PhotoUploadFunction(
             try
             {
                 var validationUrl = $"{backendApiUrl}/api/Photo/ValidateUploadKey?key={Uri.EscapeDataString(batchDto.Key)}&keyId={Uri.EscapeDataString(batchDto.KeyId)}&filmId={Uri.EscapeDataString(batchDto.FilmId)}";
-                var validationResponse = await httpClient.GetAsync(validationUrl);
+                
+                // Validate that the URL is absolute
+                if (!Uri.TryCreate(validationUrl, UriKind.Absolute, out var uri))
+                {
+                    _logger.LogError($"Invalid validation URL: {validationUrl}");
+                    response.StatusCode = HttpStatusCode.InternalServerError;
+                    Helpers.CorsHelper.AddCorsHeaders(response, req);
+                    await response.WriteStringAsync(JsonSerializer.Serialize(new { error = "Invalid backend API configuration." }));
+                    return response;
+                }
+                
+                var validationResponse = await httpClient.GetAsync(uri);
                 
                 if (!validationResponse.IsSuccessStatusCode)
                 {
                     response.StatusCode = HttpStatusCode.Forbidden;
+                    Helpers.CorsHelper.AddCorsHeaders(response, req);
                     await response.WriteStringAsync(JsonSerializer.Serialize(new { error = "Unauthorized." }));
                     return response;
                 }
@@ -108,6 +130,7 @@ public class PhotoUploadFunction(
             {
                 _logger.LogError(ex, "Error validating upload key");
                 response.StatusCode = HttpStatusCode.Forbidden;
+                Helpers.CorsHelper.AddCorsHeaders(response, req);
                 await response.WriteStringAsync(JsonSerializer.Serialize(new { error = "Unauthorized." }));
                 return response;
             }
@@ -117,17 +140,34 @@ public class PhotoUploadFunction(
             if (filmEntity == null)
             {
                 response.StatusCode = HttpStatusCode.NotFound;
+                Helpers.CorsHelper.AddCorsHeaders(response, req);
                 await response.WriteStringAsync(JsonSerializer.Serialize(new { error = "Film not found." }));
                 return response;
             }
 
-            // Prepare orchestration input
+            // Store batch data in blob storage to avoid orchestration input size limits
+            // Durable Functions have a ~60KB limit on orchestration inputs, but we're sending ~175MB
+            var batchDataBlobId = Guid.NewGuid();
+            var batchDataJson = JsonSerializer.Serialize(batchDto, new JsonSerializerOptions
+            {
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+            });
+            
+            // Upload batch data to temporary blob
+            var batchDataBlobClient = photosContainer.GetBlobClient($"temp-batch/{batchDataBlobId}");
+            using var batchDataStream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(batchDataJson));
+            await batchDataBlobClient.UploadAsync(batchDataStream, new BlobUploadOptions
+            {
+                HttpHeaders = new BlobHttpHeaders { ContentType = "application/json" }
+            });
+
+            // Prepare orchestration input with blob reference instead of full data
             var orchestrationInput = new PhotoUploadOrchestrationInput
             {
                 FilmId = batchDto.FilmId,
                 Key = batchDto.Key,
                 KeyId = batchDto.KeyId,
-                Photos = batchDto.Photos,
+                BatchDataBlobId = batchDataBlobId.ToString(),
                 StorageAccountName = storageCfg.AccountName
             };
 
@@ -161,6 +201,7 @@ public class PhotoUploadFunction(
         {
             _logger.LogError(ex, "Unexpected error in PhotoUploadBatch function");
             response.StatusCode = HttpStatusCode.InternalServerError;
+            Helpers.CorsHelper.AddCorsHeaders(response, req);
             await response.WriteStringAsync(JsonSerializer.Serialize(new { error = "An unexpected error occurred." }));
             return response;
         }
@@ -173,7 +214,15 @@ public class PhotoUploadFunction(
         var input = context.GetInput<PhotoUploadOrchestrationInput>() ?? throw new ArgumentNullException(nameof(context));
         
         var logger = context.CreateReplaySafeLogger<PhotoUploadFunction>();
-        logger.LogInformation($"Starting orchestration for {input.Photos.Length} photos");
+        logger.LogInformation($"Starting orchestration with batch data blob ID: {input.BatchDataBlobId}");
+
+        // Download batch data from blob storage
+        var batchDtoTask = context.CallActivityAsync<PhotoBatchUploadDto>(
+            nameof(LoadBatchDataActivity),
+            input.BatchDataBlobId);
+
+        var batchDto = await batchDtoTask;
+        logger.LogInformation($"Loaded batch data with {batchDto.Photos.Length} photos");
 
         // Get existing photos to calculate indices
         var existingPhotosTask = context.CallActivityAsync<PhotoEntity[]>(
@@ -191,7 +240,7 @@ public class PhotoUploadFunction(
         var activityInputs = new List<PhotoUploadActivityInput>();
         int currentAutoIndex = nextAvailableIndex;
 
-        foreach (var photo in input.Photos)
+        foreach (var photo in batchDto.Photos)
         {
             int photoIndex;
             if (photo.Index.HasValue && photo.Index.Value >= 0 && photo.Index.Value <= 999)
@@ -226,13 +275,73 @@ public class PhotoUploadFunction(
 
         logger.LogInformation($"Orchestration completed: {successCount} successful, {failureCount} failed");
 
+        // Clean up temporary batch data blob
+        await context.CallActivityAsync(
+            nameof(CleanupBatchDataActivity),
+            input.BatchDataBlobId);
+
         return new PhotoUploadOrchestrationResult
         {
-            TotalPhotos = input.Photos.Length,
+            TotalPhotos = batchDto.Photos.Length,
             SuccessCount = successCount,
             FailureCount = failureCount,
             Results = results
         };
+    }
+
+    [Function("LoadBatchDataActivity")]
+    public async Task<PhotoBatchUploadDto> LoadBatchDataActivity(
+        [ActivityTrigger] string batchDataBlobId,
+        FunctionContext executionContext)
+    {
+        var logger = executionContext.GetLogger<PhotoUploadFunction>();
+        logger.LogInformation($"Loading batch data from blob: {batchDataBlobId}");
+
+        // Download batch data from blob storage
+        var batchDataBlobClient = photosContainer.GetBlobClient($"temp-batch/{batchDataBlobId}");
+        
+        if (!await batchDataBlobClient.ExistsAsync())
+        {
+            throw new FileNotFoundException($"Batch data blob not found: {batchDataBlobId}");
+        }
+
+        var downloadResponse = await batchDataBlobClient.DownloadAsync();
+        using var memoryStream = new MemoryStream();
+        await downloadResponse.Value.Content.CopyToAsync(memoryStream);
+        memoryStream.Position = 0;
+        
+        var jsonString = System.Text.Encoding.UTF8.GetString(memoryStream.ToArray());
+        var batchDto = JsonSerializer.Deserialize<PhotoBatchUploadDto>(jsonString, new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true
+        });
+
+        if (batchDto == null)
+        {
+            throw new InvalidOperationException("Failed to deserialize batch data");
+        }
+
+        return batchDto;
+    }
+
+    [Function("CleanupBatchDataActivity")]
+    public async Task CleanupBatchDataActivity(
+        [ActivityTrigger] string batchDataBlobId,
+        FunctionContext executionContext)
+    {
+        var logger = executionContext.GetLogger<PhotoUploadFunction>();
+        logger.LogInformation($"Cleaning up batch data blob: {batchDataBlobId}");
+
+        try
+        {
+            var batchDataBlobClient = photosContainer.GetBlobClient($"temp-batch/{batchDataBlobId}");
+            await batchDataBlobClient.DeleteIfExistsAsync();
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, $"Failed to cleanup batch data blob: {batchDataBlobId}");
+            // Don't throw - cleanup failures shouldn't fail the orchestration
+        }
     }
 
     [Function("GetExistingPhotosActivity")]
@@ -360,7 +469,7 @@ public class PhotoUploadOrchestrationInput
     public required string FilmId { get; set; }
     public required string Key { get; set; }
     public required string KeyId { get; set; }
-    public required PhotoCreateDto[] Photos { get; set; }
+    public required string BatchDataBlobId { get; set; } // Reference to blob containing PhotoBatchUploadDto
     public required string StorageAccountName { get; set; }
 }
 
