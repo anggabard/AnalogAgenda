@@ -240,8 +240,8 @@ public class PhotoController(
         // Delete image blob and preview blob (photos always have real images, no default)
         if (entity.ImageId != Guid.Empty)
         {
-            await photosContainer.DeleteBlobAsync(entity.ImageId.ToString());
-            await photosContainer.DeleteBlobAsync($"preview/{entity.ImageId}");
+            await photosContainer.GetBlobClient(entity.ImageId.ToString()).DeleteIfExistsAsync();
+            await photosContainer.GetBlobClient($"preview/{entity.ImageId}").DeleteIfExistsAsync();
             imageCacheService.RemovePreview(entity.ImageId);
         }
 
