@@ -1,5 +1,4 @@
 using AnalogAgenda.Server.Controllers;
-using AnalogAgenda.Server.Services.Interfaces;
 using AnalogAgenda.Server.Tests.Helpers;
 using Azure.Storage.Blobs;
 using Configuration.Sections;
@@ -19,7 +18,6 @@ public class PhotoControllerTests : IDisposable
     private readonly AnalogAgendaDbContext _dbContext;
     private readonly IDatabaseService _databaseService;
     private readonly Mock<IBlobService> _mockBlobService;
-    private readonly Mock<IImageCacheService> _mockImageCacheService;
     private readonly Mock<BlobContainerClient> _mockPhotosContainerClient;
     private readonly Mock<BlobContainerClient> _mockFilmsContainerClient;
     private readonly Mock<BlobClient> _mockBlobClient;
@@ -31,7 +29,6 @@ public class PhotoControllerTests : IDisposable
         _dbContext = InMemoryDbContextFactory.Create($"PhotoTestDb_{Guid.NewGuid()}");
         _databaseService = new DatabaseService(_dbContext);
         _mockBlobService = new Mock<IBlobService>();
-        _mockImageCacheService = new Mock<IImageCacheService>();
         _mockPhotosContainerClient = new Mock<BlobContainerClient>();
         _mockFilmsContainerClient = new Mock<BlobContainerClient>();
         _mockBlobClient = new Mock<BlobClient>();
@@ -43,8 +40,7 @@ public class PhotoControllerTests : IDisposable
         _mockPhotosContainerClient.Setup(x => x.GetBlobClient(It.IsAny<string>()))
                                  .Returns(_mockBlobClient.Object);
 
-        var securityConfig = new Security { Salt = "test-salt" };
-        _controller = new PhotoController(_storageConfig, securityConfig, _databaseService, _mockBlobService.Object, _mockImageCacheService.Object);
+        _controller = new PhotoController(_storageConfig, _databaseService, _mockBlobService.Object);
     }
 
     public void Dispose()
@@ -67,7 +63,7 @@ public class PhotoControllerTests : IDisposable
     }
 
     [Fact]
-    public async Task GetPreview_WithCachedImage_ReturnsFromCache()
+    public async Task GetPreview_WithNonExistentBlob_ReturnsNotFound()
     {
         // Arrange
         var photoId = "test-photo-id";
@@ -79,23 +75,17 @@ public class PhotoControllerTests : IDisposable
         var photo = new PhotoEntity { Id = photoId, FilmId = filmId, Index = 1, ImageId = imageId };
         await _databaseService.AddAsync(photo);
 
-        var cachedBytes = new byte[] { 1, 2, 3, 4, 5 };
-        var contentType = "image/jpeg";
-        (byte[] imageBytes, string contentType)? cachedImage = (cachedBytes, contentType);
-
-        _mockImageCacheService.Setup(x => x.TryGetPreview(imageId, out cachedImage))
-            .Returns(true);
+        var previewBlobClient = new Mock<BlobClient>();
+        previewBlobClient.Setup(x => x.ExistsAsync(default)).ReturnsAsync(Azure.Response.FromValue(false, Mock.Of<Azure.Response>()));
+        
+        _mockPhotosContainerClient.Setup(x => x.GetBlobClient($"preview/{imageId}"))
+                                   .Returns(previewBlobClient.Object);
 
         // Act
         var result = await _controller.GetPreview(photoId);
 
         // Assert
-        var fileResult = Assert.IsType<FileContentResult>(result);
-        Assert.Equal(cachedBytes, fileResult.FileContents);
-        Assert.Equal(contentType, fileResult.ContentType);
-        
-        // Verify cache was checked
-        _mockImageCacheService.Verify(x => x.TryGetPreview(imageId, out cachedImage), Times.Once);
+        Assert.IsType<NotFoundObjectResult>(result);
     }
 
     [Fact]

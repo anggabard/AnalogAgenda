@@ -32,48 +32,53 @@ describe('PhotoService', () => {
     expect(service).toBeTruthy();
   });
 
-  describe('createPhoto', () => {
-    it('should create a single photo via Functions', () => {
+  describe('uploadMultiplePhotos', () => {
+    it('should upload a single photo via backend API', async () => {
       // Arrange
-      const createDto: PhotoCreateDto = {
-        filmId: 'test-film-id',
-        imageBase64: 'data:image/jpeg;base64,validbase64data'
-      };
-      
-      const mockResponse: PhotoDto = createMockPhoto('photo1', 'test-film-id', 1);
+      const filmId = 'test-film-id';
+      const file = new File(['test'], '1.jpg', { type: 'image/jpeg' });
+      const existingPhotos: PhotoDto[] = [];
+      const mockResponse: PhotoDto = createMockPhoto('photo1', filmId, 1);
+
+      // Mock fileToBase64
+      spyOn(FileUploadHelper, 'fileToBase64').and.returnValue(Promise.resolve('data:image/jpeg;base64,validbase64data'));
 
       // Act
-      service.createPhoto(createDto).subscribe(response => {
-        // Assert
-        expect(response).toEqual(mockResponse);
-      });
+      const result = await service.uploadMultiplePhotos(filmId, [file], existingPhotos);
 
-      // Assert HTTP call to Functions endpoint
-      const req = httpMock.expectOne(`${functionsUrl}/api/photo/upload`);
+      // Assert
+      expect(result.length).toBe(1);
+      expect(result[0].success).toBe(true);
+      expect(result[0].photo).toEqual(mockResponse);
+
+      // Assert HTTP call to backend API endpoint
+      const req = httpMock.expectOne(`${baseUrl}`);
       expect(req.request.method).toBe('POST');
-      expect(req.request.body).toEqual(createDto);
+      expect(req.request.body.filmId).toBe(filmId);
+      expect(req.request.body.index).toBe(1);
       expect(req.request.withCredentials).toBe(true);
       req.flush(mockResponse);
     });
 
-    it('should handle error when creating photo', () => {
+    it('should handle error when uploading photo', async () => {
       // Arrange
-      const createDto: PhotoCreateDto = {
-        filmId: 'invalid-film-id',
-        imageBase64: 'data:image/jpeg;base64,validbase64data'
-      };
+      const filmId = 'invalid-film-id';
+      const file = new File(['test'], '1.jpg', { type: 'image/jpeg' });
+      const existingPhotos: PhotoDto[] = [];
+
+      // Mock fileToBase64
+      spyOn(FileUploadHelper, 'fileToBase64').and.returnValue(Promise.resolve('data:image/jpeg;base64,validbase64data'));
 
       // Act
-      service.createPhoto(createDto).subscribe({
-        next: () => fail('Should have failed'),
-        error: (error) => {
-          // Assert
-          expect(error.status).toBe(404);
-        }
-      });
+      const result = await service.uploadMultiplePhotos(filmId, [file], existingPhotos);
 
-      // Assert HTTP call to Functions endpoint
-      const req = httpMock.expectOne(`${functionsUrl}/api/photo/upload`);
+      // Assert
+      expect(result.length).toBe(1);
+      expect(result[0].success).toBe(false);
+      expect(result[0].error).toBeDefined();
+
+      // Assert HTTP call to backend API endpoint
+      const req = httpMock.expectOne(`${baseUrl}`);
       req.flush('Film not found', { status: 404, statusText: 'Not Found' });
     });
   });
@@ -374,7 +379,7 @@ describe('PhotoService', () => {
       }, 10);
     });
 
-    it('should sort files by index before uploading', (done) => {
+    it('should sort files by index before uploading', async () => {
       // Arrange
       const filmId = 'test-film-id';
       const file1 = new File(['test1'], '45.jpg', { type: 'image/jpeg' });
@@ -389,18 +394,16 @@ describe('PhotoService', () => {
 
       const uploadedPhotos: PhotoDto[] = [];
 
+      // Mock fileToBase64
+      spyOn(FileUploadHelper, 'fileToBase64').and.returnValue(Promise.resolve('data:image/jpeg;base64,validbase64data'));
+
       // Act
       const uploadPromise = service.uploadMultiplePhotos(filmId, files, existingPhotos, (photo) => {
         uploadedPhotos.push(photo);
       });
 
-      // First, handle the getUploadKey request
-      const keyRequest = httpMock.expectOne(`${baseUrl}/UploadKey?filmId=${filmId}`);
-      keyRequest.flush({ key: 'test-key', keyId: 'test-key-id' });
-
-      // Wait a bit for the spy to be called and base64 conversion to complete
+      // Wait a bit for base64 conversion to complete
       await new Promise(resolve => setTimeout(resolve, 50));
-      expect(fileToBase64Spy).toHaveBeenCalledTimes(3);
 
       // Poll for upload requests
       let req1: any = null;
@@ -434,9 +437,9 @@ describe('PhotoService', () => {
       expect(uploadedPhotos.length).toBe(3);
       const indices = uploadedPhotos.map(p => p.index).sort((a, b) => a - b);
       expect(indices).toEqual([2, 10, 45]);
-    }));
+    });
 
-    it('should handle files with leading zeros in filenames', waitForAsync(async () => {
+    it('should handle files with leading zeros in filenames', async () => {
       // Arrange
       const filmId = 'test-film-id';
       const file1 = new File(['test1'], '002.jpg', { type: 'image/jpeg' });
@@ -452,12 +455,7 @@ describe('PhotoService', () => {
       // Act
       const uploadPromise = service.uploadMultiplePhotos(filmId, files, existingPhotos, (photo) => {
         uploadedPhotos.push(photo);
-      }).then(() => {
-        expect(uploadedPhotos.length).toBe(2);
-        const indices = uploadedPhotos.map(p => p.index).sort();
-        expect(indices).toEqual([2, 45]);
-        done();
-      }).catch(err => done.fail(err));
+      });
 
       // Respond to parallel requests
       setTimeout(() => {
@@ -472,6 +470,14 @@ describe('PhotoService', () => {
         req1!.flush(mockResponse1);
         req2!.flush(mockResponse2);
       }, 10);
+
+      // Wait for upload to complete
+      await uploadPromise;
+
+      // Assert
+      expect(uploadedPhotos.length).toBe(2);
+      const indices = uploadedPhotos.map(p => p.index).sort();
+      expect(indices).toEqual([2, 45]);
     });
   });
 

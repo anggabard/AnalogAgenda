@@ -1,5 +1,4 @@
 using System.IO.Compression;
-using AnalogAgenda.Server.Services.Interfaces;
 using Azure.Storage.Blobs;
 using Configuration.Sections;
 using Database.DBObjects.Enums;
@@ -16,15 +15,15 @@ namespace AnalogAgenda.Server.Controllers;
 public class PhotoController(
     Storage storageCfg,
     IDatabaseService databaseService,
-    IBlobService blobsService,
-    IImageCacheService imageCacheService
+    IBlobService blobsService
 ) : ControllerBase
 {
     private readonly Storage storageCfg = storageCfg;
     private readonly IDatabaseService databaseService = databaseService;
     private readonly IBlobService blobsService = blobsService;
-    private readonly IImageCacheService imageCacheService = imageCacheService;
-    private readonly BlobContainerClient photosContainer = blobsService.GetBlobContainer(ContainerName.photos);
+    private readonly BlobContainerClient photosContainer = blobsService.GetBlobContainer(
+        ContainerName.photos
+    );
 
     [HttpPost]
     public async Task<IActionResult> UploadPhoto([FromBody] PhotoCreateDto photoDto)
@@ -44,10 +43,11 @@ public class PhotoController(
             }
 
             // Get existing photos to calculate index
-            var existingPhotos = await databaseService.GetAllAsync<PhotoEntity>(p => p.FilmId == photoDto.FilmId);
-            int nextAvailableIndex = existingPhotos.Count == 0 
-                ? 1 
-                : existingPhotos.Max(p => p.Index) + 1;
+            var existingPhotos = await databaseService.GetAllAsync<PhotoEntity>(
+                p => p.FilmId == photoDto.FilmId
+            );
+            int nextAvailableIndex =
+                existingPhotos.Count == 0 ? 1 : existingPhotos.Max(p => p.Index) + 1;
 
             int photoIndex;
             if (photoDto.Index.HasValue && photoDto.Index.Value >= 0 && photoDto.Index.Value <= 999)
@@ -64,13 +64,16 @@ public class PhotoController(
             if (photosAtIndex.Count > 0)
             {
                 var photoToReplace = photosAtIndex.First();
-                
+
                 // Delete old image blob
                 if (photoToReplace.ImageId != Guid.Empty)
                 {
-                    await photosContainer.GetBlobClient(photoToReplace.ImageId.ToString()).DeleteIfExistsAsync();
-                    await photosContainer.GetBlobClient($"preview/{photoToReplace.ImageId}").DeleteIfExistsAsync();
-                    imageCacheService.RemovePreview(photoToReplace.ImageId);
+                    await photosContainer
+                        .GetBlobClient(photoToReplace.ImageId.ToString())
+                        .DeleteIfExistsAsync();
+                    await photosContainer
+                        .GetBlobClient($"preview/{photoToReplace.ImageId}")
+                        .DeleteIfExistsAsync();
                 }
 
                 // Delete old photo entity
@@ -79,28 +82,41 @@ public class PhotoController(
 
             var imageId = Guid.NewGuid();
 
-            // Store base64 temporarily for processing
+            // Parse base64 once and clear immediately to reduce memory pressure
             var base64Image = photoDto.ImageBase64;
+            var (imageBytes, contentType) = BlobImageHelper.ParseBase64Image(base64Image);
+            
+            // Clear base64 string immediately after parsing to free memory
+            base64Image = string.Empty;
+            photoDto.ImageBase64 = string.Empty;
 
-            // Upload full image
-            await BlobImageHelper.UploadBase64ImageWithContentTypeAsync(
+            // Upload full image using bytes (no need to convert back to base64)
+            await BlobImageHelper.UploadImageFromBytesAsync(
                 photosContainer,
-                base64Image,
+                imageBytes,
+                contentType,
                 imageId
             );
+            
+            // Force GC after full image upload to free memory before preview processing
+            GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced, blocking: true);
+            GC.WaitForPendingFinalizers();
 
-            // Generate and upload preview
-            await BlobImageHelper.UploadPreviewImageAsync(
+            // Generate and upload preview using the same bytes (no need to parse base64 again)
+            await BlobImageHelper.UploadPreviewImageFromBytesAsync(
                 photosContainer,
-                base64Image,
+                imageBytes,
                 imageId,
                 maxDimension: 1200,
                 quality: 80
             );
-
-            // Clear base64 from memory immediately after processing to reduce memory pressure
-            base64Image = string.Empty;
-            photoDto.ImageBase64 = string.Empty;
+            
+            // Clear image bytes from memory
+            imageBytes = null;
+            
+            // Force GC after preview upload to free memory immediately
+            GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced, blocking: true);
+            GC.WaitForPendingFinalizers();
 
             // Create photo entity (without base64 - image is already in blob storage)
             var photoEntityDto = new PhotoDto
@@ -122,9 +138,8 @@ public class PhotoController(
                 await databaseService.UpdateAsync(filmEntity);
             }
 
-            // Force garbage collection after processing to free memory immediately (important for memory-constrained environments)
-            GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced, blocking: true);
-            GC.WaitForPendingFinalizers();
+            // Additional GC after entity creation (memory should already be mostly freed)
+            GC.Collect(GC.MaxGeneration, GCCollectionMode.Optimized);
 
             var createdDto = entity.ToDTO(storageCfg.AccountName);
             return Ok(createdDto);
@@ -154,16 +169,6 @@ public class PhotoController(
         if (photoEntity == null)
             return NotFound("Photo not found.");
 
-        // Check cache first
-        if (
-            imageCacheService.TryGetPreview(photoEntity.ImageId, out var cachedImage)
-            && cachedImage != null
-        )
-        {
-            var (imageBytes, contentType) = cachedImage.Value;
-            return File(imageBytes, contentType);
-        }
-
         try
         {
             // Serve preview directly from blob storage (preview/{imageId})
@@ -180,9 +185,6 @@ public class PhotoController(
             using var memoryStream = new MemoryStream();
             await response.Value.Content.CopyToAsync(memoryStream);
             var previewBytes = memoryStream.ToArray();
-
-            // Cache the preview with content type
-            imageCacheService.SetPreview(photoEntity.ImageId, previewBytes, contentType);
 
             return File(previewBytes, contentType);
         }
@@ -291,7 +293,6 @@ public class PhotoController(
         {
             await photosContainer.GetBlobClient(entity.ImageId.ToString()).DeleteIfExistsAsync();
             await photosContainer.GetBlobClient($"preview/{entity.ImageId}").DeleteIfExistsAsync();
-            imageCacheService.RemovePreview(entity.ImageId);
         }
 
         await databaseService.DeleteAsync(entity);
