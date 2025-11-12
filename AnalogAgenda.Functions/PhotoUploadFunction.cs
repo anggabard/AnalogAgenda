@@ -7,8 +7,8 @@ using Database.Helpers;
 using Database.Services.Interfaces;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
-using Microsoft.Azure.Functions.Worker.Extensions.DurableTask;
 using Microsoft.DurableTask;
+using Microsoft.DurableTask.Client;
 using Microsoft.Extensions.Logging;
 using System.Net;
 using System.Text.Json;
@@ -216,7 +216,7 @@ public class PhotoUploadFunction(
         var tasks = activityInputs.Select(input => 
             context.CallActivityAsync<PhotoUploadActivityResult>(
                 nameof(PhotoUploadActivity),
-                input)).ToArray();
+                input));
 
         var results = await Task.WhenAll(tasks);
 

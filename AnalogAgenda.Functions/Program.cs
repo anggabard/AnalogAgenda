@@ -14,7 +14,6 @@ using System.Text.Json;
 var builder = FunctionsApplication.CreateBuilder(args);
 
 builder.ConfigureFunctionsWebApplication();
-builder.UseDurableTask();
 
 
 builder.Services.AddSmtpConfigBinding();
