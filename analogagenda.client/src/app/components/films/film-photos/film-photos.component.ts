@@ -220,34 +220,38 @@ export class FilmPhotosComponent implements OnInit {
     this.uploadTotal = files.length;
     
     try {
-      // Upload batch - returns immediately with orchestration instance ID
-      const result = await this.photoService.uploadMultiplePhotos(
+      // Upload photos in parallel - each request processes individually
+      const results = await this.photoService.uploadMultiplePhotos(
         this.filmId,
         files,
-        this.photos
+        this.photos,
+        (uploadedPhoto, current, total) => {
+          // Update progress as each photo completes
+          this.uploadProgress = current;
+        }
       );
 
-      // Upload started successfully - photos are being processed asynchronously
-      // Show progress as "uploading" and reload after a delay to see results
-      this.uploadProgress = files.length;
-      
-      // Wait a bit for initial processing, then reload to see uploaded photos
-      // Note: For large batches, photos may still be processing
-      setTimeout(() => {
-        this.uploadLoading = false;
-        this.uploadProgress = 0;
-        this.uploadTotal = 0;
-        
-        // Reload to see uploaded photos and ensure sync with backend
-        // This also ensures the film's "developed" status is updated
-        this.loadFilmAndPhotos();
-      }, 2000); // 2 second delay to allow some processing
-      
-    } catch (err) {
+      // Count successes and failures
+      const successCount = results.filter(r => r.success).length;
+      const failureCount = results.filter(r => !r.success).length;
+
       this.uploadLoading = false;
       this.uploadProgress = 0;
       this.uploadTotal = 0;
-      this.errorMessage = 'There was an error starting the photo upload.';
+
+      if (failureCount > 0) {
+        this.errorMessage = `${successCount} photo(s) uploaded successfully, ${failureCount} failed.`;
+      }
+
+      // Reload to see uploaded photos and ensure sync with backend
+      // This also ensures the film's "developed" status is updated
+      this.loadFilmAndPhotos();
+      
+    } catch (err: any) {
+      this.uploadLoading = false;
+      this.uploadProgress = 0;
+      this.uploadTotal = 0;
+      this.errorMessage = 'There was an error uploading photos: ' + (err?.message || 'Unknown error');
     }
   }
 

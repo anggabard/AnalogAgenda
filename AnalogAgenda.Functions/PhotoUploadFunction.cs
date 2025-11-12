@@ -5,12 +5,13 @@ using Database.DTOs;
 using Database.Entities;
 using Database.Helpers;
 using Database.Services.Interfaces;
+using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.DurableTask;
 using Microsoft.DurableTask.Client;
+using Microsoft.DurableTask.Entities;
 using Microsoft.Extensions.Logging;
-using System.IO;
 using System.Net;
 using System.Text.Json;
 
@@ -30,12 +31,12 @@ public class PhotoUploadFunction(
     private const int MaxPreviewDimension = 1200;
     private const int PreviewQuality = 80;
 
-    [Function("PhotoUploadBatch")]
-    public async Task<HttpResponseData> PhotoUploadBatch(
+    [Function("PhotoUpload")]
+    public async Task<HttpResponseData> PhotoUpload(
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", "options", Route = "photo/upload")] HttpRequestData req,
         [DurableClient] DurableTaskClient client)
     {
-        _logger.LogInformation("Photo upload batch HTTP trigger function executed");
+        _logger.LogInformation("Photo upload HTTP trigger function executed");
 
         if (req.Method == "OPTIONS")
         {
@@ -48,13 +49,26 @@ public class PhotoUploadFunction(
 
         try
         {
-            // Deserialize request body - read stream manually to avoid stream consumption issues
-            PhotoBatchUploadDto? batchDto;
+            // Read Key and KeyId from query parameters
+            var query = QueryHelpers.ParseQuery(req.Url.Query);
+            var key = query.ContainsKey("Key") ? query["Key"].FirstOrDefault() : null;
+            var keyId = query.ContainsKey("KeyId") ? query["KeyId"].FirstOrDefault() : null;
+
+            if (string.IsNullOrWhiteSpace(key) || string.IsNullOrWhiteSpace(keyId))
+            {
+                response.StatusCode = HttpStatusCode.BadRequest;
+                Helpers.CorsHelper.AddCorsHeaders(response, req);
+                await response.WriteStringAsync(JsonSerializer.Serialize(new { error = "Key and KeyId are required." }));
+                return response;
+            }
+
+            // Deserialize request body - single photo
+            PhotoCreateDto? photoDto;
             try
             {
                 using var reader = new StreamReader(req.Body);
                 var bodyString = await reader.ReadToEndAsync();
-                batchDto = JsonSerializer.Deserialize<PhotoBatchUploadDto>(bodyString, new JsonSerializerOptions
+                photoDto = JsonSerializer.Deserialize<PhotoCreateDto>(bodyString, new JsonSerializerOptions
                 {
                     PropertyNameCaseInsensitive = true
                 });
@@ -63,7 +77,6 @@ public class PhotoUploadFunction(
             {
                 _logger.LogError(ex, "Failed to deserialize request body");
                 response.StatusCode = HttpStatusCode.BadRequest;
-                Helpers.CorsHelper.AddCorsHeaders(response, req);
                 await response.WriteStringAsync(JsonSerializer.Serialize(new { error = "Invalid JSON format." }));
                 return response;
             }
@@ -71,47 +84,26 @@ public class PhotoUploadFunction(
             {
                 _logger.LogError(ex, "Error reading request body");
                 response.StatusCode = HttpStatusCode.BadRequest;
-                Helpers.CorsHelper.AddCorsHeaders(response, req);
                 await response.WriteStringAsync(JsonSerializer.Serialize(new { error = "Error reading request body." }));
                 return response;
             }
 
-            if (batchDto == null || batchDto.Photos == null || batchDto.Photos.Length == 0)
+            if (photoDto == null || string.IsNullOrWhiteSpace(photoDto.ImageBase64))
             {
                 response.StatusCode = HttpStatusCode.BadRequest;
-                Helpers.CorsHelper.AddCorsHeaders(response, req);
-                await response.WriteStringAsync(JsonSerializer.Serialize(new { error = "At least one photo is required." }));
-                return response;
-            }
-
-            // Validate all photos have image data
-            if (batchDto.Photos.Any(p => string.IsNullOrWhiteSpace(p.ImageBase64)))
-            {
-                response.StatusCode = HttpStatusCode.BadRequest;
-                Helpers.CorsHelper.AddCorsHeaders(response, req);
-                await response.WriteStringAsync(JsonSerializer.Serialize(new { error = "All photos must have image data." }));
+                await response.WriteStringAsync(JsonSerializer.Serialize(new { error = "Photo data is required." }));
                 return response;
             }
 
             // Validate key with backend
-            if (string.IsNullOrWhiteSpace(batchDto.Key) || string.IsNullOrWhiteSpace(batchDto.KeyId))
-            {
-                response.StatusCode = HttpStatusCode.Forbidden;
-                Helpers.CorsHelper.AddCorsHeaders(response, req);
-                await response.WriteStringAsync(JsonSerializer.Serialize(new { error = "Unauthorized." }));
-                return response;
-            }
-
             try
             {
-                var validationUrl = $"{backendApiUrl}/api/Photo/ValidateUploadKey?key={Uri.EscapeDataString(batchDto.Key)}&keyId={Uri.EscapeDataString(batchDto.KeyId)}&filmId={Uri.EscapeDataString(batchDto.FilmId)}";
+                var validationUrl = $"{backendApiUrl}/api/Photo/ValidateUploadKey?key={Uri.EscapeDataString(key)}&keyId={Uri.EscapeDataString(keyId)}&filmId={Uri.EscapeDataString(photoDto.FilmId)}";
                 
-                // Validate that the URL is absolute
                 if (!Uri.TryCreate(validationUrl, UriKind.Absolute, out var uri))
                 {
                     _logger.LogError($"Invalid validation URL: {validationUrl}");
                     response.StatusCode = HttpStatusCode.InternalServerError;
-                    Helpers.CorsHelper.AddCorsHeaders(response, req);
                     await response.WriteStringAsync(JsonSerializer.Serialize(new { error = "Invalid backend API configuration." }));
                     return response;
                 }
@@ -121,7 +113,6 @@ public class PhotoUploadFunction(
                 if (!validationResponse.IsSuccessStatusCode)
                 {
                     response.StatusCode = HttpStatusCode.Forbidden;
-                    Helpers.CorsHelper.AddCorsHeaders(response, req);
                     await response.WriteStringAsync(JsonSerializer.Serialize(new { error = "Unauthorized." }));
                     return response;
                 }
@@ -130,76 +121,93 @@ public class PhotoUploadFunction(
             {
                 _logger.LogError(ex, "Error validating upload key");
                 response.StatusCode = HttpStatusCode.Forbidden;
-                Helpers.CorsHelper.AddCorsHeaders(response, req);
                 await response.WriteStringAsync(JsonSerializer.Serialize(new { error = "Unauthorized." }));
                 return response;
             }
 
             // Check if film exists
-            var filmEntity = await databaseService.GetByIdAsync<FilmEntity>(batchDto.FilmId);
+            var filmEntity = await databaseService.GetByIdAsync<FilmEntity>(photoDto.FilmId);
             if (filmEntity == null)
             {
                 response.StatusCode = HttpStatusCode.NotFound;
-                Helpers.CorsHelper.AddCorsHeaders(response, req);
                 await response.WriteStringAsync(JsonSerializer.Serialize(new { error = "Film not found." }));
                 return response;
             }
 
-            // Store batch data in blob storage to avoid orchestration input size limits
-            // Durable Functions have a ~60KB limit on orchestration inputs, but we're sending ~175MB
-            var batchDataBlobId = Guid.NewGuid();
-            var batchDataJson = JsonSerializer.Serialize(batchDto, new JsonSerializerOptions
-            {
-                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-            });
-            
-            // Upload batch data to temporary blob
-            var batchDataBlobClient = photosContainer.GetBlobClient($"temp-batch/{batchDataBlobId}");
-            using var batchDataStream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(batchDataJson));
-            await batchDataBlobClient.UploadAsync(batchDataStream, new BlobUploadOptions
-            {
-                HttpHeaders = new BlobHttpHeaders { ContentType = "application/json" }
-            });
+            // Process photo immediately
+            // Get existing photos to calculate index
+            var existingPhotos = await databaseService.GetAllAsync<PhotoEntity>(p => p.FilmId == photoDto.FilmId);
+            int nextAvailableIndex = existingPhotos.Count == 0 
+                ? 1 
+                : existingPhotos.Max(p => p.Index) + 1;
 
-            // Prepare orchestration input with blob reference instead of full data
-            var orchestrationInput = new PhotoUploadOrchestrationInput
+            int photoIndex;
+            if (photoDto.Index.HasValue && photoDto.Index.Value >= 0 && photoDto.Index.Value <= 999)
             {
-                FilmId = batchDto.FilmId,
-                Key = batchDto.Key,
-                KeyId = batchDto.KeyId,
-                BatchDataBlobId = batchDataBlobId.ToString(),
+                photoIndex = photoDto.Index.Value;
+            }
+            else
+            {
+                photoIndex = nextAvailableIndex;
+            }
+
+            // Process photo using activity function
+            var activityInput = new PhotoUploadActivityInput
+            {
+                FilmId = photoDto.FilmId,
+                ImageBase64 = photoDto.ImageBase64,
+                Index = photoIndex,
                 StorageAccountName = storageCfg.AccountName
             };
 
-            // Start orchestration
-            var instanceId = await client.ScheduleNewOrchestrationInstanceAsync(
-                nameof(PhotoUploadOrchestrator),
-                orchestrationInput);
+            // Call activity function to process the photo
+            var activityResult = await ProcessPhotoUploadAsync(activityInput);
 
-            _logger.LogInformation($"Started photo upload orchestration with instance ID: {instanceId}");
-
-            // Construct status query URL
-            var requestUri = new Uri(req.Url.ToString());
-            var baseUrl = $"{requestUri.Scheme}://{requestUri.Authority}";
-            var statusQueryGetUri = $"{baseUrl}/runtime/webhooks/durabletask/instances/{instanceId}";
-
-            // Return immediately with instance ID
-            var result = new
+            // Signal entity for tracking/aggregation
+            // Entity ID format: entity name and instance key
+            var entityId = new EntityInstanceId("PhotoUploadBatchEntity", photoDto.FilmId);
+            await client.Entities.SignalEntityAsync(entityId, "RecordPhotoProcessed", new
             {
-                instanceId = instanceId,
-                statusQueryGetUri = statusQueryGetUri
-            };
-
-            var jsonResponse = JsonSerializer.Serialize(result, new JsonSerializerOptions
-            {
-                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+                Success = activityResult.Success,
+                FilmId = photoDto.FilmId
             });
-            await response.WriteStringAsync(jsonResponse);
+
+            if (activityResult.Success)
+            {
+                _logger.LogInformation($"Photo uploaded successfully at index {photoIndex}");
+                response.StatusCode = HttpStatusCode.OK;
+                var result = new
+                {
+                    success = true,
+                    photo = activityResult.Photo
+                };
+                var jsonResponse = JsonSerializer.Serialize(result, new JsonSerializerOptions
+                {
+                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+                });
+                await response.WriteStringAsync(jsonResponse);
+            }
+            else
+            {
+                _logger.LogError($"Photo upload failed: {activityResult.ErrorMessage}");
+                response.StatusCode = HttpStatusCode.InternalServerError;
+                var result = new
+                {
+                    success = false,
+                    error = activityResult.ErrorMessage
+                };
+                var jsonResponse = JsonSerializer.Serialize(result, new JsonSerializerOptions
+                {
+                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+                });
+                await response.WriteStringAsync(jsonResponse);
+            }
+
             return response;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Unexpected error in PhotoUploadBatch function");
+            _logger.LogError(ex, "Unexpected error in PhotoUpload function");
             response.StatusCode = HttpStatusCode.InternalServerError;
             Helpers.CorsHelper.AddCorsHeaders(response, req);
             await response.WriteStringAsync(JsonSerializer.Serialize(new { error = "An unexpected error occurred." }));
@@ -207,163 +215,15 @@ public class PhotoUploadFunction(
         }
     }
 
-    [Function("PhotoUploadOrchestrator")]
-    public async Task<PhotoUploadOrchestrationResult> PhotoUploadOrchestrator(
-        [OrchestrationTrigger] TaskOrchestrationContext context)
+    [Function("PhotoUploadBatchEntity")]
+    public static Task RunEntityAsync([EntityTrigger] TaskEntityDispatcher dispatcher)
     {
-        var input = context.GetInput<PhotoUploadOrchestrationInput>() ?? throw new ArgumentNullException(nameof(context));
-        
-        var logger = context.CreateReplaySafeLogger<PhotoUploadFunction>();
-        logger.LogInformation($"Starting orchestration with batch data blob ID: {input.BatchDataBlobId}");
-
-        // Download batch data from blob storage
-        var batchDtoTask = context.CallActivityAsync<PhotoBatchUploadDto>(
-            nameof(LoadBatchDataActivity),
-            input.BatchDataBlobId);
-
-        var batchDto = await batchDtoTask;
-        logger.LogInformation($"Loaded batch data with {batchDto.Photos.Length} photos");
-
-        // Get existing photos to calculate indices
-        var existingPhotosTask = context.CallActivityAsync<PhotoEntity[]>(
-            nameof(GetExistingPhotosActivity),
-            input.FilmId);
-
-        var existingPhotos = await existingPhotosTask;
-
-        // Calculate indices for photos that don't have explicit indices
-        int nextAvailableIndex = existingPhotos.Length == 0 
-            ? 1 
-            : existingPhotos.Max(p => p.Index) + 1;
-
-        // Prepare activity inputs with calculated indices
-        var activityInputs = new List<PhotoUploadActivityInput>();
-        int currentAutoIndex = nextAvailableIndex;
-
-        foreach (var photo in batchDto.Photos)
-        {
-            int photoIndex;
-            if (photo.Index.HasValue && photo.Index.Value >= 0 && photo.Index.Value <= 999)
-            {
-                photoIndex = photo.Index.Value;
-            }
-            else
-            {
-                photoIndex = currentAutoIndex++;
-            }
-
-            activityInputs.Add(new PhotoUploadActivityInput
-            {
-                FilmId = input.FilmId,
-                ImageBase64 = photo.ImageBase64,
-                Index = photoIndex,
-                StorageAccountName = input.StorageAccountName
-            });
-        }
-
-        // Process all photos in parallel
-        var tasks = activityInputs.Select(input => 
-            context.CallActivityAsync<PhotoUploadActivityResult>(
-                nameof(PhotoUploadActivity),
-                input));
-
-        var results = await Task.WhenAll(tasks);
-
-        // Count successes and failures
-        var successCount = results.Count(r => r.Success);
-        var failureCount = results.Count(r => !r.Success);
-
-        logger.LogInformation($"Orchestration completed: {successCount} successful, {failureCount} failed");
-
-        // Clean up temporary batch data blob
-        await context.CallActivityAsync(
-            nameof(CleanupBatchDataActivity),
-            input.BatchDataBlobId);
-
-        return new PhotoUploadOrchestrationResult
-        {
-            TotalPhotos = batchDto.Photos.Length,
-            SuccessCount = successCount,
-            FailureCount = failureCount,
-            Results = results
-        };
+        return dispatcher.DispatchAsync<PhotoUploadBatchEntity>();
     }
 
-    [Function("LoadBatchDataActivity")]
-    public async Task<PhotoBatchUploadDto> LoadBatchDataActivity(
-        [ActivityTrigger] string batchDataBlobId,
-        FunctionContext executionContext)
+    // Helper method to process photo upload (extracted from activity for reuse)
+    private async Task<PhotoUploadActivityResult> ProcessPhotoUploadAsync(PhotoUploadActivityInput input)
     {
-        var logger = executionContext.GetLogger<PhotoUploadFunction>();
-        logger.LogInformation($"Loading batch data from blob: {batchDataBlobId}");
-
-        // Download batch data from blob storage
-        var batchDataBlobClient = photosContainer.GetBlobClient($"temp-batch/{batchDataBlobId}");
-        
-        if (!await batchDataBlobClient.ExistsAsync())
-        {
-            throw new FileNotFoundException($"Batch data blob not found: {batchDataBlobId}");
-        }
-
-        var downloadResponse = await batchDataBlobClient.DownloadAsync();
-        using var memoryStream = new MemoryStream();
-        await downloadResponse.Value.Content.CopyToAsync(memoryStream);
-        memoryStream.Position = 0;
-        
-        var jsonString = System.Text.Encoding.UTF8.GetString(memoryStream.ToArray());
-        var batchDto = JsonSerializer.Deserialize<PhotoBatchUploadDto>(jsonString, new JsonSerializerOptions
-        {
-            PropertyNameCaseInsensitive = true
-        });
-
-        if (batchDto == null)
-        {
-            throw new InvalidOperationException("Failed to deserialize batch data");
-        }
-
-        return batchDto;
-    }
-
-    [Function("CleanupBatchDataActivity")]
-    public async Task CleanupBatchDataActivity(
-        [ActivityTrigger] string batchDataBlobId,
-        FunctionContext executionContext)
-    {
-        var logger = executionContext.GetLogger<PhotoUploadFunction>();
-        logger.LogInformation($"Cleaning up batch data blob: {batchDataBlobId}");
-
-        try
-        {
-            var batchDataBlobClient = photosContainer.GetBlobClient($"temp-batch/{batchDataBlobId}");
-            await batchDataBlobClient.DeleteIfExistsAsync();
-        }
-        catch (Exception ex)
-        {
-            logger.LogWarning(ex, $"Failed to cleanup batch data blob: {batchDataBlobId}");
-            // Don't throw - cleanup failures shouldn't fail the orchestration
-        }
-    }
-
-    [Function("GetExistingPhotosActivity")]
-    public async Task<PhotoEntity[]> GetExistingPhotosActivity(
-        [ActivityTrigger] string filmId,
-        FunctionContext executionContext)
-    {
-        var logger = executionContext.GetLogger<PhotoUploadFunction>();
-        logger.LogInformation($"Getting existing photos for film: {filmId}");
-
-        var existingPhotos = await databaseService.GetAllAsync<PhotoEntity>(p => p.FilmId == filmId);
-        return existingPhotos.ToArray();
-    }
-
-    [Function("PhotoUploadActivity")]
-    public async Task<PhotoUploadActivityResult> PhotoUploadActivity(
-        [ActivityTrigger] PhotoUploadActivityInput input,
-        FunctionContext executionContext)
-    {
-        var logger = executionContext.GetLogger<PhotoUploadFunction>();
-        logger.LogInformation($"Processing photo upload for film {input.FilmId}, index {input.Index}");
-
         try
         {
             // Check if a photo with this index already exists and delete it
@@ -374,7 +234,7 @@ public class PhotoUploadFunction(
             if (existingPhotos.Count > 0)
             {
                 var photoToReplace = existingPhotos.First();
-                logger.LogInformation($"Replacing existing photo at index {input.Index}");
+                _logger.LogInformation($"Replacing existing photo at index {input.Index}");
 
                 // Delete old image blob
                 if (photoToReplace.ImageId != Guid.Empty)
@@ -427,7 +287,7 @@ public class PhotoUploadFunction(
                 await databaseService.UpdateAsync(filmEntity);
             }
 
-            logger.LogInformation($"Photo uploaded successfully: {entity.Id}, ImageId: {imageId}");
+            _logger.LogInformation($"Photo uploaded successfully: {entity.Id}, ImageId: {imageId}");
 
             var createdDto = entity.ToDTO(input.StorageAccountName);
             return new PhotoUploadActivityResult
@@ -439,20 +299,7 @@ public class PhotoUploadFunction(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, $"Error uploading photo at index {input.Index}");
-            
-            // Clean up uploaded blob if entity creation failed
-            // Note: imageId might not be set if error occurred before upload
-            try
-            {
-                // We can't easily track the imageId here if upload failed, so we'll just log
-                // In a production scenario, you might want to track this differently
-            }
-            catch
-            {
-                // Ignore cleanup errors
-            }
-
+            _logger.LogError(ex, $"Error uploading photo at index {input.Index}");
             return new PhotoUploadActivityResult
             {
                 Success = false,
@@ -461,25 +308,22 @@ public class PhotoUploadFunction(
             };
         }
     }
+
+    [Function("GetExistingPhotosActivity")]
+    public async Task<PhotoEntity[]> GetExistingPhotosActivity(
+        [ActivityTrigger] string filmId,
+        FunctionContext executionContext)
+    {
+        var logger = executionContext.GetLogger<PhotoUploadFunction>();
+        logger.LogInformation($"Getting existing photos for film: {filmId}");
+
+        var existingPhotos = await databaseService.GetAllAsync<PhotoEntity>(p => p.FilmId == filmId);
+        return existingPhotos.ToArray();
+    }
+
 }
 
-// DTOs for orchestration
-public class PhotoUploadOrchestrationInput
-{
-    public required string FilmId { get; set; }
-    public required string Key { get; set; }
-    public required string KeyId { get; set; }
-    public required string BatchDataBlobId { get; set; } // Reference to blob containing PhotoBatchUploadDto
-    public required string StorageAccountName { get; set; }
-}
-
-public class PhotoUploadOrchestrationResult
-{
-    public int TotalPhotos { get; set; }
-    public int SuccessCount { get; set; }
-    public int FailureCount { get; set; }
-    public required PhotoUploadActivityResult[] Results { get; set; }
-}
+// DTOs
 
 public class PhotoUploadActivityInput
 {
@@ -494,4 +338,46 @@ public class PhotoUploadActivityResult
     public bool Success { get; set; }
     public PhotoDto? Photo { get; set; }
     public string? ErrorMessage { get; set; }
+}
+
+// Entity class for aggregating photo upload state
+public class PhotoUploadBatchEntity
+{
+    public int ProcessedCount { get; set; }
+    public int SuccessCount { get; set; }
+    public int FailureCount { get; set; }
+    public string? FilmId { get; set; }
+
+    public void RecordPhotoProcessed(bool success, string filmId)
+    {
+        ProcessedCount++;
+        if (success)
+        {
+            SuccessCount++;
+        }
+        else
+        {
+            FailureCount++;
+        }
+        FilmId = filmId;
+    }
+
+    public BatchStatus GetStatus()
+    {
+        return new BatchStatus
+        {
+            ProcessedCount = ProcessedCount,
+            SuccessCount = SuccessCount,
+            FailureCount = FailureCount,
+            FilmId = FilmId
+        };
+    }
+}
+
+public class BatchStatus
+{
+    public int ProcessedCount { get; set; }
+    public int SuccessCount { get; set; }
+    public int FailureCount { get; set; }
+    public string? FilmId { get; set; }
 }

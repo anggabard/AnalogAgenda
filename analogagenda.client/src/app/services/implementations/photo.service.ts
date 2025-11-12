@@ -61,19 +61,19 @@ export class PhotoService extends BaseService {
   }
 
   /**
-   * Upload multiple photos in a single batch request using Durable Functions
+   * Upload multiple photos using the aggregator pattern - sends individual requests in parallel
    * @param filmId The ID of the film
    * @param files The files to upload
    * @param existingPhotos Existing photos for the film (to calculate next available index)
-   * @param onPhotoUploaded Optional callback called after each photo uploads successfully (may not be called immediately due to async processing)
-   * @returns Promise that resolves with orchestration instance ID when batch upload is started
+   * @param onPhotoUploaded Optional callback called after each photo uploads successfully
+   * @returns Promise that resolves with array of upload results
    */
   async uploadMultiplePhotos(
     filmId: string,
     files: FileList | File[],
     existingPhotos: PhotoDto[],
     onPhotoUploaded?: (uploadedPhoto: PhotoDto, current: number, total: number) => void
-  ): Promise<{ instanceId: string; statusQueryGetUri: string }> {
+  ): Promise<Array<{ success: boolean; photo?: PhotoDto; error?: string }>> {
     // Get upload key and keyId first
     const { key, keyId } = await lastValueFrom(this.getUploadKey(filmId));
 
@@ -105,26 +105,32 @@ export class PhotoService extends BaseService {
       })
     );
 
-    // Create batch upload DTO
-    const batchDto = {
-      key: key,
-      keyId: keyId,
-      filmId: filmId,
-      photos: photoDtos
-    };
+    // Send individual requests in parallel
+    const url = `${environment.functionsUrl}/api/photo/upload?Key=${encodeURIComponent(key)}&KeyId=${encodeURIComponent(keyId)}`;
+    const uploadPromises = photoDtos.map(async (photoDto, index) => {
+      try {
+        const response = await lastValueFrom(
+          this.http.post<{ success: boolean; photo?: PhotoDto; error?: string }>(url, photoDto, {
+            withCredentials: false
+          })
+        );
+        
+        if (response.success && response.photo && onPhotoUploaded) {
+          onPhotoUploaded(response.photo, index + 1, photoDtos.length);
+        }
+        
+        return response;
+      } catch (error: any) {
+        const errorMessage = error?.error?.error || error?.message || 'Unknown error';
+        return {
+          success: false,
+          error: errorMessage
+        };
+      }
+    });
 
-    // Send batch request to Azure Function
-    const url = `${environment.functionsUrl}/api/photo/upload`;
-    const response = await lastValueFrom(
-      this.http.post<{ instanceId: string; statusQueryGetUri: string }>(url, batchDto, {
-        withCredentials: false
-      })
-    );
-
-    // Note: onPhotoUploaded callback may not work as expected since processing is async
-    // The caller can poll the statusQueryGetUri to check progress if needed
-    // For now, we return the instance ID and status URL
-
-    return response;
+    // Wait for all uploads to complete
+    const results = await Promise.all(uploadPromises);
+    return results;
   }
 }
