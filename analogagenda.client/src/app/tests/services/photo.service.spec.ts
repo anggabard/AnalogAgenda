@@ -1,4 +1,4 @@
-import { TestBed, fakeAsync, tick, flush, waitForAsync } from '@angular/core/testing';
+import { TestBed } from '@angular/core/testing';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
 import { PhotoService } from '../../services/implementations/photo.service';
 import { PhotoDto, PhotoCreateDto } from '../../DTOs';
@@ -9,7 +9,6 @@ describe('PhotoService', () => {
   let service: PhotoService;
   let httpMock: HttpTestingController;
   const baseUrl = 'https://localhost:7125/api/Photo';
-  const functionsUrl = 'https://analogagenda.azurewebsites.net';
 
   beforeEach(() => {
     TestConfig.configureTestBed({
@@ -297,8 +296,8 @@ describe('PhotoService', () => {
     });
   });
 
-  describe('uploadMultiplePhotos', () => {
-    it('should upload multiple photos in parallel and call callback with PhotoDto', (done) => {
+  describe('uploadMultiplePhotos - sequential uploads', () => {
+    it('should upload multiple photos sequentially and call callback with PhotoDto', async () => {
       // Arrange
       const filmId = 'test-film-id';
       const file1 = new File(['test1'], '5.jpg', { type: 'image/jpeg' });
@@ -316,33 +315,44 @@ describe('PhotoService', () => {
       const mockResponse1: PhotoDto = createMockPhoto('photo1', filmId, 5);
       const mockResponse2: PhotoDto = createMockPhoto('photo2', filmId, 10);
 
+      // Mock fileToBase64
+      spyOn(FileUploadHelper, 'fileToBase64').and.returnValue(Promise.resolve('data:image/jpeg;base64,validbase64data'));
+
       // Act
       const uploadPromise = service.uploadMultiplePhotos(filmId, files, existingPhotos, onPhotoUploaded);
 
-      // Respond to parallel requests (both may come at once)
-      setTimeout(() => {
-        // Both requests should come in parallel
-        const requests = httpMock.match((req) => 
-          req.url === `${functionsUrl}/api/photo/upload` && req.method === 'POST'
-        );
-        expect(requests.length).toBe(2);
-        
-        // Find requests by index
-        const req1 = requests.find(r => r.request.body.index === 5);
-        const req2 = requests.find(r => r.request.body.index === 10);
-        
-        expect(req1).toBeDefined();
-        expect(req2).toBeDefined();
-        expect(req1!.request.body.filmId).toBe(filmId);
-        expect(req2!.request.body.filmId).toBe(filmId);
-        
-        // Flush responses
-        req1!.flush(mockResponse1);
-        req2!.flush(mockResponse2);
-      }, 10);
+      // Wait a bit for first request to be made
+      await new Promise(resolve => setTimeout(resolve, 50));
+
+      // First request should come sequentially
+      const req1 = httpMock.expectOne(`${baseUrl}`);
+      expect(req1.request.method).toBe('POST');
+      expect(req1.request.body.filmId).toBe(filmId);
+      expect(req1.request.body.index).toBe(5);
+      req1.flush(mockResponse1);
+
+      // Wait for second request
+      await new Promise(resolve => setTimeout(resolve, 50));
+
+      // Second request should come after first completes
+      const req2 = httpMock.expectOne(`${baseUrl}`);
+      expect(req2.request.method).toBe('POST');
+      expect(req2.request.body.filmId).toBe(filmId);
+      expect(req2.request.body.index).toBe(10);
+      req2.flush(mockResponse2);
+
+      // Wait for upload to complete
+      const result = await uploadPromise;
+
+      // Assert
+      expect(result.length).toBe(2);
+      expect(result[0].success).toBe(true);
+      expect(result[1].success).toBe(true);
+      expect(onPhotoUploaded).toHaveBeenCalledTimes(2);
+      expect(uploadedPhotos.length).toBe(2);
     });
 
-    it('should use next available index for non-numeric filenames', (done) => {
+    it('should use next available index for non-numeric filenames', async () => {
       // Arrange
       const filmId = 'test-film-id';
       const file1 = new File(['test1'], 'photo1.jpg', { type: 'image/jpeg' });
@@ -361,22 +371,29 @@ describe('PhotoService', () => {
         uploadedPhotos.push(photo);
       };
 
+      // Mock fileToBase64
+      spyOn(FileUploadHelper, 'fileToBase64').and.returnValue(Promise.resolve('data:image/jpeg;base64,validbase64data'));
+
       // Act
       const uploadPromise = service.uploadMultiplePhotos(filmId, files, existingPhotos, onPhotoUploaded);
 
-      // Respond to parallel requests
-      setTimeout(() => {
-        const requests = httpMock.match((req) => 
-          req.url === `${functionsUrl}/api/photo/upload` && req.method === 'POST'
-        );
-        expect(requests.length).toBe(2);
-        
-        const req1 = requests.find(r => r.request.body.index === 9);
-        const req2 = requests.find(r => r.request.body.index === 10);
-        
-        req1!.flush(mockResponse1);
-        req2!.flush(mockResponse2);
-      }, 10);
+      // Wait for first request
+      await new Promise(resolve => setTimeout(resolve, 50));
+      const req1 = httpMock.expectOne(`${baseUrl}`);
+      expect(req1.request.body.index).toBe(9);
+      req1.flush(mockResponse1);
+
+      // Wait for second request
+      await new Promise(resolve => setTimeout(resolve, 50));
+      const req2 = httpMock.expectOne(`${baseUrl}`);
+      expect(req2.request.body.index).toBe(10);
+      req2.flush(mockResponse2);
+
+      // Wait for completion
+      await uploadPromise;
+
+      // Assert
+      expect(uploadedPhotos.length).toBe(2);
     });
 
     it('should sort files by index before uploading', async () => {
@@ -388,9 +405,9 @@ describe('PhotoService', () => {
       const files = [file1, file2, file3]; // Unsorted
       const existingPhotos: PhotoDto[] = [];
 
-      const mockResponse1 = { success: true, photo: createMockPhoto('photo1', filmId, 2) };
-      const mockResponse2 = { success: true, photo: createMockPhoto('photo2', filmId, 10) };
-      const mockResponse3 = { success: true, photo: createMockPhoto('photo3', filmId, 45) };
+      const mockResponse1 = createMockPhoto('photo1', filmId, 2);
+      const mockResponse2 = createMockPhoto('photo2', filmId, 10);
+      const mockResponse3 = createMockPhoto('photo3', filmId, 45);
 
       const uploadedPhotos: PhotoDto[] = [];
 
@@ -402,40 +419,30 @@ describe('PhotoService', () => {
         uploadedPhotos.push(photo);
       });
 
-      // Wait a bit for base64 conversion to complete
+      // Wait for first request (should be index 2, sorted first)
       await new Promise(resolve => setTimeout(resolve, 50));
+      const req1 = httpMock.expectOne(`${baseUrl}`);
+      expect(req1.request.body.index).toBe(2);
+      req1.flush(mockResponse1);
 
-      // Poll for upload requests
-      let req1: any = null;
-      let req2: any = null;
-      let req3: any = null;
-      let attempts = 0;
-      const maxAttempts = 30;
-      while ((!req1 || !req2 || !req3) && attempts < maxAttempts) {
-        await new Promise(resolve => setTimeout(resolve, 50));
-        const requests = httpMock.match((req) => {
-          const fullUrl = (req.urlWithParams || req.url || '').toString();
-          return fullUrl.includes('/api/photo/upload') && req.method === 'POST';
-        });
-        if (!req1) req1 = requests.find((r: any) => r.request.body.index === 2);
-        if (!req2) req2 = requests.find((r: any) => r.request.body.index === 10);
-        if (!req3) req3 = requests.find((r: any) => r.request.body.index === 45);
-        attempts++;
-      }
-      
-      expect(req1).toBeDefined('Request 1 (index 2) should be found');
-      expect(req2).toBeDefined('Request 2 (index 10) should be found');
-      expect(req3).toBeDefined('Request 3 (index 45) should be found');
-      req1!.flush(mockResponse1);
-      req2!.flush(mockResponse2);
-      req3!.flush(mockResponse3);
+      // Wait for second request (should be index 10)
+      await new Promise(resolve => setTimeout(resolve, 50));
+      const req2 = httpMock.expectOne(`${baseUrl}`);
+      expect(req2.request.body.index).toBe(10);
+      req2.flush(mockResponse2);
+
+      // Wait for third request (should be index 45)
+      await new Promise(resolve => setTimeout(resolve, 50));
+      const req3 = httpMock.expectOne(`${baseUrl}`);
+      expect(req3.request.body.index).toBe(45);
+      req3.flush(mockResponse3);
 
       // Wait for upload to complete
       await uploadPromise;
 
-      // Assert all photos uploaded (order may vary with parallel uploads)
+      // Assert all photos uploaded sequentially in sorted order
       expect(uploadedPhotos.length).toBe(3);
-      const indices = uploadedPhotos.map(p => p.index).sort((a, b) => a - b);
+      const indices = uploadedPhotos.map(p => p.index);
       expect(indices).toEqual([2, 10, 45]);
     });
 
@@ -447,29 +454,30 @@ describe('PhotoService', () => {
       const files = [file1, file2];
       const existingPhotos: PhotoDto[] = [];
 
-      const mockResponse1 = { success: true, photo: createMockPhoto('photo1', filmId, 2) };
-      const mockResponse2 = { success: true, photo: createMockPhoto('photo2', filmId, 45) };
+      const mockResponse1 = createMockPhoto('photo1', filmId, 2);
+      const mockResponse2 = createMockPhoto('photo2', filmId, 45);
 
       const uploadedPhotos: PhotoDto[] = [];
+
+      // Mock fileToBase64
+      spyOn(FileUploadHelper, 'fileToBase64').and.returnValue(Promise.resolve('data:image/jpeg;base64,validbase64data'));
 
       // Act
       const uploadPromise = service.uploadMultiplePhotos(filmId, files, existingPhotos, (photo) => {
         uploadedPhotos.push(photo);
       });
 
-      // Respond to parallel requests
-      setTimeout(() => {
-        const requests = httpMock.match((req) => 
-          req.url === `${functionsUrl}/api/photo/upload` && req.method === 'POST'
-        );
-        expect(requests.length).toBe(2);
-        
-        const req1 = requests.find(r => r.request.body.index === 2);
-        const req2 = requests.find(r => r.request.body.index === 45);
-        
-        req1!.flush(mockResponse1);
-        req2!.flush(mockResponse2);
-      }, 10);
+      // Wait for first request
+      await new Promise(resolve => setTimeout(resolve, 50));
+      const req1 = httpMock.expectOne(`${baseUrl}`);
+      expect(req1.request.body.index).toBe(2);
+      req1.flush(mockResponse1);
+
+      // Wait for second request
+      await new Promise(resolve => setTimeout(resolve, 50));
+      const req2 = httpMock.expectOne(`${baseUrl}`);
+      expect(req2.request.body.index).toBe(45);
+      req2.flush(mockResponse2);
 
       // Wait for upload to complete
       await uploadPromise;

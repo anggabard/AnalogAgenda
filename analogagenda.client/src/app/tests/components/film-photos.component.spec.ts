@@ -76,8 +76,15 @@ describe('FilmPhotosComponent', () => {
     // Directly set the component properties for testing
     component.filmId = 'test-film-id';
     component.film = mockFilm;
-    component.photos = [...mockPhotos];
+    // Always reset photos to a fresh copy of mockPhotos to prevent state leakage
+    component.photos = JSON.parse(JSON.stringify(mockPhotos));
     component.errorMessage = null;
+    component.uploadLoading = false;
+    component.uploadProgress = { current: 0, total: 0 };
+    component.isPreviewModalOpen = false;
+    component.isDeleteModalOpen = false;
+    component.currentPreviewPhoto = null;
+    component.currentPhotoIndex = 0;
     
     fixture.detectChanges();
     
@@ -145,6 +152,11 @@ describe('FilmPhotosComponent', () => {
   describe('Photo Preview', () => {
     beforeEach(async () => {
       await initializeComponent();
+    });
+
+    afterEach(() => {
+      // Ensure photos array is reset after each test to prevent state leakage
+      component.photos = JSON.parse(JSON.stringify(mockPhotos));
     });
 
     it('should open preview modal', () => {
@@ -286,6 +298,11 @@ describe('FilmPhotosComponent', () => {
       component.openPreview(mockPhotos[0]);
     });
 
+    afterEach(() => {
+      // Ensure photos array is reset after each test to prevent state leakage
+      component.photos = JSON.parse(JSON.stringify(mockPhotos));
+    });
+
     it('should open delete modal', () => {
       // Act
       component.openDeleteModal();
@@ -305,7 +322,7 @@ describe('FilmPhotosComponent', () => {
       expect(component.isDeleteModalOpen).toBeFalsy();
     });
 
-    it('should confirm delete and remove photo from list', () => {
+    it('should confirm delete and remove photo from list', (done) => {
       // Arrange
       mockPhotoService.deletePhoto.and.returnValue(of({}));
       component.openDeleteModal();
@@ -313,11 +330,14 @@ describe('FilmPhotosComponent', () => {
       // Act
       component.confirmDelete();
 
-      // Assert
-      expect(mockPhotoService.deletePhoto).toHaveBeenCalledWith('photo1');
-      expect(component.photos.length).toBe(2);
-      expect(component.photos.find(p => p.id === 'photo1')).toBeUndefined();
-      expect(component.isDeleteModalOpen).toBeFalsy();
+      // Assert - need to wait for async operation
+      setTimeout(() => {
+        expect(mockPhotoService.deletePhoto).toHaveBeenCalledWith('photo1');
+        expect(component.photos.length).toBe(2);
+        expect(component.photos.find(p => p.id === 'photo1')).toBeUndefined();
+        expect(component.isDeleteModalOpen).toBeFalsy();
+        done();
+      }, 0);
     });
 
     it('should handle delete error', () => {
@@ -347,7 +367,7 @@ describe('FilmPhotosComponent', () => {
       expect(component.isPreviewModalOpen).toBeFalsy();
     });
 
-    it('should adjust photo index after deletion', () => {
+    it('should adjust photo index after deletion', (done) => {
       // Arrange
       component.openPreview(mockPhotos[2]); // Last photo (index 2)
       mockPhotoService.deletePhoto.and.returnValue(of({}));
@@ -356,9 +376,12 @@ describe('FilmPhotosComponent', () => {
       // Act
       component.confirmDelete();
 
-      // Assert
-      expect(component.currentPhotoIndex).toBe(1); // Adjusted to last available index
-      expect(component.currentPreviewPhoto).toEqual(mockPhotos[1]);
+      // Assert - need to wait for async operation
+      setTimeout(() => {
+        expect(component.currentPhotoIndex).toBe(1); // Adjusted to last available index
+        expect(component.currentPreviewPhoto).toEqual(mockPhotos[1]);
+        done();
+      }, 0);
     });
   });
 
