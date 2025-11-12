@@ -58,8 +58,9 @@ function getServerErrorMessage(error: HttpErrorResponse): string {
 function handleHttpErrorStatus(status: number): void {
   switch (status) {
     case 401:
-      // Don't auto-redirect on 401 - let guards handle authentication flow
-      console.warn('Authentication required - let guards handle redirect');
+      // Don't auto-redirect on 401 during uploads - let the upload service retry
+      // Guards will handle redirect for navigation, but we don't want to interrupt uploads
+      console.warn('Authentication required - upload service will handle retry');
       break;
     case 403:
       // Could redirect to access denied page
