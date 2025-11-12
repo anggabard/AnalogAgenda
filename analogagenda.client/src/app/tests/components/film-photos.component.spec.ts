@@ -38,7 +38,7 @@ describe('FilmPhotosComponent', () => {
   beforeEach(async () => {
     const filmServiceSpy = jasmine.createSpyObj('FilmService', ['getById']);
     const photoServiceSpy = jasmine.createSpyObj('PhotoService', [
-      'getPhotosByFilmId', 'downloadPhoto', 'downloadAllPhotos', 'deletePhoto', 'uploadMultiplePhotos', 'getUploadKey', 'getPreviewUrl'
+      'getPhotosByFilmId', 'downloadPhoto', 'downloadAllPhotos', 'deletePhoto', 'uploadMultiplePhotos', 'getPreviewUrl'
     ]);
     photoServiceSpy.getPreviewUrl.and.callFake((photo: PhotoDto) => `preview-${photo.id}`);
     const routerSpy = TestConfig.createRouterSpy();
@@ -440,7 +440,6 @@ describe('FilmPhotosComponent', () => {
     beforeEach(async () => {
       await initializeComponent();
       mockPhotoService.uploadMultiplePhotos = jasmine.createSpy('uploadMultiplePhotos').and.returnValue(Promise.resolve([]));
-      mockPhotoService.getUploadKey = jasmine.createSpy('getUploadKey').and.returnValue(of({ key: 'test-key', keyId: 'test-key-id' }));
     });
 
     it('should upload photos and add them to the list as they complete', async () => {
