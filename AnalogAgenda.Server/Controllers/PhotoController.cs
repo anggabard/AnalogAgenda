@@ -15,75 +15,124 @@ namespace AnalogAgenda.Server.Controllers;
 [Route("api/[controller]"), ApiController, Authorize]
 public class PhotoController(
     Storage storageCfg,
-    Security securityCfg,
     IDatabaseService databaseService,
     IBlobService blobsService,
     IImageCacheService imageCacheService
 ) : ControllerBase
 {
     private readonly Storage storageCfg = storageCfg;
-    private readonly Security securityCfg = securityCfg;
     private readonly IDatabaseService databaseService = databaseService;
     private readonly IBlobService blobsService = blobsService;
     private readonly IImageCacheService imageCacheService = imageCacheService;
     private readonly BlobContainerClient photosContainer = blobsService.GetBlobContainer(ContainerName.photos);
 
-    [HttpGet("UploadKey")]
-    public async Task<IActionResult> GetUploadKey([FromQuery] string filmId)
+    [HttpPost]
+    public async Task<IActionResult> UploadPhoto([FromBody] PhotoCreateDto photoDto)
     {
-        // Validate filmId exists
-        var film = await databaseService.GetByIdAsync<FilmEntity>(filmId);
-        if (film == null)
-            return NotFound("Film not found.");
-
-        // Generate key using IdGenerator
-        var key = IdGenerator.Get(16, filmId, securityCfg.Salt);
-
-        // Create KeyEntity
-        var keyEntity = new KeyEntity
+        if (photoDto == null || string.IsNullOrWhiteSpace(photoDto.ImageBase64))
         {
-            Key = key,
-            ExpirationDate = DateTime.UtcNow.AddMinutes(3)
-        };
+            return BadRequest("Photo data is required.");
+        }
 
-        // Save to database
-        var dbEntity = await databaseService.AddAsync(keyEntity);
-
-        // Return key and KeyId
-        var response = new UploadKeyDto
+        try
         {
-            Key = key,
-            KeyId = dbEntity.Id
-        };
-        return Ok(response);
-    }
+            // Validate film exists
+            var filmEntity = await databaseService.GetByIdAsync<FilmEntity>(photoDto.FilmId);
+            if (filmEntity == null)
+            {
+                return NotFound("Film not found.");
+            }
 
-    [HttpGet("ValidateUploadKey")]
-    [AllowAnonymous]
-    public async Task<IActionResult> ValidateUploadKey([FromQuery] string key, [FromQuery] string keyId, [FromQuery] string filmId)
-    {
-        // Regenerate expected key
-        var expectedKey = IdGenerator.Get(16, filmId, securityCfg.Salt);
+            // Get existing photos to calculate index
+            var existingPhotos = await databaseService.GetAllAsync<PhotoEntity>(p => p.FilmId == photoDto.FilmId);
+            int nextAvailableIndex = existingPhotos.Count == 0 
+                ? 1 
+                : existingPhotos.Max(p => p.Index) + 1;
 
-        // Check if generated key matches provided key
-        if (expectedKey != key)
-            return Forbid();
+            int photoIndex;
+            if (photoDto.Index.HasValue && photoDto.Index.Value >= 0 && photoDto.Index.Value <= 999)
+            {
+                photoIndex = photoDto.Index.Value;
+            }
+            else
+            {
+                photoIndex = nextAvailableIndex;
+            }
 
-        // Query Keys table for key with matching KeyId
-        var keyEntity = await databaseService.GetByIdAsync<KeyEntity>(keyId);
-        if (keyEntity == null)
-            return Forbid();
+            // Check if a photo with this index already exists and delete it
+            var photosAtIndex = existingPhotos.Where(p => p.Index == photoIndex).ToList();
+            if (photosAtIndex.Count > 0)
+            {
+                var photoToReplace = photosAtIndex.First();
+                
+                // Delete old image blob
+                if (photoToReplace.ImageId != Guid.Empty)
+                {
+                    await photosContainer.GetBlobClient(photoToReplace.ImageId.ToString()).DeleteIfExistsAsync();
+                    await photosContainer.GetBlobClient($"preview/{photoToReplace.ImageId}").DeleteIfExistsAsync();
+                    imageCacheService.RemovePreview(photoToReplace.ImageId);
+                }
 
-        // Verify the key from DB matches the provided key (prevents key reuse)
-        if (keyEntity.Key != key)
-            return Forbid();
+                // Delete old photo entity
+                await databaseService.DeleteAsync(photoToReplace);
+            }
 
-        // Check ExpirationDate is greater than UTC Now
-        if (keyEntity.ExpirationDate <= DateTime.UtcNow)
-            return Forbid();
+            var imageId = Guid.NewGuid();
 
-        // All validations passed
-        return Ok();
+            // Store base64 temporarily for processing
+            var base64Image = photoDto.ImageBase64;
+
+            // Upload full image
+            await BlobImageHelper.UploadBase64ImageWithContentTypeAsync(
+                photosContainer,
+                base64Image,
+                imageId
+            );
+
+            // Generate and upload preview
+            await BlobImageHelper.UploadPreviewImageAsync(
+                photosContainer,
+                base64Image,
+                imageId,
+                maxDimension: 1200,
+                quality: 80
+            );
+
+            // Clear base64 from memory immediately after processing to reduce memory pressure
+            base64Image = string.Empty;
+            photoDto.ImageBase64 = string.Empty;
+
+            // Create photo entity (without base64 - image is already in blob storage)
+            var photoEntityDto = new PhotoDto
+            {
+                FilmId = photoDto.FilmId,
+                Index = photoIndex,
+                ImageBase64 = string.Empty, // Don't store base64 in entity - it's in blob storage
+            };
+
+            var entity = photoEntityDto.ToEntity();
+            entity.ImageId = imageId;
+
+            await databaseService.AddAsync(entity);
+
+            // Auto-mark film as developed when photo is uploaded
+            if (!filmEntity.Developed)
+            {
+                filmEntity.Developed = true;
+                await databaseService.UpdateAsync(filmEntity);
+            }
+
+            // Force garbage collection after processing to free memory immediately (important for memory-constrained environments)
+            GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced, blocking: true);
+            GC.WaitForPendingFinalizers();
+
+            var createdDto = entity.ToDTO(storageCfg.AccountName);
+            return Ok(createdDto);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Error uploading photo: {ex.Message}");
+        }
     }
 
     [HttpGet("film/{filmId}")]

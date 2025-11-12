@@ -34,6 +34,7 @@ export class FilmPhotosComponent implements OnInit {
   
   // Upload loading state
   uploadLoading = false;
+  uploadProgress: { current: number; total: number } = { current: 0, total: 0 };
   
   // Touch handling
   private touchStartX = 0;
@@ -228,13 +229,19 @@ export class FilmPhotosComponent implements OnInit {
     this.uploadLoading = true;
     this.errorMessage = null;
     
+    // Initialize upload progress counter
+    this.uploadProgress = { current: 0, total: files.length };
+    
     try {
-      // Upload photos in parallel - each request processes individually
+      // Upload photos sequentially - one at a time
       const results = await this.photoService.uploadMultiplePhotos(
         this.filmId,
         files,
         this.photos,
         (uploadedPhoto) => {
+          // Update progress counter
+          this.uploadProgress.current++;
+          
           // Add photo to the array immediately when it uploads successfully
           if (uploadedPhoto) {
             // Check if photo already exists (in case of duplicate uploads)

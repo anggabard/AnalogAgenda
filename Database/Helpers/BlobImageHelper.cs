@@ -15,7 +15,11 @@ public static class BlobImageHelper
 
         var blobClient = blobContainerClient.GetBlobClient(blobName.ToString());
 
-        using var stream = new MemoryStream(imageBytes);
+        // Force GC for large images on memory-constrained plans (Y1 Consumption)
+        // Check size before clearing reference
+        var wasLargeImage = imageBytes != null && imageBytes.Length > 10_000_000; // 10MB threshold
+
+        using var stream = new MemoryStream(imageBytes, writable: false);
 
         var headers = new BlobHttpHeaders
         {
@@ -26,10 +30,6 @@ public static class BlobImageHelper
         {
             HttpHeaders = headers
         });
-        
-        // Force GC for large images on memory-constrained plans (Y1 Consumption)
-        // Check size before clearing reference
-        var wasLargeImage = imageBytes != null && imageBytes.Length > 10_000_000; // 10MB threshold
         
         // Clear reference to help GC (though it will be disposed by using)
         imageBytes = null;
@@ -49,44 +49,51 @@ public static class BlobImageHelper
     {
         (var imageBytes, var _) = ParseBase64Image(base64Image);
 
-        // Resize using ImageSharp
-        using var image = await Image.LoadAsync(new MemoryStream(imageBytes));
-        
-        // Calculate new dimensions maintaining aspect ratio
-        var width = image.Width;
-        var height = image.Height;
-        
-        if (width > maxDimension || height > maxDimension)
+        // Resize using ImageSharp - dispose input stream immediately
+        byte[]? previewBytes = null;
+        using (var inputStream = new MemoryStream(imageBytes, writable: false))
+        using (var image = await Image.LoadAsync(inputStream))
         {
-            if (width > height)
-            {
-                height = (int)((double)height / width * maxDimension);
-                width = maxDimension;
-            }
-            else
-            {
-                width = (int)((double)width / height * maxDimension);
-                height = maxDimension;
-            }
+            // Calculate new dimensions maintaining aspect ratio
+            var width = image.Width;
+            var height = image.Height;
             
-            image.Mutate(x => x.Resize(width, height));
-        }
+            if (width > maxDimension || height > maxDimension)
+            {
+                if (width > height)
+                {
+                    height = (int)((double)height / width * maxDimension);
+                    width = maxDimension;
+                }
+                else
+                {
+                    width = (int)((double)width / height * maxDimension);
+                    height = maxDimension;
+                }
+                
+                image.Mutate(x => x.Resize(width, height));
+            }
 
-        // Convert to JPEG with specified quality
-        using var outputStream = new MemoryStream();
-        await image.SaveAsJpegAsync(outputStream, new JpegEncoder { Quality = quality });
+            // Convert to JPEG with specified quality
+            using var outputStream = new MemoryStream();
+            await image.SaveAsJpegAsync(outputStream, new JpegEncoder { Quality = quality });
+            previewBytes = outputStream.ToArray();
+        }
+        
+        // Clear original image bytes from memory before uploading preview
+        imageBytes = null;
         
         // Upload preview to preview subfolder
         var previewBlobName = $"preview/{blobName}";
         var previewBlobClient = blobContainerClient.GetBlobClient(previewBlobName);
 
-        outputStream.Position = 0;
+        using var previewStream = new MemoryStream(previewBytes, writable: false);
         var headers = new BlobHttpHeaders
         {
             ContentType = "image/jpeg"
         };
 
-        await previewBlobClient.UploadAsync(outputStream, new BlobUploadOptions
+        await previewBlobClient.UploadAsync(previewStream, new BlobUploadOptions
         {
             HttpHeaders = headers
         });

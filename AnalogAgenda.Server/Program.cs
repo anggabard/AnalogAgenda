@@ -39,16 +39,16 @@ builder.Services.AddSingleton<IBlobService, BlobService>();
 // Register image cache service (singleton for in-memory cache)
 builder.Services.AddSingleton<IImageCacheService, InMemoryImageCacheService>();
 
-// Configure Kestrel to accept larger request bodies (for bulk photo uploads: 36 photos × 50MB each + base64 overhead)
+// Configure Kestrel to accept larger request bodies (for single photo uploads: 30MB file + base64 overhead = ~40MB, rounded to 60MB)
 builder.Services.Configure<Microsoft.AspNetCore.Server.Kestrel.Core.KestrelServerOptions>(options =>
 {
-    options.Limits.MaxRequestBodySize = 3L * 1024 * 1024 * 1024; // 3GB to accommodate bulk uploads of base64-encoded 50MB images
+    options.Limits.MaxRequestBodySize = 60_000_000; // 60MB to accommodate base64-encoded 30MB images
 });
 
 // Configure form options for multipart form data
 builder.Services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(options =>
 {
-    options.MultipartBodyLengthLimit = 3L * 1024 * 1024 * 1024; // 3GB
+    options.MultipartBodyLengthLimit = 60_000_000; // 60MB
 });
 
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)

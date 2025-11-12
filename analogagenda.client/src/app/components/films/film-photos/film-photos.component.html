@@ -18,6 +18,9 @@
   <div *ngIf="!loading && photos.length === 0" class="no-photos">
     <div class="no-photos-icon">📷</div>
     <p>No photos found for this film.</p>
+    <div *ngIf="uploadLoading && uploadProgress.total > 0" class="upload-progress">
+      Uploading photo {{ uploadProgress.current }} of {{ uploadProgress.total }}
+    </div>
     <button class="add-photos-btn" [disabled]="uploadLoading" (click)="onUploadPhotos()">
       <span class="button-content" [class.loading]="uploadLoading">
         📸 Add Photos
@@ -33,7 +36,12 @@
   <div *ngIf="!loading && photos.length > 0" class="photos-content">
     <div class="actions-bar">
       <div class="photos-count">
-        {{ photos.length }} photo{{ photos.length !== 1 ? 's' : '' }}
+        <div *ngIf="uploadLoading && uploadProgress.total > 0" class="upload-progress">
+          Uploading photo {{ uploadProgress.current }} of {{ uploadProgress.total }}
+        </div>
+        <div *ngIf="!uploadLoading || uploadProgress.total === 0">
+          {{ photos.length }} photo{{ photos.length !== 1 ? 's' : '' }}
+        </div>
       </div>
       <div class="action-buttons">
         <button class="add-photos-btn" [disabled]="uploadLoading" (click)="onUploadPhotos()">

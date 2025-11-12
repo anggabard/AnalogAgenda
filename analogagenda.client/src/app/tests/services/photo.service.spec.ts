@@ -4,13 +4,11 @@ import { PhotoService } from '../../services/implementations/photo.service';
 import { PhotoDto, PhotoCreateDto } from '../../DTOs';
 import { TestConfig } from '../test.config';
 import { FileUploadHelper } from '../../helpers/file-upload.helper';
-import { environment } from '../../../environments/environment';
 
 describe('PhotoService', () => {
   let service: PhotoService;
   let httpMock: HttpTestingController;
   const baseUrl = 'https://localhost:7125/api/Photo';
-  const functionsUrl = environment.functionsUrl;
 
   beforeEach(() => {
     TestConfig.configureTestBed({
@@ -33,61 +31,6 @@ describe('PhotoService', () => {
     expect(service).toBeTruthy();
   });
 
-  describe('createPhoto', () => {
-    it('should create a single photo via Functions', () => {
-      // Arrange
-      const createDto: PhotoCreateDto = {
-        filmId: 'test-film-id',
-        imageBase64: 'data:image/jpeg;base64,validbase64data'
-      };
-      
-      const mockResponse: PhotoDto = createMockPhoto('photo1', 'test-film-id', 1);
-
-      // Act
-      service.createPhoto(createDto, 'test-key', 'test-key-id').subscribe(response => {
-        // Assert
-        expect(response).toEqual(mockResponse);
-      });
-
-      // Assert HTTP call to Functions endpoint
-      const req = httpMock.expectOne((request) => {
-        const fullUrl = (request.urlWithParams || request.url || '').toString();
-        return fullUrl.includes('/api/photo/upload') &&
-               fullUrl.includes('Key=') &&
-               fullUrl.includes('KeyId=');
-      });
-      expect(req.request.method).toBe('POST');
-      expect(req.request.body).toEqual(createDto);
-      expect(req.request.withCredentials).toBe(false);
-      req.flush(mockResponse);
-    });
-
-    it('should handle error when creating photo', () => {
-      // Arrange
-      const createDto: PhotoCreateDto = {
-        filmId: 'invalid-film-id',
-        imageBase64: 'data:image/jpeg;base64,validbase64data'
-      };
-
-      // Act
-      service.createPhoto(createDto, 'test-key', 'test-key-id').subscribe({
-        next: () => fail('Should have failed'),
-        error: (error) => {
-          // Assert
-          expect(error.status).toBe(404);
-        }
-      });
-
-      // Assert HTTP call to Functions endpoint
-      const req = httpMock.expectOne((request) => {
-        const fullUrl = (request.urlWithParams || request.url || '').toString();
-        return fullUrl.includes('/api/photo/upload') &&
-               fullUrl.includes('Key=') &&
-               fullUrl.includes('KeyId=');
-      });
-      req.flush('Film not found', { status: 404, statusText: 'Not Found' });
-    });
-  });
 
   describe('getPhotosByFilmId', () => {
     it('should get photos by film ID', () => {
@@ -315,7 +258,7 @@ describe('PhotoService', () => {
       });
     });
 
-    it('should upload multiple photos in parallel and call callback with PhotoDto', waitForAsync(async () => {
+    it('should upload multiple photos sequentially and call callback after each upload', waitForAsync(async () => {
       // Arrange
       const filmId = 'test-film-id';
       const file1 = new File(['test1'], '5.jpg', { type: 'image/jpeg' });
@@ -330,50 +273,44 @@ describe('PhotoService', () => {
         }
       );
 
-      const mockResponse1 = { success: true, photo: createMockPhoto('photo1', filmId, 5) };
-      const mockResponse2 = { success: true, photo: createMockPhoto('photo2', filmId, 10) };
+      const mockResponse1 = createMockPhoto('photo1', filmId, 5);
+      const mockResponse2 = createMockPhoto('photo2', filmId, 10);
       
       // Act
       const uploadPromise = service.uploadMultiplePhotos(filmId, files, existingPhotos, onPhotoUploaded);
 
-      // First, handle the getUploadKey request
-      const keyRequest = httpMock.expectOne(`${baseUrl}/UploadKey?filmId=${filmId}`);
-      keyRequest.flush({ key: 'test-key', keyId: 'test-key-id' });
+      // Wait a bit for first file to be converted to base64
+      await new Promise(resolve => setTimeout(resolve, 50));
+      expect(fileToBase64Spy).toHaveBeenCalledTimes(1); // First file only
 
-      // Poll for upload requests - base64 conversion is async even when mocked
-      // Use a longer timeout to account for real FileReader if mock doesn't work
-      let req1: any = null;
-      let req2: any = null;
-      let attempts = 0;
-      const maxAttempts = 50; // 50 * 100ms = 5 seconds max
-      while ((!req1 || !req2) && attempts < maxAttempts) {
-        await new Promise(resolve => setTimeout(resolve, 100));
-        const requests = httpMock.match((req) => {
-          const fullUrl = (req.urlWithParams || req.url || '').toString();
-          return fullUrl.includes('/api/photo/upload') && req.method === 'POST';
-        });
-        if (!req1) req1 = requests.find((r: any) => r.request.body.index === 5);
-        if (!req2) req2 = requests.find((r: any) => r.request.body.index === 10);
-        attempts++;
-      }
-      
-      expect(req1).toBeDefined('Request 1 (index 5) should be found');
-      expect(req2).toBeDefined('Request 2 (index 10) should be found');
-      expect(req1!.request.body.filmId).toBe(filmId);
-      expect(req2!.request.body.filmId).toBe(filmId);
-      
-      // Flush responses with new format
-      req1!.flush(mockResponse1);
-      req2!.flush(mockResponse2);
+      // First upload request (sequential - first file)
+      const req1 = httpMock.expectOne(`${baseUrl}`);
+      expect(req1.request.method).toBe('POST');
+      expect(req1.request.body.filmId).toBe(filmId);
+      expect(req1.request.body.index).toBe(5);
+      req1.flush(mockResponse1);
+
+      // Wait for first upload to complete and second to start
+      await new Promise(resolve => setTimeout(resolve, 50));
+      expect(fileToBase64Spy).toHaveBeenCalledTimes(2); // Both files now
+      expect(onPhotoUploaded).toHaveBeenCalledTimes(1); // First callback called
+      expect(uploadedPhotos.length).toBe(1);
+      expect(uploadedPhotos[0].index).toBe(5);
+
+      // Second upload request (sequential - second file)
+      const req2 = httpMock.expectOne(`${baseUrl}`);
+      expect(req2.request.method).toBe('POST');
+      expect(req2.request.body.filmId).toBe(filmId);
+      expect(req2.request.body.index).toBe(10);
+      req2.flush(mockResponse2);
 
       // Wait for upload to complete
       await uploadPromise;
 
       // Assert after upload completes
       expect(uploadedPhotos.length).toBe(2);
-      // Order may vary with parallel uploads, so check both indices exist
-      const indices = uploadedPhotos.map(p => p.index).sort((a, b) => a - b);
-      expect(indices).toEqual([5, 10]);
+      expect(uploadedPhotos[0].index).toBe(5);
+      expect(uploadedPhotos[1].index).toBe(10);
       expect(onPhotoUploaded).toHaveBeenCalledTimes(2);
     }));
 
@@ -388,8 +325,8 @@ describe('PhotoService', () => {
         createMockPhoto('existing2', filmId, 8)
       ];
 
-      const mockResponse1 = { success: true, photo: createMockPhoto('photo1', filmId, 9) };
-      const mockResponse2 = { success: true, photo: createMockPhoto('photo2', filmId, 10) };
+      const mockResponse1 = createMockPhoto('photo1', filmId, 9);
+      const mockResponse2 = createMockPhoto('photo2', filmId, 10);
 
       const uploadedPhotos: PhotoDto[] = [];
       const onPhotoUploaded = (photo: PhotoDto) => {
@@ -399,41 +336,32 @@ describe('PhotoService', () => {
       // Act
       const uploadPromise = service.uploadMultiplePhotos(filmId, files, existingPhotos, onPhotoUploaded);
 
-      // First, handle the getUploadKey request
-      const keyRequest = httpMock.expectOne(`${baseUrl}/UploadKey?filmId=${filmId}`);
-      keyRequest.flush({ key: 'test-key', keyId: 'test-key-id' });
+      // Wait a bit for first file to be converted to base64
+      await new Promise(resolve => setTimeout(resolve, 50));
+      expect(fileToBase64Spy).toHaveBeenCalledTimes(1);
 
-      // Wait a bit for the spy to be called and base64 conversion to complete
+      // First upload request (sequential)
+      const req1 = httpMock.expectOne(`${baseUrl}`);
+      expect(req1.request.body.index).toBe(9);
+      req1.flush(mockResponse1);
+
+      // Wait for first upload to complete and second to start
       await new Promise(resolve => setTimeout(resolve, 50));
       expect(fileToBase64Spy).toHaveBeenCalledTimes(2);
+      expect(uploadedPhotos.length).toBe(1);
+      expect(uploadedPhotos[0].index).toBe(9);
 
-      // Poll for upload requests
-      let req1: any = null;
-      let req2: any = null;
-      let attempts = 0;
-      const maxAttempts = 30;
-      while ((!req1 || !req2) && attempts < maxAttempts) {
-        await new Promise(resolve => setTimeout(resolve, 50));
-        const requests = httpMock.match((req) => {
-          const fullUrl = (req.urlWithParams || req.url || '').toString();
-          return fullUrl.includes('/api/photo/upload') && req.method === 'POST';
-        });
-        if (!req1) req1 = requests.find((r: any) => r.request.body.index === 9);
-        if (!req2) req2 = requests.find((r: any) => r.request.body.index === 10);
-        attempts++;
-      }
-      
-      expect(req1).toBeDefined('Request 1 (index 9) should be found');
-      expect(req2).toBeDefined('Request 2 (index 10) should be found');
-      req1!.flush(mockResponse1);
-      req2!.flush(mockResponse2);
+      // Second upload request (sequential)
+      const req2 = httpMock.expectOne(`${baseUrl}`);
+      expect(req2.request.body.index).toBe(10);
+      req2.flush(mockResponse2);
 
       // Wait for upload to complete
       await uploadPromise;
 
       expect(uploadedPhotos.length).toBe(2);
-      const indices = uploadedPhotos.map(p => p.index).sort((a, b) => a - b);
-      expect(indices).toEqual([9, 10]);
+      expect(uploadedPhotos[0].index).toBe(9);
+      expect(uploadedPhotos[1].index).toBe(10);
     }));
 
     it('should sort files by index before uploading', waitForAsync(async () => {
@@ -561,8 +489,7 @@ describe('PhotoService', () => {
       const files = [file1, file2];
       const existingPhotos: PhotoDto[] = [];
 
-      const mockResponse1 = { success: true, photo: createMockPhoto('photo1', filmId, 1) };
-      const mockResponse2 = { success: false, error: 'Upload failed' };
+      const mockResponse1 = createMockPhoto('photo1', filmId, 1);
 
       const uploadedPhotos: PhotoDto[] = [];
       const onPhotoUploaded = (photo: PhotoDto) => {
@@ -572,34 +499,23 @@ describe('PhotoService', () => {
       // Act
       const uploadPromise = service.uploadMultiplePhotos(filmId, files, existingPhotos, onPhotoUploaded);
 
-      // First, handle the getUploadKey request
-      const keyRequest = httpMock.expectOne(`${baseUrl}/UploadKey?filmId=${filmId}`);
-      keyRequest.flush({ key: 'test-key', keyId: 'test-key-id' });
-
-      // Wait a bit for the spy to be called and base64 conversion to complete
+      // Wait for first file conversion
       await new Promise(resolve => setTimeout(resolve, 50));
-      expect(fileToBase64Spy).toHaveBeenCalledTimes(2);
+      expect(fileToBase64Spy).toHaveBeenCalledTimes(1);
 
-      // Poll for upload requests
-      let req1: any = null;
-      let req2: any = null;
-      let attempts = 0;
-      const maxAttempts = 30;
-      while ((!req1 || !req2) && attempts < maxAttempts) {
-        await new Promise(resolve => setTimeout(resolve, 50));
-        const requests = httpMock.match((req) => {
-          const fullUrl = (req.urlWithParams || req.url || '').toString();
-          return fullUrl.includes('/api/photo/upload') && req.method === 'POST';
-        });
-        if (!req1) req1 = requests.find((r: any) => r.request.body.index === 1);
-        if (!req2) req2 = requests.find((r: any) => r.request.body.index === 2);
-        attempts++;
-      }
-      
-      expect(req1).toBeDefined('Request 1 (index 1) should be found');
-      expect(req2).toBeDefined('Request 2 (index 2) should be found');
-      req1!.flush(mockResponse1);
-      req2!.flush(mockResponse2);
+      // First upload (success)
+      const req1 = httpMock.expectOne(`${baseUrl}`);
+      expect(req1.request.body.index).toBe(1);
+      req1.flush(mockResponse1);
+
+      await new Promise(resolve => setTimeout(resolve, 50));
+      expect(uploadedPhotos.length).toBe(1);
+      expect(uploadedPhotos[0].index).toBe(1);
+
+      // Second upload (failure)
+      const req2 = httpMock.expectOne(`${baseUrl}`);
+      expect(req2.request.body.index).toBe(2);
+      req2.flush(null, { status: 500, statusText: 'Internal Server Error' });
 
       // Wait for upload to complete and get results
       const results = await uploadPromise;
@@ -608,7 +524,6 @@ describe('PhotoService', () => {
       expect(results.length).toBe(2);
       expect(results[0].success).toBe(true);
       expect(results[1].success).toBe(false);
-      expect(results[1].error).toBe('Upload failed');
       expect(uploadedPhotos.length).toBe(1); // Only successful upload triggers callback
     }));
   });
