@@ -102,11 +102,33 @@ jobs:
         SQL_CONNECTION_STRING: ${{ env.SQL_CONNECTION_STRING }}
       with:
         inlineScript: |
+          # First, update the image and environment variables
           az containerapp update \
             --name ${{ env.CONTAINER_APP_NAME }} \
             --resource-group ${{ env.RESOURCE_GROUP }} \
             --image ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ github.sha }} \
             --set-env-vars FRONTEND_URL=https://analogagenda.site ConnectionStrings__analogagendadb="$SQL_CONNECTION_STRING"
+          
+          # Configure resources and scaling for photo uploads
+          # Scale up automatically during uploads, scale down when idle
+          az containerapp update \
+            --name ${{ env.CONTAINER_APP_NAME }} \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --min-replicas 1 \
+            --max-replicas 5 \
+            --cpu 2.0 \
+            --memory 4.0Gi
+          
+          # Configure HTTP-based auto-scaling rule
+          # This will automatically scale up when concurrent requests increase (like during photo uploads)
+          # and scale down when traffic decreases
+          # Scale out when concurrent requests exceed 5 per replica
+          az containerapp update \
+            --name ${{ env.CONTAINER_APP_NAME }} \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --scale-rule-name http-scale \
+            --scale-rule-type http \
+            --scale-rule-http-concurrency 5
 
     - name: Get Container App URL
       uses: azure/CLI@v2

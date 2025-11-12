@@ -138,8 +138,11 @@ public class PhotoController(
                 await databaseService.UpdateAsync(filmEntity);
             }
 
-            // Additional GC after entity creation (memory should already be mostly freed)
-            GC.Collect(GC.MaxGeneration, GCCollectionMode.Optimized);
+            // Final aggressive GC after all operations complete
+            // This ensures memory is freed before the next request
+            GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced, blocking: true);
+            GC.WaitForPendingFinalizers();
+            GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced, blocking: true);
 
             var createdDto = entity.ToDTO(storageCfg.AccountName);
             return Ok(createdDto);

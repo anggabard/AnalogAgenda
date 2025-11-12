@@ -47,7 +47,9 @@ function getServerErrorMessage(error: HttpErrorResponse): string {
     case 500:
       return 'An internal server error occurred. Please try again later.';
     case 503:
-      return 'Service temporarily unavailable. Please try again later.';
+      return 'Service temporarily unavailable. The server is processing your request. Please wait...';
+    case 507:
+      return 'Server is processing photos. Please wait a moment and the upload will continue...';
     default:
       return error.message || 'An unexpected error occurred';
   }
@@ -64,9 +66,14 @@ function handleHttpErrorStatus(status: number): void {
       console.warn('Access denied');
       break;
     case 500:
-    case 503:
       // Could redirect to error page for server errors
       console.error('Server error occurred');
+      break;
+    case 503:
+    case 507:
+      // These are temporary server overload errors - don't treat as authentication failure
+      // The upload service will handle retries
+      console.warn(`Server temporarily unavailable (${status}) - upload will retry`);
       break;
   }
 }
