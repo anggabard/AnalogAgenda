@@ -19,7 +19,6 @@ public static class BlobImageHelper
     {
         var blobClient = blobContainerClient.GetBlobClient(blobName.ToString());
 
-        // Force GC for large images on memory-constrained plans (Y1 Consumption)
         // Check size before clearing reference
         var wasLargeImage = imageBytes != null && imageBytes.Length > 10_000_000; // 10MB threshold
 

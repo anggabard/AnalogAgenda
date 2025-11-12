@@ -51,7 +51,7 @@ export class PhotoService extends BaseService {
    * @param files The files to upload
    * @param existingPhotos Existing photos for the film (to calculate next available index)
    * @param onPhotoUploaded Optional callback called after each photo uploads successfully
-   * @param concurrency Number of parallel uploads (default: 6, matches scaling rule)
+   * @param concurrency Number of parallel uploads (default: 5, matches scaling rule)
    * @returns Promise that resolves with array of upload results
    */
   async uploadMultiplePhotos(
@@ -59,7 +59,7 @@ export class PhotoService extends BaseService {
     files: FileList | File[],
     existingPhotos: PhotoDto[],
     onPhotoUploaded?: (uploadedPhoto: PhotoDto) => void,
-    concurrency: number = 6
+    concurrency: number = 5
   ): Promise<Array<{ success: boolean; photo?: PhotoDto; error?: string }>> {
     const fileArray = Array.from(files);
 

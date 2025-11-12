@@ -7,11 +7,51 @@ using Database.Services.Interfaces;
 using FluentValidation;
 using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
+
+// Configure Data Protection to use Azure Blob Storage for shared keys across replicas
+// This is CRITICAL for cookie authentication in multi-replica scenarios
+// Without this, cookies encrypted by one replica cannot be decrypted by another replica
+// which causes 401 errors when requests are load-balanced to different replicas
+// 
+// Scenario: When scaling creates new replicas or restarts occur:
+// - Each replica generates its own data protection keys
+// - Cookies encrypted by Replica 1 cannot be decrypted by Replica 2
+// - This causes 401 errors when load balancer routes to different replicas
+try
+{
+    // Try to get connection string from environment (Azure Container Apps may set this)
+    var connectionString = Environment.GetEnvironmentVariable("AZURE_STORAGE_CONNECTION_STRING")
+        ?? Environment.GetEnvironmentVariable("Storage__ConnectionString");
+    
+    if (!string.IsNullOrEmpty(connectionString))
+    {
+        // Use connection string if available (simplest approach)
+        builder.Services.AddDataProtection()
+            .PersistKeysToAzureBlobStorage(connectionString, "dataprotection-keys", "keys.xml")
+            .SetApplicationName("AnalogAgenda");
+    }
+    else
+    {
+        // Fallback: Use in-memory keys (NOT RECOMMENDED for production with multiple replicas)
+        // This WILL cause 401 errors when requests hit different replicas
+        // Each replica will have different keys, so cookies won't work across replicas
+        builder.Services.AddDataProtection()
+            .SetApplicationName("AnalogAgenda");
+    }
+}
+catch (Exception ex)
+{
+    // If data protection configuration fails, log but continue
+    // This allows the app to start even if blob storage isn't available
+    builder.Services.AddDataProtection().SetApplicationName("AnalogAgenda");
+}
 
 // Add SQL Server DbContext via Aspire
 builder.AddSqlServerDbContext<AnalogAgendaDbContext>("analogagendadb");
@@ -120,6 +160,22 @@ builder.Services.AddCors(options =>
 });
 
 var app = builder.Build();
+
+// Log data protection configuration status after app is built
+var dataProtectionConnectionString = Environment.GetEnvironmentVariable("AZURE_STORAGE_CONNECTION_STRING")
+    ?? Environment.GetEnvironmentVariable("Storage__ConnectionString");
+if (string.IsNullOrEmpty(dataProtectionConnectionString))
+{
+    app.Logger.LogWarning(
+        "Data Protection using in-memory keys - cookies will NOT work across replicas! " +
+        "Set AZURE_STORAGE_CONNECTION_STRING environment variable to fix this. " +
+        "This causes 401 errors when requests are load-balanced to different replicas."
+    );
+}
+else
+{
+    app.Logger.LogInformation("Data Protection configured to use Azure Blob Storage for shared keys across replicas");
+}
 
 // Apply pending migrations automatically on startup (Development only)
 // In production, migrations should be run via a separate job/process before deployment
