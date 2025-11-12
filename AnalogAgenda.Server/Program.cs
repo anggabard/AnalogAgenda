@@ -8,7 +8,6 @@ using FluentValidation;
 using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -153,9 +152,6 @@ if (app.Environment.IsDevelopment())
 }
 
 app.MapDefaultEndpoints();
-
-// Add global exception handling middleware early in the pipeline
-app.UseMiddleware<GlobalExceptionMiddleware>();
 
 // CORS must be before authentication/authorization to handle OPTIONS preflight requests
 // Always use CORS for Aspire and production

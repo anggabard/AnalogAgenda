@@ -1,4 +1,4 @@
-import { provideHttpClient, withInterceptors } from '@angular/common/http';
+import { provideHttpClient } from '@angular/common/http';
 import { NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 import { SharedModule } from '../shared.module';
@@ -8,7 +8,6 @@ import { FilmSearchComponent } from './components/films/film-search/film-search.
 import { CardListComponent } from './components/common/card-list/card-list.component';
 import { TimeInputComponent } from './components/common/time-input/time-input.component';
 import { MainLayoutComponent, AuthLayoutComponent} from './layouts';
-import { errorInterceptor } from './interceptors/error.interceptor';
 
 @NgModule({
   declarations: [
@@ -39,7 +38,7 @@ import { errorInterceptor } from './interceptors/error.interceptor';
     FilmSearchComponent
   ],
   providers: [
-    provideHttpClient(withInterceptors([errorInterceptor]))
+    provideHttpClient()
   ],
   bootstrap: [AppComponent]
 })
