@@ -1,4 +1,5 @@
 using AnalogAgenda.Server.Identity;
+using AnalogAgenda.Server.Services.Interfaces;
 using Azure.Storage.Blobs;
 using Configuration.Sections;
 using Database.DBObjects;
@@ -14,11 +15,12 @@ using System.Linq.Expressions;
 namespace AnalogAgenda.Server.Controllers;
 
 [Route("api/[controller]"), ApiController, Authorize]
-public class FilmController(Storage storageCfg, IDatabaseService databaseService, IBlobService blobsService) : ControllerBase
+public class FilmController(Storage storageCfg, IDatabaseService databaseService, IBlobService blobsService, IImageCacheService imageCacheService) : ControllerBase
 {
     private readonly Storage storageCfg = storageCfg;
     private readonly IDatabaseService databaseService = databaseService;
     private readonly IBlobService blobsService = blobsService;
+    private readonly IImageCacheService imageCacheService = imageCacheService;
     private readonly BlobContainerClient filmsContainer = blobsService.GetBlobContainer(ContainerName.films);
 
     [HttpPost]
@@ -264,10 +266,12 @@ public class FilmController(Storage storageCfg, IDatabaseService databaseService
         
         foreach (var photo in photos)
         {
-            // Delete the blob
+            // Delete the image blob and preview blob
             if (photo.ImageId != Guid.Empty)
             {
                 await photosContainer.GetBlobClient(photo.ImageId.ToString()).DeleteIfExistsAsync();
+                await photosContainer.GetBlobClient($"preview/{photo.ImageId}").DeleteIfExistsAsync();
+                imageCacheService.RemovePreview(photo.ImageId);
             }
             
             // Delete the table entry
