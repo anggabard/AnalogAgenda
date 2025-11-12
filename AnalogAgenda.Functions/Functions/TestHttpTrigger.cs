@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System.Net;
 
-namespace AnalogAgenda.Functions
+namespace AnalogAgenda.Functions.Functions
 {
     public class TestHttpTrigger(
         ILoggerFactory loggerFactory,

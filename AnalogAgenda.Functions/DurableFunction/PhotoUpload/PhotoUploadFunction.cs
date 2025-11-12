@@ -8,14 +8,13 @@ using Database.Services.Interfaces;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
-using Microsoft.DurableTask;
 using Microsoft.DurableTask.Client;
 using Microsoft.DurableTask.Entities;
 using Microsoft.Extensions.Logging;
 using System.Net;
 using System.Text.Json;
 
-namespace AnalogAgenda.Functions;
+namespace AnalogAgenda.Functions.DurableFunction.PhotoUpload;
 
 public class PhotoUploadFunction(
     ILoggerFactory loggerFactory,
@@ -321,70 +320,5 @@ public class PhotoUploadFunction(
         var existingPhotos = await databaseService.GetAllAsync<PhotoEntity>(p => p.FilmId == filmId);
         return existingPhotos.ToArray();
     }
-
 }
 
-// DTOs
-
-public class PhotoUploadActivityInput
-{
-    public required string FilmId { get; set; }
-    public required string ImageBase64 { get; set; }
-    public required int Index { get; set; }
-    public required string StorageAccountName { get; set; }
-}
-
-public class PhotoUploadActivityResult
-{
-    public bool Success { get; set; }
-    public PhotoDto? Photo { get; set; }
-    public string? ErrorMessage { get; set; }
-}
-
-// Entity class for aggregating photo upload state
-public class PhotoUploadBatchEntity
-{
-    public int ProcessedCount { get; set; }
-    public int SuccessCount { get; set; }
-    public int FailureCount { get; set; }
-    public string? FilmId { get; set; }
-
-    public void RecordPhotoProcessed(RecordPhotoProcessedInput input)
-    {
-        ProcessedCount++;
-        if (input.Success)
-        {
-            SuccessCount++;
-        }
-        else
-        {
-            FailureCount++;
-        }
-        FilmId = input.FilmId;
-    }
-
-    public BatchStatus GetStatus()
-    {
-        return new BatchStatus
-        {
-            ProcessedCount = ProcessedCount,
-            SuccessCount = SuccessCount,
-            FailureCount = FailureCount,
-            FilmId = FilmId
-        };
-    }
-}
-
-public class BatchStatus
-{
-    public int ProcessedCount { get; set; }
-    public int SuccessCount { get; set; }
-    public int FailureCount { get; set; }
-    public string? FilmId { get; set; }
-}
-
-public class RecordPhotoProcessedInput
-{
-    public bool Success { get; set; }
-    public required string FilmId { get; set; }
-}

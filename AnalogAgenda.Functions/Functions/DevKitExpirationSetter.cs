@@ -5,7 +5,7 @@ using Database.Services.Interfaces;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
 
-namespace AnalogAgenda.Functions;
+namespace AnalogAgenda.Functions.Functions;
 
 public class DevKitExpirationSetter(ILoggerFactory loggerFactory, IDatabaseService databaseService, IEmailSender emailSender)
 {
