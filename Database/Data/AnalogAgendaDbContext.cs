@@ -21,7 +21,6 @@ public class AnalogAgendaDbContext : DbContext
     public DbSet<SessionEntity> Sessions { get; set; }
     public DbSet<UsedFilmThumbnailEntity> UsedFilmThumbnails { get; set; }
     public DbSet<UsedDevKitThumbnailEntity> UsedDevKitThumbnails { get; set; }
-    public DbSet<KeyEntity> Keys { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -190,16 +189,6 @@ public class AnalogAgendaDbContext : DbContext
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Id).HasMaxLength(50);
             entity.Property(e => e.DevKitName).IsRequired().HasMaxLength(200);
-        });
-
-        // Configure KeyEntity
-        modelBuilder.Entity<KeyEntity>(entity =>
-        {
-            entity.ToTable("Keys");
-            entity.HasKey(e => e.Id);
-            entity.Property(e => e.Id).HasMaxLength(4);
-            entity.Property(e => e.Key).IsRequired().HasMaxLength(16);
-            entity.Property(e => e.ExpirationDate).IsRequired();
         });
     }
 }

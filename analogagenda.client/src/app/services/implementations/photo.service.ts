@@ -1,32 +1,15 @@
-import { Injectable, inject } from '@angular/core';
-import { PhotoDto, PhotoCreateDto, UploadKeyDto } from '../../DTOs';
+import { Injectable } from '@angular/core';
+import { PhotoDto, PhotoCreateDto } from '../../DTOs';
 import { Observable, lastValueFrom } from 'rxjs';
 import { BaseService } from '../base.service';
 import { FileUploadHelper } from '../../helpers/file-upload.helper';
-import { HttpClient } from '@angular/common/http';
-import { environment } from '../../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class PhotoService extends BaseService {
-  private http = inject(HttpClient);
-
   constructor() { super('Photo'); }
 
-  // Get upload key for a film
-  getUploadKey(filmId: string): Observable<UploadKeyDto> {
-    return this.get<UploadKeyDto>(`UploadKey?filmId=${filmId}`);
-  }
-
-  // Create a single photo via Azure Function
-  createPhoto(photoDto: PhotoCreateDto, key: string, keyId: string): Observable<PhotoDto> {
-    const url = `${environment.functionsUrl}/api/photo/upload?Key=${encodeURIComponent(key)}&KeyId=${encodeURIComponent(keyId)}`;
-    // Don't use withCredentials for Azure Function (different domain, CORS handled by Function)
-    return this.http.post<PhotoDto>(url, photoDto, {
-      withCredentials: false
-    });
-  }
 
   // Get all photos for a specific film
   getPhotosByFilmId(filmId: string): Observable<PhotoDto[]> {
@@ -61,7 +44,7 @@ export class PhotoService extends BaseService {
   }
 
   /**
-   * Upload multiple photos using the aggregator pattern - sends individual requests in parallel
+   * Upload multiple photos sequentially to the backend API
    * @param filmId The ID of the film
    * @param files The files to upload
    * @param existingPhotos Existing photos for the film (to calculate next available index)
@@ -74,9 +57,6 @@ export class PhotoService extends BaseService {
     existingPhotos: PhotoDto[],
     onPhotoUploaded?: (uploadedPhoto: PhotoDto) => void
   ): Promise<Array<{ success: boolean; photo?: PhotoDto; error?: string }>> {
-    // Get upload key and keyId first
-    const { key, keyId } = await lastValueFrom(this.getUploadKey(filmId));
-
     const fileArray = Array.from(files);
 
     // Extract indices from filenames
@@ -99,46 +79,46 @@ export class PhotoService extends BaseService {
       : 0;
     let nextAvailableIndex = maxExistingIndex + 1;
 
-    // Convert all files to base64 and create PhotoCreateDto array
-    const photoDtos: PhotoCreateDto[] = await Promise.all(
-      filesWithIndices.map(async ({ file, index }) => {
+    const results: Array<{ success: boolean; photo?: PhotoDto; error?: string }> = [];
+
+    // Process files sequentially (one at a time)
+    for (const { file, index } of filesWithIndices) {
+      try {
+        // Convert file to base64
         const base64 = await FileUploadHelper.fileToBase64(file);
+        
         // If index is null, assign next available index
         const assignedIndex = index !== null ? index : nextAvailableIndex++;
-        return {
+        
+        const photoDto: PhotoCreateDto = {
           filmId: filmId,
           imageBase64: base64,
           index: assignedIndex
         };
-      })
-    );
 
-    // Send individual requests in parallel
-    const url = `${environment.functionsUrl}/api/photo/upload?Key=${encodeURIComponent(key)}&KeyId=${encodeURIComponent(keyId)}`;
-    const uploadPromises = photoDtos.map(async (photoDto, index) => {
-      try {
-        const response = await lastValueFrom(
-          this.http.post<{ success: boolean; photo?: PhotoDto; error?: string }>(url, photoDto, {
-            withCredentials: false
-          })
+        // Send request to backend API (sequential - wait for each to complete)
+        const uploadedPhoto = await lastValueFrom(
+          this.post<PhotoDto>('', photoDto)
         );
         
-        if (response.success && response.photo && onPhotoUploaded) {
-          onPhotoUploaded(response.photo);
+        // Call callback immediately after successful upload
+        if (onPhotoUploaded) {
+          onPhotoUploaded(uploadedPhoto);
         }
         
-        return response;
+        results.push({
+          success: true,
+          photo: uploadedPhoto
+        });
       } catch (error: any) {
         const errorMessage = error?.error?.error || error?.message || 'Unknown error';
-        return {
+        results.push({
           success: false,
           error: errorMessage
-        };
+        });
       }
-    });
+    }
 
-    // Wait for all uploads to complete
-    const results = await Promise.all(uploadPromises);
     return results;
   }
 }

@@ -20,7 +20,6 @@ export class FilmPhotosComponent implements OnInit {
   photos: PhotoDto[] = [];
   loading = true;
   errorMessage: string | null = null;
-  private photosManuallySet = false; // Flag to prevent loadFilmAndPhotos from overwriting manually set photos
   
   // Preview modal
   isPreviewModalOpen = false;
@@ -35,6 +34,7 @@ export class FilmPhotosComponent implements OnInit {
   
   // Upload loading state
   uploadLoading = false;
+  uploadProgress: { current: number; total: number } = { current: 0, total: 0 };
   
   // Touch handling
   private touchStartX = 0;
@@ -58,23 +58,14 @@ export class FilmPhotosComponent implements OnInit {
       this.filmService.getById(this.filmId).toPromise(),
       this.photoService.getPhotosByFilmId(this.filmId).toPromise()
     ]).then(([film, photos]) => {
-      // Only update if we're still loading and photos weren't manually set (e.g., during tests)
-      // Also check if photos array already has content (manually set in tests)
-      if (this.loading && !this.photosManuallySet && this.photos.length === 0) {
-        this.film = film || null;
-        this.photos = photos || [];
-        // Sort photos by index to ensure consistent order
-        this.photos.sort((a, b) => a.index - b.index);
-        this.loading = false;
-      } else if (this.loading) {
-        // If loading but photos were manually set or already exist, just update loading state
-        this.loading = false;
-      }
+      this.film = film || null;
+      this.photos = photos || [];
+      // Sort photos by index to ensure consistent order
+      this.photos.sort((a, b) => a.index - b.index);
+      this.loading = false;
     }).catch(error => {
-      if (this.loading && !this.photosManuallySet) {
-        this.errorMessage = 'Error loading film photos.';
-        this.loading = false;
-      }
+      this.errorMessage = 'Error loading film photos.';
+      this.loading = false;
     });
   }
 
@@ -148,10 +139,7 @@ export class FilmPhotosComponent implements OnInit {
           // Remove photo from local array
           const deletedPhotoId = this.currentPreviewPhoto!.id;
           const deletedIndex = this.currentPhotoIndex;
-          const originalLength = this.photos.length;
           this.photos = this.photos.filter(p => p.id !== deletedPhotoId);
-          // Mark photos as manually modified to prevent loadFilmAndPhotos from overwriting
-          this.photosManuallySet = true;
           
           this.closeDeleteModal();
           
@@ -160,17 +148,18 @@ export class FilmPhotosComponent implements OnInit {
             this.closePreview();
           } else {
             // Adjust index: if we deleted the last photo, move to the new last photo
-            // Otherwise, the current index now points to the next photo (or is out of bounds)
+            // Otherwise, stay at the same position (which now points to the next photo)
             if (deletedIndex >= this.photos.length) {
-              // Deleted the last photo (or beyond), move to new last photo
               this.currentPhotoIndex = this.photos.length - 1;
-            } else {
-              // Deleted a photo before the end, stay at same index (now points to next photo)
-              this.currentPhotoIndex = deletedIndex;
             }
-            // Ensure index is valid and set the preview photo
-            this.currentPhotoIndex = Math.max(0, Math.min(this.currentPhotoIndex, this.photos.length - 1));
-            this.currentPreviewPhoto = this.photos[this.currentPhotoIndex];
+            // Ensure we have a valid photo at the current index
+            if (this.currentPhotoIndex >= 0 && this.currentPhotoIndex < this.photos.length) {
+              this.currentPreviewPhoto = this.photos[this.currentPhotoIndex];
+            } else {
+              // Fallback: set to last photo if index is invalid
+              this.currentPhotoIndex = this.photos.length - 1;
+              this.currentPreviewPhoto = this.photos[this.currentPhotoIndex];
+            }
           }
         },
         error: (err) => {
@@ -240,13 +229,19 @@ export class FilmPhotosComponent implements OnInit {
     this.uploadLoading = true;
     this.errorMessage = null;
     
+    // Initialize upload progress counter
+    this.uploadProgress = { current: 0, total: files.length };
+    
     try {
-      // Upload photos in parallel - each request processes individually
+      // Upload photos sequentially - one at a time
       const results = await this.photoService.uploadMultiplePhotos(
         this.filmId,
         files,
         this.photos,
         (uploadedPhoto) => {
+          // Update progress counter
+          this.uploadProgress.current++;
+          
           // Add photo to the array immediately when it uploads successfully
           if (uploadedPhoto) {
             // Check if photo already exists (in case of duplicate uploads)
@@ -255,8 +250,6 @@ export class FilmPhotosComponent implements OnInit {
               this.photos.push(uploadedPhoto);
               // Sort photos by index to maintain order
               this.photos.sort((a, b) => a.index - b.index);
-              // Mark photos as manually modified to prevent loadFilmAndPhotos from overwriting
-              this.photosManuallySet = true;
             }
           }
         }
