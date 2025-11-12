@@ -61,11 +61,9 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         
         // Enable sliding expiration to refresh cookie during long operations (like bulk uploads)
         // This prevents 401 errors during long-running upload sessions
+        // With sliding expiration, the cookie is automatically refreshed on each authenticated request
+        // The expiration time is reset to the full ExpireTimeSpan (7 days) on each request
         opt.SlidingExpiration = true;
-        
-        // Validate the authentication ticket every 30 minutes
-        // This ensures cookies are refreshed during long upload operations
-        opt.ValidateInterval = TimeSpan.FromMinutes(30);
 
         opt.Events.OnRedirectToLogin = context =>
         {
