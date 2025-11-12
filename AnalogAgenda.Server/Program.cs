@@ -69,14 +69,14 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         opt.Events.OnRedirectToLogin = context =>
         {
             // Log authentication failures to help diagnose 401 issues during uploads
-            var logger = context.RequestServices.GetRequiredService<ILogger<Program>>();
+            var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
             logger.LogWarning(
                 "Authentication failed - redirecting to login. Path: {Path}, Method: {Method}, HasCookie: {HasCookie}",
-                context.Request.Path,
-                context.Request.Method,
-                context.Request.Cookies.ContainsKey(".AnalogAgenda.Auth")
+                context.HttpContext.Request.Path,
+                context.HttpContext.Request.Method,
+                context.HttpContext.Request.Cookies.ContainsKey(".AnalogAgenda.Auth")
             );
-            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+            context.HttpContext.Response.StatusCode = StatusCodes.Status401Unauthorized;
             return Task.CompletedTask;
         };
         opt.Events.OnRedirectToAccessDenied = context =>

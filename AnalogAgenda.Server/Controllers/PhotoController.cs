@@ -20,7 +20,6 @@ public class PhotoController(
 {
     private readonly Storage storageCfg = storageCfg;
     private readonly IDatabaseService databaseService = databaseService;
-    private readonly IBlobService blobsService = blobsService;
     private readonly BlobContainerClient photosContainer = blobsService.GetBlobContainer(
         ContainerName.photos
     );
