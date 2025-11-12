@@ -61,20 +61,19 @@ export class PhotoService extends BaseService {
   }
 
   /**
-   * Upload multiple photos in parallel with smart indexing and live callback
-   * (Azure Functions can handle parallel uploads with auto-scaling)
+   * Upload multiple photos using the aggregator pattern - sends individual requests in parallel
    * @param filmId The ID of the film
    * @param files The files to upload
    * @param existingPhotos Existing photos for the film (to calculate next available index)
    * @param onPhotoUploaded Optional callback called after each photo uploads successfully
-   * @returns Promise that resolves when all uploads complete
+   * @returns Promise that resolves with array of upload results
    */
   async uploadMultiplePhotos(
     filmId: string,
     files: FileList | File[],
     existingPhotos: PhotoDto[],
-    onPhotoUploaded?: (uploadedPhoto: PhotoDto, current: number, total: number) => void
-  ): Promise<void> {
+    onPhotoUploaded?: (uploadedPhoto: PhotoDto) => void
+  ): Promise<Array<{ success: boolean; photo?: PhotoDto; error?: string }>> {
     // Get upload key and keyId first
     const { key, keyId } = await lastValueFrom(this.getUploadKey(filmId));
 
@@ -94,33 +93,52 @@ export class PhotoService extends BaseService {
       return a.index - b.index;
     });
 
-    // Calculate next available index for files without explicit indices
-    const nextAvailableIndex = existingPhotos.length === 0 
-      ? 1 
-      : Math.max(...existingPhotos.map(p => p.index)) + 1;
-    let currentAutoIndex = nextAvailableIndex;
+    // Calculate next available index for files without indices
+    const maxExistingIndex = existingPhotos.length > 0 
+      ? Math.max(...existingPhotos.map(p => p.index))
+      : 0;
+    let nextAvailableIndex = maxExistingIndex + 1;
 
-    // Prepare all upload promises
-    const uploadPromises = filesWithIndices.map(async ({ file, index }, fileIndex) => {
-      const base64 = await FileUploadHelper.fileToBase64(file);
+    // Convert all files to base64 and create PhotoCreateDto array
+    const photoDtos: PhotoCreateDto[] = await Promise.all(
+      filesWithIndices.map(async ({ file, index }) => {
+        const base64 = await FileUploadHelper.fileToBase64(file);
+        // If index is null, assign next available index
+        const assignedIndex = index !== null ? index : nextAvailableIndex++;
+        return {
+          filmId: filmId,
+          imageBase64: base64,
+          index: assignedIndex
+        };
+      })
+    );
 
-      const photoDto: PhotoCreateDto = {
-        filmId: filmId,
-        imageBase64: base64,
-        index: index !== null ? index : currentAutoIndex++
-      };
-
-      // Upload via Function with key and keyId
-      const uploadedPhoto = await lastValueFrom(this.createPhoto(photoDto, key, keyId));
-      
-      if (onPhotoUploaded) {
-        onPhotoUploaded(uploadedPhoto, fileIndex + 1, fileArray.length);
+    // Send individual requests in parallel
+    const url = `${environment.functionsUrl}/api/photo/upload?Key=${encodeURIComponent(key)}&KeyId=${encodeURIComponent(keyId)}`;
+    const uploadPromises = photoDtos.map(async (photoDto, index) => {
+      try {
+        const response = await lastValueFrom(
+          this.http.post<{ success: boolean; photo?: PhotoDto; error?: string }>(url, photoDto, {
+            withCredentials: false
+          })
+        );
+        
+        if (response.success && response.photo && onPhotoUploaded) {
+          onPhotoUploaded(response.photo);
+        }
+        
+        return response;
+      } catch (error: any) {
+        const errorMessage = error?.error?.error || error?.message || 'Unknown error';
+        return {
+          success: false,
+          error: errorMessage
+        };
       }
-      
-      return uploadedPhoto;
     });
 
-    // Wait for all uploads to complete (Functions auto-scale to handle parallel requests)
-    await Promise.all(uploadPromises);
+    // Wait for all uploads to complete
+    const results = await Promise.all(uploadPromises);
+    return results;
   }
 }

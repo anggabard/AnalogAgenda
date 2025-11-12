@@ -20,12 +20,7 @@
     <p>No photos found for this film.</p>
     <button class="add-photos-btn" [disabled]="uploadLoading" (click)="onUploadPhotos()">
       <span class="button-content" [class.loading]="uploadLoading">
-        <ng-container *ngIf="uploadLoading && uploadTotal > 0">
-          📸 Uploading {{ uploadProgress }}/{{ uploadTotal }}
-        </ng-container>
-        <ng-container *ngIf="!uploadLoading || uploadTotal === 0">
-          📸 Add Photos
-        </ng-container>
+        📸 Add Photos
       </span>
       <svg *ngIf="uploadLoading" class="button-spinner" viewBox="0 0 24 24">
         <circle class="spinner-bg" cx="12" cy="12" r="10" stroke-width="4"></circle>
@@ -43,12 +38,7 @@
       <div class="action-buttons">
         <button class="add-photos-btn" [disabled]="uploadLoading" (click)="onUploadPhotos()">
           <span class="button-content" [class.loading]="uploadLoading">
-            <ng-container *ngIf="uploadLoading && uploadTotal > 0">
-              📸 Uploading {{ uploadProgress }}/{{ uploadTotal }}
-            </ng-container>
-            <ng-container *ngIf="!uploadLoading || uploadTotal === 0">
-              📸 Add Photos
-            </ng-container>
+            📸 Add Photos
           </span>
           <svg *ngIf="uploadLoading" class="button-spinner" viewBox="0 0 24 24">
             <circle class="spinner-bg" cx="12" cy="12" r="10" stroke-width="4"></circle>

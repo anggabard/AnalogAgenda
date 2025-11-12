@@ -34,8 +34,6 @@ export class FilmPhotosComponent implements OnInit {
   
   // Upload loading state
   uploadLoading = false;
-  uploadProgress = 0;
-  uploadTotal = 0;
   
   // Touch handling
   private touchStartX = 0;
@@ -61,6 +59,8 @@ export class FilmPhotosComponent implements OnInit {
     ]).then(([film, photos]) => {
       this.film = film || null;
       this.photos = photos || [];
+      // Sort photos by index to ensure consistent order
+      this.photos.sort((a, b) => a.index - b.index);
       this.loading = false;
     }).catch(error => {
       this.errorMessage = 'Error loading film photos.';
@@ -70,7 +70,9 @@ export class FilmPhotosComponent implements OnInit {
 
   openPreview(photo: PhotoDto) {
     this.currentPreviewPhoto = photo;
-    this.currentPhotoIndex = this.photos.findIndex(p => p.id === photo.id);
+    const foundIndex = this.photos.findIndex(p => p.id === photo.id);
+    // Ensure index is valid, default to 0 if not found
+    this.currentPhotoIndex = foundIndex >= 0 ? foundIndex : 0;
     this.isPreviewModalOpen = true;
     
     // Focus the preview overlay to enable keyboard events
@@ -135,6 +137,7 @@ export class FilmPhotosComponent implements OnInit {
         next: () => {
           // Remove photo from local array
           const deletedPhotoId = this.currentPreviewPhoto!.id;
+          const deletedIndex = this.currentPhotoIndex;
           this.photos = this.photos.filter(p => p.id !== deletedPhotoId);
           
           this.closeDeleteModal();
@@ -143,11 +146,19 @@ export class FilmPhotosComponent implements OnInit {
           if (this.photos.length === 0) {
             this.closePreview();
           } else {
-            // Adjust index if we deleted the last photo
-            if (this.currentPhotoIndex >= this.photos.length) {
+            // Adjust index: if we deleted the last photo, move to the new last photo
+            // Otherwise, stay at the same position (which now points to the next photo)
+            if (deletedIndex >= this.photos.length) {
               this.currentPhotoIndex = this.photos.length - 1;
             }
-            this.currentPreviewPhoto = this.photos[this.currentPhotoIndex];
+            // Ensure we have a valid photo at the current index
+            if (this.currentPhotoIndex >= 0 && this.currentPhotoIndex < this.photos.length) {
+              this.currentPreviewPhoto = this.photos[this.currentPhotoIndex];
+            } else {
+              // Fallback: set to last photo if index is invalid
+              this.currentPhotoIndex = this.photos.length - 1;
+              this.currentPreviewPhoto = this.photos[this.currentPhotoIndex];
+            }
           }
         },
         error: (err) => {
@@ -216,40 +227,50 @@ export class FilmPhotosComponent implements OnInit {
   private async processPhotoUploads(files: FileList) {
     this.uploadLoading = true;
     this.errorMessage = null;
-    this.uploadProgress = 0;
-    this.uploadTotal = files.length;
     
     try {
-      await this.photoService.uploadMultiplePhotos(
+      // Upload photos in parallel - each request processes individually
+      const results = await this.photoService.uploadMultiplePhotos(
         this.filmId,
         files,
         this.photos,
-        (uploadedPhoto, current, total) => {
-          // Add photo to array immediately so it appears in the grid
-          this.photos.push(uploadedPhoto);
-          
-          // Sort photos by index to maintain correct order
-          this.photos.sort((a, b) => a.index - b.index);
-          
-          // Update progress
-          this.uploadProgress = current;
-          this.uploadTotal = total;
+        (uploadedPhoto) => {
+          // Add photo to the array immediately when it uploads successfully
+          if (uploadedPhoto) {
+            // Check if photo already exists (in case of duplicate uploads)
+            const existingIndex = this.photos.findIndex(p => p.id === uploadedPhoto.id);
+            if (existingIndex === -1) {
+              this.photos.push(uploadedPhoto);
+              // Sort photos by index to maintain order
+              this.photos.sort((a, b) => a.index - b.index);
+            }
+          }
         }
       );
 
-      // All uploads successful
+      // Count successes and failures
+      const successCount = results.filter(r => r.success).length;
+      const failureCount = results.filter(r => !r.success).length;
+
       this.uploadLoading = false;
-      this.uploadProgress = 0;
-      this.uploadTotal = 0;
+
+      if (failureCount > 0) {
+        this.errorMessage = `${successCount} photo(s) uploaded successfully, ${failureCount} failed.`;
+      }
+
+      // Reload film to ensure "developed" status is updated
+      this.filmService.getById(this.filmId).subscribe({
+        next: (film) => {
+          this.film = film || null;
+        },
+        error: () => {
+          // Ignore errors when reloading film
+        }
+      });
       
-      // Optionally reload to ensure sync with backend (in case of any discrepancies)
-      // This also ensures the film's "developed" status is updated
-      this.loadFilmAndPhotos();
-    } catch (err) {
+    } catch (err: any) {
       this.uploadLoading = false;
-      this.uploadProgress = 0;
-      this.uploadTotal = 0;
-      this.errorMessage = 'There was an error uploading the photos.';
+      this.errorMessage = 'There was an error uploading photos: ' + (err?.message || 'Unknown error');
     }
   }
 
