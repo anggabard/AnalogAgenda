@@ -161,6 +161,11 @@ public class PhotoUploadFunction(
 
             // Call activity function to process the photo
             var activityResult = await ProcessPhotoUploadAsync(activityInput);
+            
+            // Clear base64 from memory as soon as possible to reduce memory pressure
+            // Note: Setting to empty string helps GC, but can't set to null due to required property
+            photoDto.ImageBase64 = string.Empty;
+            activityInput.ImageBase64 = string.Empty;
 
             // Signal entity for tracking/aggregation
             // Entity ID format: entity name and instance key
@@ -250,28 +255,35 @@ public class PhotoUploadFunction(
 
             var imageId = Guid.NewGuid();
 
+            // Store base64 temporarily for processing
+            var base64Image = input.ImageBase64;
+
             // Upload full image
             await BlobImageHelper.UploadBase64ImageWithContentTypeAsync(
                 photosContainer,
-                input.ImageBase64,
+                base64Image,
                 imageId
             );
 
             // Generate and upload preview
             await BlobImageHelper.UploadPreviewImageAsync(
                 photosContainer,
-                input.ImageBase64,
+                base64Image,
                 imageId,
                 MaxPreviewDimension,
                 PreviewQuality
             );
 
-            // Create photo entity
+            // Clear base64 from memory immediately after processing to reduce memory pressure
+            base64Image = string.Empty;
+            input.ImageBase64 = string.Empty;
+
+            // Create photo entity (without base64 - image is already in blob storage)
             var photoDto = new PhotoDto
             {
                 FilmId = input.FilmId,
                 Index = input.Index,
-                ImageBase64 = input.ImageBase64,
+                ImageBase64 = string.Empty, // Don't store base64 in entity - it's in blob storage
             };
 
             var entity = photoDto.ToEntity();
