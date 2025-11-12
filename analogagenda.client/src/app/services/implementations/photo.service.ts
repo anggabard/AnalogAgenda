@@ -51,7 +51,7 @@ export class PhotoService extends BaseService {
    * @param files The files to upload
    * @param existingPhotos Existing photos for the film (to calculate next available index)
    * @param onPhotoUploaded Optional callback called after each photo uploads successfully
-   * @param concurrency Number of parallel uploads (default: 5, matches scaling rule)
+   * @param concurrency Number of parallel uploads (default: 6, matches scaling rule)
    * @returns Promise that resolves with array of upload results
    */
   async uploadMultiplePhotos(
@@ -59,7 +59,7 @@ export class PhotoService extends BaseService {
     files: FileList | File[],
     existingPhotos: PhotoDto[],
     onPhotoUploaded?: (uploadedPhoto: PhotoDto) => void,
-    concurrency: number = 5
+    concurrency: number = 6
   ): Promise<Array<{ success: boolean; photo?: PhotoDto; error?: string }>> {
     const fileArray = Array.from(files);
 
@@ -112,28 +112,23 @@ export class PhotoService extends BaseService {
           index: assignedIndex
         };
 
-        // Send request to backend API with retry logic for 503/507/401 errors
+        // Send request to backend API with retry logic for 503/507 errors only
+        // Note: 401 errors are NOT retried - if session is invalid, retrying won't help
+        // Sliding expiration should prevent 401s by refreshing cookies on each request
         const uploadedPhoto = await lastValueFrom(
           this.post<PhotoDto>('', photoDto).pipe(
             retryWhen(errors =>
               errors.pipe(
                 mergeMap((error: HttpErrorResponse, retryIndex: number) => {
-                  // Retry on 503 (Service Unavailable), 507 (Insufficient Storage), or 401 (Unauthorized)
-                  // 401 might occur during long uploads if cookie expires - retry to allow cookie refresh
-                  if ((error.status === 503 || error.status === 507 || error.status === 401) && retryIndex < 3) {
-                    let delayMs: number;
-                    if (error.status === 401) {
-                      // For 401, retry immediately on first attempt (cookie might refresh on next request)
-                      // Then use short delays for subsequent retries
-                      delayMs = retryIndex === 0 ? 0 : 500; // Immediate retry, then 500ms
-                    } else {
-                      // For 503/507, use exponential backoff: 2s, 4s, 8s
-                      delayMs = Math.pow(2, retryIndex + 1) * 1000;
-                    }
+                  // Only retry on 503 (Service Unavailable) or 507 (Insufficient Storage)
+                  // Do NOT retry 401 - if session is invalid, user needs to re-authenticate
+                  if ((error.status === 503 || error.status === 507) && retryIndex < 3) {
+                    // Exponential backoff: 2s, 4s, 8s
+                    const delayMs = Math.pow(2, retryIndex + 1) * 1000;
                     console.warn(`Upload failed with ${error.status}, retrying in ${delayMs}ms... (attempt ${retryIndex + 1}/3)`);
-                    return delayMs === 0 ? timer(0) : timer(delayMs);
+                    return timer(delayMs);
                   }
-                  // Don't retry for other errors or after max retries
+                  // Don't retry for other errors (including 401) or after max retries
                   return throwError(() => error);
                 })
               )

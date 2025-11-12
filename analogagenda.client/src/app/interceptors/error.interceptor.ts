@@ -58,9 +58,10 @@ function getServerErrorMessage(error: HttpErrorResponse): string {
 function handleHttpErrorStatus(status: number): void {
   switch (status) {
     case 401:
-      // Don't auto-redirect on 401 during uploads - let the upload service retry
-      // Guards will handle redirect for navigation, but we don't want to interrupt uploads
-      console.warn('Authentication required - upload service will handle retry');
+      // Don't auto-redirect on 401 - let guards handle redirect for navigation
+      // Upload service will handle 401s gracefully without retrying
+      // Sliding expiration should prevent 401s by refreshing cookies automatically
+      console.warn('Authentication required - session may have expired');
       break;
     case 403:
       // Could redirect to access denied page
