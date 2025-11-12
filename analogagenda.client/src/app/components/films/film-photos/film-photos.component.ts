@@ -34,8 +34,6 @@ export class FilmPhotosComponent implements OnInit {
   
   // Upload loading state
   uploadLoading = false;
-  uploadProgress = 0;
-  uploadTotal = 0;
   
   // Touch handling
   private touchStartX = 0;
@@ -216,8 +214,6 @@ export class FilmPhotosComponent implements OnInit {
   private async processPhotoUploads(files: FileList) {
     this.uploadLoading = true;
     this.errorMessage = null;
-    this.uploadProgress = 0;
-    this.uploadTotal = files.length;
     
     try {
       // Upload photos in parallel - each request processes individually
@@ -225,9 +221,17 @@ export class FilmPhotosComponent implements OnInit {
         this.filmId,
         files,
         this.photos,
-        (uploadedPhoto, current, total) => {
-          // Update progress as each photo completes
-          this.uploadProgress = current;
+        (uploadedPhoto) => {
+          // Add photo to the array immediately when it uploads successfully
+          if (uploadedPhoto) {
+            // Check if photo already exists (in case of duplicate uploads)
+            const existingIndex = this.photos.findIndex(p => p.id === uploadedPhoto.id);
+            if (existingIndex === -1) {
+              this.photos.push(uploadedPhoto);
+              // Sort photos by index to maintain order
+              this.photos.sort((a, b) => a.index - b.index);
+            }
+          }
         }
       );
 
@@ -236,21 +240,23 @@ export class FilmPhotosComponent implements OnInit {
       const failureCount = results.filter(r => !r.success).length;
 
       this.uploadLoading = false;
-      this.uploadProgress = 0;
-      this.uploadTotal = 0;
 
       if (failureCount > 0) {
         this.errorMessage = `${successCount} photo(s) uploaded successfully, ${failureCount} failed.`;
       }
 
-      // Reload to see uploaded photos and ensure sync with backend
-      // This also ensures the film's "developed" status is updated
-      this.loadFilmAndPhotos();
+      // Reload film to ensure "developed" status is updated
+      this.filmService.getById(this.filmId).subscribe({
+        next: (film) => {
+          this.film = film || null;
+        },
+        error: () => {
+          // Ignore errors when reloading film
+        }
+      });
       
     } catch (err: any) {
       this.uploadLoading = false;
-      this.uploadProgress = 0;
-      this.uploadTotal = 0;
       this.errorMessage = 'There was an error uploading photos: ' + (err?.message || 'Unknown error');
     }
   }

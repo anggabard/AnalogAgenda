@@ -72,7 +72,7 @@ export class PhotoService extends BaseService {
     filmId: string,
     files: FileList | File[],
     existingPhotos: PhotoDto[],
-    onPhotoUploaded?: (uploadedPhoto: PhotoDto, current: number, total: number) => void
+    onPhotoUploaded?: (uploadedPhoto: PhotoDto) => void
   ): Promise<Array<{ success: boolean; photo?: PhotoDto; error?: string }>> {
     // Get upload key and keyId first
     const { key, keyId } = await lastValueFrom(this.getUploadKey(filmId));
@@ -116,7 +116,7 @@ export class PhotoService extends BaseService {
         );
         
         if (response.success && response.photo && onPhotoUploaded) {
-          onPhotoUploaded(response.photo, index + 1, photoDtos.length);
+          onPhotoUploaded(response.photo);
         }
         
         return response;
