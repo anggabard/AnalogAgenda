@@ -166,11 +166,12 @@ public class PhotoUploadFunction(
             // Signal entity for tracking/aggregation
             // Entity ID format: entity name and instance key
             var entityId = new EntityInstanceId("PhotoUploadBatchEntity", photoDto.FilmId);
-            await client.Entities.SignalEntityAsync(entityId, "RecordPhotoProcessed", new
+            var entityInput = new RecordPhotoProcessedInput
             {
                 Success = activityResult.Success,
                 FilmId = photoDto.FilmId
-            });
+            };
+            await client.Entities.SignalEntityAsync(entityId, "RecordPhotoProcessed", entityInput);
 
             if (activityResult.Success)
             {
@@ -348,10 +349,10 @@ public class PhotoUploadBatchEntity
     public int FailureCount { get; set; }
     public string? FilmId { get; set; }
 
-    public void RecordPhotoProcessed(bool success, string filmId)
+    public void RecordPhotoProcessed(RecordPhotoProcessedInput input)
     {
         ProcessedCount++;
-        if (success)
+        if (input.Success)
         {
             SuccessCount++;
         }
@@ -359,7 +360,7 @@ public class PhotoUploadBatchEntity
         {
             FailureCount++;
         }
-        FilmId = filmId;
+        FilmId = input.FilmId;
     }
 
     public BatchStatus GetStatus()
@@ -380,4 +381,10 @@ public class BatchStatus
     public int SuccessCount { get; set; }
     public int FailureCount { get; set; }
     public string? FilmId { get; set; }
+}
+
+public class RecordPhotoProcessedInput
+{
+    public bool Success { get; set; }
+    public required string FilmId { get; set; }
 }
