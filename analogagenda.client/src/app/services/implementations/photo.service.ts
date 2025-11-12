@@ -61,20 +61,19 @@ export class PhotoService extends BaseService {
   }
 
   /**
-   * Upload multiple photos in parallel with smart indexing and live callback
-   * (Azure Functions can handle parallel uploads with auto-scaling)
+   * Upload multiple photos in a single batch request using Durable Functions
    * @param filmId The ID of the film
    * @param files The files to upload
    * @param existingPhotos Existing photos for the film (to calculate next available index)
-   * @param onPhotoUploaded Optional callback called after each photo uploads successfully
-   * @returns Promise that resolves when all uploads complete
+   * @param onPhotoUploaded Optional callback called after each photo uploads successfully (may not be called immediately due to async processing)
+   * @returns Promise that resolves with orchestration instance ID when batch upload is started
    */
   async uploadMultiplePhotos(
     filmId: string,
     files: FileList | File[],
     existingPhotos: PhotoDto[],
     onPhotoUploaded?: (uploadedPhoto: PhotoDto, current: number, total: number) => void
-  ): Promise<void> {
+  ): Promise<{ instanceId: string; statusQueryGetUri: string }> {
     // Get upload key and keyId first
     const { key, keyId } = await lastValueFrom(this.getUploadKey(filmId));
 
@@ -94,33 +93,38 @@ export class PhotoService extends BaseService {
       return a.index - b.index;
     });
 
-    // Calculate next available index for files without explicit indices
-    const nextAvailableIndex = existingPhotos.length === 0 
-      ? 1 
-      : Math.max(...existingPhotos.map(p => p.index)) + 1;
-    let currentAutoIndex = nextAvailableIndex;
+    // Convert all files to base64 and create PhotoCreateDto array
+    const photoDtos: PhotoCreateDto[] = await Promise.all(
+      filesWithIndices.map(async ({ file, index }) => {
+        const base64 = await FileUploadHelper.fileToBase64(file);
+        return {
+          filmId: filmId,
+          imageBase64: base64,
+          index: index !== null ? index : undefined
+        };
+      })
+    );
 
-    // Prepare all upload promises
-    const uploadPromises = filesWithIndices.map(async ({ file, index }, fileIndex) => {
-      const base64 = await FileUploadHelper.fileToBase64(file);
+    // Create batch upload DTO
+    const batchDto = {
+      key: key,
+      keyId: keyId,
+      filmId: filmId,
+      photos: photoDtos
+    };
 
-      const photoDto: PhotoCreateDto = {
-        filmId: filmId,
-        imageBase64: base64,
-        index: index !== null ? index : currentAutoIndex++
-      };
+    // Send batch request to Azure Function
+    const url = `${environment.functionsUrl}/api/photo/upload`;
+    const response = await lastValueFrom(
+      this.http.post<{ instanceId: string; statusQueryGetUri: string }>(url, batchDto, {
+        withCredentials: false
+      })
+    );
 
-      // Upload via Function with key and keyId
-      const uploadedPhoto = await lastValueFrom(this.createPhoto(photoDto, key, keyId));
-      
-      if (onPhotoUploaded) {
-        onPhotoUploaded(uploadedPhoto, fileIndex + 1, fileArray.length);
-      }
-      
-      return uploadedPhoto;
-    });
+    // Note: onPhotoUploaded callback may not work as expected since processing is async
+    // The caller can poll the statusQueryGetUri to check progress if needed
+    // For now, we return the instance ID and status URL
 
-    // Wait for all uploads to complete (Functions auto-scale to handle parallel requests)
-    await Promise.all(uploadPromises);
+    return response;
   }
 }

@@ -220,36 +220,34 @@ export class FilmPhotosComponent implements OnInit {
     this.uploadTotal = files.length;
     
     try {
-      await this.photoService.uploadMultiplePhotos(
+      // Upload batch - returns immediately with orchestration instance ID
+      const result = await this.photoService.uploadMultiplePhotos(
         this.filmId,
         files,
-        this.photos,
-        (uploadedPhoto, current, total) => {
-          // Add photo to array immediately so it appears in the grid
-          this.photos.push(uploadedPhoto);
-          
-          // Sort photos by index to maintain correct order
-          this.photos.sort((a, b) => a.index - b.index);
-          
-          // Update progress
-          this.uploadProgress = current;
-          this.uploadTotal = total;
-        }
+        this.photos
       );
 
-      // All uploads successful
-      this.uploadLoading = false;
-      this.uploadProgress = 0;
-      this.uploadTotal = 0;
+      // Upload started successfully - photos are being processed asynchronously
+      // Show progress as "uploading" and reload after a delay to see results
+      this.uploadProgress = files.length;
       
-      // Optionally reload to ensure sync with backend (in case of any discrepancies)
-      // This also ensures the film's "developed" status is updated
-      this.loadFilmAndPhotos();
+      // Wait a bit for initial processing, then reload to see uploaded photos
+      // Note: For large batches, photos may still be processing
+      setTimeout(() => {
+        this.uploadLoading = false;
+        this.uploadProgress = 0;
+        this.uploadTotal = 0;
+        
+        // Reload to see uploaded photos and ensure sync with backend
+        // This also ensures the film's "developed" status is updated
+        this.loadFilmAndPhotos();
+      }, 2000); // 2 second delay to allow some processing
+      
     } catch (err) {
       this.uploadLoading = false;
       this.uploadProgress = 0;
       this.uploadTotal = 0;
-      this.errorMessage = 'There was an error uploading the photos.';
+      this.errorMessage = 'There was an error starting the photo upload.';
     }
   }
 

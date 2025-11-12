@@ -4,6 +4,7 @@ using Database.Data;
 using Database.Services;
 using Database.Services.Interfaces;
 using Microsoft.Azure.Functions.Worker.Builder;
+using Microsoft.Azure.Functions.Worker.Extensions.DurableTask;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -13,6 +14,7 @@ using System.Text.Json;
 var builder = FunctionsApplication.CreateBuilder(args);
 
 builder.ConfigureFunctionsWebApplication();
+builder.UseDurableTask();
 
 
 builder.Services.AddSmtpConfigBinding();
