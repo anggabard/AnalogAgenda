@@ -8,6 +8,7 @@ using FluentValidation;
 using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -67,6 +68,14 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
 
         opt.Events.OnRedirectToLogin = context =>
         {
+            // Log authentication failures to help diagnose 401 issues during uploads
+            var logger = context.RequestServices.GetRequiredService<ILogger<Program>>();
+            logger.LogWarning(
+                "Authentication failed - redirecting to login. Path: {Path}, Method: {Method}, HasCookie: {HasCookie}",
+                context.Request.Path,
+                context.Request.Method,
+                context.Request.Cookies.ContainsKey(".AnalogAgenda.Auth")
+            );
             context.Response.StatusCode = StatusCodes.Status401Unauthorized;
             return Task.CompletedTask;
         };

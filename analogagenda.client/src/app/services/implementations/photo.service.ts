@@ -149,6 +149,19 @@ export class PhotoService extends BaseService {
         const errorMessage = error?.error?.error || error?.message || 'Unknown error';
         const status = error?.status;
         
+        // Log 401 errors with details to help diagnose the root cause
+        if (status === 401) {
+          console.error('Photo upload returned 401 Unauthorized:', {
+            status: error?.status,
+            statusText: error?.statusText,
+            url: error?.url,
+            message: error?.message,
+            error: error?.error,
+            headers: error?.headers,
+            timestamp: new Date().toISOString()
+          });
+        }
+        
         // For 503/507 after retries, provide a more helpful message
         if (status === 503 || status === 507) {
           return {
@@ -156,10 +169,11 @@ export class PhotoService extends BaseService {
             error: `Server is temporarily overloaded. Please try uploading fewer photos at once or wait a moment and try again.`
           };
         } else if (status === 401) {
-          // 401 after retries - session may have expired during long upload
+          // 401 - authentication failed during upload
+          // This should not happen if cookie is valid - investigate root cause
           return {
             success: false,
-            error: `Authentication expired during upload. Please refresh the page and try again.`
+            error: `Authentication failed during upload. Please check your session and try again.`
           };
         } else {
           return {
