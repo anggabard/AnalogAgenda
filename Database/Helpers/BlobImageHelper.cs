@@ -26,6 +26,18 @@ public static class BlobImageHelper
         {
             HttpHeaders = headers
         });
+        
+        // Force GC for large images on memory-constrained plans (Y1 Consumption)
+        // Check size before clearing reference
+        var wasLargeImage = imageBytes != null && imageBytes.Length > 10_000_000; // 10MB threshold
+        
+        // Clear reference to help GC (though it will be disposed by using)
+        imageBytes = null;
+        
+        if (wasLargeImage)
+        {
+            GC.Collect(GC.MaxGeneration, GCCollectionMode.Optimized);
+        }
     }
 
     public static async Task UploadPreviewImageAsync(
@@ -78,6 +90,18 @@ public static class BlobImageHelper
         {
             HttpHeaders = headers
         });
+        
+        // Force GC after preview processing for large images (Y1 Consumption plan)
+        // Check size before clearing reference
+        var wasLargePreview = previewBytes != null && previewBytes.Length > 5_000_000; // 5MB threshold
+        
+        // Clear preview bytes from memory
+        previewBytes = null;
+        
+        if (wasLargePreview)
+        {
+            GC.Collect(GC.MaxGeneration, GCCollectionMode.Optimized);
+        }
     }
 
     public static async Task<string> DownloadImageAsBase64WithContentTypeAsync(BlobContainerClient blobContainerClient, Guid blobName)
