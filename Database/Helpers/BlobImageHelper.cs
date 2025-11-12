@@ -12,7 +12,11 @@ public static class BlobImageHelper
     public static async Task UploadBase64ImageWithContentTypeAsync(BlobContainerClient blobContainerClient, string base64Image, Guid blobName)
     {
         (var imageBytes, var contentType) = ParseBase64Image(base64Image);
+        await UploadImageFromBytesAsync(blobContainerClient, imageBytes, contentType, blobName);
+    }
 
+    public static async Task UploadImageFromBytesAsync(BlobContainerClient blobContainerClient, byte[] imageBytes, string contentType, Guid blobName)
+    {
         var blobClient = blobContainerClient.GetBlobClient(blobName.ToString());
 
         // Force GC for large images on memory-constrained plans (Y1 Consumption)
@@ -36,7 +40,8 @@ public static class BlobImageHelper
         
         if (wasLargeImage)
         {
-            GC.Collect(GC.MaxGeneration, GCCollectionMode.Optimized);
+            GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced, blocking: true);
+            GC.WaitForPendingFinalizers();
         }
     }
 
@@ -48,7 +53,16 @@ public static class BlobImageHelper
         int quality = 80)
     {
         (var imageBytes, var _) = ParseBase64Image(base64Image);
+        await UploadPreviewImageFromBytesAsync(blobContainerClient, imageBytes, blobName, maxDimension, quality);
+    }
 
+    public static async Task UploadPreviewImageFromBytesAsync(
+        BlobContainerClient blobContainerClient, 
+        byte[] imageBytes, 
+        Guid blobName,
+        int maxDimension = 1200,
+        int quality = 80)
+    {
         // Resize using ImageSharp - dispose input stream immediately
         byte[]? previewBytes = null;
         using (var inputStream = new MemoryStream(imageBytes, writable: false))
@@ -107,7 +121,8 @@ public static class BlobImageHelper
         
         if (wasLargePreview)
         {
-            GC.Collect(GC.MaxGeneration, GCCollectionMode.Optimized);
+            GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced, blocking: true);
+            GC.WaitForPendingFinalizers();
         }
     }
 
@@ -207,7 +222,7 @@ public static class BlobImageHelper
         return (outputStream.ToArray(), "image/jpeg");
     }
 
-    private static (byte[] imageBytes, string contentType) ParseBase64Image(string base64String)
+    public static (byte[] imageBytes, string contentType) ParseBase64Image(string base64String)
     {
         if (string.IsNullOrWhiteSpace(base64String))
             throw new ArgumentException("Base64 string is null or empty.", nameof(base64String));
