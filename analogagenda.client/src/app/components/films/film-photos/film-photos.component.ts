@@ -59,6 +59,8 @@ export class FilmPhotosComponent implements OnInit {
     ]).then(([film, photos]) => {
       this.film = film || null;
       this.photos = photos || [];
+      // Sort photos by index to ensure consistent order
+      this.photos.sort((a, b) => a.index - b.index);
       this.loading = false;
     }).catch(error => {
       this.errorMessage = 'Error loading film photos.';
@@ -68,7 +70,9 @@ export class FilmPhotosComponent implements OnInit {
 
   openPreview(photo: PhotoDto) {
     this.currentPreviewPhoto = photo;
-    this.currentPhotoIndex = this.photos.findIndex(p => p.id === photo.id);
+    const foundIndex = this.photos.findIndex(p => p.id === photo.id);
+    // Ensure index is valid, default to 0 if not found
+    this.currentPhotoIndex = foundIndex >= 0 ? foundIndex : 0;
     this.isPreviewModalOpen = true;
     
     // Focus the preview overlay to enable keyboard events
@@ -133,6 +137,7 @@ export class FilmPhotosComponent implements OnInit {
         next: () => {
           // Remove photo from local array
           const deletedPhotoId = this.currentPreviewPhoto!.id;
+          const deletedIndex = this.currentPhotoIndex;
           this.photos = this.photos.filter(p => p.id !== deletedPhotoId);
           
           this.closeDeleteModal();
@@ -141,11 +146,19 @@ export class FilmPhotosComponent implements OnInit {
           if (this.photos.length === 0) {
             this.closePreview();
           } else {
-            // Adjust index if we deleted the last photo
-            if (this.currentPhotoIndex >= this.photos.length) {
+            // Adjust index: if we deleted the last photo, move to the new last photo
+            // Otherwise, stay at the same position (which now points to the next photo)
+            if (deletedIndex >= this.photos.length) {
               this.currentPhotoIndex = this.photos.length - 1;
             }
-            this.currentPreviewPhoto = this.photos[this.currentPhotoIndex];
+            // Ensure we have a valid photo at the current index
+            if (this.currentPhotoIndex >= 0 && this.currentPhotoIndex < this.photos.length) {
+              this.currentPreviewPhoto = this.photos[this.currentPhotoIndex];
+            } else {
+              // Fallback: set to last photo if index is invalid
+              this.currentPhotoIndex = this.photos.length - 1;
+              this.currentPreviewPhoto = this.photos[this.currentPhotoIndex];
+            }
           }
         },
         error: (err) => {
