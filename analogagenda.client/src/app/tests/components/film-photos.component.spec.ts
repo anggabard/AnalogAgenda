@@ -38,8 +38,9 @@ describe('FilmPhotosComponent', () => {
   beforeEach(async () => {
     const filmServiceSpy = jasmine.createSpyObj('FilmService', ['getById']);
     const photoServiceSpy = jasmine.createSpyObj('PhotoService', [
-      'getPhotosByFilmId', 'downloadPhoto', 'downloadAllPhotos', 'deletePhoto'
+      'getPhotosByFilmId', 'downloadPhoto', 'downloadAllPhotos', 'deletePhoto', 'uploadMultiplePhotos', 'getUploadKey', 'getPreviewUrl'
     ]);
+    photoServiceSpy.getPreviewUrl.and.callFake((photo: PhotoDto) => `preview-${photo.id}`);
     const routerSpy = TestConfig.createRouterSpy();
 
     mockActivatedRoute = {
@@ -432,6 +433,88 @@ describe('FilmPhotosComponent', () => {
 
       // Assert
       expect(component.errorMessage).toBe('Error downloading photos archive.');
+    });
+  });
+
+  describe('Photo Upload', () => {
+    beforeEach(async () => {
+      await initializeComponent();
+      mockPhotoService.uploadMultiplePhotos = jasmine.createSpy('uploadMultiplePhotos').and.returnValue(Promise.resolve([]));
+      mockPhotoService.getUploadKey = jasmine.createSpy('getUploadKey').and.returnValue(of({ key: 'test-key', keyId: 'test-key-id' }));
+    });
+
+    it('should upload photos and add them to the list as they complete', async () => {
+      // Arrange
+      const file1 = new File(['test1'], '1.jpg', { type: 'image/jpeg' });
+      const file2 = new File(['test2'], '2.jpg', { type: 'image/jpeg' });
+      const files = [file1, file2] as any;
+      
+      const newPhoto1: PhotoDto = { id: 'new-photo-1', filmId: 'test-film-id', index: 1, imageUrl: 'url1', imageBase64: '' };
+      const newPhoto2: PhotoDto = { id: 'new-photo-2', filmId: 'test-film-id', index: 2, imageUrl: 'url2', imageBase64: '' };
+
+      let callback: ((photo: PhotoDto) => void) | undefined;
+      mockPhotoService.uploadMultiplePhotos.and.callFake((filmId, fileList, existing, onPhotoUploaded) => {
+        callback = onPhotoUploaded;
+        return Promise.resolve([
+          { success: true, photo: newPhoto1 },
+          { success: true, photo: newPhoto2 }
+        ]);
+      });
+
+      // Act
+      await (component as any).processPhotoUploads(files);
+
+      // Simulate photos being uploaded (callback called)
+      if (callback) {
+        callback(newPhoto1);
+        callback(newPhoto2);
+      }
+
+      // Assert
+      expect(mockPhotoService.uploadMultiplePhotos).toHaveBeenCalled();
+      expect(component.uploadLoading).toBe(false);
+    });
+
+    it('should handle upload errors', async () => {
+      // Arrange
+      const file1 = new File(['test1'], '1.jpg', { type: 'image/jpeg' });
+      const files = [file1] as any;
+
+      mockPhotoService.uploadMultiplePhotos.and.returnValue(Promise.resolve([
+        { success: false, error: 'Upload failed' }
+      ]));
+
+      // Act
+      await (component as any).processPhotoUploads(files);
+
+      // Assert
+      expect(component.uploadLoading).toBe(false);
+      expect(component.errorMessage).toContain('failed');
+    });
+
+    it('should set uploadLoading to true during upload', async () => {
+      // Arrange
+      const file1 = new File(['test1'], '1.jpg', { type: 'image/jpeg' });
+      const files = [file1] as any;
+
+      let resolveUpload: any;
+      const uploadPromise = new Promise<Array<{ success: boolean; photo?: PhotoDto; error?: string }>>((resolve) => {
+        resolveUpload = resolve;
+      });
+      mockPhotoService.uploadMultiplePhotos.and.returnValue(uploadPromise);
+
+      // Act
+      const uploadProcess = (component as any).processPhotoUploads(files);
+
+      // Assert - loading should be true during upload
+      expect(component.uploadLoading).toBe(true);
+
+      // Complete upload
+      resolveUpload([{ success: true, photo: mockPhotos[0] }]);
+      await uploadProcess;
+
+      // Assert - loading should be false after upload
+      expect(component.uploadLoading).toBe(false);
     });
   });
 

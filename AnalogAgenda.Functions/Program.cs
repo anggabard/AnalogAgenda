@@ -18,7 +18,7 @@ builder.ConfigureFunctionsWebApplication();
 // Base64 encoding increases size by ~33%, so 30MB files become ~40MB when encoded
 builder.Services.Configure<KestrelServerOptions>(options =>
 {
-    options.Limits.MaxRequestBodySize = 50_000_000; // 50MB to handle 30MB files when base64 encoded
+    options.Limits.MaxRequestBodySize = 60_000_000; // 60MB to handle 30MB files when base64 encoded
 });
 
 builder.Services.AddSmtpConfigBinding();

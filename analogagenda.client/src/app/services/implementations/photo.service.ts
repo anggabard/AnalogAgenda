@@ -93,14 +93,22 @@ export class PhotoService extends BaseService {
       return a.index - b.index;
     });
 
+    // Calculate next available index for files without indices
+    const maxExistingIndex = existingPhotos.length > 0 
+      ? Math.max(...existingPhotos.map(p => p.index))
+      : 0;
+    let nextAvailableIndex = maxExistingIndex + 1;
+
     // Convert all files to base64 and create PhotoCreateDto array
     const photoDtos: PhotoCreateDto[] = await Promise.all(
       filesWithIndices.map(async ({ file, index }) => {
         const base64 = await FileUploadHelper.fileToBase64(file);
+        // If index is null, assign next available index
+        const assignedIndex = index !== null ? index : nextAvailableIndex++;
         return {
           filmId: filmId,
           imageBase64: base64,
-          index: index !== null ? index : undefined
+          index: assignedIndex
         };
       })
     );
