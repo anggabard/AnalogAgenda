@@ -1,8 +1,6 @@
 using Database.DBObjects.Enums;
 using Database.Entities;
 using Database.Helpers;
-using Database.DTOs.Subclasses;
-using System.Text.Json;
 
 namespace Database.DTOs;
 
@@ -34,13 +32,9 @@ public class FilmDto
 
     public string? DevelopedWithDevKitId { get; set; }
 
-    public string ExposureDates { get; set; } = string.Empty;
+    public string FormattedExposureDate { get; set; } = string.Empty;
 
-    public List<ExposureDateEntry> ExposureDatesList
-    {
-        get => string.IsNullOrEmpty(ExposureDates) ? [] : JsonSerializer.Deserialize<List<ExposureDateEntry>>(ExposureDates) ?? [];
-        set => ExposureDates = value == null || value.Count == 0 ? string.Empty : JsonSerializer.Serialize(value);
-    }
+    public int PhotoCount { get; set; } = 0;
 
     public FilmEntity ToEntity()
     {
@@ -58,8 +52,7 @@ public class FilmDto
             Description = Description,
             Developed = Developed,
             DevelopedInSessionId = DevelopedInSessionId,
-            DevelopedWithDevKitId = DevelopedWithDevKitId,
-            ExposureDates = ExposureDates
+            DevelopedWithDevKitId = DevelopedWithDevKitId
         };
     }
 }

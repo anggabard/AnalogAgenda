@@ -21,6 +21,7 @@ public class AnalogAgendaDbContext : DbContext
     public DbSet<SessionEntity> Sessions { get; set; }
     public DbSet<UsedFilmThumbnailEntity> UsedFilmThumbnails { get; set; }
     public DbSet<UsedDevKitThumbnailEntity> UsedDevKitThumbnails { get; set; }
+    public DbSet<ExposureDateEntity> ExposureDates { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -100,11 +101,15 @@ public class AnalogAgendaDbContext : DbContext
             entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
             entity.Property(e => e.Iso).IsRequired().HasMaxLength(50);
             entity.Property(e => e.Description).HasMaxLength(1000);
-            entity.Property(e => e.ExposureDates).HasMaxLength(4000);
             entity.Property(e => e.DevelopedInSessionId).HasMaxLength(50);
             entity.Property(e => e.DevelopedWithDevKitId).HasMaxLength(50);
 
             entity.HasMany(e => e.Photos)
+                .WithOne(e => e.Film)
+                .HasForeignKey(e => e.FilmId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasMany(e => e.ExposureDates)
                 .WithOne(e => e.Film)
                 .HasForeignKey(e => e.FilmId)
                 .OnDelete(DeleteBehavior.Cascade);
@@ -189,6 +194,16 @@ public class AnalogAgendaDbContext : DbContext
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Id).HasMaxLength(50);
             entity.Property(e => e.DevKitName).IsRequired().HasMaxLength(200);
+        });
+
+        // Configure ExposureDateEntity
+        modelBuilder.Entity<ExposureDateEntity>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).HasMaxLength(50);
+            entity.Property(e => e.FilmId).IsRequired().HasMaxLength(50);
+            entity.Property(e => e.Description).HasMaxLength(1000);
+            entity.HasIndex(e => e.FilmId);
         });
     }
 }

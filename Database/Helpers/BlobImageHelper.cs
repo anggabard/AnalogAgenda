@@ -17,10 +17,12 @@ public static class BlobImageHelper
 
     public static async Task UploadImageFromBytesAsync(BlobContainerClient blobContainerClient, byte[] imageBytes, string contentType, Guid blobName)
     {
+        ArgumentNullException.ThrowIfNull(imageBytes);
+        
         var blobClient = blobContainerClient.GetBlobClient(blobName.ToString());
 
-        // Check size before clearing reference
-        var wasLargeImage = imageBytes != null && imageBytes.Length > 10_000_000; // 10MB threshold
+        // Check size before processing
+        var wasLargeImage = imageBytes.Length > 10_000_000; // 10MB threshold
 
         using var stream = new MemoryStream(imageBytes, writable: false);
 
@@ -34,9 +36,8 @@ public static class BlobImageHelper
             HttpHeaders = headers
         });
         
-        // Clear reference to help GC (though it will be disposed by using)
-        imageBytes = null;
-        
+        // Note: imageBytes parameter goes out of scope when method returns, allowing GC to collect it
+        // For large images, we force GC collection below to help with memory pressure
         if (wasLargeImage)
         {
             GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced, blocking: true);
@@ -62,6 +63,8 @@ public static class BlobImageHelper
         int maxDimension = 1200,
         int quality = 80)
     {
+        ArgumentNullException.ThrowIfNull(imageBytes);
+        
         // Resize using ImageSharp - dispose input stream immediately
         byte[]? previewBytes = null;
         using (var inputStream = new MemoryStream(imageBytes, writable: false))
@@ -93,8 +96,8 @@ public static class BlobImageHelper
             previewBytes = outputStream.ToArray();
         }
         
-        // Clear original image bytes from memory before uploading preview
-        imageBytes = null;
+        // Note: imageBytes parameter goes out of scope after the using block, allowing GC to collect it
+        // The original image bytes are no longer needed after creating the preview
         
         // Upload preview to preview subfolder
         var previewBlobName = $"preview/{blobName}";

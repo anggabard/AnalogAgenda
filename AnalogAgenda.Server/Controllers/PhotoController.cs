@@ -233,7 +233,10 @@ public class PhotoController(
     [HttpGet("download-all/{filmId}")]
     public async Task<IActionResult> DownloadAllPhotos(string filmId, [FromQuery] bool small = false)
     {
-        var filmEntity = await databaseService.GetByIdAsync<FilmEntity>(filmId);
+        var filmEntity = await databaseService.GetByIdWithIncludesAsync<FilmEntity>(
+            filmId,
+            f => f.ExposureDates
+        );
         if (filmEntity == null)
             return NotFound("Film not found.");
 
@@ -243,9 +246,15 @@ public class PhotoController(
 
         try
         {
+            // Get formatted exposure date from DTO
+            var filmDto = filmEntity.ToDTO(storageCfg.AccountName);
+            var formattedDate = string.IsNullOrEmpty(filmDto.FormattedExposureDate)
+                ? string.Empty
+                : $"-{SanitizeFileName(filmDto.FormattedExposureDate)}";
+            
             var archiveName = small
-                ? $"{SanitizeFileName(filmEntity.Name)}-small.zip"
-                : $"{SanitizeFileName(filmEntity.Name)}.zip";
+                ? $"{SanitizeFileName(filmEntity.Name)}{formattedDate}-small.zip"
+                : $"{SanitizeFileName(filmEntity.Name)}{formattedDate}.zip";
 
             // Use a temporary file instead of memory stream to prevent OutOfMemoryException
             // This writes the zip to disk (which has much more space than memory)

@@ -30,10 +30,9 @@ public class FilmEntity : BaseEntity, IImageEntity
 
     public string? DevelopedWithDevKitId { get; set; }
 
-    public string ExposureDates { get; set; } = string.Empty;
-
     // Navigation properties
     public ICollection<PhotoEntity> Photos { get; set; } = [];
+    public ICollection<ExposureDateEntity> ExposureDates { get; set; } = [];
     public SessionEntity? DevelopedInSession { get; set; }
     public DevKitEntity? DevelopedWithDevKit { get; set; }
 
@@ -52,7 +51,6 @@ public class FilmEntity : BaseEntity, IImageEntity
         Developed = dto.Developed;
         DevelopedInSessionId = dto.DevelopedInSessionId;
         DevelopedWithDevKitId = dto.DevelopedWithDevKitId;
-        ExposureDates = dto.ExposureDates;
         
         // Update ImageId if provided in the URL (extracted from ImageUrl)
         if (!string.IsNullOrEmpty(dto.ImageUrl))
@@ -67,6 +65,11 @@ public class FilmEntity : BaseEntity, IImageEntity
 
     public FilmDto ToDTO(string accountName)
     {
+        // Get dates from ExposureDates navigation property (if loaded)
+        var exposureDates = ExposureDates?.Select(e => e.Date).ToList() ?? new List<DateOnly>();
+        var fallbackDate = DateOnly.FromDateTime(PurchasedOn);
+        var formattedDate = DateFormattingHelper.FormatExposureDateRange(exposureDates, fallbackDate);
+
         return new FilmDto()
         {
             Id = Id,
@@ -82,7 +85,8 @@ public class FilmEntity : BaseEntity, IImageEntity
             Developed = Developed,
             DevelopedInSessionId = DevelopedInSessionId,
             DevelopedWithDevKitId = DevelopedWithDevKitId,
-            ExposureDates = ExposureDates
+            FormattedExposureDate = formattedDate,
+            PhotoCount = Photos?.Count ?? 0
         };
     }
 }

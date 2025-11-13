@@ -1,5 +1,4 @@
 import { FilmType, UsernameType } from "../enums";
-import { ExposureDateEntry } from "./exposure-date-entry.dto";
 
 export interface FilmDto {
   id: string;
@@ -15,5 +14,6 @@ export interface FilmDto {
   developed: boolean;
   developedInSessionId?: string | null;
   developedWithDevKitId?: string | null;
-  exposureDates?: string;
+  formattedExposureDate?: string;
+  photoCount?: number;
 }

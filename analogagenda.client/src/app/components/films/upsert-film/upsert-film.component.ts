@@ -100,6 +100,7 @@ export class UpsertFilmComponent extends BaseUpsertComponent<FilmDto> implements
   // Exposure dates modal state
   isExposureDatesModalOpen = false;
   exposureDates: ExposureDateEntry[] = [];
+  pendingExposureDates: ExposureDateEntry[] = []; // Store exposure dates for new films
   uploadingThumbnail: boolean = false;
   
   // Thumbnail preview modal
@@ -664,26 +665,54 @@ export class UpsertFilmComponent extends BaseUpsertComponent<FilmDto> implements
   openExposureDatesModal(): void {
     this.isExposureDatesModalOpen = true;
     
-    // Load existing exposure dates from form if editing
-    if (!this.isInsert && this.form.get('exposureDates')?.value) {
-      const exposureDatesValue = this.form.get('exposureDates')?.value;
-      if (typeof exposureDatesValue === 'string' && exposureDatesValue.trim() !== '') {
-        try {
-          this.exposureDates = JSON.parse(exposureDatesValue);
-        } catch (e) {
-          console.error('Error parsing exposure dates JSON:', e);
-          this.exposureDates = [];
+    // Load existing exposure dates from API if editing
+    if (!this.isInsert && this.id) {
+      this.filmService.getExposureDates(this.id).subscribe({
+        next: (exposureDates) => {
+          // Convert ExposureDateDto[] to ExposureDateEntry[] and sort by date (oldest to newest)
+          this.exposureDates = exposureDates
+            .map(ed => ({
+              date: ed.date,
+              description: ed.description
+            }))
+            .sort((a, b) => {
+              if (!a.date || !b.date) return 0;
+              return a.date.localeCompare(b.date);
+            });
+          
+          // Initialize with one empty row if no data exists
+          if (this.exposureDates.length === 0) {
+            this.exposureDates = [{ date: '', description: '' }];
+          }
+        },
+        error: (error) => {
+          console.error('Error loading exposure dates:', error);
+          // Try to load from form control if API call fails
+          const formValue = this.form.get('exposureDates')?.value;
+          if (formValue && formValue.trim() !== '') {
+            try {
+              this.exposureDates = JSON.parse(formValue);
+            } catch {
+              this.exposureDates = [{ date: '', description: '' }];
+            }
+          } else {
+            this.exposureDates = [{ date: '', description: '' }];
+          }
         }
-      } else if (Array.isArray(exposureDatesValue)) {
-        this.exposureDates = exposureDatesValue;
+      });
+    } else {
+      // For new films, try to load from form control first
+      const formValue = this.form.get('exposureDates')?.value;
+      if (formValue && formValue.trim() !== '') {
+        try {
+          this.exposureDates = JSON.parse(formValue);
+        } catch {
+          this.exposureDates = [{ date: '', description: '' }];
+        }
       } else {
-        this.exposureDates = [];
+        // Initialize with one empty row for new films
+        this.exposureDates = [{ date: '', description: '' }];
       }
-    }
-    
-    // Initialize with one empty row if no data exists
-    if (this.exposureDates.length === 0) {
-      this.exposureDates = [{ date: '', description: '' }];
     }
   }
 
@@ -714,14 +743,98 @@ export class UpsertFilmComponent extends BaseUpsertComponent<FilmDto> implements
       description: entry.description.trim()
     }));
     
-    // Serialize to JSON string for backend, or empty string if no valid dates
-    const exposureDatesJson = validExposureDates.length > 0 ? JSON.stringify(validExposureDates) : '';
-    
-    // Update the form control with the JSON string
+    // Serialize to JSON string and store in form control
+    const exposureDatesJson = validExposureDates.length > 0 
+      ? JSON.stringify(validExposureDates)
+      : '';
     this.form.patchValue({ exposureDates: exposureDatesJson });
     
-    // Close the modal
-    this.closeExposureDatesModal();
+    // If editing, save to API
+    if (!this.isInsert && this.id) {
+      // Convert to ExposureDateDto format
+      const exposureDateDtos = validExposureDates.map(entry => ({
+        id: '', // New entries don't have IDs yet
+        filmId: this.id!,
+        date: entry.date,
+        description: entry.description
+      }));
+      
+      this.filmService.updateExposureDates(this.id, exposureDateDtos).subscribe({
+        next: () => {
+          this.closeExposureDatesModal();
+        },
+        error: (error) => {
+          console.error('Error saving exposure dates:', error);
+          // Still close the modal, but show error to user
+          alert('Error saving exposure dates. Please try again.');
+        }
+      });
+    } else {
+      // For new films, store them temporarily to save after film creation
+      this.pendingExposureDates = validExposureDates;
+      this.closeExposureDatesModal();
+    }
+  }
+
+  // Override submit to handle exposure dates for new films
+  override submit(): void {
+    if (this.form.invalid) return;
+
+    const formData = this.form.value as FilmDto;
+    this.loading = true;
+    this.errorMessage = null;
+
+    const operation$ = this.isInsert 
+      ? this.getCreateObservable(formData)
+      : this.getUpdateObservable(this.id!, formData);
+
+    const actionName = this.isInsert ? 'saving' : 'updating';
+
+    operation$.subscribe({
+      next: (result) => {
+        // If creating a new film and we have exposure dates in form, save them
+        const exposureDatesValue = this.form.get('exposureDates')?.value;
+        if (this.isInsert && exposureDatesValue && exposureDatesValue.trim() !== '') {
+          try {
+            const exposureDates = JSON.parse(exposureDatesValue);
+            if (exposureDates.length > 0) {
+              const createdFilmId = result.id;
+              const exposureDateDtos = exposureDates.map((entry: ExposureDateEntry) => ({
+                id: '',
+                filmId: createdFilmId,
+                date: entry.date,
+                description: entry.description
+              }));
+
+              this.filmService.updateExposureDates(createdFilmId, exposureDateDtos).subscribe({
+                next: () => {
+                  this.loading = false;
+                  this.router.navigate([this.getBaseRoute()]);
+                },
+                error: (err) => {
+                  this.loading = false;
+                  console.error('Error saving exposure dates:', err);
+                  // Film was created but exposure dates failed - still navigate but show warning
+                  this.errorMessage = 'Film created but failed to save exposure dates. You can edit them later.';
+                  setTimeout(() => {
+                    this.router.navigate([this.getBaseRoute()]);
+                  }, 3000);
+                }
+              });
+              return;
+            }
+          } catch (e) {
+            console.error('Error parsing exposure dates:', e);
+          }
+        }
+        this.loading = false;
+        this.router.navigate([this.getBaseRoute()]);
+      },
+      error: (err) => {
+        this.loading = false;
+        this.errorMessage = ErrorHandlingHelper.handleError(err, `${actionName} ${this.getEntityName()}`);
+      }
+    });
   }
 
 }

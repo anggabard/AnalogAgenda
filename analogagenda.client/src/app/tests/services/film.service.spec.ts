@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
 import { FilmService } from '../../services/implementations/film.service';
-import { FilmDto, PagedResponseDto } from '../../DTOs';
+import { FilmDto, PagedResponseDto, ExposureDateDto } from '../../DTOs';
 import { FilmType, UsernameType } from '../../enums';
 import { TestConfig } from '../test.config';
 
@@ -293,8 +293,7 @@ describe('FilmService', () => {
       purchasedOn,
       description: 'Test film description',
       developed,
-      imageUrl: 'test-image-url',
-      exposureDates: ''
+      imageUrl: 'test-image-url'
     };
   }
 
@@ -399,6 +398,61 @@ describe('FilmService', () => {
       const req = httpMock.expectOne(`${baseUrl}/developed?page=1&pageSize=5&name=Test+Film&type=ColorNegative&iso=400&developedWithDevKitId=kit123`);
       expect(req.request.method).toBe('GET');
       req.flush(TestConfig.createEmptyPagedResponse<FilmDto>());
+    });
+  });
+
+  describe('Exposure Dates', () => {
+    it('should call getExposureDates with correct filmId', () => {
+      // Arrange
+      const filmId = 'test-film-id';
+      const mockExposureDates: ExposureDateDto[] = [
+        { id: '1', filmId: filmId, date: '2025-10-20', description: 'First exposure' },
+        { id: '2', filmId: filmId, date: '2025-10-22', description: 'Second exposure' }
+      ];
+
+      // Act
+      service.getExposureDates(filmId).subscribe(response => {
+        // Assert
+        expect(response).toEqual(mockExposureDates);
+      });
+
+      // Assert HTTP call
+      const req = httpMock.expectOne(`${baseUrl}/${filmId}/exposure-dates`);
+      expect(req.request.method).toBe('GET');
+      req.flush(mockExposureDates);
+    });
+
+    it('should call updateExposureDates with correct filmId and data', () => {
+      // Arrange
+      const filmId = 'test-film-id';
+      const exposureDates: ExposureDateDto[] = [
+        { id: '', filmId: filmId, date: '2025-10-25', description: 'New exposure 1' },
+        { id: '', filmId: filmId, date: '2025-10-26', description: 'New exposure 2' }
+      ];
+
+      // Act
+      service.updateExposureDates(filmId, exposureDates).subscribe();
+
+      // Assert HTTP call
+      const req = httpMock.expectOne(`${baseUrl}/${filmId}/exposure-dates`);
+      expect(req.request.method).toBe('PUT');
+      expect(req.request.body).toEqual(exposureDates);
+      req.flush(null);
+    });
+
+    it('should handle empty exposure dates list', () => {
+      // Arrange
+      const filmId = 'test-film-id';
+      const exposureDates: ExposureDateDto[] = [];
+
+      // Act
+      service.updateExposureDates(filmId, exposureDates).subscribe();
+
+      // Assert HTTP call
+      const req = httpMock.expectOne(`${baseUrl}/${filmId}/exposure-dates`);
+      expect(req.request.method).toBe('PUT');
+      expect(req.request.body).toEqual(exposureDates);
+      req.flush(null);
     });
   });
 });

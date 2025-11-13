@@ -49,7 +49,7 @@ try
             .SetApplicationName("AnalogAgenda");
     }
 }
-catch (Exception ex)
+catch (Exception)
 {
     // If data protection configuration fails, log but continue
     // This allows the app to start even if blob storage isn't available

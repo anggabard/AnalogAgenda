@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { FilmDto, PagedResponseDto } from '../../DTOs';
+import { FilmDto, PagedResponseDto, ExposureDateDto } from '../../DTOs';
 import { Observable } from 'rxjs';
 import { BasePaginatedService } from '../base-paginated.service';
 import { SearchParams } from '../../components/films/film-search/film-search.component';
@@ -28,6 +28,14 @@ export class FilmService extends BasePaginatedService<FilmDto> {
 
   getMyNotDevelopedFilmsPaged(page: number = 1, pageSize: number = 5, searchParams?: SearchParams): Observable<PagedResponseDto<FilmDto>> {
     return this.getFilteredPaged('my/not-developed', page, pageSize, searchParams);
+  }
+
+  getExposureDates(filmId: string): Observable<ExposureDateDto[]> {
+    return this.get<ExposureDateDto[]>(`${filmId}/exposure-dates`);
+  }
+
+  updateExposureDates(filmId: string, exposureDates: ExposureDateDto[]): Observable<void> {
+    return this.put(`${filmId}/exposure-dates`, exposureDates);
   }
 
 }

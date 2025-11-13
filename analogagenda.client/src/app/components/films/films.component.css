@@ -145,6 +145,18 @@
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
+.card .info.photos {
+  left: 0.625em;
+  top: 0.625em;
+  font-size: 0.8em;
+  background-color: rgba(0, 172, 124, 0.9);
+  color: white;
+  padding: 0.3em 0.6em;
+  border-radius: 12px;
+  font-weight: 400;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
 .card:hover::after {
   transform: translateY(-60px);
   visibility: visible;
