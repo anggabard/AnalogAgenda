@@ -219,15 +219,16 @@ describe('FilmPhotosComponent', () => {
     });
 
     it('should not navigate next when at last photo', () => {
-      // Arrange
-      component.openPreview(mockPhotos[2]);
+      // Arrange - ensure photos array is properly set
+      component.photos = JSON.parse(JSON.stringify(mockPhotos));
+      component.openPreview(component.photos[2]);
 
       // Act
       component.nextPhoto();
 
       // Assert
       expect(component.currentPhotoIndex).toBe(2);
-      expect(component.currentPreviewPhoto).toEqual(mockPhotos[2]);
+      expect(component.currentPreviewPhoto).toEqual(component.photos[2]);
     });
 
     it('should handle keyboard navigation - left arrow', () => {
@@ -273,20 +274,21 @@ describe('FilmPhotosComponent', () => {
     });
 
     it('should check navigation availability correctly', () => {
-      // Arrange
-      component.openPreview(mockPhotos[1]); // Middle photo
+      // Arrange - ensure photos array is properly set
+      component.photos = JSON.parse(JSON.stringify(mockPhotos));
+      component.openPreview(component.photos[1]); // Middle photo
 
       // Assert
       expect(component.canNavigatePrevious()).toBeTruthy();
       expect(component.canNavigateNext()).toBeTruthy();
 
       // Check first photo
-      component.openPreview(mockPhotos[0]);
+      component.openPreview(component.photos[0]);
       expect(component.canNavigatePrevious()).toBeFalsy();
       expect(component.canNavigateNext()).toBeTruthy();
 
       // Check last photo
-      component.openPreview(mockPhotos[2]);
+      component.openPreview(component.photos[2]);
       expect(component.canNavigatePrevious()).toBeTruthy();
       expect(component.canNavigateNext()).toBeFalsy();
     });
@@ -323,7 +325,9 @@ describe('FilmPhotosComponent', () => {
     });
 
     it('should confirm delete and remove photo from list', (done) => {
-      // Arrange
+      // Arrange - ensure photos array is properly set
+      component.photos = JSON.parse(JSON.stringify(mockPhotos));
+      component.openPreview(component.photos[0]);
       mockPhotoService.deletePhoto.and.returnValue(of({}));
       component.openDeleteModal();
 
@@ -368,8 +372,9 @@ describe('FilmPhotosComponent', () => {
     });
 
     it('should adjust photo index after deletion', (done) => {
-      // Arrange
-      component.openPreview(mockPhotos[2]); // Last photo (index 2)
+      // Arrange - ensure photos array is properly set
+      component.photos = JSON.parse(JSON.stringify(mockPhotos));
+      component.openPreview(component.photos[2]); // Last photo (index 2)
       mockPhotoService.deletePhoto.and.returnValue(of({}));
       component.openDeleteModal();
 
@@ -379,7 +384,7 @@ describe('FilmPhotosComponent', () => {
       // Assert - need to wait for async operation
       setTimeout(() => {
         expect(component.currentPhotoIndex).toBe(1); // Adjusted to last available index
-        expect(component.currentPreviewPhoto).toEqual(mockPhotos[1]);
+        expect(component.currentPreviewPhoto).toEqual(component.photos[1]);
         done();
       }, 0);
     });

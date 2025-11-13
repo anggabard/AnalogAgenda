@@ -262,7 +262,8 @@ describe('FilmsComponent', () => {
     name: string, 
     purchasedBy: UsernameType, 
     developed: boolean, 
-    purchasedOn: string = '2023-01-01'
+    purchasedOn: string = '2023-01-01',
+    photoCount?: number
   ): FilmDto {
     return {
       id,
@@ -276,6 +277,7 @@ describe('FilmsComponent', () => {
       description: 'Test film description',
       developed,
       imageUrl: 'test-image-url',
+      photoCount,
     };
   }
 
@@ -364,6 +366,87 @@ describe('FilmsComponent', () => {
       // All Films should remain unchanged
       expect(component.allDevelopedFilms).toEqual(mockFilms);
       expect(component.allNotDevelopedFilms).toEqual(mockFilms);
+    });
+  });
+
+  describe('Photo Count Badge', () => {
+    beforeEach(() => {
+      fixture.detectChanges();
+    });
+
+    it('should display photo count badge when film has photos', () => {
+      // Arrange
+      const filmWithPhotos = createMockFilm('1', 'Film with Photos', UsernameType.Angel, true, '2023-01-01', 5);
+      const response = TestConfig.createPagedResponse([filmWithPhotos]);
+      mockFilmService.getMyDevelopedFilmsPaged.and.returnValue(of(response));
+
+      // Act
+      component.loadMyDevelopedFilms();
+      fixture.detectChanges();
+
+      // Assert
+      expect(component.myDevelopedFilms.length).toBe(1);
+      expect(component.myDevelopedFilms[0].photoCount).toBe(5);
+    });
+
+    it('should not display photo count badge when film has no photos', () => {
+      // Arrange
+      const filmWithoutPhotos = createMockFilm('1', 'Film without Photos', UsernameType.Angel, true, '2023-01-01', 0);
+      const response = TestConfig.createPagedResponse([filmWithoutPhotos]);
+      mockFilmService.getMyDevelopedFilmsPaged.and.returnValue(of(response));
+
+      // Act
+      component.loadMyDevelopedFilms();
+      fixture.detectChanges();
+
+      // Assert
+      expect(component.myDevelopedFilms.length).toBe(1);
+      expect(component.myDevelopedFilms[0].photoCount).toBe(0);
+    });
+
+    it('should not display photo count badge when photoCount is undefined', () => {
+      // Arrange
+      const filmWithoutPhotoCount = createMockFilm('1', 'Film without PhotoCount', UsernameType.Angel, true);
+      const response = TestConfig.createPagedResponse([filmWithoutPhotoCount]);
+      mockFilmService.getMyDevelopedFilmsPaged.and.returnValue(of(response));
+
+      // Act
+      component.loadMyDevelopedFilms();
+      fixture.detectChanges();
+
+      // Assert
+      expect(component.myDevelopedFilms.length).toBe(1);
+      expect(component.myDevelopedFilms[0].photoCount).toBeUndefined();
+    });
+
+    it('should display photo count badge for all films tab', () => {
+      // Arrange
+      const filmWithPhotos = createMockFilm('1', 'Film with Photos', UsernameType.Tudor, true, '2023-01-01', 3);
+      const response = TestConfig.createPagedResponse([filmWithPhotos]);
+      mockFilmService.getDevelopedFilmsPaged.and.returnValue(of(response));
+      component.setActiveTab('all');
+
+      // Act
+      component.loadAllDevelopedFilms();
+      fixture.detectChanges();
+
+      // Assert
+      expect(component.allDevelopedFilms.length).toBe(1);
+      expect(component.allDevelopedFilms[0].photoCount).toBe(3);
+    });
+
+    it('should display correct photo count number in badge', () => {
+      // Arrange
+      const filmWithPhotos = createMockFilm('1', 'Film with Photos', UsernameType.Angel, true, '2023-01-01', 7);
+      const response = TestConfig.createPagedResponse([filmWithPhotos]);
+      mockFilmService.getMyDevelopedFilmsPaged.and.returnValue(of(response));
+
+      // Act
+      component.loadMyDevelopedFilms();
+      fixture.detectChanges();
+
+      // Assert
+      expect(component.myDevelopedFilms[0].photoCount).toBe(7);
     });
   });
 });
