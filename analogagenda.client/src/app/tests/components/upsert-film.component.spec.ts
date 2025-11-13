@@ -840,7 +840,8 @@ describe('UpsertFilmComponent', () => {
       });
       
       // Mock the service methods
-      mockFilmService.add.and.returnValue(of({}));
+      mockFilmService.add.and.returnValue(of({ id: 'new-film-id' }));
+      mockFilmService.updateExposureDates = jasmine.createSpy('updateExposureDates').and.returnValue(of(undefined));
       
       component.submit();
       
@@ -855,6 +856,8 @@ describe('UpsertFilmComponent', () => {
         }),
         undefined
       );
+      // Verify that updateExposureDates was called after film creation
+      expect(mockFilmService.updateExposureDates).toHaveBeenCalledWith('new-film-id', jasmine.any(Array));
     });
 
     it('should load existing exposure dates when opening modal for editing', () => {
@@ -873,6 +876,10 @@ describe('UpsertFilmComponent', () => {
       };
       
       mockFilmService.getById.and.returnValue(of(filmWithExposureDates));
+      // Mock getExposureDates to return error so it falls back to form control
+      mockFilmService.getExposureDates = jasmine.createSpy('getExposureDates').and.returnValue(
+        throwError(() => new Error('Not found'))
+      );
       component.isInsert = false;
       component.id = 'test-id';
       
@@ -888,7 +895,7 @@ describe('UpsertFilmComponent', () => {
         ])
       });
       
-      // Now open the modal - this should load the exposure dates
+      // Now open the modal - this should load the exposure dates from form control
       component.openExposureDatesModal();
       
       expect(component.exposureDates).toEqual([

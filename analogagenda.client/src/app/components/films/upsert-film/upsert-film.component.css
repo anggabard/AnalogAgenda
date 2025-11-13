@@ -222,6 +222,11 @@ label {
   box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.2);
 }
 
+/* Center the View Photos button by making it span both columns */
+.action-buttons .photo-btn:nth-child(3) {
+  grid-column: 1 / -1;
+}
+
 /* --- Submit Section --- */
 .submit-section {
   display: flex;
