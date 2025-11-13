@@ -92,6 +92,9 @@ describe('FilmPhotosComponent', () => {
     component.loading = false;
   };
 
+  // Helper to get fresh photos array
+  const getFreshPhotos = () => JSON.parse(JSON.stringify(mockPhotos));
+
   afterEach(() => {
     fixture.destroy();
   });
@@ -152,26 +155,31 @@ describe('FilmPhotosComponent', () => {
   describe('Photo Preview', () => {
     beforeEach(async () => {
       await initializeComponent();
+      // Reset photos array to fresh copy
+      component.photos = JSON.parse(JSON.stringify(mockPhotos));
     });
 
     afterEach(() => {
       // Ensure photos array is reset after each test to prevent state leakage
       component.photos = JSON.parse(JSON.stringify(mockPhotos));
+      component.currentPhotoIndex = 0;
+      component.currentPreviewPhoto = null;
+      component.isPreviewModalOpen = false;
     });
 
     it('should open preview modal', () => {
       // Act
-      component.openPreview(mockPhotos[1]);
+      component.openPreview(component.photos[1]);
 
       // Assert
       expect(component.isPreviewModalOpen).toBeTruthy();
-      expect(component.currentPreviewPhoto).toEqual(mockPhotos[1]);
+      expect(component.currentPreviewPhoto).toEqual(component.photos[1]);
       expect(component.currentPhotoIndex).toBe(1);
     });
 
     it('should close preview modal', () => {
       // Arrange
-      component.openPreview(mockPhotos[0]);
+      component.openPreview(component.photos[0]);
 
       // Act
       component.closePreview();
@@ -184,56 +192,58 @@ describe('FilmPhotosComponent', () => {
 
     it('should navigate to next photo', () => {
       // Arrange
-      component.openPreview(mockPhotos[0]);
+      component.openPreview(component.photos[0]);
 
       // Act
       component.nextPhoto();
 
       // Assert
       expect(component.currentPhotoIndex).toBe(1);
-      expect(component.currentPreviewPhoto).toEqual(mockPhotos[1]);
+      expect(component.currentPreviewPhoto).toEqual(component.photos[1]);
     });
 
     it('should navigate to previous photo', () => {
       // Arrange
-      component.openPreview(mockPhotos[1]);
+      component.openPreview(component.photos[1]);
 
       // Act
       component.previousPhoto();
 
       // Assert
       expect(component.currentPhotoIndex).toBe(0);
-      expect(component.currentPreviewPhoto).toEqual(mockPhotos[0]);
+      expect(component.currentPreviewPhoto).toEqual(component.photos[0]);
     });
 
     it('should not navigate previous when at first photo', () => {
       // Arrange
-      component.openPreview(mockPhotos[0]);
+      component.openPreview(component.photos[0]);
 
       // Act
       component.previousPhoto();
 
       // Assert
       expect(component.currentPhotoIndex).toBe(0);
-      expect(component.currentPreviewPhoto).toEqual(mockPhotos[0]);
+      expect(component.currentPreviewPhoto).toEqual(component.photos[0]);
     });
 
     it('should not navigate next when at last photo', () => {
-      // Arrange - ensure photos array is properly set
-      component.photos = JSON.parse(JSON.stringify(mockPhotos));
-      component.openPreview(component.photos[2]);
+      // Arrange - ensure photos array is properly set with fresh copy
+      component.photos = getFreshPhotos();
+      expect(component.photos.length).toBe(3); // Verify we have 3 photos
+      component.openPreview(component.photos[2]); // Last photo (index 2)
+      expect(component.currentPhotoIndex).toBe(2); // Verify we're at the last photo
 
       // Act
       component.nextPhoto();
 
-      // Assert
+      // Assert - should not navigate past the last photo
       expect(component.currentPhotoIndex).toBe(2);
       expect(component.currentPreviewPhoto).toEqual(component.photos[2]);
     });
 
     it('should handle keyboard navigation - left arrow', () => {
       // Arrange
-      component.openPreview(mockPhotos[1]);
+      component.openPreview(component.photos[1]);
       const event = new KeyboardEvent('keydown', { key: 'ArrowLeft' });
       spyOn(event, 'preventDefault');
 
@@ -247,7 +257,7 @@ describe('FilmPhotosComponent', () => {
 
     it('should handle keyboard navigation - right arrow', () => {
       // Arrange
-      component.openPreview(mockPhotos[0]);
+      component.openPreview(component.photos[0]);
       const event = new KeyboardEvent('keydown', { key: 'ArrowRight' });
       spyOn(event, 'preventDefault');
 
@@ -261,7 +271,7 @@ describe('FilmPhotosComponent', () => {
 
     it('should handle keyboard navigation - escape', () => {
       // Arrange
-      component.openPreview(mockPhotos[0]);
+      component.openPreview(component.photos[0]);
       const event = new KeyboardEvent('keydown', { key: 'Escape' });
       spyOn(event, 'preventDefault');
 
@@ -274,8 +284,9 @@ describe('FilmPhotosComponent', () => {
     });
 
     it('should check navigation availability correctly', () => {
-      // Arrange - ensure photos array is properly set
-      component.photos = JSON.parse(JSON.stringify(mockPhotos));
+      // Arrange - ensure photos array is properly set with fresh copy
+      component.photos = getFreshPhotos();
+      expect(component.photos.length).toBe(3); // Verify we have 3 photos
       component.openPreview(component.photos[1]); // Middle photo
 
       // Assert
@@ -287,8 +298,11 @@ describe('FilmPhotosComponent', () => {
       expect(component.canNavigatePrevious()).toBeFalsy();
       expect(component.canNavigateNext()).toBeTruthy();
 
-      // Check last photo
+      // Check last photo - reset photos array to ensure clean state
+      component.photos = getFreshPhotos();
       component.openPreview(component.photos[2]);
+      expect(component.currentPhotoIndex).toBe(2); // Verify we're at the last photo
+      expect(component.photos.length).toBe(3); // Verify we still have 3 photos
       expect(component.canNavigatePrevious()).toBeTruthy();
       expect(component.canNavigateNext()).toBeFalsy();
     });
@@ -297,12 +311,18 @@ describe('FilmPhotosComponent', () => {
   describe('Delete Modal', () => {
     beforeEach(async () => {
       await initializeComponent();
-      component.openPreview(mockPhotos[0]);
+      // Reset photos array to fresh copy
+      component.photos = JSON.parse(JSON.stringify(mockPhotos));
+      component.openPreview(component.photos[0]);
     });
 
     afterEach(() => {
       // Ensure photos array is reset after each test to prevent state leakage
       component.photos = JSON.parse(JSON.stringify(mockPhotos));
+      component.currentPhotoIndex = 0;
+      component.currentPreviewPhoto = null;
+      component.isPreviewModalOpen = false;
+      component.isDeleteModalOpen = false;
     });
 
     it('should open delete modal', () => {
@@ -325,11 +345,14 @@ describe('FilmPhotosComponent', () => {
     });
 
     it('should confirm delete and remove photo from list', (done) => {
-      // Arrange - ensure photos array is properly set
-      component.photos = JSON.parse(JSON.stringify(mockPhotos));
+      // Arrange - ensure photos array is properly set with fresh copy
+      component.photos = getFreshPhotos();
+      expect(component.photos.length).toBe(3); // Verify we start with 3 photos
       component.openPreview(component.photos[0]);
       mockPhotoService.deletePhoto.and.returnValue(of({}));
       component.openDeleteModal();
+      const initialPhotoCount = component.photos.length;
+      expect(initialPhotoCount).toBe(3); // Verify initial count
 
       // Act
       component.confirmDelete();
@@ -337,11 +360,12 @@ describe('FilmPhotosComponent', () => {
       // Assert - need to wait for async operation
       setTimeout(() => {
         expect(mockPhotoService.deletePhoto).toHaveBeenCalledWith('photo1');
-        expect(component.photos.length).toBe(2);
+        expect(component.photos.length).toBe(initialPhotoCount - 1);
+        expect(component.photos.length).toBe(2); // Should have 2 photos after deletion
         expect(component.photos.find(p => p.id === 'photo1')).toBeUndefined();
         expect(component.isDeleteModalOpen).toBeFalsy();
         done();
-      }, 0);
+      }, 100);
     });
 
     it('should handle delete error', () => {
@@ -359,7 +383,8 @@ describe('FilmPhotosComponent', () => {
 
     it('should close preview when deleting last photo', () => {
       // Arrange
-      component.photos = [mockPhotos[0]]; // Only one photo
+      const freshPhotos = getFreshPhotos();
+      component.photos = [freshPhotos[0]]; // Only one photo
       component.openPreview(component.photos[0]);
       mockPhotoService.deletePhoto.and.returnValue(of({}));
       component.openDeleteModal();
@@ -372,9 +397,11 @@ describe('FilmPhotosComponent', () => {
     });
 
     it('should adjust photo index after deletion', (done) => {
-      // Arrange - ensure photos array is properly set
-      component.photos = JSON.parse(JSON.stringify(mockPhotos));
+      // Arrange - ensure photos array is properly set with fresh copy
+      component.photos = getFreshPhotos();
+      expect(component.photos.length).toBe(3); // Verify we start with 3 photos
       component.openPreview(component.photos[2]); // Last photo (index 2)
+      expect(component.currentPhotoIndex).toBe(2); // Verify we're at the last photo
       mockPhotoService.deletePhoto.and.returnValue(of({}));
       component.openDeleteModal();
 
@@ -383,10 +410,11 @@ describe('FilmPhotosComponent', () => {
 
       // Assert - need to wait for async operation
       setTimeout(() => {
+        expect(component.photos.length).toBe(2); // Should have 2 photos after deletion
         expect(component.currentPhotoIndex).toBe(1); // Adjusted to last available index
         expect(component.currentPreviewPhoto).toEqual(component.photos[1]);
         done();
-      }, 0);
+      }, 100);
     });
   });
 
@@ -467,7 +495,14 @@ describe('FilmPhotosComponent', () => {
   describe('Photo Upload', () => {
     beforeEach(async () => {
       await initializeComponent();
+      // Reset photos array to fresh copy
+      component.photos = getFreshPhotos();
       mockPhotoService.uploadMultiplePhotos = jasmine.createSpy('uploadMultiplePhotos').and.returnValue(Promise.resolve([]));
+    });
+
+    afterEach(() => {
+      // Ensure photos array is reset after each test to prevent state leakage
+      component.photos = getFreshPhotos();
     });
 
     it('should upload photos and add them to the list as they complete', async () => {
@@ -491,11 +526,8 @@ describe('FilmPhotosComponent', () => {
       // Act
       await (component as any).processPhotoUploads(files);
 
-      // Simulate photos being uploaded (callback called)
-      if (callback) {
-        callback(newPhoto1);
-        callback(newPhoto2);
-      }
+      // Note: The callback is called internally by processPhotoUploads, so we don't need to call it manually
+      // The component will add photos via the callback during the upload process
 
       // Assert
       expect(mockPhotoService.uploadMultiplePhotos).toHaveBeenCalled();
