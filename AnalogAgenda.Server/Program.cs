@@ -13,6 +13,14 @@ using Microsoft.Extensions.Logging;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Load configuration early so it's available for Data Protection setup
+// This allows appsettings.Development.json to be used for local development
+builder.Configuration
+    .SetBasePath(Directory.GetCurrentDirectory())
+    .AddJsonFile("appsettings.json", optional: true)
+    .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true)
+    .AddEnvironmentVariables();
+
 builder.AddServiceDefaults();
 
 // Configure Data Protection to use Azure Blob Storage for shared keys across replicas
@@ -26,13 +34,13 @@ builder.AddServiceDefaults();
 // - This causes 401 errors when load balancer routes to different replicas
 try
 {
-    // Try to get connection string from environment (Azure Container Apps may set this)
-    var connectionString = Environment.GetEnvironmentVariable("AZURE_STORAGE_CONNECTION_STRING")
-        ?? Environment.GetEnvironmentVariable("Storage__ConnectionString");
+    // Try to get connection string from configuration (appsettings.Development.json for local dev)
+    // or environment variables (Azure Container Apps sets STORAGE_CONNECTION_STRING)
+    var connectionString = builder.Configuration["ConnectionStrings__analogagendastorage"]
+        ?? Environment.GetEnvironmentVariable("STORAGE_CONNECTION_STRING");
     
     if (!string.IsNullOrEmpty(connectionString))
     {
-        // Use connection string if available (simplest approach)
         builder.Services.AddDataProtection()
             .PersistKeysToAzureBlobStorage(connectionString, "dataprotection-keys", "keys.xml")
             .SetApplicationName("AnalogAgenda");
@@ -125,12 +133,6 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         };
     });
 
-builder.Configuration
-    .SetBasePath(Directory.GetCurrentDirectory())
-    .AddJsonFile("appsettings.json", optional: true)
-    .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true)
-    .AddEnvironmentVariables();
-
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("Frontend", corsBuilder =>
@@ -162,13 +164,13 @@ builder.Services.AddCors(options =>
 var app = builder.Build();
 
 // Log data protection configuration status after app is built
-var dataProtectionConnectionString = Environment.GetEnvironmentVariable("AZURE_STORAGE_CONNECTION_STRING")
-    ?? Environment.GetEnvironmentVariable("Storage__ConnectionString");
+var dataProtectionConnectionString = app.Configuration["ConnectionStrings__analogagendastorage"]
+    ?? Environment.GetEnvironmentVariable("STORAGE_CONNECTION_STRING");
 if (string.IsNullOrEmpty(dataProtectionConnectionString))
 {
     app.Logger.LogWarning(
         "Data Protection using in-memory keys - cookies will NOT work across replicas! " +
-        "Set AZURE_STORAGE_CONNECTION_STRING environment variable to fix this. " +
+        "Set ConnectionStrings__analogagendastorage in appsettings or STORAGE_CONNECTION_STRING environment variable to fix this. " +
         "This causes 401 errors when requests are load-balanced to different replicas."
     );
 }

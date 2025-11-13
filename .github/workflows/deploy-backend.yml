@@ -66,7 +66,7 @@ jobs:
         echo "AZ_CLIENT_SECRET=$azClientSecret" >> $env:GITHUB_ENV
         echo "SECURITY_SALT=$securitySalt" >> $env:GITHUB_ENV
         echo "SQL_CONNECTION_STRING=$sqlConnectionString" >> $env:GITHUB_ENV
-        echo "AZURE_STORAGE_CONNECTION_STRING=$storageConnectionString" >> $env:GITHUB_ENV
+        echo "STORAGE_CONNECTION_STRING=$storageConnectionString" >> $env:GITHUB_ENV
         
         Write-Host "✅ Secrets fetched from Key Vault"
 
@@ -103,15 +103,14 @@ jobs:
       uses: azure/CLI@v2
       env:
         SQL_CONNECTION_STRING: ${{ env.SQL_CONNECTION_STRING }}
-        AZURE_STORAGE_CONNECTION_STRING: ${{ env.AZURE_STORAGE_CONNECTION_STRING }}
+        STORAGE_CONNECTION_STRING: ${{ env.STORAGE_CONNECTION_STRING }}
       with:
         inlineScript: |
-          # First, update the image and environment variables
           az containerapp update \
             --name ${{ env.CONTAINER_APP_NAME }} \
             --resource-group ${{ env.RESOURCE_GROUP }} \
             --image ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ github.sha }} \
-            --set-env-vars FRONTEND_URL=https://analogagenda.site ConnectionStrings__analogagendadb="$SQL_CONNECTION_STRING" AZURE_STORAGE_CONNECTION_STRING="$AZURE_STORAGE_CONNECTION_STRING"
+            --set-env-vars FRONTEND_URL=https://analogagenda.site ConnectionStrings__analogagendadb="$SQL_CONNECTION_STRING" STORAGE_CONNECTION_STRING="$STORAGE_CONNECTION_STRING"
 
     - name: Get Container App URL
       uses: azure/CLI@v2
