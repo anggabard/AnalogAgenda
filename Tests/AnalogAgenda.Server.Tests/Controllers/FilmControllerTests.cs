@@ -281,5 +281,244 @@ public class FilmControllerTests : IDisposable
         }
     }
 
+    [Fact]
+    public async Task GetExposureDates_WithValidFilmId_ReturnsExposureDates()
+    {
+        // Arrange
+        var film = new FilmEntity
+        {
+            Name = "Test Film",
+            Iso = "400",
+            Type = EFilmType.ColorNegative,
+            NumberOfExposures = 36,
+            Cost = 10.50,
+            PurchasedBy = EUsernameType.Angel,
+            PurchasedOn = DateTime.UtcNow,
+            ImageId = Guid.Empty,
+            Description = "Test Description",
+            Developed = false
+        };
+        await _databaseService.AddAsync(film);
+
+        var exposureDate1 = new ExposureDateEntity
+        {
+            FilmId = film.Id,
+            Date = new DateOnly(2025, 10, 20),
+            Description = "First exposure"
+        };
+        await _databaseService.AddAsync(exposureDate1);
+
+        var exposureDate2 = new ExposureDateEntity
+        {
+            FilmId = film.Id,
+            Date = new DateOnly(2025, 10, 22),
+            Description = "Second exposure"
+        };
+        await _databaseService.AddAsync(exposureDate2);
+
+        // Act
+        var result = await _controller.GetExposureDates(film.Id);
+
+        // Assert
+        var okResult = Assert.IsType<OkObjectResult>(result);
+        var exposureDates = Assert.IsType<List<ExposureDateDto>>(okResult.Value);
+        Assert.Equal(2, exposureDates.Count);
+        Assert.Equal("First exposure", exposureDates[0].Description);
+        Assert.Equal("Second exposure", exposureDates[1].Description);
+        // Verify sorted by date (oldest first)
+        Assert.True(exposureDates[0].Date <= exposureDates[1].Date);
+    }
+
+    [Fact]
+    public async Task GetExposureDates_WithInvalidFilmId_ReturnsNotFound()
+    {
+        // Act
+        var result = await _controller.GetExposureDates("invalid-id");
+
+        // Assert
+        Assert.IsType<NotFoundObjectResult>(result);
+    }
+
+    [Fact]
+    public async Task GetExposureDates_WithNoExposureDates_ReturnsEmptyList()
+    {
+        // Arrange
+        var film = new FilmEntity
+        {
+            Name = "Test Film",
+            Iso = "400",
+            Type = EFilmType.ColorNegative,
+            NumberOfExposures = 36,
+            Cost = 10.50,
+            PurchasedBy = EUsernameType.Angel,
+            PurchasedOn = DateTime.UtcNow,
+            ImageId = Guid.Empty,
+            Description = "Test Description",
+            Developed = false
+        };
+        await _databaseService.AddAsync(film);
+
+        // Act
+        var result = await _controller.GetExposureDates(film.Id);
+
+        // Assert
+        var okResult = Assert.IsType<OkObjectResult>(result);
+        var exposureDates = Assert.IsType<List<ExposureDateDto>>(okResult.Value);
+        Assert.Empty(exposureDates);
+    }
+
+    [Fact]
+    public async Task UpdateExposureDates_WithValidData_UpdatesExposureDates()
+    {
+        // Arrange
+        var film = new FilmEntity
+        {
+            Name = "Test Film",
+            Iso = "400",
+            Type = EFilmType.ColorNegative,
+            NumberOfExposures = 36,
+            Cost = 10.50,
+            PurchasedBy = EUsernameType.Angel,
+            PurchasedOn = DateTime.UtcNow,
+            ImageId = Guid.Empty,
+            Description = "Test Description",
+            Developed = false
+        };
+        await _databaseService.AddAsync(film);
+
+        var existingDate = new ExposureDateEntity
+        {
+            FilmId = film.Id,
+            Date = new DateOnly(2025, 10, 20),
+            Description = "Old exposure"
+        };
+        await _databaseService.AddAsync(existingDate);
+
+        var newExposureDates = new List<ExposureDateDto>
+        {
+            new ExposureDateDto
+            {
+                Id = "",
+                FilmId = film.Id,
+                Date = new DateOnly(2025, 10, 25),
+                Description = "New exposure 1"
+            },
+            new ExposureDateDto
+            {
+                Id = "",
+                FilmId = film.Id,
+                Date = new DateOnly(2025, 10, 26),
+                Description = "New exposure 2"
+            }
+        };
+
+        // Act
+        var result = await _controller.UpdateExposureDates(film.Id, newExposureDates);
+
+        // Assert
+        Assert.IsType<NoContentResult>(result);
+
+        // Verify old exposure date was removed and new ones were added
+        var filmWithDates = await _databaseService.GetByIdWithIncludesAsync<FilmEntity>(
+            film.Id,
+            f => f.ExposureDates
+        );
+        Assert.NotNull(filmWithDates);
+        Assert.Equal(2, filmWithDates.ExposureDates.Count);
+        Assert.DoesNotContain(filmWithDates.ExposureDates, ed => ed.Description == "Old exposure");
+        Assert.Contains(filmWithDates.ExposureDates, ed => ed.Description == "New exposure 1");
+        Assert.Contains(filmWithDates.ExposureDates, ed => ed.Description == "New exposure 2");
+    }
+
+    [Fact]
+    public async Task UpdateExposureDates_WithInvalidFilmId_ReturnsNotFound()
+    {
+        // Arrange
+        var exposureDates = new List<ExposureDateDto>
+        {
+            new ExposureDateDto
+            {
+                Id = "",
+                FilmId = "invalid-id",
+                Date = new DateOnly(2025, 10, 25),
+                Description = "Test"
+            }
+        };
+
+        // Act
+        var result = await _controller.UpdateExposureDates("invalid-id", exposureDates);
+
+        // Assert
+        Assert.IsType<NotFoundObjectResult>(result);
+    }
+
+    [Fact]
+    public async Task UpdateExposureDates_WithEmptyList_RemovesAllExposureDates()
+    {
+        // Arrange
+        var film = new FilmEntity
+        {
+            Name = "Test Film",
+            Iso = "400",
+            Type = EFilmType.ColorNegative,
+            NumberOfExposures = 36,
+            Cost = 10.50,
+            PurchasedBy = EUsernameType.Angel,
+            PurchasedOn = DateTime.UtcNow,
+            ImageId = Guid.Empty,
+            Description = "Test Description",
+            Developed = false
+        };
+        await _databaseService.AddAsync(film);
+
+        var exposureDate = new ExposureDateEntity
+        {
+            FilmId = film.Id,
+            Date = new DateOnly(2025, 10, 20),
+            Description = "Test exposure"
+        };
+        await _databaseService.AddAsync(exposureDate);
+
+        // Act
+        var result = await _controller.UpdateExposureDates(film.Id, new List<ExposureDateDto>());
+
+        // Assert
+        Assert.IsType<NoContentResult>(result);
+
+        // Verify all exposure dates were removed
+        var filmWithDates = await _databaseService.GetByIdWithIncludesAsync<FilmEntity>(
+            film.Id,
+            f => f.ExposureDates
+        );
+        Assert.NotNull(filmWithDates);
+        Assert.Empty(filmWithDates.ExposureDates);
+    }
+
+    [Fact]
+    public async Task UpdateExposureDates_WithNullData_ReturnsBadRequest()
+    {
+        // Arrange
+        var film = new FilmEntity
+        {
+            Name = "Test Film",
+            Iso = "400",
+            Type = EFilmType.ColorNegative,
+            NumberOfExposures = 36,
+            Cost = 10.50,
+            PurchasedBy = EUsernameType.Angel,
+            PurchasedOn = DateTime.UtcNow,
+            ImageId = Guid.Empty,
+            Description = "Test Description",
+            Developed = false
+        };
+        await _databaseService.AddAsync(film);
+
+        // Act
+        var result = await _controller.UpdateExposureDates(film.Id, null!);
+
+        // Assert
+        Assert.IsType<BadRequestObjectResult>(result);
+    }
+
 }
 

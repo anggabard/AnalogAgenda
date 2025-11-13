@@ -19,7 +19,7 @@ describe('UpsertFilmComponent', () => {
   let mockActivatedRoute: any;
 
   beforeEach(async () => {
-    const filmServiceSpy = jasmine.createSpyObj('FilmService', ['getById', 'update', 'add']);
+    const filmServiceSpy = jasmine.createSpyObj('FilmService', ['getById', 'update', 'add', 'getExposureDates', 'updateExposureDates']);
     const sessionServiceSpy = jasmine.createSpyObj('SessionService', ['getById', 'update', 'getAll']);
     const devKitServiceSpy = jasmine.createSpyObj('DevKitService', ['getById', 'update', 'getAll']);
     const photoServiceSpy = jasmine.createSpyObj('PhotoService', ['getAll', 'upload']);
@@ -895,6 +895,136 @@ describe('UpsertFilmComponent', () => {
         { date: '2023-01-01', description: 'First exposure' },
         { date: '2023-01-02', description: 'Second exposure' }
       ]);
+    });
+
+    it('should load exposure dates from API when opening modal for editing', () => {
+      const filmId = 'test-film-id';
+      const mockExposureDates = [
+        { id: '1', filmId: filmId, date: '2025-10-20', description: 'First exposure' },
+        { id: '2', filmId: filmId, date: '2025-10-22', description: 'Second exposure' }
+      ];
+
+      component.isInsert = false;
+      component.id = filmId;
+      mockFilmService.getById.and.returnValue(of({
+        id: filmId,
+        name: 'Test Film',
+        iso: '400',
+        type: FilmType.ColorNegative,
+        numberOfExposures: 36,
+        cost: 10.50,
+        purchasedBy: UsernameType.Angel,
+        purchasedOn: '2023-01-01',
+        imageUrl: '',
+        description: 'Test Description',
+        developed: false
+      }));
+      mockFilmService.getExposureDates = jasmine.createSpy('getExposureDates').and.returnValue(of(mockExposureDates));
+
+      component.ngOnInit();
+      component.openExposureDatesModal();
+
+      expect(mockFilmService.getExposureDates).toHaveBeenCalledWith(filmId);
+      expect(component.exposureDates.length).toBe(2);
+      expect(component.exposureDates[0].date).toBe('2025-10-20');
+      expect(component.exposureDates[0].description).toBe('First exposure');
+      expect(component.exposureDates[1].date).toBe('2025-10-22');
+      expect(component.exposureDates[1].description).toBe('Second exposure');
+    });
+
+    it('should sort exposure dates by date when loading from API', () => {
+      const filmId = 'test-film-id';
+      const mockExposureDates = [
+        { id: '2', filmId: filmId, date: '2025-10-22', description: 'Second exposure' },
+        { id: '1', filmId: filmId, date: '2025-10-20', description: 'First exposure' }
+      ];
+
+      component.isInsert = false;
+      component.id = filmId;
+      mockFilmService.getById.and.returnValue(of({
+        id: filmId,
+        name: 'Test Film',
+        iso: '400',
+        type: FilmType.ColorNegative,
+        numberOfExposures: 36,
+        cost: 10.50,
+        purchasedBy: UsernameType.Angel,
+        purchasedOn: '2023-01-01',
+        imageUrl: '',
+        description: 'Test Description',
+        developed: false
+      }));
+      mockFilmService.getExposureDates = jasmine.createSpy('getExposureDates').and.returnValue(of(mockExposureDates));
+
+      component.ngOnInit();
+      component.openExposureDatesModal();
+
+      // Verify dates are sorted (oldest first)
+      expect(component.exposureDates[0].date).toBe('2025-10-20');
+      expect(component.exposureDates[1].date).toBe('2025-10-22');
+    });
+
+    it('should save exposure dates to API when editing', () => {
+      const filmId = 'test-film-id';
+      component.isInsert = false;
+      component.id = filmId;
+      component.exposureDates = [
+        { date: '2025-10-25', description: 'New exposure 1' },
+        { date: '2025-10-26', description: 'New exposure 2' }
+      ];
+      component.isExposureDatesModalOpen = true;
+
+      mockFilmService.updateExposureDates = jasmine.createSpy('updateExposureDates').and.returnValue(of(undefined));
+
+      component.saveExposureDates();
+
+      expect(mockFilmService.updateExposureDates).toHaveBeenCalledWith(filmId, jasmine.arrayContaining([
+        jasmine.objectContaining({ date: '2025-10-25', description: 'New exposure 1' }),
+        jasmine.objectContaining({ date: '2025-10-26', description: 'New exposure 2' })
+      ]));
+      expect(component.isExposureDatesModalOpen).toBeFalsy();
+    });
+
+    it('should store exposure dates temporarily when creating new film', () => {
+      component.isInsert = true;
+      component.id = null;
+      component.exposureDates = [
+        { date: '2025-10-25', description: 'New exposure 1' },
+        { date: '2025-10-26', description: 'New exposure 2' }
+      ];
+      component.isExposureDatesModalOpen = true;
+
+      component.saveExposureDates();
+
+      expect(component.pendingExposureDates.length).toBe(2);
+      expect(component.pendingExposureDates[0].date).toBe('2025-10-25');
+      expect(component.pendingExposureDates[1].date).toBe('2025-10-26');
+      expect(component.isExposureDatesModalOpen).toBeFalsy();
+    });
+
+    it('should filter out empty dates when saving', () => {
+      const filmId = 'test-film-id';
+      component.isInsert = false;
+      component.id = filmId;
+      component.exposureDates = [
+        { date: '2025-10-25', description: 'Valid exposure' },
+        { date: '', description: 'Empty date' },
+        { date: '2025-10-26', description: 'Another valid exposure' }
+      ];
+      component.isExposureDatesModalOpen = true;
+
+      mockFilmService.updateExposureDates = jasmine.createSpy('updateExposureDates').and.returnValue(of(undefined));
+
+      component.saveExposureDates();
+
+      expect(mockFilmService.updateExposureDates).toHaveBeenCalledWith(filmId, jasmine.arrayContaining([
+        jasmine.objectContaining({ date: '2025-10-25' }),
+        jasmine.objectContaining({ date: '2025-10-26' })
+      ]));
+      // Should not include the empty date
+      const callArgs = (mockFilmService.updateExposureDates as jasmine.Spy).calls.mostRecent().args[1];
+      expect(callArgs.length).toBe(2);
+      expect(callArgs.every((ed: any) => ed.date !== '')).toBeTruthy();
     });
 
     it('should render exposure dates with proper structure (exposure-date-entry wrapper)', () => {
