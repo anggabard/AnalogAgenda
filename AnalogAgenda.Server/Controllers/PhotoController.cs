@@ -84,7 +84,7 @@ public class PhotoController(
             // Parse base64 once and clear immediately to reduce memory pressure
             var base64Image = photoDto.ImageBase64;
             var (imageBytes, contentType) = BlobImageHelper.ParseBase64Image(base64Image);
-            
+
             // Clear base64 string immediately after parsing to free memory
             base64Image = string.Empty;
             photoDto.ImageBase64 = string.Empty;
@@ -96,7 +96,7 @@ public class PhotoController(
                 contentType,
                 imageId
             );
-            
+
             // Force GC after full image upload to free memory before preview processing
             GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced, blocking: true);
             GC.WaitForPendingFinalizers();
@@ -109,10 +109,10 @@ public class PhotoController(
                 maxDimension: 1200,
                 quality: 80
             );
-            
+
             // Clear image bytes from memory
             imageBytes = null;
-            
+
             // Force GC after preview upload to free memory immediately
             GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced, blocking: true);
             GC.WaitForPendingFinalizers();
@@ -175,7 +175,7 @@ public class PhotoController(
         {
             // Serve preview directly from blob storage (preview/{imageId})
             var previewBlobClient = photosContainer.GetBlobClient($"preview/{photoEntity.ImageId}");
-            
+
             if (!await previewBlobClient.ExistsAsync())
             {
                 return NotFound("Preview not found in storage.");
@@ -183,7 +183,7 @@ public class PhotoController(
 
             var response = await previewBlobClient.DownloadAsync();
             var contentType = response.Value.Details.ContentType ?? "image/jpeg";
-            
+
             using var memoryStream = new MemoryStream();
             await response.Value.Content.CopyToAsync(memoryStream);
             var previewBytes = memoryStream.ToArray();
@@ -243,39 +243,49 @@ public class PhotoController(
 
         try
         {
-            using var memoryStream = new MemoryStream();
-            using (var archive = new ZipArchive(memoryStream, ZipArchiveMode.Create, true))
+            var archiveName = $"{SanitizeFileName(filmEntity.Name)}.zip";
+
+            // Use a memory stream for zip creation (ZipArchive requires seekable stream)
+            // Process photos one at a time with memory cleanup to prevent OutOfMemoryException
+            var memoryStream = new MemoryStream();
+            using (var archive = new ZipArchive(memoryStream, ZipArchiveMode.Create, leaveOpen: true))
             {
                 foreach (var photo in photos.OrderBy(p => p.Index))
                 {
                     var blobClient = photosContainer.GetBlobClient(photo.ImageId.ToString());
                     if (await blobClient.ExistsAsync())
                     {
-                        var base64WithType =
-                            await BlobImageHelper.DownloadImageAsBase64WithContentTypeAsync(
-                                photosContainer,
-                                photo.ImageId
-                            );
-                        var fileExtension = BlobImageHelper.GetFileExtensionFromBase64(
-                            base64WithType
+                        // Download image as bytes directly (no base64 conversion - saves ~50% memory)
+                        var (imageBytes, contentType) = await BlobImageHelper.DownloadImageAsBytesAsync(
+                            photosContainer,
+                            photo.ImageId
                         );
+
+                        // Get file extension from content type
+                        var fileExtension = BlobImageHelper.GetFileExtensionFromContentType(contentType);
                         var fileName = $"{photo.Index:D3}.{fileExtension}";
 
-                        var zipEntry = archive.CreateEntry(fileName);
-                        using var zipStream = zipEntry.Open();
+                        // Create zip entry with optimal compression
+                        var zipEntry = archive.CreateEntry(fileName, CompressionLevel.Optimal);
+                        using (var zipStream = zipEntry.Open())
+                        {
+                            await zipStream.WriteAsync(imageBytes);
+                        }
 
-                        // Extract bytes from base64 data URL
-                        var base64Data = base64WithType.Split(',')[1];
-                        var bytes = Convert.FromBase64String(base64Data);
-                        await zipStream.WriteAsync(bytes);
+
+                        // Clear image bytes immediately to free memory
+                        imageBytes = null;
+
+                        // Force GC after large images to prevent memory accumulation
+                        GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced, blocking: true);
+                        GC.WaitForPendingFinalizers();
                     }
                 }
             }
 
+            // Return the zip file as a stream (FileStreamResult will dispose the stream)
             memoryStream.Position = 0;
-            var archiveName = $"{SanitizeFileName(filmEntity.Name)}.zip";
-
-            return File(memoryStream.ToArray(), "application/zip", archiveName);
+            return File(memoryStream, "application/zip", archiveName);
         }
         catch (Exception ex)
         {

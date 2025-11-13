@@ -144,6 +144,32 @@ public static class BlobImageHelper
         return $"data:{contentType};base64,{base64}";
     }
 
+    /// <summary>
+    /// Downloads an image from blob storage directly as bytes without base64 conversion
+    /// </summary>
+    /// <param name="blobContainerClient">The blob container client</param>
+    /// <param name="blobName">The blob name (ImageId)</param>
+    /// <returns>Tuple of (image bytes, content type)</returns>
+    public static async Task<(byte[] imageBytes, string contentType)> DownloadImageAsBytesAsync(
+        BlobContainerClient blobContainerClient, 
+        Guid blobName)
+    {
+        var blobClient = blobContainerClient.GetBlobClient(blobName.ToString());
+
+        if (!await blobClient.ExistsAsync())
+            throw new FileNotFoundException($"Blob with name {blobName} does not exist.");
+
+        var response = await blobClient.DownloadAsync();
+
+        using var memoryStream = new MemoryStream();
+        await response.Value.Content.CopyToAsync(memoryStream);
+        byte[] imageBytes = memoryStream.ToArray();
+
+        string contentType = response.Value.Details.ContentType ?? "application/octet-stream";
+
+        return (imageBytes, contentType);
+    }
+
     public static string GetContentTypeFromBase64(string base64WithType)
     {
         // Extract content type from "data:image/jpeg;base64,..." format
@@ -155,6 +181,11 @@ public static class BlobImageHelper
     public static string GetFileExtensionFromBase64(string base64WithType)
     {
         var contentType = GetContentTypeFromBase64(base64WithType);
+        return GetFileExtensionFromContentType(contentType);
+    }
+
+    public static string GetFileExtensionFromContentType(string contentType)
+    {
         return contentType switch
         {
             "image/jpeg" => "jpg",
