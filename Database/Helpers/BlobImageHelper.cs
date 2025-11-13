@@ -148,16 +148,16 @@ public static class BlobImageHelper
     /// Downloads an image from blob storage directly as bytes without base64 conversion
     /// </summary>
     /// <param name="blobContainerClient">The blob container client</param>
-    /// <param name="blobName">The blob name (ImageId)</param>
+    /// <param name="blobPath">The blob path (e.g., "imageId" or "preview/imageId")</param>
     /// <returns>Tuple of (image bytes, content type)</returns>
     public static async Task<(byte[] imageBytes, string contentType)> DownloadImageAsBytesAsync(
         BlobContainerClient blobContainerClient, 
-        Guid blobName)
+        string blobPath)
     {
-        var blobClient = blobContainerClient.GetBlobClient(blobName.ToString());
+        var blobClient = blobContainerClient.GetBlobClient(blobPath);
 
         if (!await blobClient.ExistsAsync())
-            throw new FileNotFoundException($"Blob with name {blobName} does not exist.");
+            throw new FileNotFoundException($"Blob with path {blobPath} does not exist.");
 
         var response = await blobClient.DownloadAsync();
 

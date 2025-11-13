@@ -231,7 +231,7 @@ public class PhotoController(
     }
 
     [HttpGet("download-all/{filmId}")]
-    public async Task<IActionResult> DownloadAllPhotos(string filmId)
+    public async Task<IActionResult> DownloadAllPhotos(string filmId, [FromQuery] bool small = false)
     {
         var filmEntity = await databaseService.GetByIdAsync<FilmEntity>(filmId);
         if (filmEntity == null)
@@ -243,48 +243,51 @@ public class PhotoController(
 
         try
         {
-            var archiveName = $"{SanitizeFileName(filmEntity.Name)}.zip";
+            var archiveName = small
+                ? $"{SanitizeFileName(filmEntity.Name)}-small.zip"
+                : $"{SanitizeFileName(filmEntity.Name)}.zip";
 
             // Use a temporary file instead of memory stream to prevent OutOfMemoryException
             // This writes the zip to disk (which has much more space than memory)
             var tempFilePath = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid()}.zip");
             FileStream? tempFileStream = null;
-            
+
             try
             {
                 tempFileStream = new FileStream(tempFilePath, FileMode.Create, FileAccess.ReadWrite, FileShare.None, 4096, FileOptions.DeleteOnClose);
-                
+
                 using (var archive = new ZipArchive(tempFileStream, ZipArchiveMode.Create, leaveOpen: true))
                 {
                     foreach (var photo in photos.OrderBy(p => p.Index))
                     {
-                        var blobClient = photosContainer.GetBlobClient(photo.ImageId.ToString());
-                        if (await blobClient.ExistsAsync())
+                        // Determine which blob path to use based on small parameter
+                        string blobPath = small
+                            ? $"preview/{photo.ImageId}"
+                            : photo.ImageId.ToString();
+
+                        // Download image as bytes directly (no base64 conversion - saves ~50% memory)
+                        var (imageBytes, contentType) = await BlobImageHelper.DownloadImageAsBytesAsync(
+                            photosContainer,
+                            blobPath
+                        );
+
+                        // Get file extension from content type
+                        var fileExtension = BlobImageHelper.GetFileExtensionFromContentType(contentType);
+                        var fileName = $"{photo.Index:D3}.{fileExtension}";
+
+                        // Create zip entry with optimal compression
+                        var zipEntry = archive.CreateEntry(fileName, CompressionLevel.Optimal);
+                        using (var zipStream = zipEntry.Open())
                         {
-                            // Download image as bytes directly (no base64 conversion - saves ~50% memory)
-                            var (imageBytes, contentType) = await BlobImageHelper.DownloadImageAsBytesAsync(
-                                photosContainer,
-                                photo.ImageId
-                            );
-
-                            // Get file extension from content type
-                            var fileExtension = BlobImageHelper.GetFileExtensionFromContentType(contentType);
-                            var fileName = $"{photo.Index:D3}.{fileExtension}";
-
-                            // Create zip entry with optimal compression
-                            var zipEntry = archive.CreateEntry(fileName, CompressionLevel.Optimal);
-                            using (var zipStream = zipEntry.Open())
-                            {
-                                await zipStream.WriteAsync(imageBytes);
-                            }
-
-                            // Clear image bytes immediately to free memory
-                            imageBytes = null;
-
-                            // Force GC after each photo to prevent memory accumulation
-                            GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced, blocking: true);
-                            GC.WaitForPendingFinalizers();
+                            await zipStream.WriteAsync(imageBytes);
                         }
+
+                        // Clear image bytes immediately to free memory
+                        imageBytes = null;
+
+                        // Force GC after each photo to prevent memory accumulation
+                        GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced, blocking: true);
+                        GC.WaitForPendingFinalizers();
                     }
                 }
 

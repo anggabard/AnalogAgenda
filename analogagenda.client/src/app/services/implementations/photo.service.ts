@@ -24,8 +24,9 @@ export class PhotoService extends BaseService {
   }
 
   // Download all photos for a film as zip
-  downloadAllPhotos(filmId: string): Observable<Blob> {
-    return this.get<Blob>(`download-all/${filmId}`, { responseType: 'blob' });
+  downloadAllPhotos(filmId: string, small: boolean = false): Observable<Blob> {
+    const params = small ? { params: { small: 'true' } } : {};
+    return this.get<Blob>(`download-all/${filmId}`, { responseType: 'blob', ...params });
   }
 
   // Delete a photo

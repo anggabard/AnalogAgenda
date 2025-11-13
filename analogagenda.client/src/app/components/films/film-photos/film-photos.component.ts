@@ -1,4 +1,4 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject, OnInit, HostListener, ElementRef } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { PhotoService, FilmService } from '../../../services';
 import { PhotoDto, FilmDto } from '../../../DTOs';
@@ -14,6 +14,7 @@ export class FilmPhotosComponent implements OnInit {
   private router = inject(Router);
   public photoService = inject(PhotoService);
   private filmService = inject(FilmService);
+  private elementRef = inject(ElementRef);
 
   filmId: string = '';
   film: FilmDto | null = null;
@@ -31,6 +32,7 @@ export class FilmPhotosComponent implements OnInit {
 
   // Download all loading state
   downloadAllLoading = false;
+  downloadDropdownOpen = false;
   
   // Upload loading state
   uploadLoading = false;
@@ -190,6 +192,7 @@ export class FilmPhotosComponent implements OnInit {
 
   downloadAllPhotos() {
     this.downloadAllLoading = true;
+    this.downloadDropdownOpen = false;
     this.photoService.downloadAllPhotos(this.filmId).subscribe({
       next: (blob) => {
         const url = window.URL.createObjectURL(blob);
@@ -207,6 +210,46 @@ export class FilmPhotosComponent implements OnInit {
         this.downloadAllLoading = false;
       }
     });
+  }
+
+  downloadAllPhotosSmall() {
+    this.downloadAllLoading = true;
+    this.downloadDropdownOpen = false;
+    this.photoService.downloadAllPhotos(this.filmId, true).subscribe({
+      next: (blob) => {
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${this.sanitizeFileName(this.film?.name || 'photos')}-small.zip`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+        this.downloadAllLoading = false;
+      },
+      error: (err) => {
+        this.errorMessage = 'Error downloading photos archive.';
+        this.downloadAllLoading = false;
+      }
+    });
+  }
+
+  toggleDownloadDropdown() {
+    this.downloadDropdownOpen = !this.downloadDropdownOpen;
+  }
+
+  closeDownloadDropdown() {
+    this.downloadDropdownOpen = false;
+  }
+
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: Event): void {
+    const target = event.target as HTMLElement;
+    const dropdownContainer = this.elementRef.nativeElement.querySelector('.download-dropdown-container');
+    
+    if (dropdownContainer && !dropdownContainer.contains(target)) {
+      this.downloadDropdownOpen = false;
+    }
   }
 
   onUploadPhotos() {
