@@ -9,8 +9,6 @@ tests/
 ├── components/          # Component tests
 │   ├── home.component.spec.ts
 │   └── login.component.spec.ts
-├── interceptors/        # HTTP interceptor tests
-│   └── error.interceptor.spec.ts
 ├── test.config.ts      # Test utilities and configuration
 └── README.md          # This file
 ```
@@ -66,8 +64,6 @@ When testing components that use router navigation, always mock the Router:
 const routerSpy = jasmine.createSpyObj('Router', ['navigate']);
 ```
 
-### HTTP Interceptor Tests
-Interceptor tests can be complex. Focus on testing the core functionality rather than detailed HTTP interactions.
 
 ### Form Tests
 For reactive forms, test:

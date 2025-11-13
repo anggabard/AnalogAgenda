@@ -112,23 +112,20 @@ export class PhotoService extends BaseService {
           index: assignedIndex
         };
 
-        // Send request to backend API with retry logic for 503/507 errors only
-        // Note: 401 errors are NOT retried - if session is invalid, retrying won't help
-        // Sliding expiration should prevent 401s by refreshing cookies on each request
+        // Send request to backend API with retry logic for 5xx server errors
         const uploadedPhoto = await lastValueFrom(
           this.post<PhotoDto>('', photoDto).pipe(
             retryWhen(errors =>
               errors.pipe(
                 mergeMap((error: HttpErrorResponse, retryIndex: number) => {
-                  // Only retry on 503 (Service Unavailable) or 507 (Insufficient Storage)
-                  // Do NOT retry 401 - if session is invalid, user needs to re-authenticate
-                  if ((error.status === 503 || error.status === 507) && retryIndex < 3) {
+                  // Retry on 5xx server errors (up to 3 attempts)
+                  if (error.status >= 500 && error.status < 600 && retryIndex < 3) {
                     // Exponential backoff: 2s, 4s, 8s
                     const delayMs = Math.pow(2, retryIndex + 1) * 1000;
                     console.warn(`Upload failed with ${error.status}, retrying in ${delayMs}ms... (attempt ${retryIndex + 1}/3)`);
                     return timer(delayMs);
                   }
-                  // Don't retry for other errors (including 401) or after max retries
+                  // Don't retry for other errors or after max retries
                   return throwError(() => error);
                 })
               )
@@ -149,31 +146,16 @@ export class PhotoService extends BaseService {
         const errorMessage = error?.error?.error || error?.message || 'Unknown error';
         const status = error?.status;
         
-        // Log 401 errors with details to help diagnose the root cause
-        if (status === 401) {
-          console.error('Photo upload returned 401 Unauthorized:', {
-            status: error?.status,
-            statusText: error?.statusText,
-            url: error?.url,
-            message: error?.message,
-            error: error?.error,
-            headers: error?.headers,
-            timestamp: new Date().toISOString()
-          });
-        }
-        
-        // For 503/507 after retries, provide a more helpful message
-        if (status === 503 || status === 507) {
+        // Provide user-friendly error messages
+        if (status >= 500 && status < 600) {
           return {
             success: false,
-            error: `Server is temporarily overloaded. Please try uploading fewer photos at once or wait a moment and try again.`
+            error: `Server error occurred. Please try again later.`
           };
         } else if (status === 401) {
-          // 401 - authentication failed during upload
-          // This should not happen if cookie is valid - investigate root cause
           return {
             success: false,
-            error: `Authentication failed during upload. Please check your session and try again.`
+            error: `Authentication failed. Please log in again.`
           };
         } else {
           return {

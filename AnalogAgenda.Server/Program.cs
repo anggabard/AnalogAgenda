@@ -27,11 +27,6 @@ builder.AddServiceDefaults();
 // This is CRITICAL for cookie authentication in multi-replica scenarios
 // Without this, cookies encrypted by one replica cannot be decrypted by another replica
 // which causes 401 errors when requests are load-balanced to different replicas
-// 
-// Scenario: When scaling creates new replicas or restarts occur:
-// - Each replica generates its own data protection keys
-// - Cookies encrypted by Replica 1 cannot be decrypted by Replica 2
-// - This causes 401 errors when load balancer routes to different replicas
 try
 {
     // Try to get connection string from configuration (appsettings.Development.json for local dev)
@@ -107,22 +102,10 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
             : CookieSecurePolicy.Always;
         opt.ExpireTimeSpan = TimeSpan.FromDays(7);
         
-        // Enable sliding expiration to refresh cookie during long operations (like bulk uploads)
-        // This prevents 401 errors during long-running upload sessions
-        // With sliding expiration, the cookie is automatically refreshed on each authenticated request
-        // The expiration time is reset to the full ExpireTimeSpan (7 days) on each request
         opt.SlidingExpiration = true;
 
         opt.Events.OnRedirectToLogin = context =>
         {
-            // Log authentication failures to help diagnose 401 issues during uploads
-            var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
-            logger.LogWarning(
-                "Authentication failed - redirecting to login. Path: {Path}, Method: {Method}, HasCookie: {HasCookie}",
-                context.HttpContext.Request.Path,
-                context.HttpContext.Request.Method,
-                context.HttpContext.Request.Cookies.ContainsKey(".AnalogAgenda.Auth")
-            );
             context.HttpContext.Response.StatusCode = StatusCodes.Status401Unauthorized;
             return Task.CompletedTask;
         };

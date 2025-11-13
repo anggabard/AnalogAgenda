@@ -11,25 +11,12 @@ export const sessionGuard: CanActivateFn = () => {
   return api.isAuth().pipe(
     map(() => true),
     catchError((error: HttpErrorResponse) => {
-      // Log the error to help diagnose why 401s are happening
-      console.error('Session guard auth check failed:', {
-        status: error.status,
-        statusText: error.statusText,
-        url: error.url,
-        message: error.message,
-        error: error.error
-      });
-      
-      // Don't redirect to login on temporary server errors (503, 507, 500)
-      // These are server issues, not authentication failures
-      if (error.status === 503 || error.status === 507 || error.status === 500) {
-        // Allow access even if auth check fails due to server issues
-        console.warn(`Server error (${error.status}) during auth check - allowing access`);
-        return of(true);
+      // Only handle 401 (Unauthorized) and 403 (Forbidden) - redirect to login
+      if (error.status === 401 || error.status === 403) {
+        return of(router.createUrlTree(['/login']));
       }
-      // Only redirect to login on actual authentication failures
-      console.warn('Authentication failed - redirecting to login');
-      return of(router.createUrlTree(['/login']));
+      // For all other errors (including 5xx), allow access
+      return of(true);
     })
   );
 };
