@@ -245,47 +245,60 @@ public class PhotoController(
         {
             var archiveName = $"{SanitizeFileName(filmEntity.Name)}.zip";
 
-            // Use a memory stream for zip creation (ZipArchive requires seekable stream)
-            // Process photos one at a time with memory cleanup to prevent OutOfMemoryException
-            var memoryStream = new MemoryStream();
-            using (var archive = new ZipArchive(memoryStream, ZipArchiveMode.Create, leaveOpen: true))
+            // Use a temporary file instead of memory stream to prevent OutOfMemoryException
+            // This writes the zip to disk (which has much more space than memory)
+            var tempFilePath = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid()}.zip");
+            FileStream? tempFileStream = null;
+            
+            try
             {
-                foreach (var photo in photos.OrderBy(p => p.Index))
+                tempFileStream = new FileStream(tempFilePath, FileMode.Create, FileAccess.ReadWrite, FileShare.None, 4096, FileOptions.DeleteOnClose);
+                
+                using (var archive = new ZipArchive(tempFileStream, ZipArchiveMode.Create, leaveOpen: true))
                 {
-                    var blobClient = photosContainer.GetBlobClient(photo.ImageId.ToString());
-                    if (await blobClient.ExistsAsync())
+                    foreach (var photo in photos.OrderBy(p => p.Index))
                     {
-                        // Download image as bytes directly (no base64 conversion - saves ~50% memory)
-                        var (imageBytes, contentType) = await BlobImageHelper.DownloadImageAsBytesAsync(
-                            photosContainer,
-                            photo.ImageId
-                        );
-
-                        // Get file extension from content type
-                        var fileExtension = BlobImageHelper.GetFileExtensionFromContentType(contentType);
-                        var fileName = $"{photo.Index:D3}.{fileExtension}";
-
-                        // Create zip entry with optimal compression
-                        var zipEntry = archive.CreateEntry(fileName, CompressionLevel.Optimal);
-                        using (var zipStream = zipEntry.Open())
+                        var blobClient = photosContainer.GetBlobClient(photo.ImageId.ToString());
+                        if (await blobClient.ExistsAsync())
                         {
-                            await zipStream.WriteAsync(imageBytes);
+                            // Download image as bytes directly (no base64 conversion - saves ~50% memory)
+                            var (imageBytes, contentType) = await BlobImageHelper.DownloadImageAsBytesAsync(
+                                photosContainer,
+                                photo.ImageId
+                            );
+
+                            // Get file extension from content type
+                            var fileExtension = BlobImageHelper.GetFileExtensionFromContentType(contentType);
+                            var fileName = $"{photo.Index:D3}.{fileExtension}";
+
+                            // Create zip entry with optimal compression
+                            var zipEntry = archive.CreateEntry(fileName, CompressionLevel.Optimal);
+                            using (var zipStream = zipEntry.Open())
+                            {
+                                await zipStream.WriteAsync(imageBytes);
+                            }
+
+                            // Clear image bytes immediately to free memory
+                            imageBytes = null;
+
+                            // Force GC after each photo to prevent memory accumulation
+                            GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced, blocking: true);
+                            GC.WaitForPendingFinalizers();
                         }
-
-
-                        // Clear image bytes immediately to free memory
-                        imageBytes = null;
-
-                        // Force GC after large images to prevent memory accumulation
-                        GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced, blocking: true);
-                        GC.WaitForPendingFinalizers();
                     }
                 }
-            }
 
-            // Return the zip file as a stream (FileStreamResult will dispose the stream)
-            memoryStream.Position = 0;
-            return File(memoryStream, "application/zip", archiveName);
+                // Reset stream position and return as file stream
+                // FileOptions.DeleteOnClose ensures the temp file is deleted when the stream is disposed
+                tempFileStream.Position = 0;
+                return File(tempFileStream, "application/zip", archiveName);
+            }
+            catch
+            {
+                // Ensure temp file stream is disposed on error
+                tempFileStream?.Dispose();
+                throw;
+            }
         }
         catch (Exception ex)
         {
