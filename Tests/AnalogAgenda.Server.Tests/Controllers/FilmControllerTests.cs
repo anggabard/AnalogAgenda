@@ -5,7 +5,6 @@ using Configuration.Sections;
 using Database.Data;
 using Database.DBObjects.Enums;
 using Database.DTOs;
-using Database.DTOs.Subclasses;
 using Database.Entities;
 using Database.Services;
 using Database.Services.Interfaces;
@@ -72,8 +71,7 @@ public class FilmControllerTests : IDisposable
             PurchasedOn = DateOnly.FromDateTime(DateTime.UtcNow),
             ImageUrl = "",
             Description = "Test Description",
-            Developed = false,
-            ExposureDates = string.Empty
+            Developed = false
         };
 
         // Act
@@ -101,8 +99,7 @@ public class FilmControllerTests : IDisposable
             PurchasedOn = DateOnly.FromDateTime(DateTime.UtcNow),
             ImageUrl = "",
             Description = "Test Description",
-            Developed = false,
-            ExposureDates = string.Empty
+            Developed = false
         };
 
         // Act
@@ -129,8 +126,7 @@ public class FilmControllerTests : IDisposable
             PurchasedOn = DateOnly.FromDateTime(DateTime.UtcNow),
             ImageUrl = "", // Empty ImageUrl means ImageId will be Guid.Empty, then set to DefaultFilmImageId
             Description = "Test Description",
-            Developed = false,
-            ExposureDates = string.Empty
+            Developed = false
         };
 
         // Act
@@ -170,8 +166,7 @@ public class FilmControllerTests : IDisposable
             PurchasedOn = DateOnly.FromDateTime(DateTime.UtcNow),
             ImageUrl = "",
             Description = "Test Description",
-            Developed = false,
-            ExposureDates = string.Empty
+            Developed = false
         };
 
         // Act
@@ -197,8 +192,7 @@ public class FilmControllerTests : IDisposable
             PurchasedOn = DateOnly.FromDateTime(DateTime.UtcNow),
             ImageUrl = "",
             Description = "Test Description",
-            Developed = false,
-            ExposureDates = string.Empty
+            Developed = false
         };
 
         // Act
@@ -224,8 +218,7 @@ public class FilmControllerTests : IDisposable
             PurchasedOn = DateOnly.FromDateTime(DateTime.UtcNow),
             ImageUrl = "",
             Description = "Test Description",
-            Developed = false,
-            ExposureDates = string.Empty
+            Developed = false
         };
 
         // Act
@@ -260,8 +253,7 @@ public class FilmControllerTests : IDisposable
             PurchasedOn = DateOnly.FromDateTime(DateTime.UtcNow),
             ImageUrl = "",
             Description = "Test Description",
-            Developed = false,
-            ExposureDates = string.Empty
+            Developed = false
         };
 
         // Act
@@ -289,108 +281,5 @@ public class FilmControllerTests : IDisposable
         }
     }
 
-    [Fact]
-    public async Task CreateNewFilm_WithExposureDates_ShouldSaveCorrectly()
-    {
-        // Arrange
-        var exposureDatesJson = "[{\"date\":\"2024-01-15\",\"description\":\"Beach shoot\"},{\"date\":\"2024-01-20\",\"description\":\"Portrait session\"}]";
-        var filmDto = new FilmDto
-        {
-            Name = "Test Film",
-            Iso = "400",
-            Type = "ColorNegative",
-            NumberOfExposures = 36,
-            Cost = 10.50,
-            PurchasedBy = "Angel",
-            PurchasedOn = DateOnly.FromDateTime(DateTime.UtcNow),
-            ImageUrl = "",
-            Description = "Test Description",
-            Developed = false,
-            ExposureDates = exposureDatesJson
-        };
-
-        // Act
-        var result = await _controller.CreateNewFilm(filmDto);
-
-        // Assert
-        var createdResult = Assert.IsType<CreatedResult>(result);
-        var createdDto = Assert.IsType<FilmDto>(createdResult.Value);
-        Assert.NotNull(createdDto.Id);
-        Assert.Equal(exposureDatesJson, createdDto.ExposureDates);
-    }
-
-    [Fact]
-    public async Task CreateNewFilm_WithEmptyExposureDates_ShouldSaveCorrectly()
-    {
-        // Arrange
-        var filmDto = new FilmDto
-        {
-            Name = "Test Film",
-            Iso = "400",
-            Type = "ColorNegative",
-            NumberOfExposures = 36,
-            Cost = 10.50,
-            PurchasedBy = "Angel",
-            PurchasedOn = DateOnly.FromDateTime(DateTime.UtcNow),
-            ImageUrl = "",
-            Description = "Test Description",
-            Developed = false,
-            ExposureDates = string.Empty
-        };
-
-        // Act
-        var result = await _controller.CreateNewFilm(filmDto);
-
-        // Assert
-        var createdResult = Assert.IsType<CreatedResult>(result);
-        Assert.NotNull(createdResult.Value);
-    }
-
-    [Fact]
-    public void FilmDto_ExposureDatesList_ShouldSerializeAndDeserializeCorrectly()
-    {
-        // Arrange
-        var filmDto = new FilmDto
-        {
-            Name = "Test Film",
-            Iso = "400",
-            Type = "ColorNegative",
-            PurchasedBy = "Angel"
-        };
-        var exposureDates = new List<ExposureDateEntry>
-        {
-            new ExposureDateEntry { Date = DateOnly.FromDateTime(DateTime.UtcNow), Description = "Test exposure 1" },
-            new ExposureDateEntry { Date = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(1)), Description = "Test exposure 2" }
-        };
-
-        // Act
-        filmDto.ExposureDatesList = exposureDates;
-
-        // Assert
-        Assert.NotEmpty(filmDto.ExposureDates);
-        var deserializedDates = filmDto.ExposureDatesList;
-        Assert.Equal(2, deserializedDates.Count);
-        Assert.Equal("Test exposure 1", deserializedDates[0].Description);
-        Assert.Equal("Test exposure 2", deserializedDates[1].Description);
-    }
-
-    [Fact]
-    public void FilmDto_ExposureDatesList_WithEmptyList_ShouldReturnEmptyString()
-    {
-        // Arrange
-        var filmDto = new FilmDto
-        {
-            Name = "Test Film",
-            Iso = "400",
-            Type = "ColorNegative",
-            PurchasedBy = "Angel"
-        };
-
-        // Act
-        filmDto.ExposureDatesList = new List<ExposureDateEntry>();
-
-        // Assert
-        Assert.Equal(string.Empty, filmDto.ExposureDates);
-    }
 }
 

@@ -26,7 +26,7 @@ describe('UpsertFilmComponent', () => {
     const thumbnailServiceSpy = jasmine.createSpyObj('UsedFilmThumbnailService', ['searchByFilmName', 'uploadThumbnail']);
     
     // Set up default return values for the spies
-    filmServiceSpy.getById.and.returnValue(of({ exposureDates: [] }));
+    filmServiceSpy.getById.and.returnValue(of({ formattedExposureDate: '' }));
     sessionServiceSpy.getAll.and.returnValue(of([]));
     devKitServiceSpy.getAll.and.returnValue(of([]));
     photoServiceSpy.getAll.and.returnValue(of([]));
@@ -547,8 +547,7 @@ describe('UpsertFilmComponent', () => {
         purchasedOn: '2023-01-01',
         imageUrl: '',
         description: 'Test Description',
-        developed: false,
-        exposureDates: ''
+        developed: false
       }));
       mockSessionService.getAll.and.returnValue(of([]));
       mockDevKitService.getAll.and.returnValue(of([]));
@@ -716,8 +715,7 @@ describe('UpsertFilmComponent', () => {
         purchasedOn: '2023-01-01',
         imageUrl: '',
         description: 'Test Description',
-        developed: false,
-        exposureDates: ''
+        developed: false
       }));
       mockSessionService.getAll.and.returnValue(of([]));
       mockDevKitService.getAll.and.returnValue(of([]));
@@ -871,11 +869,7 @@ describe('UpsertFilmComponent', () => {
         purchasedOn: '2023-01-01',
         imageUrl: '',
         description: 'Test Description',
-        developed: false,
-        exposureDates: JSON.stringify([
-          { date: '2023-01-01', description: 'First exposure' },
-          { date: '2023-01-02', description: 'Second exposure' }
-        ])
+        developed: false
       };
       
       mockFilmService.getById.and.returnValue(of(filmWithExposureDates));
@@ -884,8 +878,15 @@ describe('UpsertFilmComponent', () => {
       
       component.ngOnInit();
       
-      // Simulate form being patched with film data (this happens in the base component)
-      component.form.patchValue(filmWithExposureDates);
+      // Simulate form being patched with film data, including exposure dates in the form control
+      // (The component still uses the old structure internally via form controls)
+      component.form.patchValue({
+        ...filmWithExposureDates,
+        exposureDates: JSON.stringify([
+          { date: '2023-01-01', description: 'First exposure' },
+          { date: '2023-01-02', description: 'Second exposure' }
+        ])
+      });
       
       // Now open the modal - this should load the exposure dates
       component.openExposureDatesModal();

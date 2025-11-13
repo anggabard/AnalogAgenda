@@ -293,8 +293,7 @@ describe('FilmService', () => {
       purchasedOn,
       description: 'Test film description',
       developed,
-      imageUrl: 'test-image-url',
-      exposureDates: ''
+      imageUrl: 'test-image-url'
     };
   }
 

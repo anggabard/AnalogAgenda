@@ -1,6 +1,4 @@
-using System.Linq.Expressions;
 using AnalogAgenda.Server.Identity;
-using Azure.Storage.Blobs;
 using Configuration.Sections;
 using Database.DBObjects;
 using Database.DBObjects.Enums;
@@ -10,6 +8,7 @@ using Database.Helpers;
 using Database.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Linq.Expressions;
 
 namespace AnalogAgenda.Server.Controllers;
 
@@ -216,7 +215,10 @@ public class FilmController(
     [HttpGet("{id}")]
     public async Task<IActionResult> GetFilmById(string id)
     {
-        var entity = await databaseService.GetByIdAsync<FilmEntity>(id);
+        var entity = await databaseService.GetByIdWithIncludesAsync<FilmEntity>(
+            id,
+            f => f.ExposureDates
+        );
         if (entity == null)
             return NotFound($"No Film found with Id: {id}");
 
@@ -263,6 +265,83 @@ public class FilmController(
 
         await databaseService.DeleteAsync(entity);
         return NoContent();
+    }
+
+    [HttpGet("{filmId}/exposure-dates")]
+    public async Task<IActionResult> GetExposureDates(string filmId)
+    {
+        var film = await databaseService.GetByIdWithIncludesAsync<FilmEntity>(
+            filmId,
+            f => f.ExposureDates
+        );
+        if (film == null)
+            return NotFound($"No Film found with Id: {filmId}");
+
+        var exposureDates = film.ExposureDates
+            .OrderBy(e => e.Date)
+            .Select(e => new ExposureDateDto
+            {
+                Id = e.Id,
+                FilmId = e.FilmId,
+                Date = e.Date,
+                Description = e.Description
+            })
+            .ToList();
+
+        return Ok(exposureDates);
+    }
+
+    [HttpPut("{filmId}/exposure-dates")]
+    public async Task<IActionResult> UpdateExposureDates(string filmId, [FromBody] List<ExposureDateDto> exposureDates)
+    {
+        if (exposureDates == null)
+            return BadRequest("Invalid data.");
+
+        var film = await databaseService.GetByIdWithIncludesAsync<FilmEntity>(
+            filmId,
+            f => f.ExposureDates
+        );
+        if (film == null)
+            return NotFound($"No Film found with Id: {filmId}");
+
+        try
+        {
+            // Remove all existing exposure dates
+            var existingDates = film.ExposureDates.ToList();
+            foreach (var existingDate in existingDates)
+            {
+                await databaseService.DeleteAsync(existingDate);
+            }
+
+            // Add new exposure dates
+            foreach (var dto in exposureDates)
+            {
+                // Skip entries with invalid dates
+                if (dto.Date == default(DateOnly))
+                    continue;
+
+                var exposureDate = new ExposureDateEntity
+                {
+                    Id = string.IsNullOrEmpty(dto.Id) ? string.Empty : dto.Id,
+                    FilmId = filmId,
+                    Date = dto.Date,
+                    Description = dto.Description ?? string.Empty
+                };
+
+                if (string.IsNullOrEmpty(exposureDate.Id))
+                {
+                    exposureDate.Id = exposureDate.GetId();
+                }
+
+                await databaseService.AddAsync(exposureDate);
+            }
+
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            return UnprocessableEntity(ex.Message);
+        }
     }
 
     private async Task DeleteAssociatedPhotosAsync(string filmId)
