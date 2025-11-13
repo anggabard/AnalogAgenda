@@ -6,5 +6,6 @@ public enum ContainerName
     notes,
     films,
     photos,
-    sessions
+    sessions,
+    dataprotectionkeys,
 }

@@ -2,6 +2,7 @@ using AnalogAgenda.Server.Middleware;
 using AnalogAgenda.Server.Validators;
 using Configuration;
 using Database.Data;
+using Database.DBObjects.Enums;
 using Database.Services;
 using Database.Services.Interfaces;
 using FluentValidation;
@@ -9,7 +10,6 @@ using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -42,7 +42,7 @@ try
     if (!string.IsNullOrEmpty(connectionString))
     {
         builder.Services.AddDataProtection()
-            .PersistKeysToAzureBlobStorage(connectionString, "dataprotection-keys", "keys.xml")
+            .PersistKeysToAzureBlobStorage(connectionString, ContainerName.dataprotectionkeys.ToString(), "keys.xml")
             .SetApplicationName("AnalogAgenda");
     }
     else
