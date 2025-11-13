@@ -84,6 +84,7 @@
         <span class="title">{{film.name}}</span>
         <span class="info type">{{film.type}}</span>
         <span class="info iso">ISO {{film.iso}}</span>
+        <span class="info photos" *ngIf="film.photoCount && film.photoCount > 0">{{film.photoCount}}</span>
     </div>
 </ng-template>
 
@@ -94,5 +95,6 @@
         <span class="info type">{{film.type}}</span>
         <span class="info iso">ISO {{film.iso}}</span>
         <span class="info owner">{{film.purchasedBy}}</span>
+        <span class="info photos" *ngIf="film.photoCount && film.photoCount > 0">{{film.photoCount}}</span>
     </div>
 </ng-template>

@@ -34,6 +34,8 @@ public class FilmDto
 
     public string FormattedExposureDate { get; set; } = string.Empty;
 
+    public int PhotoCount { get; set; } = 0;
+
     public FilmEntity ToEntity()
     {
         return new FilmEntity

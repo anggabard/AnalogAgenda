@@ -15,4 +15,5 @@ export interface FilmDto {
   developedInSessionId?: string | null;
   developedWithDevKitId?: string | null;
   formattedExposureDate?: string;
+  photoCount?: number;
 }

@@ -1,7 +1,6 @@
 using Database.DBObjects.Enums;
 using Database.DTOs;
 using Database.Helpers;
-using Microsoft.EntityFrameworkCore;
 
 namespace Database.Entities;
 
@@ -86,7 +85,8 @@ public class FilmEntity : BaseEntity, IImageEntity
             Developed = Developed,
             DevelopedInSessionId = DevelopedInSessionId,
             DevelopedWithDevKitId = DevelopedWithDevKitId,
-            FormattedExposureDate = formattedDate
+            FormattedExposureDate = formattedDate,
+            PhotoCount = Photos?.Count ?? 0
         };
     }
 }

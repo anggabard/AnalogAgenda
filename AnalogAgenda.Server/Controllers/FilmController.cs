@@ -102,7 +102,7 @@ public class FilmController(
     [HttpGet("developed")]
     public async Task<IActionResult> GetDevelopedFilms([FromQuery] FilmSearchDto searchDto)
     {
-        return await GetFilteredFilms(f => f.Developed, searchDto);
+        return await GetFilteredFilms(f => f.Developed, searchDto, includePhotos: true);
     }
 
     [HttpGet("my/developed")]
@@ -114,14 +114,13 @@ public class FilmController(
 
         var currentUserEnum = currentUser.ToEnum<EUsernameType>();
 
-        // Azure Table Storage may have issues with compound expressions, so filter by user first
-        return await GetMyFilteredFilms(f => f.Developed, currentUserEnum, searchDto);
+        return await GetMyFilteredFilms(f => f.Developed, currentUserEnum, searchDto, includePhotos: true);
     }
 
     [HttpGet("not-developed")]
     public async Task<IActionResult> GetNotDevelopedFilms([FromQuery] FilmSearchDto searchDto)
     {
-        return await GetFilteredFilms(f => !f.Developed, searchDto);
+        return await GetFilteredFilms(f => !f.Developed, searchDto, includePhotos: false);
     }
 
     [HttpGet("my/not-developed")]
@@ -133,28 +132,37 @@ public class FilmController(
 
         var currentUserEnum = currentUser.ToEnum<EUsernameType>();
 
-        // Azure Table Storage may have issues with compound expressions, so filter by user first
-        return await GetMyFilteredFilms(f => !f.Developed, currentUserEnum, searchDto);
+        return await GetMyFilteredFilms(f => !f.Developed, currentUserEnum, searchDto, includePhotos: false);
     }
 
     private async Task<IActionResult> GetFilteredFilms(
         Expression<Func<FilmEntity, bool>> predicate,
-        FilmSearchDto searchDto
+        FilmSearchDto searchDto,
+        bool includePhotos = false
     )
     {
         // For backward compatibility, if page is 0 or negative, return all filtered films
         if (searchDto.Page <= 0)
         {
-            var entities = await databaseService.GetAllAsync(predicate);
-            var filteredEntities = ApplySearchFilters(entities, searchDto);
+            var entities = includePhotos 
+                ? await databaseService.GetAllWithIncludesAsync<FilmEntity>(f => f.Photos)
+                : await databaseService.GetAllAsync(predicate);
+            var filteredEntities = includePhotos
+                ? ApplySearchFilters(entities.Where(predicate.Compile()), searchDto)
+                : ApplySearchFilters(entities, searchDto);
             var results = filteredEntities
                 .ApplyStandardSorting()
                 .Select(e => e.ToDTO(storageCfg.AccountName));
             return Ok(results);
         }
 
-        var allEntities = await databaseService.GetAllAsync(predicate);
-        var searchFilteredEntities = ApplySearchFilters(allEntities, searchDto);
+        var allEntities = includePhotos
+            ? await databaseService.GetAllWithIncludesAsync<FilmEntity>(f => f.Photos)
+            : await databaseService.GetAllAsync(predicate);
+        var predicateFiltered = includePhotos
+            ? allEntities.Where(predicate.Compile())
+            : allEntities;
+        var searchFilteredEntities = ApplySearchFilters(predicateFiltered, searchDto);
         var sortedEntities = searchFilteredEntities.ApplyStandardSorting().ToList();
 
         // Apply pagination
@@ -176,14 +184,20 @@ public class FilmController(
     private async Task<IActionResult> GetMyFilteredFilms(
         Expression<Func<FilmEntity, bool>> statusPredicate,
         EUsernameType currentUserEnum,
-        FilmSearchDto searchDto
+        FilmSearchDto searchDto,
+        bool includePhotos = false
     )
     {
         if (searchDto.Page <= 0)
         {
             // Get all entities with status filter, then filter by user in memory
-            var allEntities = await databaseService.GetAllAsync(statusPredicate);
-            var myEntities = allEntities.Where(f => f.PurchasedBy == currentUserEnum);
+            var allEntities = includePhotos
+                ? await databaseService.GetAllWithIncludesAsync<FilmEntity>(f => f.Photos)
+                : await databaseService.GetAllAsync(statusPredicate);
+            var statusFiltered = includePhotos
+                ? allEntities.Where(statusPredicate.Compile())
+                : allEntities;
+            var myEntities = statusFiltered.Where(f => f.PurchasedBy == currentUserEnum);
             var filteredEntities = ApplySearchFilters(myEntities, searchDto);
             var results = filteredEntities
                 .ApplyUserFilteredSorting()
@@ -192,8 +206,13 @@ public class FilmController(
         }
 
         // For pagination, we need to get all status-filtered entities and then page them
-        var statusFilteredEntities = await databaseService.GetAllAsync(statusPredicate);
-        var myFilms = statusFilteredEntities.Where(f => f.PurchasedBy == currentUserEnum);
+        var allEntitiesForPaging = includePhotos
+            ? await databaseService.GetAllWithIncludesAsync<FilmEntity>(f => f.Photos)
+            : await databaseService.GetAllAsync(statusPredicate);
+        var statusFilteredForPaging = includePhotos
+            ? allEntitiesForPaging.Where(statusPredicate.Compile())
+            : allEntitiesForPaging;
+        var myFilms = statusFilteredForPaging.Where(f => f.PurchasedBy == currentUserEnum);
         var filteredFilms = ApplySearchFilters(myFilms, searchDto);
         var sortedFilms = filteredFilms.ApplyUserFilteredSorting().ToList();
 
@@ -217,7 +236,8 @@ public class FilmController(
     {
         var entity = await databaseService.GetByIdWithIncludesAsync<FilmEntity>(
             id,
-            f => f.ExposureDates
+            f => f.ExposureDates,
+            f => f.Photos
         );
         if (entity == null)
             return NotFound($"No Film found with Id: {id}");
