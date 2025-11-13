@@ -80,13 +80,13 @@ builder.Services.AddSingleton<IBlobService, BlobService>();
 // Configure Kestrel to accept larger request bodies (for single photo uploads: 30MB file + base64 overhead = ~40MB, rounded to 60MB)
 builder.Services.Configure<Microsoft.AspNetCore.Server.Kestrel.Core.KestrelServerOptions>(options =>
 {
-    options.Limits.MaxRequestBodySize = 60_000_000; // 60MB to accommodate base64-encoded 30MB images
+    options.Limits.MaxRequestBodySize = 100_000_000; // 100MB to accommodate base64-encoded 30MB images
 });
 
 // Configure form options for multipart form data
 builder.Services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(options =>
 {
-    options.MultipartBodyLengthLimit = 60_000_000; // 60MB
+    options.MultipartBodyLengthLimit = 100_000_000; // 100MB
 });
 
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
