@@ -198,11 +198,17 @@ export class FilmPhotosComponent implements OnInit {
         const url = window.URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
+        const filmName = this.film?.name 
+          ? this.sanitizeNameForFileName(this.film.name)
+          : 'photos';
+        const iso = this.film?.iso ? this.sanitizeFileName(this.film.iso) : '';
         const formattedDate = this.film?.formattedExposureDate 
-          ? ` - ${this.sanitizeFileName(this.film.formattedExposureDate)}` 
+          ? this.sanitizeDateForFileName(this.film.formattedExposureDate)
           : '';
+        const isoPart = iso ? ` ${iso}` : '';
+        const datePart = formattedDate ? ` - ${formattedDate}` : '';
         const sizeSuffix = small ? '-small' : '';
-        link.download = `${this.sanitizeFileName(this.film?.name || 'photos')}${formattedDate}${sizeSuffix}.zip`;
+        link.download = `${filmName}${isoPart}${datePart}${sizeSuffix}.zip`;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -335,5 +341,17 @@ export class FilmPhotosComponent implements OnInit {
   private sanitizeFileName(fileName: string): string {
     const sanitized = fileName.replace(/[^a-zA-Z0-9.\-_]/g, '');
     return (sanitized || 'photos').substring(0, 50);
+  }
+
+  private sanitizeDateForFileName(dateString: string): string {
+    // Preserve spaces but remove problematic characters for filenames (like /, :, \, etc.)
+    const sanitized = dateString.replace(/[<>:"/\\|?*]/g, '');
+    return sanitized.substring(0, 50);
+  }
+
+  private sanitizeNameForFileName(name: string): string {
+    // Preserve spaces but remove problematic characters for filenames (like /, :, \, etc.)
+    const sanitized = name.replace(/[<>:"/\\|?*]/g, '');
+    return sanitized.substring(0, 50);
   }
 }
