@@ -1,7 +1,7 @@
-﻿using Azure.Containers.ContainerRegistry;
+﻿using AnalogAgenda.Functions.Constants;
+using Azure.Containers.ContainerRegistry;
 using Configuration.Sections;
 using Database.Entities;
-using Database.Services;
 using Database.Services.Interfaces;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
@@ -19,9 +19,8 @@ public class GarbageCollector(
     private readonly IContainerRegistryService _containerRegistryService = containerRegistryService;
     private readonly ContainerRegistry _containerRegistryConfig = containerRegistryConfig;
 
-    //Every 7th day of the month at 7:00 AM
     [Function("GarbageCollector")]
-    public async Task Run([TimerTrigger("0 0 7 7,14,21,28 * *")] TimerInfo myTimer)
+    public async Task Run([TimerTrigger(TimeTriggers.Every7DaysAt7AM)] TimerInfo myTimer)
     {
         _logger.LogInformation($"GarbageCollector function executed at: {DateTime.UtcNow}");
 

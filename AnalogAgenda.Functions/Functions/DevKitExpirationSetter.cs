@@ -1,4 +1,5 @@
 ﻿using AnalogAgenda.EmailSender;
+using AnalogAgenda.Functions.Constants;
 using AnalogAgenda.Functions.Helpers;
 using Database.Entities;
 using Database.Services.Interfaces;
@@ -11,9 +12,8 @@ public class DevKitExpirationSetter(ILoggerFactory loggerFactory, IDatabaseServi
 {
     private readonly ILogger _logger = loggerFactory.CreateLogger<DevKitExpirationSetter>();
 
-    //Every day at 10:00 AM
     [Function("DevKitExpirationSetter")]
-    public async Task Run([TimerTrigger("0 0 10 * * *")] TimerInfo myTimer)
+    public async Task Run([TimerTrigger(TimeTriggers.EveryDayAt10AM)] TimerInfo myTimer)
     {
         var now = DateTime.UtcNow;
         _logger.LogInformation($"DevKitExpirationSetter function executed at: {now}");
@@ -22,7 +22,7 @@ public class DevKitExpirationSetter(ILoggerFactory loggerFactory, IDatabaseServi
         foreach (var entity in entities)
         {
             var kitExpirationDate = entity.GetExpirationDate();
-            if (kitExpirationDate > now || entity.FilmsDeveloped < entity.ValidForFilms) continue;
+            if (kitExpirationDate > now && entity.FilmsDeveloped < entity.ValidForFilms) continue;
 
             entity.Expired = true;
             await databaseService.UpdateAsync(entity);

@@ -36,7 +36,7 @@ public class DevKitEntity : BaseEntity, IImageEntity
 
     protected override int IdLength() => 8;
 
-    public DateTime GetExpirationDate() => MixedOn.AddDays(7 * ValidForWeeks);
+    public DateTime GetExpirationDate() => ValidForWeeks > 0 ? MixedOn.AddDays(7 * ValidForWeeks) : DateTime.MaxValue;
 
     public void Update(DevKitDto dto)
     {

@@ -1,4 +1,5 @@
 using AnalogAgenda.EmailSender;
+using AnalogAgenda.Functions.Constants;
 using AnalogAgenda.Functions.Helpers;
 using Database.Entities;
 using Database.Services.Interfaces;
@@ -13,7 +14,7 @@ namespace AnalogAgenda.Functions.Functions
 
         //On the 1st, 15th of the month at 11:00 AM
         [Function("DevKitExpirationChecker")]
-        public async Task Run([TimerTrigger("0 0 11 1,15 * *")] TimerInfo myTimer)
+        public async Task Run([TimerTrigger(TimeTriggers.Every2WeeksAt11AM)] TimerInfo myTimer)
         {
             var now = DateTime.UtcNow;
             _logger.LogInformation($"DevKitExpirationChecker function executed at: {now}");
