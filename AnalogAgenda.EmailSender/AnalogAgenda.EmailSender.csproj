@@ -7,6 +7,15 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="EmailTemplates\DevKitExpiredTemplate.html">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="EmailTemplates\DevKitExpiringTemplate.html">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\Configuration\Configuration.csproj" />
   </ItemGroup>
 

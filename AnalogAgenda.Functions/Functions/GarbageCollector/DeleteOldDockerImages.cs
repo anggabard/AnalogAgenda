@@ -1,62 +1,33 @@
 ﻿using AnalogAgenda.Functions.Constants;
 using Azure.Containers.ContainerRegistry;
 using Configuration.Sections;
-using Database.Entities;
 using Database.Services.Interfaces;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
+using ILogger = Microsoft.Extensions.Logging.ILogger;
 
-namespace AnalogAgenda.Functions.Functions;
+namespace AnalogAgenda.Functions.Functions.GarbageCollector;
 
-public class GarbageCollector(
-    ILoggerFactory loggerFactory,
-    IDatabaseService databaseService,
-    IContainerRegistryService containerRegistryService,
+public class DeleteOldDockerImages(ILoggerFactory loggerFactory, 
+    IContainerRegistryService containerRegistryService, 
     ContainerRegistry containerRegistryConfig)
 {
-    private readonly ILogger _logger = loggerFactory.CreateLogger<GarbageCollector>();
-    private readonly IDatabaseService _databaseService = databaseService;
+    private readonly ILogger _logger = loggerFactory.CreateLogger<DeleteOldDockerImages>();
     private readonly IContainerRegistryService _containerRegistryService = containerRegistryService;
     private readonly ContainerRegistry _containerRegistryConfig = containerRegistryConfig;
 
-    [Function("GarbageCollector")]
+    [Function("GarbageCollector-DeleteOldDockerImages")]
     public async Task Run([TimerTrigger(TimeTriggers.Every7DaysAt7AM)] TimerInfo myTimer)
     {
-        _logger.LogInformation($"GarbageCollector function executed at: {DateTime.UtcNow}");
+        _logger.LogInformation($"GarbageCollector - DeleteOldDockerImages function executed at: {DateTime.UtcNow}");
 
-        var cleanupTasks = new List<Task>
-        {
-            DeleteUnusedThumbnails<UsedFilmThumbnailEntity, FilmEntity>(),
-            DeleteUnusedThumbnails<UsedDevKitThumbnailEntity, DevKitEntity>()
-        };
-
-        // Add Docker image cleanup tasks for each repository
-        cleanupTasks.AddRange(_containerRegistryConfig.RepositoryNames.Select(DeleteOldDockerImagesForRepository));
+        var cleanupTasks = _containerRegistryConfig.RepositoryNames.Select(DeleteOldDockerImagesForRepository);
 
         await Task.WhenAll(cleanupTasks);
 
         if (myTimer.ScheduleStatus is not null)
         {
             _logger.LogInformation($"Next timer schedule at: {myTimer.ScheduleStatus.Next}");
-        }
-    }
-
-    public async Task DeleteUnusedThumbnails<Thumbnail, Entity>() where Thumbnail : BaseEntity, IImageEntity where Entity : BaseEntity, IImageEntity
-    {
-        var thumbnails = await _databaseService.GetAllAsync<Thumbnail>();
-        var entityTypeName = typeof(Thumbnail).Name;
-
-        foreach (var thumbnail in thumbnails)
-        {
-            var thumbnailId = thumbnail.ImageId;
-
-            var exists = await _databaseService.ExistsAsync<Entity>(entity => entity.ImageId == thumbnailId);
-
-            if (!exists)
-            {
-                await _databaseService.DeleteAsync<Thumbnail>(thumbnail.Id);
-                _logger.LogInformation($"Deleted unused thumbnail of type: {entityTypeName} with Id: {thumbnail.Id}");
-            }
         }
     }
 

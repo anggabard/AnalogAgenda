@@ -1,11 +1,12 @@
-﻿namespace AnalogAgenda.EmailSender;
+﻿using AnalogAgenda.EmailSender.Resources;
+
+namespace AnalogAgenda.EmailSender;
 
 public class EmailTemplateGenerator
 {
     public static string GetExpiringDevKit(int daysUntilExpiry, string name, string type, DateTime purchasedOn, string purchasedBy, int remainingFilms, Guid imageId, string rowKey)
     {
-        var templatePath = Path.Combine(Directory.GetCurrentDirectory(), "EmailTemplates", "DevKitExpiringTemplate.html");
-        string template = File.ReadAllText(templatePath);
+        var template = ResourceLoader.GetText(EmbededResources.DevKitExpiringTemplate);
 
         return template
             .Replace("{{Name}}", name)
@@ -21,8 +22,7 @@ public class EmailTemplateGenerator
 
     public static string GetExpiredDevKit(string name, string type, DateTime purchasedOn, string purchasedBy, DateTime kitExpirationDate, int remainingFilms, Guid imageId, string rowKey)
     {
-        var templatePath = Path.Combine(Directory.GetCurrentDirectory(), "EmailTemplates", "DevKitExpiredTemplate.html");
-        string template = File.ReadAllText(templatePath);
+        var template = ResourceLoader.GetText(EmbededResources.DevKitExpiredTemplate);
 
         return template
             .Replace("{{Name}}", name)

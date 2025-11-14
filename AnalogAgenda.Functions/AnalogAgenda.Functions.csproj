@@ -9,14 +9,6 @@
     <GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
   </PropertyGroup>
   <ItemGroup>
-    <Content Include="EmailTemplates\DevKitExpiredTemplate.html">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="EmailTemplates\DevKitExpiringTemplate.html">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-  </ItemGroup>
-  <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
     <!-- Application Insights isn't enabled by default. See https://aka.ms/AAt8mw4. -->
     <!-- <PackageReference Include="Microsoft.ApplicationInsights.WorkerService" Version="2.22.0" /> -->
