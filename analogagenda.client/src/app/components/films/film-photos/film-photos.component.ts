@@ -190,37 +190,19 @@ export class FilmPhotosComponent implements OnInit {
     });
   }
 
-  downloadAllPhotos() {
+  downloadAllPhotos(small: boolean = false) {
     this.downloadAllLoading = true;
     this.downloadDropdownOpen = false;
-    this.photoService.downloadAllPhotos(this.filmId).subscribe({
+    this.photoService.downloadAllPhotos(this.filmId, small).subscribe({
       next: (blob) => {
         const url = window.URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
-        link.download = `${this.sanitizeFileName(this.film?.name || 'photos')}.zip`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        window.URL.revokeObjectURL(url);
-        this.downloadAllLoading = false;
-      },
-      error: (err) => {
-        this.errorMessage = 'Error downloading photos archive.';
-        this.downloadAllLoading = false;
-      }
-    });
-  }
-
-  downloadAllPhotosSmall() {
-    this.downloadAllLoading = true;
-    this.downloadDropdownOpen = false;
-    this.photoService.downloadAllPhotos(this.filmId, true).subscribe({
-      next: (blob) => {
-        const url = window.URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `${this.sanitizeFileName(this.film?.name || 'photos')}-small.zip`;
+        const formattedDate = this.film?.formattedExposureDate 
+          ? ` - ${this.sanitizeFileName(this.film.formattedExposureDate)}` 
+          : '';
+        const sizeSuffix = small ? '-small' : '';
+        link.download = `${this.sanitizeFileName(this.film?.name || 'photos')}${formattedDate}${sizeSuffix}.zip`;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);

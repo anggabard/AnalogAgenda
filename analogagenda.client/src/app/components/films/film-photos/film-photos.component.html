@@ -65,10 +65,10 @@
             </svg>
           </button>
           <div class="download-dropdown-menu" *ngIf="downloadDropdownOpen && !downloadAllLoading">
-            <button class="dropdown-item" (click)="downloadAllPhotos()">
+            <button class="dropdown-item" (click)="downloadAllPhotos(false)">
               📦 Download All XL
             </button>
-            <button class="dropdown-item" (click)="downloadAllPhotosSmall()">
+            <button class="dropdown-item" (click)="downloadAllPhotos(true)">
               📦 Download All XS
             </button>
           </div>
