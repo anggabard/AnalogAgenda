@@ -6,7 +6,7 @@ using Microsoft.Extensions.Configuration;
 
 namespace Database.Services;
 
-public sealed class BlobService(AzureAd azureAdCfg, Storage storageCfg, IConfiguration configuration) : BaseAzureService<BlobContainerClient>(azureAdCfg, storageCfg, configuration, "blob"), IBlobService
+public sealed class BlobService(AzureAd azureAdCfg, Storage storageCfg, Configuration.Sections.System systemCfg, IConfiguration configuration) : BaseAzureService<BlobContainerClient>(azureAdCfg, storageCfg, systemCfg, configuration, "blob"), IBlobService
 {
     public BlobContainerClient GetBlobContainer(string containerName) => GetValidatedClient(containerName);
 

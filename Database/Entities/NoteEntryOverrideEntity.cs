@@ -17,20 +17,4 @@ public class NoteEntryOverrideEntity : BaseEntity
     public NoteEntryEntity NoteEntry { get; set; } = default!;
 
     protected override int IdLength() => 8;
-
-    public NoteEntryOverrideDto ToDTO()
-    {
-        return new NoteEntryOverrideDto
-        {
-            Id = Id,
-            NoteEntryId = NoteEntryId,
-            FilmCountMin = FilmCountMin,
-            FilmCountMax = FilmCountMax,
-            Time = Time,
-            Step = Step,
-            Details = Details,
-            TemperatureMin = TemperatureMin,
-            TemperatureMax = TemperatureMax,
-        };
-    }
 }

@@ -1,6 +1,4 @@
-﻿using Database.Entities;
-
-namespace Database.DTOs;
+﻿namespace Database.DTOs;
 
 public class NoteEntryDto
 {
@@ -14,34 +12,4 @@ public class NoteEntryDto
     public double? TemperatureMax { get; set; }
     public List<NoteEntryRuleDto> Rules { get; set; } = [];
     public List<NoteEntryOverrideDto> Overrides { get; set; } = [];
-
-    public NoteEntryEntity ToEntity()
-    {
-        return new NoteEntryEntity
-        {
-            Id = Id,
-            NoteId = NoteId,
-            Time = Time,
-            Step = Step,
-            Details = Details,
-            Index = Index,
-            TemperatureMin = TemperatureMin,
-            TemperatureMax = TemperatureMax,
-        };
-    }
-
-    public NoteEntryEntity ToEntity(string noteId)
-    {
-        return new NoteEntryEntity
-        {
-            Id = Id,
-            NoteId = noteId,
-            Time = Time,
-            Step = Step,
-            Details = Details,
-            Index = Index,
-            TemperatureMin = TemperatureMin,
-            TemperatureMax = TemperatureMax,
-        };
-    }
 }

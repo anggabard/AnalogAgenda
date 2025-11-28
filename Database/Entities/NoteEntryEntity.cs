@@ -28,21 +28,4 @@ public class NoteEntryEntity : BaseEntity
         TemperatureMin = dto.TemperatureMin;
         TemperatureMax = dto.TemperatureMax;
     }
-
-    public NoteEntryDto ToDTO()
-    {
-        return new NoteEntryDto
-        {
-            Id = Id,
-            NoteId = NoteId,
-            Time = Time,
-            Step = Step,
-            Details = Details,
-            Index = Index,
-            TemperatureMin = TemperatureMin,
-            TemperatureMax = TemperatureMax,
-            Rules = [.. Rules.Select(r => r.ToDTO())],
-            Overrides = [.. Overrides.Select(o => o.ToDTO())],
-        };
-    }
 }

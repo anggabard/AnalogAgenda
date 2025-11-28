@@ -1,10 +1,10 @@
 using Azure.Storage.Blobs;
-using Configuration.Sections;
 using Database.DBObjects;
 using Database.DBObjects.Enums;
 using Database.DTOs;
 using Database.Entities;
 using Database.Helpers;
+using Database.Services;
 using Database.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -12,11 +12,11 @@ using Microsoft.AspNetCore.Mvc;
 namespace AnalogAgenda.Server.Controllers;
 
 [Route("api/[controller]"), ApiController, Authorize]
-public class SessionController(Storage storageCfg, IDatabaseService databaseService, IBlobService blobsService) : ControllerBase
+public class SessionController(IDatabaseService databaseService, IBlobService blobsService, DtoConvertor dtoConvertor, EntityConvertor entityConvertor) : ControllerBase
 {
-    private readonly Storage storageCfg = storageCfg;
     private readonly IDatabaseService databaseService = databaseService;
-    private readonly IBlobService blobsService = blobsService;
+    private readonly DtoConvertor dtoConvertor = dtoConvertor;
+    private readonly EntityConvertor entityConvertor = entityConvertor;
     private readonly BlobContainerClient sessionsContainer = blobsService.GetBlobContainer(ContainerName.sessions);
 
     [HttpPost]
@@ -32,7 +32,7 @@ public class SessionController(Storage storageCfg, IDatabaseService databaseServ
                 await BlobImageHelper.UploadBase64ImageWithContentTypeAsync(sessionsContainer, imageBase64, imageId);
             }
 
-            var entity = dto.ToEntity();
+            var entity = entityConvertor.ToEntity(dto);
             entity.ImageId = imageId;
 
             // Sync navigation properties before saving
@@ -41,7 +41,7 @@ public class SessionController(Storage storageCfg, IDatabaseService databaseServ
             await databaseService.AddAsync(entity);
             
             // Return the created entity as DTO
-            var createdDto = entity.ToDTO(storageCfg.AccountName);
+            var createdDto = dtoConvertor.ToDTO(entity);
             
             // Copy the filmToDevKitMapping from the original DTO
             createdDto.FilmToDevKitMapping = dto.FilmToDevKitMapping;
@@ -67,7 +67,7 @@ public class SessionController(Storage storageCfg, IDatabaseService databaseServ
             var entities = await databaseService.GetAllWithIncludesAsync<SessionEntity>(
                 s => s.UsedDevKits, 
                 s => s.DevelopedFilms);
-            return Ok(entities.Select(e => e.ToDTO(storageCfg.AccountName)));
+            return Ok(entities.Select(dtoConvertor.ToDTO));
         }
 
         var pagedEntities = await databaseService.GetPagedWithIncludesAsync<SessionEntity>(
@@ -78,7 +78,7 @@ public class SessionController(Storage storageCfg, IDatabaseService databaseServ
             s => s.DevelopedFilms);
         var pagedResults = new PagedResponseDto<SessionDto>
         {
-            Data = pagedEntities.Data.Select(e => e.ToDTO(storageCfg.AccountName)),
+            Data = pagedEntities.Data.Select(dtoConvertor.ToDTO),
             TotalCount = pagedEntities.TotalCount,
             PageSize = pagedEntities.PageSize,
             CurrentPage = pagedEntities.CurrentPage
@@ -99,7 +99,7 @@ public class SessionController(Storage storageCfg, IDatabaseService databaseServ
         if (sessionEntity == null)
             return NotFound($"No Session found with Id: {id}");
 
-        var sessionDto = sessionEntity.ToDTO(storageCfg.AccountName);
+        var sessionDto = dtoConvertor.ToDTO(sessionEntity);
         
         // Populate FilmToDevKitMapping based on loaded relationships
         await PopulateFilmToDevKitMapping(sessionDto, sessionEntity);
@@ -194,7 +194,7 @@ public class SessionController(Storage storageCfg, IDatabaseService databaseServ
         if (originalSession == null)
             return NotFound();
         
-        SessionDto? originalDto = originalSession.ToDTO(storageCfg.AccountName);
+        SessionDto? originalDto = dtoConvertor.ToDTO(originalSession);
         
         // Handle image update if provided
         var imageBase64 = updateDto.ImageBase64;
@@ -233,7 +233,7 @@ public class SessionController(Storage storageCfg, IDatabaseService databaseServ
         if (sessionToDelete == null)
             return NotFound();
         
-        SessionDto? sessionDto = sessionToDelete.ToDTO(storageCfg.AccountName);
+        SessionDto? sessionDto = dtoConvertor.ToDTO(sessionToDelete);
         
         // Delete image blob if not default
         if (sessionToDelete.ImageId != Constants.DefaultSessionImageId)

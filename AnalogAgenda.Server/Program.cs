@@ -29,9 +29,9 @@ builder.AddServiceDefaults();
 // which causes 401 errors when requests are load-balanced to different replicas
 try
 {
-    // Try to get connection string from configuration (appsettings.Development.json for local dev)
+    // Try to get connection string from Aspire (injected as ConnectionStrings__analogagendastorage)
     // or environment variables (Azure Container Apps sets STORAGE_CONNECTION_STRING)
-    var connectionString = builder.Configuration["ConnectionStrings__analogagendastorage"]
+    var connectionString = builder.Configuration.GetConnectionString("analogagendastorage")
         ?? Environment.GetEnvironmentVariable("STORAGE_CONNECTION_STRING");
     
     if (!string.IsNullOrEmpty(connectionString))
@@ -69,13 +69,22 @@ builder.Services.AddFluentValidationClientsideAdapters();
 builder.Services.AddScoped<IValidator<Database.DTOs.LoginDto>, LoginDtoValidator>();
 builder.Services.AddScoped<IValidator<Database.DTOs.ChangePasswordDto>, ChangePasswordDtoValidator>();
 builder.Services.AddScoped<IValidator<Database.DTOs.FilmDto>, FilmDtoValidator>();
+
+var isDev = builder.Environment.IsDevelopment();
+builder.Configuration["System:IsDev"] = isDev.ToString();
+
 builder.Services.AddAzureAdConfigBinding();
 builder.Services.AddStorageConfigBinding();
+builder.Services.AddSystemConfigBinding();
 builder.Services.AddSecurityConfigBinding();
 
 // Register database and blob services
 builder.Services.AddScoped<IDatabaseService, DatabaseService>();
 builder.Services.AddSingleton<IBlobService, BlobService>();
+
+// Register converter services
+builder.Services.AddScoped<DtoConvertor>();
+builder.Services.AddScoped<EntityConvertor>();
 
 // Configure Kestrel to accept larger request bodies (for single photo uploads: 30MB file + base64 overhead = ~40MB, rounded to 60MB)
 builder.Services.Configure<Microsoft.AspNetCore.Server.Kestrel.Core.KestrelServerOptions>(options =>
@@ -94,10 +103,10 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
     {
         opt.Cookie.Name = ".AnalogAgenda.Auth";
         opt.Cookie.HttpOnly = true;
-        opt.Cookie.SameSite = builder.Environment.IsDevelopment()
+        opt.Cookie.SameSite = isDev
             ? SameSiteMode.None
             : SameSiteMode.Lax; 
-        opt.Cookie.SecurePolicy = builder.Environment.IsDevelopment()
+        opt.Cookie.SecurePolicy = isDev
             ? CookieSecurePolicy.SameAsRequest
             : CookieSecurePolicy.Always;
         opt.ExpireTimeSpan = TimeSpan.FromDays(7);
@@ -131,7 +140,7 @@ builder.Services.AddCors(options =>
             allowedOrigins.Add(frontendUrl);
             
             // Also add http version if it's https (for local development)
-            if (frontendUrl.StartsWith("https://") && builder.Environment.IsDevelopment())
+            if (frontendUrl.StartsWith("https://") && isDev)
             {
                 allowedOrigins.Add(frontendUrl.Replace("https://", "http://"));
             }
@@ -146,8 +155,11 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
+// Use IsDevelopment() for app-level checks
+var appIsDev = app.Environment.IsDevelopment();
+
 // Log data protection configuration status after app is built
-var dataProtectionConnectionString = app.Configuration["ConnectionStrings__analogagendastorage"]
+var dataProtectionConnectionString = app.Configuration.GetConnectionString("analogagendastorage")
     ?? Environment.GetEnvironmentVariable("STORAGE_CONNECTION_STRING");
 if (string.IsNullOrEmpty(dataProtectionConnectionString))
 {
@@ -164,7 +176,7 @@ else
 
 // Apply pending migrations automatically on startup (Development only)
 // In production, migrations should be run via a separate job/process before deployment
-if (app.Environment.IsDevelopment())
+if (appIsDev)
 {
     using (var scope = app.Services.CreateScope())
     {
@@ -207,7 +219,7 @@ app.UseAuthorization();
 // Add security headers middleware after CORS to avoid interfering with CORS headers
 app.UseMiddleware<SecurityHeadersMiddleware>();
 
-if (app.Environment.IsDevelopment())
+if (appIsDev)
 {
     app.UseSwagger();
     app.UseSwaggerUI();

@@ -2,11 +2,6 @@
 
 public static class BlobUrlHelper
 {
-    public static string GetUrlFromImageImageInfo(string accountName, string containerName, Guid imageId)
-    {
-        return $"https://{accountName}.blob.core.windows.net/{containerName}/{imageId}";
-    }
-
     public static (string AccountName, string ContainerName, Guid ImageId) GetImageInfoFromUrl(string url)
     {
         if (string.IsNullOrWhiteSpace(url))

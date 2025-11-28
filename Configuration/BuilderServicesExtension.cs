@@ -35,4 +35,10 @@ public static class BuilderServicesExtension
         services.AddOptions<Security>().BindConfiguration("Security").ValidateOnStart();
         services.AddSingleton(sp => sp.GetRequiredService<IOptions<Security>>().Value);
     }
+
+    public static void AddSystemConfigBinding(this IServiceCollection services)
+    {
+        services.AddOptions<Sections.System>().BindConfiguration("System").ValidateOnStart();
+        services.AddSingleton(sp => sp.GetRequiredService<IOptions<Sections.System>>().Value);
+    }
 }

@@ -1,5 +1,3 @@
-using Microsoft.Extensions.Hosting;
-
 var builder = DistributedApplication.CreateBuilder(args);
 
 // Add SQL Server and Database
@@ -53,12 +51,6 @@ backend.WithEnvironment((context) =>
     var frontendEndpoint = frontend.GetEndpoint("frontend-http");
     var frontendUrl = frontendEndpoint.Property(EndpointProperty.Url);
     context.EnvironmentVariables.Add("FRONTEND_URL", frontendUrl);
-    
-    // Configure storage for local development with Azurite
-    // Aspire automatically provides the connection string via the reference as ConnectionStrings__analogagendastorage
-    // BaseAzureService will automatically read from ConnectionStrings if Storage__ConnectionString is not set
-    // In production (deployed separately), apps use Azure AD authentication from configuration
-    context.EnvironmentVariables.Add("Storage__AccountName", "devstoreaccount1");
 });
 
 builder.Build().Run();

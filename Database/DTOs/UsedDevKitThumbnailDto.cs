@@ -1,5 +1,3 @@
-using Database.Entities;
-
 namespace Database.DTOs;
 
 public class UsedDevKitThumbnailDto
@@ -13,15 +11,5 @@ public class UsedDevKitThumbnailDto
     public string ImageUrl { get; set; } = string.Empty;
 
     public string ImageBase64 { get; set; } = string.Empty;
-
-    public UsedDevKitThumbnailEntity ToEntity()
-    {
-        return new UsedDevKitThumbnailEntity
-        {
-            Id = Id,
-            DevKitName = DevKitName,
-            ImageId = string.IsNullOrEmpty(ImageId) ? Guid.Empty : Guid.Parse(ImageId)
-        };
-    }
 }
 

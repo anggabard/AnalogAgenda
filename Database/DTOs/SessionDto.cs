@@ -1,6 +1,4 @@
 using Database.DTOs.Subclasses;
-using Database.Entities;
-using Database.Helpers;
 using System.Text.Json;
 
 namespace Database.DTOs;
@@ -42,17 +40,4 @@ public class SessionDto : HasImage
 
     // Dictionary mapping DevKit Id to list of Film Ids developed with that DevKit
     public Dictionary<string, List<string>> FilmToDevKitMapping { get; set; } = [];
-
-    public SessionEntity ToEntity()
-    {
-        return new SessionEntity
-        {
-            Id = Id,
-            SessionDate = SessionDate.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc),
-            Location = Location,
-            Participants = Participants,
-            ImageId = string.IsNullOrEmpty(ImageUrl) ? Guid.Empty : BlobUrlHelper.GetImageInfoFromUrl(ImageUrl).ImageId,
-            Description = Description
-        };
-    }
 }
