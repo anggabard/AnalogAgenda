@@ -477,7 +477,7 @@ describe('FilmPhotosComponent', () => {
       component.downloadAllPhotos();
 
       // Assert
-      expect(mockPhotoService.downloadAllPhotos).toHaveBeenCalledWith('test-film-id');
+      expect(mockPhotoService.downloadAllPhotos).toHaveBeenCalledWith('test-film-id', false);
     });
 
     it('should handle download all photos error', () => {
