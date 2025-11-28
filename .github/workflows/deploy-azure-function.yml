@@ -19,7 +19,7 @@ permissions:
 env:
   AZURE_FUNCTION_NAME: AnalogAgenda
   CONFIGURATION: Release
-  DOTNET_VERSION: '8.0.x'
+  DOTNET_VERSION: '9.0.x'
   PUBLISH_DIR: ./publish
   FUNCTIONS_SLN: ./AnalogAgenda.Functions/AnalogAgenda.Functions.sln
 
