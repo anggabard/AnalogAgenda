@@ -15,6 +15,9 @@ var storage = builder.AddAzureStorage("storage")
     {
         azurite.WithDataVolume();
         azurite.WithLifetime(ContainerLifetime.Persistent);
+        azurite.WithBlobPort(10000);
+        azurite.WithQueuePort(10001);
+        azurite.WithTablePort(10002);
     });
 // Use "analogagendastorage" as the blob resource name - this determines the connection string name
 var blobStorage = storage.AddBlobs("analogagendastorage");
