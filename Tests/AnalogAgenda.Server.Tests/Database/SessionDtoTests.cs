@@ -1,6 +1,9 @@
 using System.Text.Json;
+using Configuration.Sections;
 using Database.DTOs;
 using Database.Entities;
+using Database.Services;
+using Moq;
 
 namespace AnalogAgenda.Server.Tests.Database;
 
@@ -109,8 +112,10 @@ public class SessionDtoTests
             ImageUrl = ""
         };
 
+        var entityConvertor = new EntityConvertor();
+
         // Act
-        var entity = sessionDto.ToEntity();
+        var entity = entityConvertor.ToEntity(sessionDto);
 
         // Assert
         Assert.Equal("test-session", entity.Id);
@@ -145,8 +150,12 @@ public class SessionEntityTests
             DevelopedFilms = new List<FilmEntity> { film1, film2 }
         };
 
+        var systemConfig = new Configuration.Sections.System { IsDev = false };
+        var storageConfig = new Configuration.Sections.Storage { AccountName = "testaccount" };
+        var dtoConvertor = new DtoConvertor(systemConfig, storageConfig);
+
         // Act
-        var dto = entity.ToDTO("testaccount");
+        var dto = dtoConvertor.ToDTO(entity);
 
         // Assert
         Assert.Equal("test-session", dto.Id);

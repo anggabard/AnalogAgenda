@@ -1,4 +1,3 @@
-using Configuration.Sections;
 using Database.DBObjects.Enums;
 using Database.DTOs;
 using Database.Entities;
@@ -6,16 +5,9 @@ using Database.Helpers;
 
 namespace Database.Services;
 
-public class EntityConvertor
+public class EntityConvertor()
 {
-    private readonly Configuration.Sections.System systemCfg;
-
-    public EntityConvertor(Configuration.Sections.System systemCfg)
-    {
-        this.systemCfg = systemCfg;
-    }
-
-    public PhotoEntity ToEntity(PhotoDto dto) => new PhotoEntity
+    public PhotoEntity ToEntity(PhotoDto dto) => new()
     {
         Id = dto.Id,
         FilmId = dto.FilmId,
@@ -23,7 +15,7 @@ public class EntityConvertor
         ImageId = Guid.Empty // ImageId should be set by the controller, not derived from URL
     };
 
-    public FilmEntity ToEntity(FilmDto dto) => new FilmEntity
+    public FilmEntity ToEntity(FilmDto dto) => new()
     {
         Id = dto.Id,
         Name = dto.Name,
@@ -40,7 +32,7 @@ public class EntityConvertor
         DevelopedWithDevKitId = dto.DevelopedWithDevKitId
     };
 
-    public DevKitEntity ToEntity(DevKitDto dto) => new DevKitEntity
+    public DevKitEntity ToEntity(DevKitDto dto) => new()
     {
         Id = dto.Id,
         Name = dto.Name,
@@ -57,7 +49,7 @@ public class EntityConvertor
         Expired = dto.Expired
     };
 
-    public SessionEntity ToEntity(SessionDto dto) => new SessionEntity
+    public SessionEntity ToEntity(SessionDto dto) => new()
     {
         Id = dto.Id,
         SessionDate = dto.SessionDate.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc),
@@ -67,7 +59,7 @@ public class EntityConvertor
         Description = dto.Description
     };
 
-    public NoteEntity ToNoteEntity(NoteDto dto) => new NoteEntity
+    public NoteEntity ToNoteEntity(NoteDto dto) => new()
     {
         Id = dto.Id,
         Name = dto.Name,
@@ -78,21 +70,21 @@ public class EntityConvertor
     public List<NoteEntryEntity> ToNoteEntryEntities(NoteDto dto, string noteId) => 
         dto.Entries.Select(entry => ToEntity(entry, noteId)).ToList();
 
-    public UsedFilmThumbnailEntity ToEntity(UsedFilmThumbnailDto dto) => new UsedFilmThumbnailEntity
+    public UsedFilmThumbnailEntity ToEntity(UsedFilmThumbnailDto dto) => new()
     {
         Id = dto.Id,
         FilmName = dto.FilmName,
         ImageId = string.IsNullOrEmpty(dto.ImageId) ? Guid.Empty : Guid.Parse(dto.ImageId)
     };
 
-    public UsedDevKitThumbnailEntity ToEntity(UsedDevKitThumbnailDto dto) => new UsedDevKitThumbnailEntity
+    public UsedDevKitThumbnailEntity ToEntity(UsedDevKitThumbnailDto dto) => new()
     {
         Id = dto.Id,
         DevKitName = dto.DevKitName,
         ImageId = string.IsNullOrEmpty(dto.ImageId) ? Guid.Empty : Guid.Parse(dto.ImageId)
     };
 
-    public NoteEntryEntity ToEntity(NoteEntryDto dto) => new NoteEntryEntity
+    public NoteEntryEntity ToEntity(NoteEntryDto dto) => new()
     {
         Id = dto.Id,
         NoteId = dto.NoteId,
@@ -104,7 +96,7 @@ public class EntityConvertor
         TemperatureMax = dto.TemperatureMax
     };
 
-    public NoteEntryEntity ToEntity(NoteEntryDto dto, string noteId) => new NoteEntryEntity
+    public NoteEntryEntity ToEntity(NoteEntryDto dto, string noteId) => new()
     {
         Id = dto.Id,
         NoteId = noteId,
@@ -116,7 +108,7 @@ public class EntityConvertor
         TemperatureMax = dto.TemperatureMax
     };
 
-    public NoteEntryRuleEntity ToEntity(NoteEntryRuleDto dto) => new NoteEntryRuleEntity
+    public NoteEntryRuleEntity ToEntity(NoteEntryRuleDto dto) => new()
     {
         Id = dto.Id,
         NoteEntryId = dto.NoteEntryId,
@@ -124,7 +116,7 @@ public class EntityConvertor
         TimeIncrement = dto.TimeIncrement
     };
 
-    public NoteEntryRuleEntity ToEntity(NoteEntryRuleDto dto, string noteEntryId) => new NoteEntryRuleEntity
+    public NoteEntryRuleEntity ToEntity(NoteEntryRuleDto dto, string noteEntryId) => new()
     {
         Id = dto.Id,
         NoteEntryId = noteEntryId,
@@ -132,7 +124,7 @@ public class EntityConvertor
         TimeIncrement = dto.TimeIncrement
     };
 
-    public NoteEntryOverrideEntity ToEntity(NoteEntryOverrideDto dto) => new NoteEntryOverrideEntity
+    public NoteEntryOverrideEntity ToEntity(NoteEntryOverrideDto dto) => new()
     {
         Id = dto.Id,
         NoteEntryId = dto.NoteEntryId,
@@ -145,7 +137,7 @@ public class EntityConvertor
         TemperatureMax = dto.TemperatureMax
     };
 
-    public NoteEntryOverrideEntity ToEntity(NoteEntryOverrideDto dto, string noteEntryId) => new NoteEntryOverrideEntity
+    public NoteEntryOverrideEntity ToEntity(NoteEntryOverrideDto dto, string noteEntryId) => new()
     {
         Id = dto.Id,
         NoteEntryId = noteEntryId,

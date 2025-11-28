@@ -3,15 +3,13 @@ using Database.DBObjects.Enums;
 using Database.DTOs;
 using Database.Entities;
 using Database.Helpers;
-using Microsoft.Extensions.Configuration;
 
 namespace Database.Services;
 
-public class DtoConvertor(Configuration.Sections.System systemCfg, Storage storageCfg, IConfiguration configuration)
+public class DtoConvertor(Configuration.Sections.System systemCfg, Storage storageCfg)
 {
     private readonly Configuration.Sections.System systemCfg = systemCfg;
     private readonly Storage storageCfg = storageCfg;
-    private readonly IConfiguration configuration = configuration;
 
     private string BuildImageUrl(ContainerName containerName, Guid imageId)
     {
@@ -30,7 +28,7 @@ public class DtoConvertor(Configuration.Sections.System systemCfg, Storage stora
         return $"https://{storageCfg.AccountName}.blob.core.windows.net/{containerNameString}/{imageId}";
     }
 
-    public PhotoDto ToDTO(PhotoEntity entity) => new PhotoDto()
+    public PhotoDto ToDTO(PhotoEntity entity) => new()
     {
         Id = entity.Id,
         FilmId = entity.FilmId,
@@ -65,7 +63,7 @@ public class DtoConvertor(Configuration.Sections.System systemCfg, Storage stora
         };
     }
 
-    public DevKitDto ToDTO(DevKitEntity entity) => new DevKitDto()
+    public DevKitDto ToDTO(DevKitEntity entity) => new()
     {
         Id = entity.Id,
         Name = entity.Name,
@@ -82,7 +80,7 @@ public class DtoConvertor(Configuration.Sections.System systemCfg, Storage stora
         Expired = entity.Expired
     };
 
-    public SessionDto ToDTO(SessionEntity entity) => new SessionDto()
+    public SessionDto ToDTO(SessionEntity entity) => new()
     {
         Id = entity.Id,
         SessionDate = DateOnly.FromDateTime(entity.SessionDate),
@@ -94,7 +92,7 @@ public class DtoConvertor(Configuration.Sections.System systemCfg, Storage stora
         DevelopedFilms = string.Join(",", entity.DevelopedFilms.Select(f => f.Id))
     };
 
-    public NoteDto ToDTO(NoteEntity entity) => new NoteDto()
+    public NoteDto ToDTO(NoteEntity entity) => new()
     {
         Id = entity.Id,
         Name = entity.Name,
@@ -102,7 +100,7 @@ public class DtoConvertor(Configuration.Sections.System systemCfg, Storage stora
         ImageUrl = BuildImageUrl(ContainerName.notes, entity.ImageId)
     };
 
-    public NoteDto ToDTO(NoteEntity entity, List<NoteEntryEntity> noteEntries) => new NoteDto()
+    public NoteDto ToDTO(NoteEntity entity, List<NoteEntryEntity> noteEntries) => new()
     {
         Id = entity.Id,
         Name = entity.Name,
@@ -111,7 +109,7 @@ public class DtoConvertor(Configuration.Sections.System systemCfg, Storage stora
         Entries = noteEntries.Select(ToDTO).ToList()
     };
 
-    public NoteDto ToDTO(NoteEntity entity, List<NoteEntryDto> noteEntries) => new NoteDto()
+    public NoteDto ToDTO(NoteEntity entity, List<NoteEntryDto> noteEntries) => new()
     {
         Id = entity.Id,
         Name = entity.Name,
@@ -120,7 +118,7 @@ public class DtoConvertor(Configuration.Sections.System systemCfg, Storage stora
         Entries = noteEntries
     };
 
-    public UsedFilmThumbnailDto ToDTO(UsedFilmThumbnailEntity entity) => new UsedFilmThumbnailDto()
+    public UsedFilmThumbnailDto ToDTO(UsedFilmThumbnailEntity entity) => new()
     {
         Id = entity.Id,
         FilmName = entity.FilmName,
@@ -128,7 +126,7 @@ public class DtoConvertor(Configuration.Sections.System systemCfg, Storage stora
         ImageUrl = BuildImageUrl(ContainerName.films, entity.ImageId)
     };
 
-    public UsedDevKitThumbnailDto ToDTO(UsedDevKitThumbnailEntity entity) => new UsedDevKitThumbnailDto()
+    public UsedDevKitThumbnailDto ToDTO(UsedDevKitThumbnailEntity entity) => new()
     {
         Id = entity.Id,
         DevKitName = entity.DevKitName,
@@ -136,7 +134,7 @@ public class DtoConvertor(Configuration.Sections.System systemCfg, Storage stora
         ImageUrl = BuildImageUrl(ContainerName.devkits, entity.ImageId)
     };
 
-    public NoteEntryDto ToDTO(NoteEntryEntity entity) => new NoteEntryDto
+    public NoteEntryDto ToDTO(NoteEntryEntity entity) => new()
     {
         Id = entity.Id,
         NoteId = entity.NoteId,
@@ -150,7 +148,7 @@ public class DtoConvertor(Configuration.Sections.System systemCfg, Storage stora
         Overrides = entity.Overrides.Select(ToDTO).ToList()
     };
 
-    public NoteEntryRuleDto ToDTO(NoteEntryRuleEntity entity) => new NoteEntryRuleDto
+    public NoteEntryRuleDto ToDTO(NoteEntryRuleEntity entity) => new()
     {
         Id = entity.Id,
         NoteEntryId = entity.NoteEntryId,
@@ -158,7 +156,7 @@ public class DtoConvertor(Configuration.Sections.System systemCfg, Storage stora
         TimeIncrement = entity.TimeIncrement
     };
 
-    public NoteEntryOverrideDto ToDTO(NoteEntryOverrideEntity entity) => new NoteEntryOverrideDto
+    public NoteEntryOverrideDto ToDTO(NoteEntryOverrideEntity entity) => new()
     {
         Id = entity.Id,
         NoteEntryId = entity.NoteEntryId,

@@ -20,6 +20,7 @@ public class UsedFilmThumbnailControllerTests : IDisposable
     private readonly Mock<IBlobService> _mockBlobService;
     private readonly Mock<BlobContainerClient> _mockFilmsContainerClient;
     private readonly Storage _storageConfig;
+    private readonly DtoConvertor _dtoConvertor;
     private readonly UsedFilmThumbnailController _controller;
 
     public UsedFilmThumbnailControllerTests()
@@ -30,10 +31,13 @@ public class UsedFilmThumbnailControllerTests : IDisposable
         _mockFilmsContainerClient = new Mock<BlobContainerClient>();
         _storageConfig = new Storage { AccountName = "teststorage" };
 
+        var systemConfig = new Configuration.Sections.System { IsDev = false };
+        _dtoConvertor = new DtoConvertor(systemConfig, _storageConfig);
+
         _mockBlobService.Setup(x => x.GetBlobContainer(ContainerName.films))
                        .Returns(_mockFilmsContainerClient.Object);
 
-        _controller = new UsedFilmThumbnailController(_storageConfig, _databaseService, _mockBlobService.Object);
+        _controller = new UsedFilmThumbnailController(_databaseService, _mockBlobService.Object, _dtoConvertor);
     }
 
     public void Dispose()

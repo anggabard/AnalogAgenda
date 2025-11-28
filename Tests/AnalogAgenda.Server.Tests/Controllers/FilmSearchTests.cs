@@ -33,10 +33,14 @@ public class FilmSearchTests : IDisposable
         _mockBlobService = new Mock<IBlobService>();
         _storageConfig = new Storage { AccountName = "test" };
         
-        _controller = new FilmController(_storageConfig, _databaseService, _mockBlobService.Object);
+        var systemConfig = new Configuration.Sections.System { IsDev = false };
+        var dtoConvertor = new DtoConvertor(systemConfig, _storageConfig);
+        var entityConvertor = new EntityConvertor();
+        
+        _controller = new FilmController(_databaseService, _mockBlobService.Object, dtoConvertor, entityConvertor);
         
         // Setup mock user identity
-        var claims = new List<Claim> { new Claim(ClaimTypes.Name, "Angel") };
+        var claims = new List<Claim> { new(ClaimTypes.Name, "Angel") };
         var identity = new ClaimsIdentity(claims, "TestAuthType");
         var claimsPrincipal = new ClaimsPrincipal(identity);
         _controller.ControllerContext = new ControllerContext
@@ -237,11 +241,11 @@ public class FilmSearchTests : IDisposable
         // Arrange
         var films = new List<FilmEntity>
         {
-            new FilmEntity { Id = "1", Name = "Film 1", Developed = true, Iso = "400" },
-            new FilmEntity { Id = "2", Name = "Film 2", Developed = true, Iso = "200" },
-            new FilmEntity { Id = "3", Name = "Film 3", Developed = true, Iso = "400" },
-            new FilmEntity { Id = "4", Name = "Film 4", Developed = true, Iso = "200" },
-            new FilmEntity { Id = "5", Name = "Film 5", Developed = true, Iso = "400" }
+            new() { Id = "1", Name = "Film 1", Developed = true, Iso = "400" },
+            new() { Id = "2", Name = "Film 2", Developed = true, Iso = "200" },
+            new() { Id = "3", Name = "Film 3", Developed = true, Iso = "400" },
+            new() { Id = "4", Name = "Film 4", Developed = true, Iso = "200" },
+            new() { Id = "5", Name = "Film 5", Developed = true, Iso = "400" }
         };
 
         foreach (var film in films)

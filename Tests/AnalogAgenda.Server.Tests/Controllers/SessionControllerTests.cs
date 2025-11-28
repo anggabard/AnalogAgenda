@@ -2,6 +2,7 @@ using AnalogAgenda.Server.Controllers;
 using AnalogAgenda.Server.Tests.Helpers;
 using Configuration.Sections;
 using Database.Data;
+using Database.Services;
 using Database.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
@@ -10,24 +11,34 @@ namespace AnalogAgenda.Server.Tests.Controllers;
 
 public class SessionControllerTests
 {
-    private readonly Mock<Storage> _mockStorage;
     private readonly Mock<IDatabaseService> _mockTableService;
     private readonly Mock<IBlobService> _mockBlobService;
+    private readonly DtoConvertor _dtoConvertor;
+    private readonly EntityConvertor _entityConvertor;
     private readonly SessionController _controller;
 
     public SessionControllerTests()
     {
-        _mockStorage = new Mock<Storage>();
         _mockTableService = new Mock<IDatabaseService>();
         _mockBlobService = new Mock<IBlobService>();
-        _controller = new SessionController(_mockStorage.Object, _mockTableService.Object, _mockBlobService.Object);
+        
+        var systemConfig = new Configuration.Sections.System { IsDev = false };
+        var storageConfig = new Storage { AccountName = "teststorage" };
+        _dtoConvertor = new DtoConvertor(systemConfig, storageConfig);
+        _entityConvertor = new EntityConvertor();
+        
+        _controller = new SessionController(_mockTableService.Object, _mockBlobService.Object, _dtoConvertor, _entityConvertor);
     }
     
     [Fact]
     public void SessionController_Constructor_InitializesCorrectly()
     {
         // Arrange & Act
-        var controller = new SessionController(_mockStorage.Object, _mockTableService.Object, _mockBlobService.Object);
+        var systemConfig = new Configuration.Sections.System { IsDev = false };
+        var storageConfig = new Storage { AccountName = "teststorage" };
+        var dtoConvertor = new DtoConvertor(systemConfig, storageConfig);
+        var entityConvertor = new EntityConvertor();
+        var controller = new SessionController(_mockTableService.Object, _mockBlobService.Object, dtoConvertor, entityConvertor);
 
         // Assert
         Assert.NotNull(controller);
@@ -51,7 +62,11 @@ public class SessionControllerTests
     public void SessionController_HasCorrectRoute()
     {
         // Arrange & Act
-        var controller = new SessionController(_mockStorage.Object, _mockTableService.Object, _mockBlobService.Object);
+        var systemConfig = new Configuration.Sections.System { IsDev = false };
+        var storageConfig = new Storage { AccountName = "teststorage" };
+        var dtoConvertor = new DtoConvertor(systemConfig, storageConfig);
+        var entityConvertor = new EntityConvertor();
+        var controller = new SessionController(_mockTableService.Object, _mockBlobService.Object, dtoConvertor, entityConvertor);
 
         // Assert
         Assert.NotNull(controller);
