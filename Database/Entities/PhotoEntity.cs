@@ -1,6 +1,4 @@
 using Database.DBObjects.Enums;
-using Database.DTOs;
-using Database.Helpers;
 
 namespace Database.Entities;
 
@@ -16,15 +14,4 @@ public class PhotoEntity : BaseEntity, IImageEntity
     public FilmEntity Film { get; set; } = default!;
 
     protected override int IdLength() => 16;
-
-    public PhotoDto ToDTO(string accountName)
-    {
-        return new PhotoDto()
-        {
-            Id = Id,
-            FilmId = FilmId,
-            Index = Index,
-            ImageUrl = ImageId == Guid.Empty ? string.Empty : BlobUrlHelper.GetUrlFromImageImageInfo(accountName, ContainerName.photos.ToString(), ImageId)
-        };
-    }
 }

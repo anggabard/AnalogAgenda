@@ -12,15 +12,4 @@ public class NoteEntryRuleEntity : BaseEntity
     public NoteEntryEntity NoteEntry { get; set; } = default!;
 
     protected override int IdLength() => 8;
-
-    public NoteEntryRuleDto ToDTO()
-    {
-        return new NoteEntryRuleDto
-        {
-            Id = Id,
-            NoteEntryId = NoteEntryId,
-            FilmInterval = FilmInterval,
-            TimeIncrement = TimeIncrement,
-        };
-    }
 }

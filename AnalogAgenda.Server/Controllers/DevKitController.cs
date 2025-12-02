@@ -1,10 +1,10 @@
 ﻿using Azure.Storage.Blobs;
-using Configuration.Sections;
 using Database.DBObjects;
 using Database.DBObjects.Enums;
 using Database.DTOs;
 using Database.Entities;
 using Database.Helpers;
+using Database.Services;
 using Database.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -13,11 +13,11 @@ using System.Linq.Expressions;
 namespace AnalogAgenda.Server.Controllers;
 
 [Route("api/[controller]"), ApiController, Authorize]
-public class DevKitController(Storage storageCfg, IDatabaseService databaseService, IBlobService blobsService) : ControllerBase
+public class DevKitController(IDatabaseService databaseService, IBlobService blobsService, DtoConvertor dtoConvertor, EntityConvertor entityConvertor) : ControllerBase
 {
-    private readonly Storage storageCfg = storageCfg;
     private readonly IDatabaseService databaseService = databaseService;
-    private readonly IBlobService blobsService = blobsService;
+    private readonly DtoConvertor dtoConvertor = dtoConvertor;
+    private readonly EntityConvertor entityConvertor = entityConvertor;
     private readonly BlobContainerClient devKitsContainer = blobsService.GetBlobContainer(ContainerName.devkits);
 
     [HttpPost]
@@ -25,7 +25,7 @@ public class DevKitController(Storage storageCfg, IDatabaseService databaseServi
     {
         try
         {
-            var entity = dto.ToEntity();
+            var entity = entityConvertor.ToEntity(dto);
             
             // If no ImageUrl provided, use default image
             if (entity.ImageId == Guid.Empty)
@@ -35,7 +35,7 @@ public class DevKitController(Storage storageCfg, IDatabaseService databaseServi
             
             await databaseService.AddAsync(entity);
             
-            var createdDto = entity.ToDTO(storageCfg.AccountName);
+            var createdDto = dtoConvertor.ToDTO(entity);
             return Created(string.Empty, createdDto);
         }
         catch (Exception ex)
@@ -50,14 +50,14 @@ public class DevKitController(Storage storageCfg, IDatabaseService databaseServi
         if (page <= 0)
         {
             var entities = await databaseService.GetAllAsync<DevKitEntity>();
-            var results = entities.ApplyStandardSorting().Select(e => e.ToDTO(storageCfg.AccountName));
+            var results = entities.ApplyStandardSorting().Select(dtoConvertor.ToDTO);
             return Ok(results);
         }
 
         var pagedEntities = await databaseService.GetPagedAsync<DevKitEntity>(page, pageSize, entities => entities.ApplyStandardSorting());
         var pagedResults = new PagedResponseDto<DevKitDto>
         {
-            Data = pagedEntities.Data.Select(e => e.ToDTO(storageCfg.AccountName)),
+            Data = pagedEntities.Data.Select(dtoConvertor.ToDTO),
             TotalCount = pagedEntities.TotalCount,
             PageSize = pagedEntities.PageSize,
             CurrentPage = pagedEntities.CurrentPage
@@ -86,14 +86,14 @@ public class DevKitController(Storage storageCfg, IDatabaseService databaseServi
         if (page <= 0)
         {
             var entities = await databaseService.GetAllAsync(predicate);
-            var results = entities.ApplyStandardSorting().Select(e => e.ToDTO(storageCfg.AccountName));
+            var results = entities.ApplyStandardSorting().Select(dtoConvertor.ToDTO);
             return Ok(results);
         }
 
         var pagedEntities = await databaseService.GetPagedAsync(predicate, page, pageSize, entities => entities.ApplyStandardSorting());
         var pagedResults = new PagedResponseDto<DevKitDto>
         {
-            Data = pagedEntities.Data.Select(e => e.ToDTO(storageCfg.AccountName)),
+            Data = pagedEntities.Data.Select(dtoConvertor.ToDTO),
             TotalCount = pagedEntities.TotalCount,
             PageSize = pagedEntities.PageSize,
             CurrentPage = pagedEntities.CurrentPage
@@ -109,7 +109,7 @@ public class DevKitController(Storage storageCfg, IDatabaseService databaseServi
         if (entity == null)
             return NotFound($"No DevKit found with Id: {id}");
         
-        return Ok(entity.ToDTO(storageCfg.AccountName));
+        return Ok(dtoConvertor.ToDTO(entity));
     }
 
     [HttpPut("{id}")]

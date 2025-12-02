@@ -1,10 +1,10 @@
 using AnalogAgenda.Server.Identity;
-using Configuration.Sections;
 using Database.DBObjects;
 using Database.DBObjects.Enums;
 using Database.DTOs;
 using Database.Entities;
 using Database.Helpers;
+using Database.Services;
 using Database.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -14,14 +14,16 @@ namespace AnalogAgenda.Server.Controllers;
 
 [Route("api/[controller]"), ApiController, Authorize]
 public class FilmController(
-    Storage storageCfg,
     IDatabaseService databaseService,
-    IBlobService blobsService
+    IBlobService blobsService,
+    DtoConvertor dtoConvertor,
+    EntityConvertor entityConvertor
 ) : ControllerBase
 {
-    private readonly Storage storageCfg = storageCfg;
     private readonly IDatabaseService databaseService = databaseService;
     private readonly IBlobService blobsService = blobsService;
+    private readonly DtoConvertor dtoConvertor = dtoConvertor;
+    private readonly EntityConvertor entityConvertor = entityConvertor;
 
     [HttpPost]
     public async Task<IActionResult> CreateNewFilm(
@@ -42,7 +44,7 @@ public class FilmController(
             for (int i = 0; i < bulkCount; i++)
             {
                 // Create entity directly from the original DTO
-                var entity = dto.ToEntity();
+                var entity = entityConvertor.ToEntity(dto);
 
                 // Add milliseconds offset to ensure unique dates
                 entity.CreatedDate = entity.CreatedDate.AddMilliseconds(i);
@@ -56,7 +58,7 @@ public class FilmController(
 
                 await databaseService.AddAsync(entity);
 
-                var createdDto = entity.ToDTO(storageCfg.AccountName);
+                var createdDto = dtoConvertor.ToDTO(entity);
                 createdDtos.Add(createdDto);
             }
             
@@ -79,7 +81,7 @@ public class FilmController(
         if (page <= 0)
         {
             var entities = await databaseService.GetAllAsync<FilmEntity>();
-            var results = entities.Select(e => e.ToDTO(storageCfg.AccountName));
+            var results = entities.Select(dtoConvertor.ToDTO);
             return Ok(results);
         }
 
@@ -90,7 +92,7 @@ public class FilmController(
         );
         var pagedResults = new PagedResponseDto<FilmDto>
         {
-            Data = pagedEntities.Data.Select(e => e.ToDTO(storageCfg.AccountName)),
+            Data = pagedEntities.Data.Select(dtoConvertor.ToDTO),
             TotalCount = pagedEntities.TotalCount,
             PageSize = pagedEntities.PageSize,
             CurrentPage = pagedEntities.CurrentPage,
@@ -152,7 +154,7 @@ public class FilmController(
                 : ApplySearchFilters(entities, searchDto);
             var results = filteredEntities
                 .ApplyStandardSorting()
-                .Select(e => e.ToDTO(storageCfg.AccountName));
+                .Select(dtoConvertor.ToDTO);
             return Ok(results);
         }
 
@@ -172,7 +174,7 @@ public class FilmController(
 
         var pagedResults = new PagedResponseDto<FilmDto>
         {
-            Data = pagedData.Select(e => e.ToDTO(storageCfg.AccountName)),
+            Data = pagedData.Select(dtoConvertor.ToDTO),
             TotalCount = totalCount,
             PageSize = searchDto.PageSize,
             CurrentPage = searchDto.Page,
@@ -201,7 +203,7 @@ public class FilmController(
             var filteredEntities = ApplySearchFilters(myEntities, searchDto);
             var results = filteredEntities
                 .ApplyUserFilteredSorting()
-                .Select(e => e.ToDTO(storageCfg.AccountName));
+                .Select(dtoConvertor.ToDTO);
             return Ok(results);
         }
 
@@ -222,7 +224,7 @@ public class FilmController(
 
         var pagedResults = new PagedResponseDto<FilmDto>
         {
-            Data = pagedData.Select(e => e.ToDTO(storageCfg.AccountName)),
+            Data = pagedData.Select(dtoConvertor.ToDTO),
             TotalCount = totalCount,
             PageSize = searchDto.PageSize,
             CurrentPage = searchDto.Page,
@@ -242,7 +244,7 @@ public class FilmController(
         if (entity == null)
             return NotFound($"No Film found with Id: {id}");
 
-        return Ok(entity.ToDTO(storageCfg.AccountName));
+        return Ok(dtoConvertor.ToDTO(entity));
     }
 
     [HttpPut("{id}")]

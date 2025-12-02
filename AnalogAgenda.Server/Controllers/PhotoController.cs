@@ -1,28 +1,28 @@
-using System.IO.Compression;
 using Azure.Storage.Blobs;
-using Configuration.Sections;
 using Database.DBObjects.Enums;
 using Database.DTOs;
 using Database.Entities;
 using Database.Helpers;
+using Database.Services;
 using Database.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.IO.Compression;
 
 namespace AnalogAgenda.Server.Controllers;
 
 [Route("api/[controller]"), ApiController, Authorize]
 public class PhotoController(
-    Storage storageCfg,
     IDatabaseService databaseService,
-    IBlobService blobsService
+    IBlobService blobsService,
+    DtoConvertor dtoConvertor,
+    EntityConvertor entityConvertor
 ) : ControllerBase
 {
-    private readonly Storage storageCfg = storageCfg;
     private readonly IDatabaseService databaseService = databaseService;
-    private readonly BlobContainerClient photosContainer = blobsService.GetBlobContainer(
-        ContainerName.photos
-    );
+    private readonly DtoConvertor dtoConvertor = dtoConvertor;
+    private readonly EntityConvertor entityConvertor = entityConvertor;
+    private readonly BlobContainerClient photosContainer = blobsService.GetBlobContainer(ContainerName.photos);
 
     [HttpPost]
     public async Task<IActionResult> UploadPhoto([FromBody] PhotoCreateDto photoDto)
@@ -125,7 +125,7 @@ public class PhotoController(
                 ImageBase64 = string.Empty, // Don't store base64 in entity - it's in blob storage
             };
 
-            var entity = photoEntityDto.ToEntity();
+            var entity = entityConvertor.ToEntity(photoEntityDto);
             entity.ImageId = imageId;
 
             await databaseService.AddAsync(entity);
@@ -143,7 +143,7 @@ public class PhotoController(
             GC.WaitForPendingFinalizers();
             GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced, blocking: true);
 
-            var createdDto = entity.ToDTO(storageCfg.AccountName);
+            var createdDto = dtoConvertor.ToDTO(entity);
             return Ok(createdDto);
         }
         catch (Exception ex)
@@ -158,7 +158,7 @@ public class PhotoController(
         var photos = await databaseService.GetAllAsync<PhotoEntity>(p => p.FilmId == filmId);
         var sortedPhotos = photos
             .ApplyStandardSorting()
-            .Select(e => e.ToDTO(storageCfg.AccountName))
+            .Select(dtoConvertor.ToDTO)
             .ToList();
 
         return Ok(sortedPhotos);
@@ -247,7 +247,7 @@ public class PhotoController(
         try
         {
             // Get formatted exposure date from DTO
-            var filmDto = filmEntity.ToDTO(storageCfg.AccountName);
+            var filmDto = dtoConvertor.ToDTO(filmEntity);
             var formattedDate = string.IsNullOrEmpty(filmDto.FormattedExposureDate)
                 ? string.Empty
                 : $"-{SanitizeFileName(filmDto.FormattedExposureDate)}";

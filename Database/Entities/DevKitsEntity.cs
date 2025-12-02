@@ -62,24 +62,4 @@ public class DevKitEntity : BaseEntity, IImageEntity
             }
         }
     }
-
-    public DevKitDto ToDTO(string accountName)
-    {
-        return new DevKitDto()
-        {
-            Id = Id,
-            Name = Name,
-            Url = Url,
-            Type = Type.ToString(),
-            PurchasedBy = PurchasedBy.ToString(),
-            PurchasedOn = DateOnly.FromDateTime(PurchasedOn),
-            MixedOn = DateOnly.FromDateTime(MixedOn),
-            ValidForWeeks = ValidForWeeks,
-            ValidForFilms = ValidForFilms,
-            FilmsDeveloped = FilmsDeveloped,
-            ImageUrl = ImageId == Guid.Empty ? string.Empty : BlobUrlHelper.GetUrlFromImageImageInfo(accountName, ContainerName.devkits.ToString(), ImageId),
-            Description = Description,
-            Expired = Expired
-        };
-    }
 }

@@ -20,6 +20,8 @@ public class FilmControllerTests : IDisposable
     private readonly Mock<IBlobService> _mockBlobService;
     private readonly Mock<BlobContainerClient> _mockBlobContainer;
     private readonly Storage _storage;
+    private readonly DtoConvertor _dtoConvertor;
+    private readonly EntityConvertor _entityConvertor;
     private readonly FilmController _controller;
 
     public FilmControllerTests()
@@ -30,10 +32,14 @@ public class FilmControllerTests : IDisposable
         _mockBlobContainer = new Mock<BlobContainerClient>();
         _storage = new Storage { AccountName = "testaccount" };
         
+        var systemConfig = new Configuration.Sections.System { IsDev = false };
+        _dtoConvertor = new DtoConvertor(systemConfig, _storage);
+        _entityConvertor = new EntityConvertor();
+        
         _mockBlobService.Setup(x => x.GetBlobContainer(ContainerName.films))
             .Returns(_mockBlobContainer.Object);
 
-        _controller = new FilmController(_storage, _databaseService, _mockBlobService.Object);
+        _controller = new FilmController(_databaseService, _mockBlobService.Object, _dtoConvertor, _entityConvertor);
     }
 
     public void Dispose()
@@ -48,7 +54,10 @@ public class FilmControllerTests : IDisposable
         // Arrange & Act
         var testDb = InMemoryDbContextFactory.Create($"TestDb_{Guid.NewGuid()}");
         var dbService = new DatabaseService(testDb);
-        var controller = new FilmController(_storage, dbService, _mockBlobService.Object);
+        var systemConfig = new Configuration.Sections.System { IsDev = false };
+        var dtoConvertor = new DtoConvertor(systemConfig, _storage);
+        var entityConvertor = new EntityConvertor();
+        var controller = new FilmController(dbService, _mockBlobService.Object, dtoConvertor, entityConvertor);
         testDb.Database.EnsureDeleted();
         testDb.Dispose();
 
@@ -396,15 +405,13 @@ public class FilmControllerTests : IDisposable
 
         var newExposureDates = new List<ExposureDateDto>
         {
-            new ExposureDateDto
-            {
+            new() {
                 Id = "",
                 FilmId = film.Id,
                 Date = new DateOnly(2025, 10, 25),
                 Description = "New exposure 1"
             },
-            new ExposureDateDto
-            {
+            new() {
                 Id = "",
                 FilmId = film.Id,
                 Date = new DateOnly(2025, 10, 26),
@@ -436,8 +443,7 @@ public class FilmControllerTests : IDisposable
         // Arrange
         var exposureDates = new List<ExposureDateDto>
         {
-            new ExposureDateDto
-            {
+            new() {
                 Id = "",
                 FilmId = "invalid-id",
                 Date = new DateOnly(2025, 10, 25),

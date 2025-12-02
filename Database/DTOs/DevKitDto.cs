@@ -1,8 +1,4 @@
-﻿using Database.DBObjects.Enums;
-using Database.Entities;
-using Database.Helpers;
-
-namespace Database.DTOs;
+﻿namespace Database.DTOs;
 
 public class DevKitDto
 {
@@ -31,24 +27,4 @@ public class DevKitDto
     public string Description { get; set; } = string.Empty;
 
     public bool Expired { get; set; }
-
-    public DevKitEntity ToEntity()
-    {
-        return new DevKitEntity
-        {
-            Id = Id,
-            Name = Name,
-            Url = Url,
-            Type = Type.ToEnum<EDevKitType>(),
-            PurchasedBy = PurchasedBy.ToEnum<EUsernameType>(),
-            PurchasedOn = new DateTime(PurchasedOn, TimeOnly.MinValue, DateTimeKind.Utc),
-            MixedOn = new DateTime(MixedOn, TimeOnly.MinValue, DateTimeKind.Utc),
-            ValidForWeeks = ValidForWeeks,
-            ValidForFilms = ValidForFilms,
-            FilmsDeveloped = FilmsDeveloped,
-            ImageId = string.IsNullOrEmpty(ImageUrl) ? Guid.Empty : BlobUrlHelper.GetImageInfoFromUrl(ImageUrl).ImageId,
-            Description = Description,
-            Expired = Expired
-        };
-    }
 }

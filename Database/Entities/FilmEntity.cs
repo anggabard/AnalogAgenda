@@ -62,31 +62,4 @@ public class FilmEntity : BaseEntity, IImageEntity
             }
         }
     }
-
-    public FilmDto ToDTO(string accountName)
-    {
-        // Get dates from ExposureDates navigation property (if loaded)
-        var exposureDates = ExposureDates?.Select(e => e.Date).ToList() ?? new List<DateOnly>();
-        var fallbackDate = DateOnly.FromDateTime(PurchasedOn);
-        var formattedDate = DateFormattingHelper.FormatExposureDateRange(exposureDates, fallbackDate);
-
-        return new FilmDto()
-        {
-            Id = Id,
-            Name = Name,
-            Iso = Iso,
-            Type = Type.ToDisplayString(),
-            NumberOfExposures = NumberOfExposures,
-            Cost = Cost,
-            PurchasedBy = PurchasedBy.ToString(),
-            PurchasedOn = DateOnly.FromDateTime(PurchasedOn),
-            ImageUrl = ImageId == Guid.Empty ? string.Empty : BlobUrlHelper.GetUrlFromImageImageInfo(accountName, ContainerName.films.ToString(), ImageId),
-            Description = Description,
-            Developed = Developed,
-            DevelopedInSessionId = DevelopedInSessionId,
-            DevelopedWithDevKitId = DevelopedWithDevKitId,
-            FormattedExposureDate = formattedDate,
-            PhotoCount = Photos?.Count ?? 0
-        };
-    }
 }

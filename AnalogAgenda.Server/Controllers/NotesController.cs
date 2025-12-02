@@ -1,10 +1,10 @@
-﻿using Database.Helpers;
-using Azure.Storage.Blobs;
-using Configuration.Sections;
+﻿using Azure.Storage.Blobs;
 using Database.DBObjects;
 using Database.DBObjects.Enums;
 using Database.DTOs;
 using Database.Entities;
+using Database.Helpers;
+using Database.Services;
 using Database.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -12,11 +12,11 @@ using Microsoft.AspNetCore.Mvc;
 namespace AnalogAgenda.Server.Controllers;
 
 [Route("api/[controller]"), ApiController, Authorize]
-public class NotesController(Storage storageCfg, IDatabaseService databaseService, IBlobService blobsService) : ControllerBase
+public class NotesController(IDatabaseService databaseService, IBlobService blobsService, DtoConvertor dtoConvertor, EntityConvertor entityConvertor) : ControllerBase
 {
-    private readonly Storage storageCfg = storageCfg;
     private readonly IDatabaseService databaseService = databaseService;
-    private readonly IBlobService blobsService = blobsService;
+    private readonly DtoConvertor dtoConvertor = dtoConvertor;
+    private readonly EntityConvertor entityConvertor = entityConvertor;
     private readonly BlobContainerClient notesContainer = blobsService.GetBlobContainer(ContainerName.notes);
     
     private async Task<NoteDto> EntityToDtoWithEntriesAsync(NoteEntity entity, IEnumerable<NoteEntryEntity> entries)
@@ -30,22 +30,22 @@ public class NotesController(Storage storageCfg, IDatabaseService databaseServic
         
         var rulesByEntry = rules
             .GroupBy(r => r.NoteEntryId)
-            .ToDictionary(g => g.Key, g => g.Select(r => r.ToDTO()).ToList());
+            .ToDictionary(g => g.Key, g => g.Select(dtoConvertor.ToDTO).ToList());
             
         var overridesByEntry = overrides
             .GroupBy(o => o.NoteEntryId)
-            .ToDictionary(g => g.Key, g => g.Select(o => o.ToDTO()).ToList());
+            .ToDictionary(g => g.Key, g => g.Select(dtoConvertor.ToDTO).ToList());
         
         // Create DTOs with rules and overrides
         var entryDtos = entryList.OrderBy(e => e.Time).Select(entry =>
         {
-            var dto = entry.ToDTO();
+            var dto = dtoConvertor.ToDTO(entry);
             dto.Rules = rulesByEntry.GetValueOrDefault(entry.Id, new List<NoteEntryRuleDto>());
             dto.Overrides = overridesByEntry.GetValueOrDefault(entry.Id, new List<NoteEntryOverrideDto>());
             return dto;
         }).ToList();
         
-        var noteDto = entity.ToDTO(storageCfg.AccountName);
+        var noteDto = dtoConvertor.ToDTO(entity);
         noteDto.Entries = entryDtos;
         return noteDto;
     }
@@ -64,15 +64,15 @@ public class NotesController(Storage storageCfg, IDatabaseService databaseServic
                 await BlobImageHelper.UploadBase64ImageWithContentTypeAsync(notesContainer, imageBase64, imageId);
             }
 
-            var entity = dto.ToNoteEntity();
+            var entity = entityConvertor.ToNoteEntity(dto);
             entity.ImageId = imageId;
 
             await databaseService.AddAsync(entity);
 
             // Return the created entity as DTO
-            var createdNote = entity.ToDTO(storageCfg.AccountName);
+            var createdNote = dtoConvertor.ToDTO(entity);
 
-            var entries = dto.ToNoteEntryEntities(createdNote.Id);
+            var entries = entityConvertor.ToNoteEntryEntities(dto, createdNote.Id);
 
             foreach (var entry in entries)
             {
@@ -106,14 +106,14 @@ public class NotesController(Storage storageCfg, IDatabaseService databaseServic
         // Save rules
         foreach (var rule in entry.Rules)
         {
-            var ruleEntity = rule.ToEntity(entry.Id);
+            var ruleEntity = entityConvertor.ToEntity(rule, entry.Id);
             await databaseService.AddAsync(ruleEntity);
         }
         
         // Save overrides
         foreach (var overrideItem in entry.Overrides)
         {
-            var overrideEntity = overrideItem.ToEntity(entry.Id);
+            var overrideEntity = entityConvertor.ToEntity(overrideItem, entry.Id);
             await databaseService.AddAsync(overrideEntity);
         }
     }
@@ -138,7 +138,7 @@ public class NotesController(Storage storageCfg, IDatabaseService databaseServic
 
             if (!withEntries)
             {
-                return Ok(notesEntities.Select(e => e.ToDTO(storageCfg.AccountName)));
+                return Ok(notesEntities.Select(dtoConvertor.ToDTO));
             }
 
             var results = new List<NoteDto>();
@@ -160,7 +160,7 @@ public class NotesController(Storage storageCfg, IDatabaseService databaseServic
         {
             var pagedResults = new PagedResponseDto<NoteDto>
             {
-                Data = pagedEntities.Data.Select(e => e.ToDTO(storageCfg.AccountName)),
+                Data = pagedEntities.Data.Select(dtoConvertor.ToDTO),
                 TotalCount = pagedEntities.TotalCount,
                 PageSize = pagedEntities.PageSize,
                 CurrentPage = pagedEntities.CurrentPage
@@ -251,7 +251,7 @@ public class NotesController(Storage storageCfg, IDatabaseService databaseServic
                 // Handle new entries
                 if (string.IsNullOrEmpty(noteEntryDto.Id))
                 {
-                    var newEntry = noteEntryDto.ToEntity(id);
+                    var newEntry = entityConvertor.ToEntity(noteEntryDto, id);
                     await databaseService.AddAsync(newEntry);
                     // Save rules and overrides for new entry using the generated ID
                     var entryDtoWithId = noteEntryDto;
