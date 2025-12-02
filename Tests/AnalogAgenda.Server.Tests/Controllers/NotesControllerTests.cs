@@ -20,6 +20,8 @@ public class NotesControllerTests : IDisposable
     private readonly Mock<IBlobService> _mockBlobService;
     private readonly Mock<BlobContainerClient> _mockContainerClient;
     private readonly Storage _storageConfig;
+    private readonly DtoConvertor _dtoConvertor;
+    private readonly EntityConvertor _entityConvertor;
     private readonly NotesController _controller;
 
     public NotesControllerTests()
@@ -30,10 +32,14 @@ public class NotesControllerTests : IDisposable
         _mockContainerClient = new Mock<BlobContainerClient>();
         _storageConfig = new Storage { AccountName = "teststorage" };
         
+        var systemConfig = new Configuration.Sections.System { IsDev = false };
+        _dtoConvertor = new DtoConvertor(systemConfig, _storageConfig);
+        _entityConvertor = new EntityConvertor();
+        
         _mockBlobService.Setup(x => x.GetBlobContainer(ContainerName.notes))
                        .Returns(_mockContainerClient.Object);
 
-        _controller = new NotesController(_storageConfig, _databaseService, _mockBlobService.Object);
+        _controller = new NotesController(_databaseService, _mockBlobService.Object, _dtoConvertor, _entityConvertor);
     }
     
     public void Dispose()

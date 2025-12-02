@@ -1,9 +1,9 @@
-using Database.Helpers;
 using Azure.Storage.Blobs;
-using Configuration.Sections;
 using Database.DBObjects.Enums;
 using Database.DTOs;
 using Database.Entities;
+using Database.Helpers;
+using Database.Services;
 using Database.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -12,10 +12,10 @@ namespace AnalogAgenda.Server.Controllers;
 
 [Route("api/[controller]")]
 [ApiController, Authorize]
-public class UsedFilmThumbnailController(Storage storageCfg, IDatabaseService databaseService, IBlobService blobsService) : ControllerBase
+public class UsedFilmThumbnailController(IDatabaseService databaseService, IBlobService blobsService, DtoConvertor dtoConvertor) : ControllerBase
 {
-    private readonly Storage storageCfg = storageCfg;
     private readonly IDatabaseService databaseService = databaseService;
+    private readonly DtoConvertor dtoConvertor = dtoConvertor;
     private readonly BlobContainerClient filmsContainer = blobsService.GetBlobContainer(ContainerName.films);
 
     [HttpGet("search")]
@@ -30,12 +30,12 @@ public class UsedFilmThumbnailController(Storage storageCfg, IDatabaseService da
             var matchingThumbnails = string.IsNullOrWhiteSpace(filmName)
                 ? allThumbnails
                     .OrderBy(t => t.FilmName)
-                    .Select(t => t.ToDTO(storageCfg.AccountName))
+                    .Select(dtoConvertor.ToDTO)
                     .ToList()
                 : allThumbnails
                     .Where(t => t.FilmName.Contains(filmName, StringComparison.OrdinalIgnoreCase))
                     .OrderBy(t => t.FilmName)
-                    .Select(t => t.ToDTO(storageCfg.AccountName))
+                    .Select(dtoConvertor.ToDTO)
                     .ToList();
 
             return Ok(matchingThumbnails);
@@ -69,7 +69,7 @@ public class UsedFilmThumbnailController(Storage storageCfg, IDatabaseService da
             };
             await databaseService.AddAsync(entity);
             
-            var createdDto = entity.ToDTO(storageCfg.AccountName);
+            var createdDto = dtoConvertor.ToDTO(entity);
             return Created(string.Empty, createdDto);
         }
         catch (Exception ex)

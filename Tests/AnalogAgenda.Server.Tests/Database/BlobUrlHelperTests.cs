@@ -4,21 +4,6 @@ namespace AnalogAgenda.Server.Tests.Database;
 
 public class BlobUrlHelperTests
 {
-    [Fact]
-    public void GetUrlFromImageImageInfo_WithValidInputs_ReturnsCorrectUrl()
-    {
-        // Arrange
-        var accountName = "teststorage";
-        var containerName = "images";
-        var imageId = Guid.NewGuid();
-
-        // Act
-        var result = BlobUrlHelper.GetUrlFromImageImageInfo(accountName, containerName, imageId);
-
-        // Assert
-        var expected = $"https://{accountName}.blob.core.windows.net/{containerName}/{imageId}";
-        Assert.Equal(expected, result);
-    }
 
     [Fact]
     public void GetImageInfoFromUrl_WithValidUrl_ReturnsCorrectInfo()

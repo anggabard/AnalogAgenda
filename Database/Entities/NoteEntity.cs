@@ -1,6 +1,5 @@
 ﻿using Database.DBObjects.Enums;
 using Database.DTOs;
-using Database.Helpers;
 
 namespace Database.Entities;
 
@@ -23,40 +22,5 @@ public class NoteEntity : BaseEntity, IImageEntity
         SideNote = dto.SideNote;
         
         // ImageId is handled in the controller (uploaded to blob storage)
-    }
-
-    public NoteDto ToDTO(string accountName)
-    {
-        return new NoteDto()
-        {
-            Id = Id,
-            Name = Name,
-            SideNote = SideNote,
-            ImageUrl = ImageId == Guid.Empty ? string.Empty : BlobUrlHelper.GetUrlFromImageImageInfo(accountName, ContainerName.notes.ToString(), ImageId)
-        };
-    }
-
-    public NoteDto ToDTO(string accountName, List<NoteEntryEntity> noteEntries)
-    {
-        return new NoteDto()
-        {
-            Id = Id,
-            Name = Name,
-            SideNote = SideNote,
-            ImageUrl = ImageId == Guid.Empty ? string.Empty : BlobUrlHelper.GetUrlFromImageImageInfo(accountName, ContainerName.notes.ToString(), ImageId),
-            Entries = [.. noteEntries.Select(entry => entry.ToDTO())]
-        };
-    }
-
-    public NoteDto ToDTO(string accountName, List<NoteEntryDto> noteEntries)
-    {
-        return new NoteDto()
-        {
-            Id = Id,
-            Name = Name,
-            SideNote = SideNote,
-            ImageUrl = ImageId == Guid.Empty ? string.Empty : BlobUrlHelper.GetUrlFromImageImageInfo(accountName, ContainerName.notes.ToString(), ImageId),
-            Entries = noteEntries
-        };
     }
 }

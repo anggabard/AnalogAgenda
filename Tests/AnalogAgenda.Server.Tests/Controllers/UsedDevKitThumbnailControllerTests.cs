@@ -20,6 +20,7 @@ public class UsedDevKitThumbnailControllerTests : IDisposable
     private readonly Mock<IBlobService> _mockBlobService;
     private readonly Mock<BlobContainerClient> _mockDevKitsContainerClient;
     private readonly Storage _storageConfig;
+    private readonly DtoConvertor _dtoConvertor;
     private readonly UsedDevKitThumbnailController _controller;
 
     public UsedDevKitThumbnailControllerTests()
@@ -30,10 +31,13 @@ public class UsedDevKitThumbnailControllerTests : IDisposable
         _mockDevKitsContainerClient = new Mock<BlobContainerClient>();
         _storageConfig = new Storage { AccountName = "teststorage" };
 
+        var systemConfig = new Configuration.Sections.System { IsDev = false };
+        _dtoConvertor = new DtoConvertor(systemConfig, _storageConfig);
+
         _mockBlobService.Setup(x => x.GetBlobContainer(ContainerName.devkits))
                        .Returns(_mockDevKitsContainerClient.Object);
 
-        _controller = new UsedDevKitThumbnailController(_storageConfig, _databaseService, _mockBlobService.Object);
+        _controller = new UsedDevKitThumbnailController(_databaseService, _mockBlobService.Object, _dtoConvertor);
     }
 
     public void Dispose()

@@ -2,10 +2,11 @@
 using Configuration.Sections;
 using Database.DBObjects.Enums;
 using Database.Services.Interfaces;
+using Microsoft.Extensions.Configuration;
 
 namespace Database.Services;
 
-public sealed class BlobService(AzureAd azureAdCfg, Storage storageCfg) : BaseAzureService<BlobContainerClient>(azureAdCfg, storageCfg, "blob"), IBlobService
+public sealed class BlobService(AzureAd azureAdCfg, Storage storageCfg, Configuration.Sections.System systemCfg, IConfiguration configuration) : BaseAzureService<BlobContainerClient>(azureAdCfg, storageCfg, systemCfg, configuration, "blob"), IBlobService
 {
     public BlobContainerClient GetBlobContainer(string containerName) => GetValidatedClient(containerName);
 
@@ -30,7 +31,22 @@ public sealed class BlobService(AzureAd azureAdCfg, Storage storageCfg) : BaseAz
 
     protected override BlobContainerClient CreateClient(string resourceName)
     {
-        var serviceClient = new BlobServiceClient(AccountUri, Credential);
+        BlobServiceClient serviceClient;
+        
+        // Use connection string if available (dev mode with Azurite), otherwise use Azure AD (prod mode)
+        if (!string.IsNullOrEmpty(ConnectionString))
+        {
+            serviceClient = new BlobServiceClient(ConnectionString);
+        }
+        else if (Credential != null)
+        {
+            serviceClient = new BlobServiceClient(AccountUri, Credential);
+        }
+        else
+        {
+            throw new InvalidOperationException("Either ConnectionString or Credential must be provided for blob storage authentication.");
+        }
+        
         return serviceClient.GetBlobContainerClient(resourceName);
     }
 }

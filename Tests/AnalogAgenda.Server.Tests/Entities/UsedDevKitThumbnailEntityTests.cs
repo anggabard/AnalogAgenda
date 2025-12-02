@@ -1,4 +1,7 @@
+using Configuration.Sections;
 using Database.Entities;
+using Database.Services;
+using Moq;
 
 namespace AnalogAgenda.Server.Tests.Entities;
 
@@ -32,11 +35,15 @@ public class UsedDevKitThumbnailEntityTests
             Id = "test-row-key"
         };
 
+        var systemConfig = new Configuration.Sections.System { IsDev = false };
+        var storageConfig = new Storage { AccountName = accountName };
+        var dtoConvertor = new DtoConvertor(systemConfig, storageConfig);
+
         // Act
-        var dto = entity.ToDTO(accountName);
+        var dto = dtoConvertor.ToDTO(entity);
 
         // Assert
-        Assert.NotNull(dto.Id); // Id is auto-generated
+        Assert.NotNull(dto.Id);
         Assert.Equal("Bellini E6", dto.DevKitName);
         Assert.Equal(imageId.ToString(), dto.ImageId);
         Assert.Contains("teststorage", dto.ImageUrl);
@@ -56,11 +63,15 @@ public class UsedDevKitThumbnailEntityTests
             Id = "test-row-key"
         };
 
+        var systemConfig = new Configuration.Sections.System { IsDev = false };
+        var storageConfig = new Storage { AccountName = accountName };
+        var dtoConvertor = new DtoConvertor(systemConfig, storageConfig);
+
         // Act
-        var dto = entity.ToDTO(accountName);
+        var dto = dtoConvertor.ToDTO(entity);
 
         // Assert
-        Assert.NotNull(dto.Id); // Id is auto-generated
+        Assert.NotNull(dto.Id);
         Assert.Equal("Bellini E6", dto.DevKitName);
         Assert.Equal(Guid.Empty.ToString(), dto.ImageId);
         Assert.Empty(dto.ImageUrl);

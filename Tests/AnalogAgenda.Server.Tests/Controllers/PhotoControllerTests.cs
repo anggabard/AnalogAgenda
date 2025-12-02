@@ -22,6 +22,8 @@ public class PhotoControllerTests : IDisposable
     private readonly Mock<BlobContainerClient> _mockFilmsContainerClient;
     private readonly Mock<BlobClient> _mockBlobClient;
     private readonly Storage _storageConfig;
+    private readonly DtoConvertor _dtoConvertor;
+    private readonly EntityConvertor _entityConvertor;
     private readonly PhotoController _controller;
 
     public PhotoControllerTests()
@@ -34,13 +36,17 @@ public class PhotoControllerTests : IDisposable
         _mockBlobClient = new Mock<BlobClient>();
         _storageConfig = new Storage { AccountName = "teststorage" };
 
+        var systemConfig = new Configuration.Sections.System { IsDev = false };
+        _dtoConvertor = new DtoConvertor(systemConfig, _storageConfig);
+        _entityConvertor = new EntityConvertor();
+
         _mockBlobService.Setup(x => x.GetBlobContainer(ContainerName.photos))
                        .Returns(_mockPhotosContainerClient.Object);
         
         _mockPhotosContainerClient.Setup(x => x.GetBlobClient(It.IsAny<string>()))
                                  .Returns(_mockBlobClient.Object);
 
-        _controller = new PhotoController(_storageConfig, _databaseService, _mockBlobService.Object);
+        _controller = new PhotoController(_databaseService, _mockBlobService.Object, _dtoConvertor, _entityConvertor);
     }
 
     public void Dispose()

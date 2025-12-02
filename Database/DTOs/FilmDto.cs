@@ -1,7 +1,3 @@
-using Database.DBObjects.Enums;
-using Database.Entities;
-using Database.Helpers;
-
 namespace Database.DTOs;
 
 public class FilmDto
@@ -35,24 +31,4 @@ public class FilmDto
     public string FormattedExposureDate { get; set; } = string.Empty;
 
     public int PhotoCount { get; set; } = 0;
-
-    public FilmEntity ToEntity()
-    {
-        return new FilmEntity
-        {
-            Id = Id,
-            Name = Name,
-            Iso = Iso,
-            Type = Type.ToEnum<EFilmType>(),
-            NumberOfExposures = NumberOfExposures,
-            Cost = Cost,
-            PurchasedBy = PurchasedBy.ToEnum<EUsernameType>(),
-            PurchasedOn = new DateTime(PurchasedOn, TimeOnly.MinValue, DateTimeKind.Utc),
-            ImageId = string.IsNullOrEmpty(ImageUrl) ? Guid.Empty : BlobUrlHelper.GetImageInfoFromUrl(ImageUrl).ImageId,
-            Description = Description,
-            Developed = Developed,
-            DevelopedInSessionId = DevelopedInSessionId,
-            DevelopedWithDevKitId = DevelopedWithDevKitId
-        };
-    }
 }

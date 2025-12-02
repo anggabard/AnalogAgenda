@@ -35,7 +35,7 @@ public class DateFormattingHelperTests
     public void FormatExposureDateRange_SingleDate_ReturnsFormattedDate()
     {
         // Arrange
-        var dates = new List<DateOnly> { new DateOnly(2025, 11, 13) };
+        var dates = new List<DateOnly> { new(2025, 11, 13) };
 
         // Act
         var result = DateFormattingHelper.FormatExposureDateRange(dates, null);
@@ -50,9 +50,9 @@ public class DateFormattingHelperTests
         // Arrange
         var dates = new List<DateOnly>
         {
-            new DateOnly(2025, 11, 13),
-            new DateOnly(2025, 11, 13),
-            new DateOnly(2025, 11, 13),
+            new(2025, 11, 13),
+            new(2025, 11, 13),
+            new(2025, 11, 13),
         };
 
         // Act
@@ -68,9 +68,9 @@ public class DateFormattingHelperTests
         // Arrange
         var dates = new List<DateOnly>
         {
-            new DateOnly(2025, 11, 13),
-            new DateOnly(2025, 11, 15),
-            new DateOnly(2025, 11, 20),
+            new(2025, 11, 13),
+            new(2025, 11, 15),
+            new(2025, 11, 20),
         };
 
         // Act
@@ -86,9 +86,9 @@ public class DateFormattingHelperTests
         // Arrange
         var dates = new List<DateOnly>
         {
-            new DateOnly(2025, 10, 15),
-            new DateOnly(2025, 11, 10),
-            new DateOnly(2025, 12, 5),
+            new(2025, 10, 15),
+            new(2025, 11, 10),
+            new(2025, 12, 5),
         };
 
         // Act
@@ -104,8 +104,8 @@ public class DateFormattingHelperTests
         // Arrange
         var dates = new List<DateOnly>
         {
-            new DateOnly(2025, 10, 15),
-            new DateOnly(2025, 12, 5), // Missing November
+            new(2025, 10, 15),
+            new(2025, 12, 5), // Missing November
         };
 
         // Act
@@ -121,9 +121,9 @@ public class DateFormattingHelperTests
         // Arrange
         var dates = new List<DateOnly>
         {
-            new DateOnly(2020, 1, 15),
-            new DateOnly(2021, 6, 10),
-            new DateOnly(2022, 12, 5),
+            new(2020, 1, 15),
+            new(2021, 6, 10),
+            new(2022, 12, 5),
         };
 
         // Act
@@ -139,9 +139,9 @@ public class DateFormattingHelperTests
         // Arrange
         var dates = new List<DateOnly>
         {
-            new DateOnly(2020, 1, 15),
-            new DateOnly(2022, 6, 10),
-            new DateOnly(2025, 12, 5), // Missing 2021, 2023, 2024
+            new(2020, 1, 15),
+            new(2022, 6, 10),
+            new(2025, 12, 5), // Missing 2021, 2023, 2024
         };
 
         // Act
@@ -157,9 +157,9 @@ public class DateFormattingHelperTests
         // Arrange
         var dates = new List<DateOnly>
         {
-            new DateOnly(2025, 12, 5),
-            new DateOnly(2025, 10, 15),
-            new DateOnly(2025, 11, 10),
+            new(2025, 12, 5),
+            new(2025, 10, 15),
+            new(2025, 11, 10),
         };
 
         // Act
@@ -175,9 +175,9 @@ public class DateFormattingHelperTests
         // Arrange
         var dates = new List<DateOnly>
         {
-            new DateOnly(2025, 11, 1),
-            new DateOnly(2025, 11, 15),
-            new DateOnly(2025, 11, 30),
+            new(2025, 11, 1),
+            new(2025, 11, 15),
+            new(2025, 11, 30),
         };
 
         // Act

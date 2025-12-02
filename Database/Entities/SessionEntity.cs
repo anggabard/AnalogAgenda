@@ -1,6 +1,5 @@
 using Database.DBObjects.Enums;
 using Database.DTOs;
-using Database.Helpers;
 
 namespace Database.Entities;
 
@@ -30,20 +29,5 @@ public class SessionEntity : BaseEntity, IImageEntity
         Description = dto.Description;
         
         // ImageId is handled in the controller (uploaded to blob storage)
-    }
-
-    public SessionDto ToDTO(string accountName)
-    {
-        return new SessionDto()
-        {
-            Id = Id,
-            SessionDate = DateOnly.FromDateTime(SessionDate),
-            Location = Location,
-            Participants = Participants,
-            ImageUrl = ImageId == Guid.Empty ? string.Empty : BlobUrlHelper.GetUrlFromImageImageInfo(accountName, ContainerName.sessions.ToString(), ImageId),
-            Description = Description,
-            UsedSubstances = string.Join(",", UsedDevKits.Select(d => d.Id)),
-            DevelopedFilms = string.Join(",", DevelopedFilms.Select(f => f.Id))
-        };
     }
 }
