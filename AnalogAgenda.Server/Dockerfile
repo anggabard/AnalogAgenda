@@ -1,5 +1,5 @@
-# Use the official .NET 8 SDK image for building
-FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+# Use the official .NET 9 SDK image for building
+FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 WORKDIR /src
 
 # Copy project files
@@ -23,8 +23,8 @@ RUN dotnet build "AnalogAgenda.Server.csproj" -c Release -o /app/build
 FROM build AS publish
 RUN dotnet publish "AnalogAgenda.Server.csproj" -c Release -o /app/publish /p:UseAppHost=false
 
-# Use the official .NET 8 runtime image for the final stage
-FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
+# Use the official .NET 9 runtime image for the final stage
+FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS final
 WORKDIR /app
 
 # Copy the published application
