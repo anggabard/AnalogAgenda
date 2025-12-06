@@ -178,29 +178,27 @@ else
 // In production, migrations should be run via a separate job/process before deployment
 if (appIsDev)
 {
-    using (var scope = app.Services.CreateScope())
+    using var scope = app.Services.CreateScope();
+    var dbContext = scope.ServiceProvider.GetRequiredService<AnalogAgendaDbContext>();
+    try
     {
-        var dbContext = scope.ServiceProvider.GetRequiredService<AnalogAgendaDbContext>();
-        try
+        // Check if there are pending migrations before applying
+        var pendingMigrations = await dbContext.Database.GetPendingMigrationsAsync();
+        if (pendingMigrations.Any())
         {
-            // Check if there are pending migrations before applying
-            var pendingMigrations = await dbContext.Database.GetPendingMigrationsAsync();
-            if (pendingMigrations.Any())
-            {
-                app.Logger.LogInformation("Applying {Count} pending migrations...", pendingMigrations.Count());
-                await dbContext.Database.MigrateAsync();
-                app.Logger.LogInformation("Database migrations applied successfully.");
-            }
-            else
-            {
-                app.Logger.LogInformation("No pending migrations. Database is up to date.");
-            }
+            app.Logger.LogInformation("Applying {Count} pending migrations...", pendingMigrations.Count());
+            await dbContext.Database.MigrateAsync();
+            app.Logger.LogInformation("Database migrations applied successfully.");
         }
-        catch (Exception ex)
+        else
         {
-            app.Logger.LogError(ex, "An error occurred while applying database migrations.");
-            throw; // Re-throw to prevent the app from starting with an incorrect database state
+            app.Logger.LogInformation("No pending migrations. Database is up to date.");
         }
+    }
+    catch (Exception ex)
+    {
+        app.Logger.LogError(ex, "An error occurred while applying database migrations.");
+        throw; // Re-throw to prevent the app from starting with an incorrect database state
     }
 }
 

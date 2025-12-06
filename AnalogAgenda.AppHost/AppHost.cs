@@ -1,10 +1,17 @@
 var builder = DistributedApplication.CreateBuilder(args);
 
+// Add SQL Server SA password parameter (stored in user secrets)
+var sqlPassword = builder.AddParameter("sql-password", secret: true);
+
 // Add SQL Server and Database
-var sqlServer = builder.AddSqlServer("sql")
+// Pin to SQL Server 2022-latest to prevent permission issues from image updates
+// Use WithDataVolume() for automatic volume management with correct permissions
+var sqlServer = builder.AddSqlServer("sql", password: sqlPassword)
+    .WithImage("mssql/server", "2022-latest")
     .WithDataVolume()
     .WithHostPort(1433)
-    .WithLifetime(ContainerLifetime.Persistent);
+    .WithLifetime(ContainerLifetime.Persistent)
+    .WithEnvironment("ACCEPT_EULA", "Y");
 
 var database = sqlServer.AddDatabase("analogagendadb");
 
