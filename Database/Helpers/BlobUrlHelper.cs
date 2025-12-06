@@ -9,20 +9,41 @@ public static class BlobUrlHelper
 
         var uri = new Uri(url);
 
-        var hostParts = uri.Host.Split('.');
-        if (hostParts.Length == 0)
-            throw new ArgumentException("Invalid URL format. Could not parse account name.", nameof(url));
-
-        string accountName = hostParts[0];
-
         var segments = uri.AbsolutePath.Trim('/').Split('/');
-        if (segments.Length != 2)
-            throw new ArgumentException("Invalid URL format. Expected container and image ID.", nameof(url));
+        
+        bool isLocalAzurite = uri.Host.Equals("localhost", StringComparison.OrdinalIgnoreCase);
 
-        string containerName = segments[0];
+        string accountName;
+        string containerName;
+        Guid imageId;
 
-        if (!Guid.TryParse(segments[1], out var imageId))
-            throw new ArgumentException("Invalid image ID format. Expected a valid GUID.", nameof(url));
+        if (isLocalAzurite)
+        {
+            if (segments.Length != 3)
+                throw new ArgumentException("Invalid URL format. Expected account name, container, and image ID.", nameof(url));
+
+            accountName = segments[0];
+            containerName = segments[1];
+            
+            if (!Guid.TryParse(segments[2], out imageId))
+                throw new ArgumentException("Invalid image ID format. Expected a valid GUID.", nameof(url));
+        }
+        else
+        {
+            var hostParts = uri.Host.Split('.');
+            if (hostParts.Length == 0)
+                throw new ArgumentException("Invalid URL format. Could not parse account name.", nameof(url));
+
+            accountName = hostParts[0];
+
+            if (segments.Length != 2)
+                throw new ArgumentException("Invalid URL format. Expected container and image ID.", nameof(url));
+
+            containerName = segments[0];
+
+            if (!Guid.TryParse(segments[1], out imageId))
+                throw new ArgumentException("Invalid image ID format. Expected a valid GUID.", nameof(url));
+        }
 
         return (accountName, containerName, imageId);
     }

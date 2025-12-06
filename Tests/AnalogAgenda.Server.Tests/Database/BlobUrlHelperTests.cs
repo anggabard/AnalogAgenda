@@ -23,6 +23,42 @@ public class BlobUrlHelperTests
         Assert.Equal(imageId, result.ImageId);
     }
 
+    [Fact]
+    public void GetImageInfoFromUrl_WithValidLocalAzuriteUrl_ReturnsCorrectInfo()
+    {
+        // Arrange
+        var accountName = "devstoreaccount1";
+        var containerName = "films";
+        var imageId = Guid.NewGuid();
+        var url = $"http://localhost:10000/{accountName}/{containerName}/{imageId}";
+
+        // Act
+        var result = BlobUrlHelper.GetImageInfoFromUrl(url);
+
+        // Assert
+        Assert.Equal(accountName, result.AccountName);
+        Assert.Equal(containerName, result.ContainerName);
+        Assert.Equal(imageId, result.ImageId);
+    }
+
+    [Fact]
+    public void GetImageInfoFromUrl_WithValidLocalAzuriteUrl_127_0_0_1_ReturnsCorrectInfo()
+    {
+        // Arrange
+        var accountName = "devstoreaccount1";
+        var containerName = "films";
+        var imageId = Guid.NewGuid();
+        var url = $"http://127.0.0.1:10000/{accountName}/{containerName}/{imageId}";
+
+        // Act
+        var result = BlobUrlHelper.GetImageInfoFromUrl(url);
+
+        // Assert
+        Assert.Equal(accountName, result.AccountName);
+        Assert.Equal(containerName, result.ContainerName);
+        Assert.Equal(imageId, result.ImageId);
+    }
+
     [Theory]
     [InlineData("")]
     [InlineData("   ")]
@@ -52,6 +88,17 @@ public class BlobUrlHelperTests
         // Act & Assert
         var exception = Assert.Throws<ArgumentException>(() => BlobUrlHelper.GetImageInfoFromUrl(urlWithOneSegment));
         Assert.Contains("Expected container and image ID", exception.Message);
+    }
+
+    [Fact]
+    public void GetImageInfoFromUrl_WithInvalidLocalAzuriteSegmentCount_ThrowsArgumentException()
+    {
+        // Arrange
+        var urlWithTwoSegments = "http://localhost:10000/devstoreaccount1/films";
+
+        // Act & Assert
+        var exception = Assert.Throws<ArgumentException>(() => BlobUrlHelper.GetImageInfoFromUrl(urlWithTwoSegments));
+        Assert.Contains("Expected account name, container, and image ID", exception.Message);
     }
 
     [Fact]

@@ -52,7 +52,6 @@ public class FilmEntity : BaseEntity, IImageEntity
         DevelopedInSessionId = dto.DevelopedInSessionId;
         DevelopedWithDevKitId = dto.DevelopedWithDevKitId;
         
-        // Update ImageId if provided in the URL (extracted from ImageUrl)
         if (!string.IsNullOrEmpty(dto.ImageUrl))
         {
             var extractedImageId = BlobUrlHelper.GetImageInfoFromUrl(dto.ImageUrl).ImageId;
