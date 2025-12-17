@@ -1,6 +1,6 @@
 import { Component, inject, OnInit, ViewChild, TemplateRef, OnDestroy } from "@angular/core";
 import { Router } from "@angular/router";
-import { FilmService, AccountService, LocalStorageService } from "../../services";
+import { FilmService, AccountService, LocalStorageService, UserSettingsService } from "../../services";
 import { FilmDto, IdentityDto, PagedResponseDto } from "../../DTOs";
 import { SearchParams } from "./film-search/film-search.component";
 
@@ -16,6 +16,7 @@ export class FilmsComponent implements OnInit, OnDestroy {
   private filmService = inject(FilmService);
   private accountService = inject(AccountService);
   private localStorageService = inject(LocalStorageService);
+  private userSettingsService = inject(UserSettingsService);
 
   @ViewChild('myFilmCardTemplate') myFilmCardTemplate!: TemplateRef<any>;
   @ViewChild('allFilmCardTemplate') allFilmCardTemplate!: TemplateRef<any>;
@@ -26,6 +27,7 @@ export class FilmsComponent implements OnInit, OnDestroy {
   myNotDevelopedFilms: FilmDto[] = [];
   activeTab: 'my' | 'all' = 'my';
   currentUsername: string = '';
+  currentFilmId: string | null = null;
 
   // Pagination state - separate for each list
   allDevelopedPage = 1;
@@ -54,6 +56,7 @@ export class FilmsComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.restoreState();
+    this.loadUserSettings();
     this.accountService.whoAmI().subscribe({
       next: (identity: IdentityDto) => {
         this.currentUsername = identity.username;
@@ -65,6 +68,17 @@ export class FilmsComponent implements OnInit, OnDestroy {
       },
       error: (err) => {
         console.error(err);
+      }
+    });
+  }
+
+  loadUserSettings(): void {
+    this.userSettingsService.getUserSettings().subscribe({
+      next: (settings) => {
+        this.currentFilmId = settings.currentFilmId || null;
+      },
+      error: (error) => {
+        console.error('Error loading user settings:', error);
       }
     });
   }
@@ -109,7 +123,9 @@ export class FilmsComponent implements OnInit, OnDestroy {
     const searchParams = this.getMyFilmsSearchParams();
     this.filmService.getMyNotDevelopedFilmsPaged(this.myNotDevelopedPage, this.pageSize, searchParams).subscribe({
       next: (response: PagedResponseDto<FilmDto>) => {
-        this.myNotDevelopedFilms.push(...response.data);
+        const newFilms = response.data;
+        this.myNotDevelopedFilms.push(...newFilms);
+        this.sortFilmsWithCurrentFirst(this.myNotDevelopedFilms);
         this.hasMoreMyNotDeveloped = response.hasNextPage;
         this.myNotDevelopedPage++;
         this.loadingMyNotDeveloped = false;
@@ -148,7 +164,9 @@ export class FilmsComponent implements OnInit, OnDestroy {
     const searchParams = this.getAllFilmsSearchParams();
     this.filmService.getNotDevelopedFilmsPaged(this.allNotDevelopedPage, this.pageSize, searchParams).subscribe({
       next: (response: PagedResponseDto<FilmDto>) => {
-        this.allNotDevelopedFilms.push(...response.data);
+        const newFilms = response.data;
+        this.allNotDevelopedFilms.push(...newFilms);
+        this.sortFilmsWithCurrentFirst(this.allNotDevelopedFilms);
         this.hasMoreAllNotDeveloped = response.hasNextPage;
         this.allNotDevelopedPage++;
         this.loadingAllNotDeveloped = false;
@@ -158,6 +176,16 @@ export class FilmsComponent implements OnInit, OnDestroy {
         this.loadingAllNotDeveloped = false;
       }
     });
+  }
+
+  private sortFilmsWithCurrentFirst(films: FilmDto[]): void {
+    if (!this.currentFilmId) return;
+    
+    const currentFilmIndex = films.findIndex(f => f.id === this.currentFilmId);
+    if (currentFilmIndex > 0) {
+      const currentFilm = films.splice(currentFilmIndex, 1)[0];
+      films.unshift(currentFilm);
+    }
   }
 
 

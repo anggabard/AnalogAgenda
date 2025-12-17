@@ -1,4 +1,146 @@
+<div class="home-container">
+    <!-- Film Check Section -->
+    <div class="statistics-section">
+        <div class="box">
+            <h1 class="form-title">Film Check</h1>
+            <table class="stats-table">
+                <tbody>
+                    <tr *ngFor="let stat of userStats">
+                        <td>{{ stat.user }}</td>
+                        <td>{{ stat.count }}</td>
+                    </tr>
+                    <tr *ngIf="userStats.length === 0">
+                        <td colspan="2">No subscribed users</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
 
-<div style="width: 600px; height: 600px; margin: 0 auto; text-align: center; padding-top: 100px;">
-    <img src="/assets/boomer.jpg" style="max-width: 50%; height: auto;" />
+    <!-- Current Film Card -->
+    <div class="current-film-section" *ngIf="userSettings">
+        <div class="box">
+            <h1 class="form-title">Current Film</h1>
+            <div class="current-film-card" *ngIf="currentFilm">
+                <div class="film-image-container">
+                    <img class="film-image" [src]="currentFilm.imageUrl" [alt]="currentFilm.name" />
+                </div>
+                <div class="film-info">
+                    <h3>{{ currentFilm.name }}</h3>
+                    <p><strong>ISO:</strong> {{ currentFilm.iso }}</p>
+                    <p><strong>Type:</strong> {{ currentFilm.type }}</p>
+                    <p><strong>Exposures:</strong> {{ currentFilm.numberOfExposures }}</p>
+                    <p *ngIf="currentFilm.formattedExposureDate"><strong>First Exposure Date:</strong> {{ currentFilm.formattedExposureDate }}</p>
+                </div>
+                <div class="film-actions">
+                    <button class="btn btn-primary" (click)="editCurrentFilm()">Edit Film</button>
+                    <button class="btn btn-secondary" (click)="openChangeCurrentFilmModal()">Change Current Film</button>
+                </div>
+            </div>
+            <div class="no-current-film" *ngIf="!currentFilm">
+                <p>No current film selected</p>
+                <button class="btn btn-primary" (click)="openChangeCurrentFilmModal()">Select Current Film</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- User Settings Form -->
+    <div class="settings-section" *ngIf="userSettings">
+        <div class="box">
+            <form class="form">
+                <h1 class="form-title">Settings</h1>
+                
+                <!-- Subscribed Toggle -->
+                <div class="form-row">
+                    <label for="subscribedToggle">Subscribed</label>
+                    <div class="toggle-border-small">
+                        <input 
+                            id="subscribedToggle" 
+                            type="checkbox" 
+                            [(ngModel)]="userSettings.isSubscribed"
+                            (change)="onSettingsChange()"
+                            [ngModelOptions]="{standalone: true}"
+                        />
+                        <label for="subscribedToggle">
+                            <div class="handle-small"></div>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Table View Toggle -->
+                <div class="form-row">
+                    <label for="tableViewToggle">Table View</label>
+                    <div class="toggle-border-small">
+                        <input 
+                            id="tableViewToggle" 
+                            type="checkbox" 
+                            [(ngModel)]="userSettings.tableView"
+                            (change)="onSettingsChange()"
+                            [ngModelOptions]="{standalone: true}"
+                        />
+                        <label for="tableViewToggle">
+                            <div class="handle-small"></div>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Entities Per Page -->
+                <div class="form-row">
+                    <label for="entitiesPerPage">Entities per Page</label>
+                    <input 
+                        type="number" 
+                        id="entitiesPerPage"
+                        [(ngModel)]="userSettings.entitiesPerPage"
+                        (change)="onSettingsChange()"
+                        [ngModelOptions]="{standalone: true}"
+                        min="1"
+                        max="99"
+                        maxlength="2"
+                        class="input input-small"
+                    />
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Change Current Film Modal -->
+    <div class="modal-overlay" *ngIf="isChangeCurrentFilmModalOpen" (click)="closeChangeCurrentFilmModal()">
+        <div class="modal-content" (click)="$event.stopPropagation()">
+            <div class="modal-header">
+                <div></div>
+                <h3>Change Current Film</h3>
+                <button class="modal-close" (click)="closeChangeCurrentFilmModal()">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="film-list">
+                    <div 
+                        *ngFor="let film of availableFilms" 
+                        class="film-item"
+                        [class.selected]="selectedFilmId === film.id"
+                        (click)="selectedFilmId = film.id">
+                        <div class="film-item-info">
+                            <div class="film-name">{{ film.name }}</div>
+                            <div class="film-details">
+                                <span>ISO: {{ film.iso }}</span>
+                                <span>Type: {{ film.type }}</span>
+                            </div>
+                        </div>
+                        <img class="film-item-image" [src]="film.imageUrl" [alt]="film.name" />
+                    </div>
+                    <div *ngIf="availableFilms.length === 0" class="no-films">
+                        No not-developed films available
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button 
+                    class="btn btn-primary" 
+                    (click)="changeCurrentFilm()"
+                    [disabled]="!selectedFilmId">
+                    Save
+                </button>
+                <button class="btn btn-secondary" (click)="closeChangeCurrentFilmModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
 </div>

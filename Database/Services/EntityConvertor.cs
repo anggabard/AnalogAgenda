@@ -149,5 +149,15 @@ public class EntityConvertor()
         TemperatureMin = dto.TemperatureMin,
         TemperatureMax = dto.TemperatureMax
     };
+
+    public UserSettingsEntity ToEntity(UserSettingsDto dto) => new()
+    {
+        Id = string.IsNullOrEmpty(dto.UserId) ? string.Empty : dto.UserId, // Will be generated if empty
+        UserId = dto.UserId,
+        IsSubscribed = dto.IsSubscribed,
+        CurrentFilmId = dto.CurrentFilmId,
+        TableView = dto.TableView,
+        EntitiesPerPage = dto.EntitiesPerPage
+    };
 }
 
