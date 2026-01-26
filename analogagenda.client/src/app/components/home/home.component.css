@@ -311,10 +311,6 @@
     color: white;
 }
 
-.btn-primary:hover {
-    background-color: rgba(37, 35, 35, 1);
-}
-
 .btn-primary:disabled {
     background-color: #ccc;
     cursor: not-allowed;
@@ -323,10 +319,6 @@
 .btn-secondary {
     background-color: rgba(37, 35, 35, 1);
     color: white;
-}
-
-.btn-secondary:hover {
-    background-color: rgba(37, 35, 35, 1);
 }
 
 /* Modal Styles */

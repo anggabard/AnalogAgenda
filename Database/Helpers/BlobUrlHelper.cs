@@ -1,4 +1,4 @@
-﻿namespace Database.Helpers;
+namespace Database.Helpers;
 
 public static class BlobUrlHelper
 {
@@ -11,7 +11,8 @@ public static class BlobUrlHelper
 
         var segments = uri.AbsolutePath.Trim('/').Split('/');
         
-        bool isLocalAzurite = uri.Host.Equals("localhost", StringComparison.OrdinalIgnoreCase);
+        bool isLocalAzurite = uri.Host.Equals("localhost", StringComparison.OrdinalIgnoreCase) 
+            || uri.Host.Equals("127.0.0.1", StringComparison.OrdinalIgnoreCase);
 
         string accountName;
         string containerName;
