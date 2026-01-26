@@ -86,4 +86,11 @@ public class AccountController(IDatabaseService database) : ControllerBase
         await HttpContext.SignOutAsync();
         return Ok();
     }
+
+    //[HttpPost("CreateNewUser")]
+    //public async Task<IActionResult> CreateNewUser()
+    //{
+    //    Add User to the [Users] table and also to the [UserSettings] table with default settings
+    //    return Ok();
+    //}
 }

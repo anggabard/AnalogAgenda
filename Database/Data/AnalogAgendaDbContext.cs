@@ -3,59 +3,8 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Database.Data;
 
-public class AnalogAgendaDbContext : DbContext
+public class AnalogAgendaDbContext(DbContextOptions<AnalogAgendaDbContext> options) : DbContext(options)
 {
-    public AnalogAgendaDbContext(DbContextOptions<AnalogAgendaDbContext> options) : base(options)
-    {
-    }
-
-    public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
-    {
-        // Automatically create UserSettings when a new User is created
-        var newUserEntries = ChangeTracker.Entries<UserEntity>()
-            .Where(e => e.State == EntityState.Added)
-            .ToList();
-
-        foreach (var entry in newUserEntries)
-        {
-            var user = entry.Entity;
-            
-            // Ensure user ID is set (it should be, but safety check)
-            if (string.IsNullOrEmpty(user.Id))
-            {
-                user.Id = user.GetId();
-            }
-
-            // Check if UserSettings already exists (shouldn't happen, but safety check)
-            var existingSettings = await UserSettings
-                .FirstOrDefaultAsync(us => us.UserId == user.Id, cancellationToken);
-
-            if (existingSettings == null)
-            {
-                var userSettings = new UserSettingsEntity
-                {
-                    Id = string.Empty, // Will be generated
-                    UserId = user.Id,
-                    IsSubscribed = false,
-                    CurrentFilmId = null,
-                    TableView = false,
-                    EntitiesPerPage = 5,
-                    CreatedDate = DateTime.UtcNow,
-                    UpdatedDate = DateTime.UtcNow
-                };
-
-                if (string.IsNullOrEmpty(userSettings.Id))
-                {
-                    userSettings.Id = userSettings.GetId();
-                }
-
-                UserSettings.Add(userSettings);
-            }
-        }
-
-        return await base.SaveChangesAsync(cancellationToken);
-    }
-
     // DbSets for all entities
     public DbSet<UserEntity> Users { get; set; }
     public DbSet<NoteEntity> Notes { get; set; }
