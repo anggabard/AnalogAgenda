@@ -358,6 +358,24 @@ public class FilmController(
                 await databaseService.AddAsync(exposureDate);
             }
 
+            // If film has exposure dates, set it as current film for the user
+            if (exposureDates.Any(ed => ed.Date != default(DateOnly)))
+            {
+                var currentUserId = User.Id();
+                if (!string.IsNullOrEmpty(currentUserId))
+                {
+                    var userSettingsList = await databaseService.GetAllAsync<UserSettingsEntity>(us => us.UserId == currentUserId);
+                    var userSettings = userSettingsList.FirstOrDefault();
+
+                    if (userSettings != null)
+                    {
+                        userSettings.CurrentFilmId = filmId;
+                        userSettings.UpdatedDate = DateTime.UtcNow;
+                        await databaseService.UpdateAsync(userSettings);
+                    }
+                }
+            }
+
             return NoContent();
         }
         catch (Exception ex)

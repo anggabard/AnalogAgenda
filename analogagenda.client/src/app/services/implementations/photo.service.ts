@@ -36,14 +36,7 @@ export class PhotoService extends BaseService {
 
   // Get preview URL for a photo (returns direct blob storage URL)
   getPreviewUrl(photo: PhotoDto): string {
-    // Extract account name and imageId from ImageUrl
-    // ImageUrl format: https://{accountName}.blob.core.windows.net/photos/{imageId}
-    const url = new URL(photo.imageUrl);
-    const pathParts = url.pathname.split('/').filter(p => p);
-    const imageId = pathParts[1];
-    const accountName = url.hostname.split('.')[0];
-    // Construct preview URL: https://{accountName}.blob.core.windows.net/photos/preview/{imageId}
-    return `https://${accountName}.blob.core.windows.net/photos/preview/${imageId}`;
+    return photo.imageUrl.replace("photos/", "photos/preview/")
   }
 
   /**

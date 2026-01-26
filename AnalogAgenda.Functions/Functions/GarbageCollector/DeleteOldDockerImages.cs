@@ -70,16 +70,16 @@ public class DeleteOldDockerImages(ILoggerFactory loggerFactory,
                     continue;
                 }
 
-                // Keep only the last 3 non-latest images
-                if (keptCount < 3)
+                // Keep only the last 2 non-latest images
+                if (keptCount < 2)
                 {
                     var tags = manifest.Tags?.Any() == true ? string.Join(", ", manifest.Tags) : "untagged";
-                    _logger.LogInformation($"Keeping image {keptCount + 1}/3: {manifest.Digest} (tags: {tags})");
+                    _logger.LogInformation($"Keeping image {keptCount + 1}/2: {manifest.Digest} (tags: {tags})");
                     keptCount++;
                 }
                 else
                 {
-                    // Delete older images beyond the 3 most recent
+                    // Delete older images beyond the 2 most recent
                     await _containerRegistryService.DeleteArtifactAsync(repositoryName, manifest.Digest);
 
                     var tags = manifest.Tags?.Any() == true ? string.Join(", ", manifest.Tags) : "untagged";

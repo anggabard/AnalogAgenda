@@ -44,6 +44,14 @@ export class BaseService {
         }) as Observable<T>;
     }
 
+    patch<T>(path: string, body: any = {}, options?: any): Observable<T> {
+        return this.#http.patch<T>(this.baseUrl + this.ensureLeadingSlash(path), body, {
+            ...this.defaultOptions,
+            ...options,
+            observe: 'body'
+        }) as Observable<T>;
+    }
+
     private ensureLeadingSlash(input: string): string {
         const trimmed = input.trim();
         if (trimmed === '') {

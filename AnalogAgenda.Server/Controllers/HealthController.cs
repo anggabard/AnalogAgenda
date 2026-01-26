@@ -1,18 +1,17 @@
-using Azure.Identity;
-using Azure.Storage.Blobs;
 using Configuration.Sections;
 using Database.Data;
 using Database.DBObjects.Enums;
+using Database.Entities;
 using Database.Helpers;
 using Database.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace AnalogAgenda.Server.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
 public class HealthController(
+    IDatabaseService databaseService,
     AnalogAgendaDbContext dbContext,
     IBlobService blobService,
     AzureAd azureAdConfig) : ControllerBase
@@ -29,17 +28,23 @@ public class HealthController(
 
         try
         {
-            // Test database connection
+            // Test database connection (database-level operation, requires dbContext)
             var canConnect = await dbContext.Database.CanConnectAsync();
 
             if (canConnect)
             {
-                // Get basic statistics from database
-                var usersCount = await dbContext.Users.CountAsync();
-                var notesCount = await dbContext.Notes.CountAsync();
-                var filmsCount = await dbContext.Films.CountAsync();
-                var devKitsCount = await dbContext.DevKits.CountAsync();
-                var sessionsCount = await dbContext.Sessions.CountAsync();
+                // Get basic statistics from database using DatabaseService
+                var users = await databaseService.GetAllAsync<UserEntity>();
+                var notes = await databaseService.GetAllAsync<NoteEntity>();
+                var films = await databaseService.GetAllAsync<FilmEntity>();
+                var devKits = await databaseService.GetAllAsync<DevKitEntity>();
+                var sessions = await databaseService.GetAllAsync<SessionEntity>();
+
+                var usersCount = users.Count;
+                var notesCount = notes.Count;
+                var filmsCount = films.Count;
+                var devKitsCount = devKits.Count;
+                var sessionsCount = sessions.Count;
 
                 // Test blob storage connectivity
                 var blobStatus = await TestBlobStorageAsync();

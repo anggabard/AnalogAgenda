@@ -2,8 +2,9 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
 import { of } from 'rxjs';
 import { FilmsComponent } from '../../components/films/films.component';
-import { FilmService, AccountService, LocalStorageService } from '../../services';
-import { IdentityDto } from '../../DTOs';
+import { FilmService, AccountService, LocalStorageService, UserSettingsService } from '../../services';
+import { IdentityDto, UserSettingsDto } from '../../DTOs';
+import { TestConfig } from '../test.config';
 
 describe('FilmsComponent State Persistence', () => {
   let component: FilmsComponent;
@@ -11,6 +12,7 @@ describe('FilmsComponent State Persistence', () => {
   let localStorageService: LocalStorageService;
   let filmService: jasmine.SpyObj<FilmService>;
   let accountService: jasmine.SpyObj<AccountService>;
+  let userSettingsService: jasmine.SpyObj<UserSettingsService>;
 
   const mockIdentity: IdentityDto = {
     username: 'testuser',
@@ -25,13 +27,15 @@ describe('FilmsComponent State Persistence', () => {
       'getNotDevelopedFilmsPaged'
     ]);
     const accountServiceSpy = jasmine.createSpyObj('AccountService', ['whoAmI']);
+    const userSettingsServiceSpy = jasmine.createSpyObj('UserSettingsService', ['getUserSettings']);
 
-    await TestBed.configureTestingModule({
+    await TestConfig.configureTestBed({
       declarations: [FilmsComponent],
       providers: [
         { provide: FilmService, useValue: filmServiceSpy },
         { provide: AccountService, useValue: accountServiceSpy },
-        { provide: Router, useValue: jasmine.createSpyObj('Router', ['navigate']) }
+        { provide: UserSettingsService, useValue: userSettingsServiceSpy },
+        { provide: Router, useValue: TestConfig.createRouterSpy() }
       ]
     }).compileComponents();
 
@@ -40,9 +44,17 @@ describe('FilmsComponent State Persistence', () => {
     localStorageService = TestBed.inject(LocalStorageService);
     filmService = TestBed.inject(FilmService) as jasmine.SpyObj<FilmService>;
     accountService = TestBed.inject(AccountService) as jasmine.SpyObj<AccountService>;
+    userSettingsService = TestBed.inject(UserSettingsService) as jasmine.SpyObj<UserSettingsService>;
 
     // Mock service responses
     accountService.whoAmI.and.returnValue(of(mockIdentity));
+    userSettingsService.getUserSettings.and.returnValue(of({
+      userId: 'test-user',
+      isSubscribed: true,
+      tableView: false,
+      entitiesPerPage: 5,
+      currentFilmId: null
+    } as UserSettingsDto));
     filmService.getMyDevelopedFilmsPaged.and.returnValue(of({ 
       data: [], 
       hasNextPage: false,

@@ -1,5 +1,4 @@
 ﻿using AnalogAgenda.Server.Identity;
-using Database.Data;
 using Database.DTOs;
 using Database.Entities;
 using Database.Helpers;
@@ -8,13 +7,12 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 
 namespace AnalogAgenda.Server.Controllers;
 
 [ApiController, Route("api/[controller]")]
-public class AccountController(IDatabaseService database, AnalogAgendaDbContext dbContext) : ControllerBase
+public class AccountController(IDatabaseService database) : ControllerBase
 {
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginDto login)
@@ -48,33 +46,19 @@ public class AccountController(IDatabaseService database, AnalogAgendaDbContext 
     [HttpPost("changePassword")]
     public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordDto dto)
     {
-        // Load entity without tracking to avoid conflicts
-        var existingEntity = await dbContext.Set<UserEntity>()
-            .AsNoTracking()
-            .FirstOrDefaultAsync(u => u.Id == User.Id());
+        var currentUserId = User.Id();
+        var existingEntity = await database.GetByIdAsync<UserEntity>(currentUserId);
 
         if (existingEntity == null) return Problem("Something went terribly wrong.");
 
         if (!PasswordHasher.VerifyPassword(dto.OldPassword, existingEntity.PasswordHash))
             return Unauthorized("Bad creds");
 
-        // Create updated entity
-        var updatedEntity = new UserEntity
-        {
-            Id = existingEntity.Id,
-            CreatedDate = existingEntity.CreatedDate,
-            UpdatedDate = DateTime.UtcNow,
-            Name = existingEntity.Name,
-            Email = existingEntity.Email,
-            PasswordHash = PasswordHasher.HashPassword(dto.NewPassword),
-            IsSubscribed = existingEntity.IsSubscribed  
-        };
+        // Update password
+        existingEntity.PasswordHash = PasswordHasher.HashPassword(dto.NewPassword);
+        existingEntity.UpdatedDate = DateTime.UtcNow;
 
-        // Attach and update
-        dbContext.Set<UserEntity>().Attach(updatedEntity);
-        dbContext.Entry(updatedEntity).State = EntityState.Modified;
-        
-        await dbContext.SaveChangesAsync();
+        await database.UpdateAsync(existingEntity);
 
         return Ok();
     }

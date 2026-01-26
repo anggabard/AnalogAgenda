@@ -1,4 +1,6 @@
 using Database.Data;
+using Database.Entities;
+using Database.Services.Interfaces;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.EntityFrameworkCore;
@@ -9,6 +11,7 @@ namespace AnalogAgenda.Functions.Functions
 {
     public class TestHttpTrigger(
         ILoggerFactory loggerFactory,
+        IDatabaseService databaseService,
         AnalogAgendaDbContext dbContext)
     {
         private readonly ILogger _logger = loggerFactory.CreateLogger<TestHttpTrigger>();
@@ -39,19 +42,25 @@ namespace AnalogAgenda.Functions.Functions
             {
                 _logger.LogInformation("Attempting to connect to database...");
 
-                // Test connection with a simple query
+                // Test connection with a simple query (database-level operation, requires dbContext)
                 var canConnect = await dbContext.Database.CanConnectAsync();
 
                 if (canConnect)
                 {
                     _logger.LogInformation("Database connection successful, fetching statistics...");
 
-                    // Get basic statistics from database
-                    var usersCount = await dbContext.Users.CountAsync();
-                    var notesCount = await dbContext.Notes.CountAsync();
-                    var filmsCount = await dbContext.Films.CountAsync();
-                    var devKitsCount = await dbContext.DevKits.CountAsync();
-                    var sessionsCount = await dbContext.Sessions.CountAsync();
+                    // Get basic statistics from database using DatabaseService
+                    var users = await databaseService.GetAllAsync<UserEntity>();
+                    var notes = await databaseService.GetAllAsync<NoteEntity>();
+                    var films = await databaseService.GetAllAsync<FilmEntity>();
+                    var devKits = await databaseService.GetAllAsync<DevKitEntity>();
+                    var sessions = await databaseService.GetAllAsync<SessionEntity>();
+
+                    var usersCount = users.Count;
+                    var notesCount = notes.Count;
+                    var filmsCount = films.Count;
+                    var devKitsCount = devKits.Count;
+                    var sessionsCount = sessions.Count;
 
                     status = new
                     {

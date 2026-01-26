@@ -24,7 +24,7 @@ public class AccountControllerTests : IDisposable
     {
         _mockTableService = new Mock<IDatabaseService>();
         _dbContext = InMemoryDbContextFactory.Create("$AccountTestDb_${Guid.NewGuid()}");
-        _controller = new AccountController(_mockTableService.Object, _dbContext);
+        _controller = new AccountController(_mockTableService.Object);
 
         // Setup HttpContext with authentication services
         var services = new ServiceCollection();

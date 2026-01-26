@@ -38,4 +38,9 @@ export class FilmService extends BasePaginatedService<FilmDto> {
     return this.put(`${filmId}/exposure-dates`, exposureDates);
   }
 
+  getNotDevelopedFilms(): Observable<FilmDto[]> {
+    // Get all not-developed films by using page=0 (returns array directly, not paged response)
+    return this.get<FilmDto[]>('not-developed?page=0');
+  }
+
 }

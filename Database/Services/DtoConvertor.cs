@@ -168,5 +168,14 @@ public class DtoConvertor(Configuration.Sections.System systemCfg, Storage stora
         TemperatureMin = entity.TemperatureMin,
         TemperatureMax = entity.TemperatureMax
     };
+
+    public UserSettingsDto ToDTO(UserSettingsEntity entity) => new()
+    {
+        UserId = entity.UserId,
+        IsSubscribed = entity.IsSubscribed,
+        CurrentFilmId = entity.CurrentFilmId,
+        TableView = entity.TableView,
+        EntitiesPerPage = entity.EntitiesPerPage
+    };
 }
 

@@ -8,8 +8,10 @@ using Database.DTOs;
 using Database.Entities;
 using Database.Services;
 using Database.Services.Interfaces;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
+using System.Security.Claims;
 
 namespace AnalogAgenda.Server.Tests.Controllers;
 
@@ -40,6 +42,20 @@ public class FilmControllerTests : IDisposable
             .Returns(_mockBlobContainer.Object);
 
         _controller = new FilmController(_databaseService, _mockBlobService.Object, _dtoConvertor, _entityConvertor);
+        
+        // Setup mock user identity
+        var claims = new List<Claim> 
+        { 
+            new(ClaimTypes.NameIdentifier, "test-user-id"),
+            new(ClaimTypes.Name, "Test User"),
+            new(ClaimTypes.Email, "test@example.com")
+        };
+        var identity = new ClaimsIdentity(claims, "TestAuthType");
+        var claimsPrincipal = new ClaimsPrincipal(identity);
+        _controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = new DefaultHttpContext { User = claimsPrincipal }
+        };
     }
 
     public void Dispose()
@@ -380,6 +396,24 @@ public class FilmControllerTests : IDisposable
     public async Task UpdateExposureDates_WithValidData_UpdatesExposureDates()
     {
         // Arrange
+        // Create a user and user settings for the test
+        var user = new UserEntity
+        {
+            Name = "Test User",
+            Email = "test@example.com",
+            PasswordHash = "hashedpassword"
+        };
+        await _databaseService.AddAsync(user);
+        
+        var userSettings = new UserSettingsEntity
+        {
+            UserId = user.Id,
+            IsSubscribed = true,
+            TableView = false,
+            EntitiesPerPage = 5
+        };
+        await _databaseService.AddAsync(userSettings);
+        
         var film = new FilmEntity
         {
             Name = "Test Film",
@@ -394,6 +428,20 @@ public class FilmControllerTests : IDisposable
             Developed = false
         };
         await _databaseService.AddAsync(film);
+        
+        // Update the controller's user context to use the created user ID
+        var claims = new List<Claim> 
+        { 
+            new(ClaimTypes.NameIdentifier, user.Id),
+            new(ClaimTypes.Name, user.Name),
+            new(ClaimTypes.Email, user.Email)
+        };
+        var identity = new ClaimsIdentity(claims, "TestAuthType");
+        var claimsPrincipal = new ClaimsPrincipal(identity);
+        _controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = new DefaultHttpContext { User = claimsPrincipal }
+        };
 
         var existingDate = new ExposureDateEntity
         {
