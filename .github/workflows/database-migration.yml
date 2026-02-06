@@ -43,6 +43,9 @@ jobs:
     - name: Install EF Core tools
       run: dotnet tool install --global dotnet-ef --version 10.0.0
 
+    - name: Restore dependencies
+      run: dotnet restore Database/Database.csproj
+
     - name: Azure Login
       uses: azure/login@v2
       with:
@@ -109,6 +112,9 @@ jobs:
 
     - name: Install EF Core tools
       run: dotnet tool install --global dotnet-ef --version 10.0.0
+
+    - name: Restore dependencies
+      run: dotnet restore Database/Database.csproj
 
     - name: Azure Login
       uses: azure/login@v2
