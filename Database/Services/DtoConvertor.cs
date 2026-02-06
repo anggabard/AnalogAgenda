@@ -71,7 +71,7 @@ public class DtoConvertor(Configuration.Sections.System systemCfg, Storage stora
         Type = entity.Type.ToString(),
         PurchasedBy = entity.PurchasedBy.ToString(),
         PurchasedOn = DateOnly.FromDateTime(entity.PurchasedOn),
-        MixedOn = DateOnly.FromDateTime(entity.MixedOn),
+        MixedOn = entity.MixedOn.HasValue ? DateOnly.FromDateTime(entity.MixedOn.Value) : null,
         ValidForWeeks = entity.ValidForWeeks,
         ValidForFilms = entity.ValidForFilms,
         FilmsDeveloped = entity.FilmsDeveloped,

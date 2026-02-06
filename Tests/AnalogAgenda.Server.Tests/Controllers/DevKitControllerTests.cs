@@ -72,6 +72,33 @@ public class DevKitControllerTests : IDisposable
     }
 
     [Fact]
+    public async Task CreateNewKit_WithNullMixedOn_UnmixedSubstance_Succeeds()
+    {
+        var devKitDto = new DevKitDto
+        {
+            Name = "Unmixed Kit",
+            Url = "https://example.com",
+            Type = "C41",
+            PurchasedBy = "Angel",
+            PurchasedOn = DateOnly.FromDateTime(DateTime.UtcNow),
+            MixedOn = null,
+            ValidForWeeks = 6,
+            ValidForFilms = 8,
+            FilmsDeveloped = 0,
+            Description = "",
+            Expired = false
+        };
+
+        var result = await _controller.CreateNewKit(devKitDto);
+
+        var createdResult = Assert.IsType<CreatedResult>(result);
+        var createdDto = Assert.IsType<DevKitDto>(createdResult.Value);
+        Assert.NotNull(createdDto.Id);
+        Assert.Equal("Unmixed Kit", createdDto.Name);
+        Assert.Null(createdDto.MixedOn);
+    }
+
+    [Fact]
     public async Task CreateNewKit_WithInvalidData_HandlesGracefully()
     {
         // Arrange - Test with empty name which should be validated by the controller

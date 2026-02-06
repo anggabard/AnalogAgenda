@@ -23,6 +23,7 @@ namespace AnalogAgenda.Functions.Functions
             var entities = await databaseService.GetAllAsync<DevKitEntity>(kit => !kit.Expired);
             foreach (var entity in entities)
             {
+                if (!entity.MixedOn.HasValue) continue;
                 var kitExpirationDate = entity.GetExpirationDate();
                 if (kitExpirationDate > oneMonthLater) continue;
 

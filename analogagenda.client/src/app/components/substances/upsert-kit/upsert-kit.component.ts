@@ -71,7 +71,7 @@ export class UpsertKitComponent extends BaseUpsertComponent<DevKitDto> implement
       type: [DevKitType.C41, Validators.required],
       purchasedBy: ['', Validators.required],
       purchasedOn: [DateHelper.getTodayForInput(), Validators.required],
-      mixedOn: [DateHelper.getTodayForInput()],
+      mixedOn: [''],
       validForWeeks: [6, Validators.required],
       validForFilms: [8, Validators.required],
       filmsDeveloped: [0, Validators.required],
@@ -104,6 +104,37 @@ export class UpsertKitComponent extends BaseUpsertComponent<DevKitDto> implement
 
   protected getEntityName(): string {
     return 'Kit';
+  }
+
+  override submit(): void {
+    if (this.form.invalid) return;
+
+    const raw = this.form.value as DevKitDto;
+    const mixedOnVal = raw.mixedOn?.trim();
+    const payload: DevKitDto = {
+      ...raw,
+      mixedOn: mixedOnVal ? mixedOnVal : (null as unknown as string)
+    };
+
+    this.loading = true;
+    this.errorMessage = null;
+
+    const operation$ = this.isInsert
+      ? this.getCreateObservable(payload)
+      : this.getUpdateObservable(this.id!, payload);
+
+    const actionName = this.isInsert ? 'saving' : 'updating';
+
+    operation$.subscribe({
+      next: () => {
+        this.loading = false;
+        this.router.navigate([this.getBaseRoute()]);
+      },
+      error: (err) => {
+        this.loading = false;
+        this.errorMessage = ErrorHandlingHelper.handleError(err, `${actionName} ${this.getEntityName()}`);
+      }
+    });
   }
 
   // Thumbnail search methods
@@ -235,5 +266,25 @@ export class UpsertKitComponent extends BaseUpsertComponent<DevKitDto> implement
 
   closeThumbnailPreview(): void {
     this.showThumbnailPreview = false;
+  }
+
+  /** Expiration date as "day - month - year" for tooltip, or null when mixedOn is not set */
+  get expirationDateTooltip(): string | null {
+    const mixedOn = this.form.get('mixedOn')?.value as string | null | undefined;
+    const validForWeeks = this.form.get('validForWeeks')?.value as number;
+    if (!mixedOn || typeof mixedOn !== 'string' || !mixedOn.trim() || validForWeeks == null || validForWeeks <= 0) return null;
+    const s = mixedOn.trim();
+    const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(s);
+    if (!match) return null;
+    const y = parseInt(match[1], 10);
+    const m = parseInt(match[2], 10) - 1;
+    const d = parseInt(match[3], 10);
+    const date = new Date(y, m, d);
+    if (isNaN(date.getTime())) return null;
+    date.setDate(date.getDate() + validForWeeks * 7);
+    const day = date.getDate();
+    const month = date.getMonth() + 1;
+    const year = date.getFullYear();
+    return `Expires: ${day} - ${month} - ${year}`;
   }
 }

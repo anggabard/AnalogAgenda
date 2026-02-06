@@ -1,4 +1,4 @@
-﻿using Database.DBObjects.Enums;
+using Database.DBObjects.Enums;
 using Database.DTOs;
 using Database.Helpers;
 
@@ -16,7 +16,7 @@ public class DevKitEntity : BaseEntity, IImageEntity
 
     public DateTime PurchasedOn { get; set; }
 
-    public DateTime MixedOn { get; set; }
+    public DateTime? MixedOn { get; set; }
 
     public int ValidForWeeks { get; set; }
 
@@ -36,7 +36,7 @@ public class DevKitEntity : BaseEntity, IImageEntity
 
     protected override int IdLength() => 8;
 
-    public DateTime GetExpirationDate() => ValidForWeeks > 0 ? MixedOn.AddDays(7 * ValidForWeeks) : DateTime.MaxValue;
+    public DateTime GetExpirationDate() => MixedOn.HasValue && ValidForWeeks > 0 ? MixedOn.Value.AddDays(7 * ValidForWeeks) : DateTime.MaxValue;
 
     public void Update(DevKitDto dto)
     {
@@ -45,7 +45,7 @@ public class DevKitEntity : BaseEntity, IImageEntity
         Type = dto.Type.ToEnum<EDevKitType>();
         PurchasedBy = dto.PurchasedBy.ToEnum<EUsernameType>();
         PurchasedOn = dto.PurchasedOn.ToDateTime(TimeOnly.MinValue);
-        MixedOn = dto.MixedOn.ToDateTime(TimeOnly.MinValue);
+        MixedOn = dto.MixedOn.HasValue ? dto.MixedOn.Value.ToDateTime(TimeOnly.MinValue) : null;
         ValidForWeeks = dto.ValidForWeeks;
         ValidForFilms = dto.ValidForFilms;
         FilmsDeveloped = dto.FilmsDeveloped;

@@ -7,7 +7,7 @@ export interface DevKitDto {
   type: DevKitType;
   purchasedBy: UsernameType;
   purchasedOn: string;
-  mixedOn: string;
+  mixedOn?: string | null;
   validForWeeks: number;
   validForFilms: number;
   filmsDeveloped: number;
