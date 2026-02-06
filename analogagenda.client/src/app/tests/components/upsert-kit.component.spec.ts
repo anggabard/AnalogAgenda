@@ -160,7 +160,7 @@ describe('UpsertKitComponent', () => {
     component.form.patchValue({ mixedOn: '2026-01-01', validForWeeks: 4 });
     const tooltip = component.expirationDateTooltip;
     expect(tooltip).toBeTruthy();
-    expect(tooltip).toMatch(/^\d+ - \d+ - 2026$/);
+    expect(tooltip).toMatch(/^Expires: \d+ - \d+ - 2026$/);
   });
 
   it('should return null expiration date tooltip when mixedOn empty', () => {
