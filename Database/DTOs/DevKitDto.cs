@@ -1,4 +1,4 @@
-﻿namespace Database.DTOs;
+namespace Database.DTOs;
 
 public class DevKitDto
 {
@@ -14,7 +14,7 @@ public class DevKitDto
 
     public DateOnly PurchasedOn { get; set; }
 
-    public DateOnly MixedOn { get; set; }
+    public DateOnly? MixedOn { get; set; }
 
     public int ValidForWeeks { get; set; }
 

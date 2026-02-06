@@ -40,7 +40,7 @@ public class EntityConvertor()
         Type = dto.Type.ToEnum<EDevKitType>(),
         PurchasedBy = dto.PurchasedBy.ToEnum<EUsernameType>(),
         PurchasedOn = new DateTime(dto.PurchasedOn, TimeOnly.MinValue, DateTimeKind.Utc),
-        MixedOn = new DateTime(dto.MixedOn, TimeOnly.MinValue, DateTimeKind.Utc),
+        MixedOn = dto.MixedOn.HasValue ? new DateTime(dto.MixedOn.Value, TimeOnly.MinValue, DateTimeKind.Utc) : null,
         ValidForWeeks = dto.ValidForWeeks,
         ValidForFilms = dto.ValidForFilms,
         FilmsDeveloped = dto.FilmsDeveloped,

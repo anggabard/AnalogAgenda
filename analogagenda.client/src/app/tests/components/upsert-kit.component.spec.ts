@@ -130,6 +130,45 @@ describe('UpsertKitComponent', () => {
   });
 
 
+  it('should default mixedOn to empty for new kits', () => {
+    mockActivatedRoute.snapshot.paramMap.get.and.returnValue(null);
+    fixture.detectChanges();
+    expect(component.form.get('mixedOn')?.value).toBe('');
+  });
+
+  it('should send null mixedOn when saving unmixed substance', () => {
+    mockActivatedRoute.snapshot.paramMap.get.and.returnValue(null);
+    fixture = TestBed.createComponent(UpsertKitComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+    component.form.patchValue({
+      name: 'Unmixed Kit',
+      url: 'http://example.com',
+      type: DevKitType.C41,
+      purchasedBy: 'testuser',
+      purchasedOn: '2023-01-01',
+      mixedOn: ''
+    });
+    mockDevKitService.add.and.returnValue(of({}));
+    component.submit();
+    const payload = mockDevKitService.add.calls.mostRecent().args[0] as DevKitDto;
+    expect(payload.mixedOn).toBeNull();
+  });
+
+  it('should return expiration date tooltip in day - month - year when mixedOn and validForWeeks set', () => {
+    fixture.detectChanges();
+    component.form.patchValue({ mixedOn: '2026-01-01', validForWeeks: 4 });
+    const tooltip = component.expirationDateTooltip;
+    expect(tooltip).toBeTruthy();
+    expect(tooltip).toMatch(/^\d+ - \d+ - 2026$/);
+  });
+
+  it('should return null expiration date tooltip when mixedOn empty', () => {
+    fixture.detectChanges();
+    component.form.patchValue({ mixedOn: '', validForWeeks: 6 });
+    expect(component.expirationDateTooltip).toBeNull();
+  });
+
   it('should not submit when form is invalid', () => {
     // Arrange
     component.form.patchValue({ name: '', url: '' }); // Invalid form

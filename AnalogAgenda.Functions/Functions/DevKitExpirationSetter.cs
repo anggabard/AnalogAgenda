@@ -1,4 +1,4 @@
-﻿using AnalogAgenda.EmailSender;
+using AnalogAgenda.EmailSender;
 using AnalogAgenda.Functions.Constants;
 using AnalogAgenda.Functions.Helpers;
 using Database.Entities;
@@ -21,6 +21,7 @@ public class DevKitExpirationSetter(ILoggerFactory loggerFactory, IDatabaseServi
         var entities = await databaseService.GetAllAsync<DevKitEntity>(kit => !kit.Expired);
         foreach (var entity in entities)
         {
+            if (!entity.MixedOn.HasValue) continue;
             var kitExpirationDate = entity.GetExpirationDate();
             if (kitExpirationDate > now && entity.FilmsDeveloped < entity.ValidForFilms) continue;
 

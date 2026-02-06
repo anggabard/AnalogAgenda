@@ -37,5 +37,6 @@
         <span class="title">{{kit.name}}</span>
         <span class="info type">{{kit.type}}</span>
         <span class="info ramaining">{{kit.filmsDeveloped}}/{{kit.validForFilms}}</span>
+        <span class="info mixed" *ngIf="kit.mixedOn && kit.mixedOn.trim() && !kit.expired">Mixed</span>
     </div>
 </ng-template>

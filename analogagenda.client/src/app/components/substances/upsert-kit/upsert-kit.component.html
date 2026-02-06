@@ -46,15 +46,15 @@
             </div>
 
             <div class="valid-for-container">
-                <label>Valid for</label>
-                <input type="number" formControlName="validForWeeks" class="input" />
-                <span>Weeks</span>
+                <label class="row-developed">Developed</label>
+                <input type="number" formControlName="filmsDeveloped" class="input row-developed" />
+                <span class="row-developed">Films</span>
+                <label class="row-valid">Valid for</label>
+                <input type="number" formControlName="validForWeeks" class="input row-valid" [title]="expirationDateTooltip ?? ''" />
+                <span class="row-valid" [title]="expirationDateTooltip ?? ''">Weeks</span>
                 <span id="validForSeparator">or</span>
-                <input type="number" formControlName="validForFilms" class="input" />
-                <span>Films</span>
-                <label>Developed</label>
-                <input type="number" formControlName="filmsDeveloped" class="input" />
-                <span>Films</span>
+                <input type="number" formControlName="validForFilms" class="input row-valid-films" />
+                <span class="row-valid-films">Films</span>
             </div>
 
             <!-- Thumbnail Section -->

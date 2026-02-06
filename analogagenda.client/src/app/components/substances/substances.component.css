@@ -99,6 +99,18 @@
   bottom: 0.625em;
 }
 
+.card .info.mixed {
+  right: 0.625em;
+  top: 0.625em;
+  font-size: 0.8em;
+  background-color: rgba(0, 172, 124, 0.9);
+  color: white;
+  padding: 0.3em 0.6em;
+  border-radius: 12px;
+  font-weight: 400;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
 .card:hover::after {
   transform: translateY(-60px);
   visibility: visible;
@@ -106,6 +118,52 @@
 
 .card:active {
   transform: scale(0.98);
+}
+
+/* --- Phone resolution: keep cards usable and touch-friendly --- */
+@media (max-width: 480px) {
+  .devkits-container {
+    margin: 5px 2% 20px 2%;
+    gap: 32px;
+  }
+
+  .devkit-title {
+    font-size: 1.1rem;
+    margin: 0 0 6px 2px;
+  }
+
+  .card {
+    width: 10em;
+    height: 10em;
+    padding-bottom: 3em;
+  }
+
+  .card .title {
+    font-size: 0.8em;
+    margin: 0 8px;
+    bottom: 1.6em;
+  }
+
+  .card .info {
+    font-size: 0.8em;
+  }
+
+  .card .info.mixed,
+  .card .info.type,
+  .card .info.ramaining {
+    padding: 0.25em 0.45em;
+    font-size: 0.7em;
+  }
+
+  .card::after {
+    height: 2.25em;
+    font-size: 0.9em;
+  }
+
+  .add-kit {
+    padding: 0.6rem 1rem;
+    font-size: 0.95rem;
+  }
 }
 
 .image {
