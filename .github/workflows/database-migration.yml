@@ -14,7 +14,7 @@ on:
   workflow_dispatch:
 
 env:
-  DOTNET_VERSION: '9.0.x'
+  DOTNET_VERSION: '10.0.x'
   RESOURCE_GROUP: 'analog_agenda_rg'
   SQL_SERVER: 'sql-analogagenda-prod'
   SQL_DATABASE: 'AnalogAgendaDb'
@@ -41,7 +41,7 @@ jobs:
         dotnet-version: ${{ env.DOTNET_VERSION }}
 
     - name: Install EF Core tools
-      run: dotnet tool install --global dotnet-ef --version 9.0.0
+      run: dotnet tool install --global dotnet-ef --version 10.0.0
 
     - name: Azure Login
       uses: azure/login@v2
@@ -108,7 +108,7 @@ jobs:
         dotnet-version: ${{ env.DOTNET_VERSION }}
 
     - name: Install EF Core tools
-      run: dotnet tool install --global dotnet-ef --version 9.0.0
+      run: dotnet tool install --global dotnet-ef --version 10.0.0
 
     - name: Azure Login
       uses: azure/login@v2

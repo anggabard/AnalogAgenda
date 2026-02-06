@@ -1,5 +1,5 @@
 # Build stage - use SDK image
-FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 
 # Set working directory
 WORKDIR /src
@@ -21,7 +21,7 @@ WORKDIR "/src/AnalogAgenda.Functions"
 RUN dotnet publish "AnalogAgenda.Functions.csproj" -c Release -o /app/publish
 
 # Runtime stage - use Azure Functions base image
-FROM mcr.microsoft.com/azure-functions/dotnet-isolated:4-dotnet-isolated9.0
+FROM mcr.microsoft.com/azure-functions/dotnet-isolated:4-dotnet-isolated10.0
 
 # Set working directory
 WORKDIR /home/site/wwwroot
