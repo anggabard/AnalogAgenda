@@ -8,6 +8,7 @@ using Database.Services.Interfaces;
 using FluentValidation;
 using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Azure.Storage.Blobs;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
 
@@ -36,8 +37,12 @@ try
     
     if (!string.IsNullOrEmpty(connectionString))
     {
+        // Use an API version Azurite supports (default SDK version can be 2026-xx which Azurite rejects)
+        var blobOptions = new BlobClientOptions(BlobClientOptions.ServiceVersion.V2020_10_02);
+        var container = new BlobContainerClient(connectionString, ContainerName.dataprotectionkeys.ToString(), blobOptions);
+        var blobClient = container.GetBlobClient("keys.xml");
         builder.Services.AddDataProtection()
-            .PersistKeysToAzureBlobStorage(connectionString, ContainerName.dataprotectionkeys.ToString(), "keys.xml")
+            .PersistKeysToAzureBlobStorage(blobClient)
             .SetApplicationName("AnalogAgenda");
     }
     else
