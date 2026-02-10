@@ -1,4 +1,4 @@
-﻿using AnalogAgenda.Functions.Constants;
+using AnalogAgenda.Functions.Constants;
 using Azure.Containers.ContainerRegistry;
 using Configuration.Sections;
 using Database.Services.Interfaces;
@@ -20,6 +20,12 @@ public class DeleteOldDockerImages(ILoggerFactory loggerFactory,
     public async Task Run([TimerTrigger(TimeTriggers.Every7DaysAt7AM)] TimerInfo myTimer)
     {
         _logger.LogInformation($"GarbageCollector - DeleteOldDockerImages function executed at: {DateTime.UtcNow}");
+
+        if (_containerRegistryConfig.RepositoryNames is null || _containerRegistryConfig.RepositoryNames.Count == 0)
+        {
+            _logger.LogInformation("Container registry not configured (RepositoryNames empty), skipping.");
+            return;
+        }
 
         var cleanupTasks = _containerRegistryConfig.RepositoryNames.Select(DeleteOldDockerImagesForRepository);
 

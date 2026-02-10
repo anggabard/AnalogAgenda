@@ -7,6 +7,7 @@
     "start:aspire": "node start.js",
     "start:direct": "ng serve --host=0.0.0.0 --port 4200",
     "build": "ng build --configuration production",
+    "build:docker": "ng build --configuration docker",
     "watch": "ng build --watch --configuration development",
     "test": "ng test"
   },

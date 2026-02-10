@@ -174,9 +174,10 @@ else
     app.Logger.LogInformation("Data Protection configured to use Azure Blob Storage for shared keys across replicas");
 }
 
-// Apply pending migrations automatically on startup (Development only)
-// In production, migrations should be run via a separate job/process before deployment
-if (appIsDev)
+// Apply pending migrations automatically on startup (Development or Docker Compose deployment)
+// In production (Azure), migrations are run via a separate job/process before deployment
+var runMigrations = appIsDev || app.Environment.EnvironmentName.Equals("Docker", StringComparison.OrdinalIgnoreCase);
+if (runMigrations)
 {
     using var scope = app.Services.CreateScope();
     var dbContext = scope.ServiceProvider.GetRequiredService<AnalogAgendaDbContext>();
