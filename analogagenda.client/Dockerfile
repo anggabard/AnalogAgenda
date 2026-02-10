@@ -13,8 +13,8 @@ RUN npm ci
 # Copy source code
 COPY . .
 
-# Build the Angular application
-RUN npm run build
+# Build the Angular application (docker config: apiUrl '' so /api is same-origin via nginx proxy)
+RUN npm run build:docker
 
 # Production stage with nginx
 FROM nginx:alpine AS production
