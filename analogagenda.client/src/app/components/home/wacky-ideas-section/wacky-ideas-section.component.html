@@ -1,0 +1,23 @@
+<div class="wacky-ideas-section">
+    <div class="box">
+        <div class="section-header">
+            <h1 class="form-title">Wacky Ideas</h1>
+            <button class="btn btn-primary" (click)="onAddIdea()">Add Idea</button>
+        </div>
+        <div class="ideas-list">
+            <div
+                *ngFor="let idea of ideas"
+                class="idea-row"
+                (click)="onEditIdea(idea)">
+                <span class="idea-row-title">{{ idea.title }}</span>
+                <svg class="idea-row-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                    <circle cx="12" cy="12" r="3"></circle>
+                </svg>
+            </div>
+            <div *ngIf="ideas.length === 0" class="no-ideas">
+                No ideas yet. Click "Add Idea" to create one.
+            </div>
+        </div>
+    </div>
+</div>

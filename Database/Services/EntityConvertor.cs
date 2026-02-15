@@ -159,5 +159,12 @@ public class EntityConvertor()
         TableView = dto.TableView,
         EntitiesPerPage = dto.EntitiesPerPage
     };
+
+    public IdeaEntity ToEntity(IdeaDto dto) => new()
+    {
+        Id = string.IsNullOrEmpty(dto.Id) ? string.Empty : dto.Id,
+        Title = dto.Title,
+        Description = dto.Description ?? string.Empty
+    };
 }
 

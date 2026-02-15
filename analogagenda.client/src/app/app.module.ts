@@ -7,6 +7,8 @@ import { AppComponent, LoginComponent, NavbarComponent, HomeComponent, NotesComp
 import { FilmSearchComponent } from './components/films/film-search/film-search.component';
 import { CardListComponent } from './components/common/card-list/card-list.component';
 import { TimeInputComponent } from './components/common/time-input/time-input.component';
+import { WackyIdeasSectionComponent } from './components/home/wacky-ideas-section/wacky-ideas-section.component';
+import { UpsertIdeaComponent } from './components/home/upsert-idea/upsert-idea.component';
 import { MainLayoutComponent, AuthLayoutComponent} from './layouts';
 
 @NgModule({
@@ -14,6 +16,8 @@ import { MainLayoutComponent, AuthLayoutComponent} from './layouts';
     LoginComponent,
     NavbarComponent,
     HomeComponent,
+    WackyIdeasSectionComponent,
+    UpsertIdeaComponent,
     AppComponent,
     NotesComponent,
     SubstancesComponent,

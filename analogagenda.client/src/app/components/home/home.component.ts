@@ -1,10 +1,11 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, ViewChild } from '@angular/core';
 import { Router } from '@angular/router';
 import { forkJoin, of } from 'rxjs';
 import { catchError, map, switchMap } from 'rxjs/operators';
-import { FilmDto, UserSettingsDto, ExposureDateDto } from '../../DTOs';
+import { FilmDto, UserSettingsDto, ExposureDateDto, IdeaDto } from '../../DTOs';
 import { FilmService, UserSettingsService } from '../../services';
 import { UsernameType } from '../../enums';
+import { WackyIdeasSectionComponent } from './wacky-ideas-section/wacky-ideas-section.component';
 
 @Component({
     selector: 'app-home',
@@ -17,6 +18,8 @@ export class HomeComponent implements OnInit {
     private userSettingsService = inject(UserSettingsService);
     private router = inject(Router);
 
+    @ViewChild('wackyIdeasSection') wackyIdeasSection?: WackyIdeasSectionComponent;
+
     userSettings: UserSettingsDto | null = null;
     currentFilm: FilmDto | null = null;
     userStats: Array<{ user: string; count: number }> = [];
@@ -25,6 +28,11 @@ export class HomeComponent implements OnInit {
     isChangeCurrentFilmModalOpen = false;
     availableFilms: FilmDto[] = [];
     selectedFilmId: string | null = null;
+
+    // Upsert Idea modal state
+    isUpsertIdeaModalOpen = false;
+    selectedIdea: IdeaDto | null = null;
+    private upsertIdeaMouseDownOnOverlay = false;
 
     ngOnInit(): void {
         this.loadUserSettings();
@@ -214,5 +222,49 @@ export class HomeComponent implements OnInit {
         if (this.currentFilm) {
             this.router.navigate(['/films', this.currentFilm.id]);
         }
+    }
+
+    openAddIdeaModal(): void {
+        this.selectedIdea = null;
+        this.isUpsertIdeaModalOpen = true;
+    }
+
+    openEditIdeaModal(idea: IdeaDto): void {
+        this.selectedIdea = idea;
+        this.isUpsertIdeaModalOpen = true;
+    }
+
+    closeUpsertIdeaModal(): void {
+        this.isUpsertIdeaModalOpen = false;
+        this.selectedIdea = null;
+    }
+
+    onUpsertIdeaOverlayMouseDown(event: MouseEvent): void {
+        const target = event.target as HTMLElement;
+        if (target?.classList?.contains('modal-overlay')) {
+            this.upsertIdeaMouseDownOnOverlay = true;
+        }
+    }
+
+    onUpsertIdeaOverlayMouseUp(event: MouseEvent): void {
+        const target = event.target as HTMLElement;
+        if (this.upsertIdeaMouseDownOnOverlay && target?.classList?.contains('modal-overlay')) {
+            this.closeUpsertIdeaModal();
+        }
+        this.upsertIdeaMouseDownOnOverlay = false;
+    }
+
+    onUpsertIdeaModalContentMouseDown(): void {
+        this.upsertIdeaMouseDownOnOverlay = false;
+    }
+
+    onIdeaSaved(): void {
+        this.closeUpsertIdeaModal();
+        this.wackyIdeasSection?.loadIdeas();
+    }
+
+    onIdeaDeleted(): void {
+        this.closeUpsertIdeaModal();
+        this.wackyIdeasSection?.loadIdeas();
     }
 }
