@@ -101,7 +101,7 @@ describe('TableListComponent', () => {
 
     const loadMoreButton = fixture.nativeElement.querySelector('.load-more-btn');
     expect(loadMoreButton).toBeTruthy();
-    expect(loadMoreButton.textContent?.trim()).toBe('›');
+    expect(loadMoreButton.textContent?.trim()).toBe('Load more');
   });
 
   it('should hide load more button when hasMore is false', () => {
