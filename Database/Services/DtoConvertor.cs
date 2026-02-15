@@ -46,7 +46,8 @@ public class DtoConvertor(Configuration.Sections.System systemCfg, Storage stora
         return new FilmDto()
         {
             Id = entity.Id,
-            Name = entity.Name,
+            Name = entity.Name ?? string.Empty,
+            Brand = entity.Brand,
             Iso = entity.Iso,
             Type = entity.Type.ToDisplayString(),
             NumberOfExposures = entity.NumberOfExposures,

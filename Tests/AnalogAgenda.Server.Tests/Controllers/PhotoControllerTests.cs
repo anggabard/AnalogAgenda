@@ -75,7 +75,7 @@ public class PhotoControllerTests : IDisposable
         var photoId = "test-photo-id";
         var imageId = Guid.NewGuid();
         var filmId = "test-film-id";
-        var film = new FilmEntity { Id = filmId, Name = "Test Film", Iso = "400" };
+        var film = new FilmEntity { Id = filmId, Brand = "Test Film", Iso = "400" };
         await _databaseService.AddAsync(film);
 
         var photo = new PhotoEntity { Id = photoId, FilmId = filmId, Index = 1, ImageId = imageId };
@@ -99,7 +99,7 @@ public class PhotoControllerTests : IDisposable
     {
         // Arrange
         var filmId = "test-film-id";
-        var film = new FilmEntity { Id = filmId, Name = "Test Film", Iso = "400" };
+        var film = new FilmEntity { Id = filmId, Brand = "Test Film", Iso = "400" };
         await _databaseService.AddAsync(film);
 
         var photo1 = new PhotoEntity { FilmId = filmId, Index = 2, Id = "photo2", ImageId = Guid.NewGuid() };
@@ -129,7 +129,7 @@ public class PhotoControllerTests : IDisposable
     {
         // Arrange
         var filmId = "test-film-id";
-        var film = new FilmEntity { Id = filmId, Name = "Test Film", Iso = "400" };
+        var film = new FilmEntity { Id = filmId, Brand = "Test Film", Iso = "400" };
         await _databaseService.AddAsync(film);
 
         // Act
@@ -172,7 +172,7 @@ public class PhotoControllerTests : IDisposable
     {
         // Arrange
         var filmId = "test-film-id";
-        var film = new FilmEntity { Id = filmId, Name = "Test Film", Iso = "400" };
+        var film = new FilmEntity { Id = filmId, Brand = "Test Film", Iso = "400" };
         await _databaseService.AddAsync(film);
 
         // Act

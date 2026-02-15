@@ -17,7 +17,7 @@ describe('FilmPhotosComponent', () => {
 
   const mockFilm: FilmDto = {
     id: 'test-film-id',
-    name: 'Test Film',
+    brand: 'Test Film',
     iso: '400',
     type: FilmType.ColorNegative,
     numberOfExposures: 36,

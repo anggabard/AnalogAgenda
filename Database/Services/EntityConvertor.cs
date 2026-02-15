@@ -18,7 +18,8 @@ public class EntityConvertor()
     public FilmEntity ToEntity(FilmDto dto) => new()
     {
         Id = dto.Id,
-        Name = dto.Name,
+        Name = dto.Name ?? string.Empty,
+        Brand = dto.Brand,
         Iso = dto.Iso,
         Type = dto.Type.ToEnum<EFilmType>(),
         NumberOfExposures = dto.NumberOfExposures,

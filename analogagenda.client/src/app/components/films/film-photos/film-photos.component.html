@@ -1,7 +1,7 @@
 <div class="container">
   <div class="header">
     <div class="film-info" *ngIf="film">
-      <h1>{{ film.name }} - {{ film.formattedExposureDate || 'Photos' }}</h1>
+      <h1>{{ (film.name?.trim() ? film.name + ' - ' + film.brand : film.brand) }} - {{ film.formattedExposureDate || 'Photos' }}</h1>
       <p class="film-details">{{ film.type }} • ISO {{ film.iso }}</p>
     </div>
   </div>

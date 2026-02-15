@@ -418,8 +418,17 @@ public class FilmController(
         // Apply each non-null/non-empty filter with AND logic
         if (!string.IsNullOrEmpty(searchDto.Name))
         {
+            var searchTerm = searchDto.Name;
             filteredFilms = filteredFilms.Where(f =>
-                f.Name.Contains(searchDto.Name, StringComparison.OrdinalIgnoreCase)
+                f.Name != null && f.Name.Contains(searchTerm, StringComparison.OrdinalIgnoreCase)
+            );
+        }
+
+        if (!string.IsNullOrEmpty(searchDto.Brand))
+        {
+            var searchTerm = searchDto.Brand;
+            filteredFilms = filteredFilms.Where(f =>
+                f.Brand.Contains(searchTerm, StringComparison.OrdinalIgnoreCase)
             );
         }
 

@@ -7,6 +7,10 @@ public class FilmDtoValidator : AbstractValidator<FilmDto>
 {
     public FilmDtoValidator()
     {
+        RuleFor(x => x.Brand)
+            .NotEmpty()
+            .WithMessage("Brand is required");
+
         RuleFor(x => x.Iso)
             .NotEmpty()
             .WithMessage("ISO is required")

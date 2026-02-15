@@ -16,7 +16,12 @@
 
             <div>
                 <label for="name">Name</label>
-                <input type="text" formControlName="name" placeholder="Name" class="input" />
+                <input type="text" formControlName="name" placeholder="Optional custom name" class="input" />
+            </div>
+
+            <div>
+                <label for="brand">Brand</label>
+                <input type="text" formControlName="brand" placeholder="Brand" class="input" />
             </div>
 
             <div>
@@ -107,7 +112,7 @@
                     class="add-thumbnail-btn" 
                     (click)="onAddNewThumbnail()"
                     [disabled]="!canAddThumbnail"
-                    [title]="!canAddThumbnail ? 'Please enter a film name first' : 'Add new thumbnail'"
+                    [title]="!canAddThumbnail ? 'Please enter a brand first' : 'Add new thumbnail'"
                 >
                     + Add New Thumbnail +
                 </button>

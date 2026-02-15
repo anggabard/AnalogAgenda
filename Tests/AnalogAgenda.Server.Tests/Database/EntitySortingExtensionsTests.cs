@@ -32,9 +32,9 @@ public class EntitySortingExtensionsTests
         // Arrange
         var entities = new List<FilmEntity>
         {
-            new() { Id = "1", Name = "Film 1", Iso = "400", PurchasedBy = EUsernameType.Tudor, PurchasedOn = DateTime.Parse("2023-01-15") },
-            new() { Id = "2", Name = "Film 2", Iso = "400", PurchasedBy = EUsernameType.Angel, PurchasedOn = DateTime.Parse("2023-01-20") },
-            new() { Id = "3", Name = "Film 3", Iso = "400", PurchasedBy = EUsernameType.Angel, PurchasedOn = DateTime.Parse("2023-01-10") },
+            new() { Id = "1", Brand = "Film 1", Iso = "400", PurchasedBy = EUsernameType.Tudor, PurchasedOn = DateTime.Parse("2023-01-15") },
+            new() { Id = "2", Brand = "Film 2", Iso = "400", PurchasedBy = EUsernameType.Angel, PurchasedOn = DateTime.Parse("2023-01-20") },
+            new() { Id = "3", Brand = "Film 3", Iso = "400", PurchasedBy = EUsernameType.Angel, PurchasedOn = DateTime.Parse("2023-01-10") },
         };
 
         // Act
@@ -55,9 +55,9 @@ public class EntitySortingExtensionsTests
         // Arrange
         var entities = new List<FilmEntity>
         {
-            new() { Id = "2", Name = "Film A", Iso = "400", PurchasedOn = DateTime.Parse("2023-01-10") },
-            new() { Id = "1", Name = "Film B", Iso = "400", PurchasedOn = DateTime.Parse("2023-01-20") },
-            new() { Id = "3", Name = "Film C", Iso = "400", PurchasedOn = DateTime.Parse("2023-01-15") }
+            new() { Id = "2", Brand = "Film A", Iso = "400", PurchasedOn = DateTime.Parse("2023-01-10") },
+            new() { Id = "1", Brand = "Film B", Iso = "400", PurchasedOn = DateTime.Parse("2023-01-20") },
+            new() { Id = "3", Brand = "Film C", Iso = "400", PurchasedOn = DateTime.Parse("2023-01-15") }
         };
 
         // Act
@@ -108,7 +108,7 @@ public class EntitySortingExtensionsTests
         // Arrange
         var entities = new List<FilmEntity>
         {
-            new() { Id = "single", Name = "Single Film", Iso = "400", PurchasedBy = EUsernameType.Angel, PurchasedOn = DateTime.Parse("2023-01-01") }
+            new() { Id = "single", Brand = "Single Film", Iso = "400", PurchasedBy = EUsernameType.Angel, PurchasedOn = DateTime.Parse("2023-01-01") }
         };
 
         // Act
@@ -116,7 +116,7 @@ public class EntitySortingExtensionsTests
 
         // Assert
         Assert.Single(sorted);
-        Assert.Equal("Single Film", sorted[0].Name);
+        Assert.Equal("Single Film", sorted[0].Brand);
     }
 }
 

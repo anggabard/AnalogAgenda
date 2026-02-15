@@ -96,7 +96,8 @@ public class AnalogAgendaDbContext(DbContextOptions<AnalogAgendaDbContext> optio
         {
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Id).HasMaxLength(50);
-            entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
+            entity.Property(e => e.Name).HasMaxLength(200);
+            entity.Property(e => e.Brand).IsRequired().HasMaxLength(200);
             entity.Property(e => e.Iso).IsRequired().HasMaxLength(50);
             entity.Property(e => e.Description).HasMaxLength(1000);
             entity.Property(e => e.DevelopedInSessionId).HasMaxLength(50);

@@ -178,7 +178,8 @@ export class FilmPhotosComponent implements OnInit {
         const url = window.URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
-        link.download = `${photo.index.toString().padStart(3, '0')}-${this.sanitizeFileName(this.film?.name || 'photo')}.jpg`;
+        const displayName = (this.film?.name?.trim() || this.film?.brand) || 'photo';
+        link.download = `${photo.index.toString().padStart(3, '0')}-${this.sanitizeFileName(displayName)}.jpg`;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -198,17 +199,19 @@ export class FilmPhotosComponent implements OnInit {
         const url = window.URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
-        const filmName = this.film?.name 
-          ? this.sanitizeNameForFileName(this.film.name)
-          : 'photos';
-        const iso = this.film?.iso ? this.sanitizeFileName(this.film.iso) : '';
-        const formattedDate = this.film?.formattedExposureDate 
+        const hasName = this.film?.name?.trim();
+        const brand = this.film?.brand ? this.sanitizeNameForFileName(this.film.brand) : '';
+        const titlePart = hasName
+          ? `${this.sanitizeNameForFileName(this.film!.name!.trim())} - ${brand}`
+          : brand;
+        const isoPart = this.film?.iso ? ` - ISO ${this.sanitizeFileName(this.film.iso)}` : '';
+        const formattedDate = this.film?.formattedExposureDate
           ? this.sanitizeDateForFileName(this.film.formattedExposureDate)
           : '';
-        const isoPart = iso ? ` ${iso}` : '';
         const datePart = formattedDate ? ` - ${formattedDate}` : '';
         const sizeSuffix = small ? '-small' : '';
-        link.download = `${filmName}${isoPart}${datePart}${sizeSuffix}.zip`;
+        const baseName = [titlePart || 'photos', isoPart, datePart].filter(Boolean).join('');
+        link.download = `${baseName}${sizeSuffix}.zip`;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);

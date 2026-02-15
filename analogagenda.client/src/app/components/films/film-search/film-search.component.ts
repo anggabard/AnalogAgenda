@@ -17,6 +17,7 @@ export interface SearchField {
 
 export interface SearchParams {
   name?: string;
+  brand?: string;
   id?: string;
   iso?: string;
   type?: string;
@@ -62,6 +63,15 @@ export class FilmSearchComponent implements OnInit, OnDestroy {
     {
       key: 'name',
       label: 'Name',
+      type: 'text',
+      visible: true,
+      defaultVisible: true,
+      value: '',
+      availableInMyFilms: true
+    },
+    {
+      key: 'brand',
+      label: 'Brand',
       type: 'text',
       visible: true,
       defaultVisible: true,

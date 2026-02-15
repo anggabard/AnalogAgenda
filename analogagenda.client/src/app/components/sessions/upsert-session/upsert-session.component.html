@@ -106,9 +106,9 @@
                 title="Remove from session">
                 ✕
               </button>
-              <img [src]="film.imageUrl" [alt]="film.name" class="film-image" />
+              <img [src]="film.imageUrl" [alt]="film.name || film.brand" class="film-image" />
               <div class="film-info">
-                <span class="film-name">{{ film.name }}</span>
+                <span class="film-name">{{ film.name || film.brand }}</span>
                 <span class="film-details">{{ film.type }} - ISO {{ film.iso }}</span>
                 <span class="film-owner">{{ film.purchasedBy }}</span>
               </div>
@@ -166,9 +166,9 @@
             title="Remove from session">
             ✕
           </button>
-          <img [src]="film.imageUrl" [alt]="film.name" class="film-image" />
+          <img [src]="film.imageUrl" [alt]="film.name || film.brand" class="film-image" />
           <div class="film-info">
-            <span class="film-name">{{ film.name }}</span>
+            <span class="film-name">{{ film.name || film.brand }}</span>
             <span class="film-details">{{ film.type }} - ISO {{ film.iso }}</span>
             <span class="film-owner">{{ film.purchasedBy }}</span>
           </div>
@@ -335,9 +335,9 @@
              (click)="toggleFilmSelection(film.id)">
           <div class="item-content">
             <div class="item-info">
-              <img [src]="film.imageUrl" alt="{{film.name}}" class="item-image" />
+              <img [src]="film.imageUrl" [alt]="film.name || film.brand" class="item-image" />
               <div class="item-details">
-                <span class="item-name">{{film.name}}</span>
+                <span class="item-name">{{ film.name || film.brand }}</span>
                 <span class="item-type">{{film.type}} - ISO {{film.iso}}</span>
                 <span class="item-owner">{{film.purchasedBy}}</span>
               </div>
