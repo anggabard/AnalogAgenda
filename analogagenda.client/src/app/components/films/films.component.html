@@ -20,26 +20,32 @@
 
         <div class="films-section">
             <h2 class="films-title">Not Developed Films</h2>
-            <app-card-list 
-                [items]="myNotDevelopedFilms" 
+            <app-list
+                *ngIf="myFilmCardTemplate"
+                [items]="myNotDevelopedFilms"
                 [cardTemplate]="myFilmCardTemplate"
-                [hasMore]="hasMoreMyNotDeveloped" 
+                [rowTemplate]="myFilmRowTemplate"
+                [columnHeaders]="myFilmTableHeaders"
+                [hasMore]="hasMoreMyNotDeveloped"
                 [loading]="loadingMyNotDeveloped"
                 (loadMore)="loadMoreMyNotDevelopedFilms()"
                 (itemClick)="onFilmSelected($event.id)">
-            </app-card-list>
+            </app-list>
         </div>
 
         <div class="films-section">
             <h2 class="films-title">Developed Films</h2>
-            <app-card-list 
-                [items]="myDevelopedFilms" 
+            <app-list
+                *ngIf="myFilmCardTemplate"
+                [items]="myDevelopedFilms"
                 [cardTemplate]="myFilmCardTemplate"
-                [hasMore]="hasMoreMyDeveloped" 
+                [rowTemplate]="myFilmRowTemplate"
+                [columnHeaders]="myFilmTableHeaders"
+                [hasMore]="hasMoreMyDeveloped"
                 [loading]="loadingMyDeveloped"
                 (loadMore)="loadMoreMyDevelopedFilms()"
                 (itemClick)="onFilmSelected($event.id)">
-            </app-card-list>
+            </app-list>
         </div>
     </div>
 
@@ -53,26 +59,32 @@
 
         <div class="films-section">
             <h2 class="films-title">Not Developed Films</h2>
-            <app-card-list 
-                [items]="allNotDevelopedFilms" 
+            <app-list
+                *ngIf="allFilmCardTemplate"
+                [items]="allNotDevelopedFilms"
                 [cardTemplate]="allFilmCardTemplate"
-                [hasMore]="hasMoreAllNotDeveloped" 
+                [rowTemplate]="allFilmRowTemplate"
+                [columnHeaders]="allFilmTableHeaders"
+                [hasMore]="hasMoreAllNotDeveloped"
                 [loading]="loadingAllNotDeveloped"
                 (loadMore)="loadMoreAllNotDevelopedFilms()"
                 (itemClick)="onFilmSelected($event.id)">
-            </app-card-list>
+            </app-list>
         </div>
 
         <div class="films-section">
             <h2 class="films-title">Developed Films</h2>
-            <app-card-list 
-                [items]="allDevelopedFilms" 
+            <app-list
+                *ngIf="allFilmCardTemplate"
+                [items]="allDevelopedFilms"
                 [cardTemplate]="allFilmCardTemplate"
-                [hasMore]="hasMoreAllDeveloped" 
+                [rowTemplate]="allFilmRowTemplate"
+                [columnHeaders]="allFilmTableHeaders"
+                [hasMore]="hasMoreAllDeveloped"
                 [loading]="loadingAllDeveloped"
                 (loadMore)="loadMoreAllDevelopedFilms()"
                 (itemClick)="onFilmSelected($event.id)">
-            </app-card-list>
+            </app-list>
         </div>
     </div>
 </div>
@@ -80,7 +92,7 @@
 <!-- Templates for different card types -->
 <ng-template #myFilmCardTemplate let-film>
     <div class="card">
-        <img class="image" [src]="film.imageUrl" />
+        <div class="image"><img *ngIf="film.imageUrl" [src]="film.imageUrl" [alt]="film.name || film.brand" /></div>
         <span class="title">{{ film.name || film.brand }}</span>
         <span class="info type">{{film.type}}</span>
         <span class="info iso">ISO {{film.iso}}</span>
@@ -90,11 +102,28 @@
 
 <ng-template #allFilmCardTemplate let-film>
     <div class="card">
-        <img class="image" [src]="film.imageUrl" />
+        <div class="image"><img *ngIf="film.imageUrl" [src]="film.imageUrl" [alt]="film.name || film.brand" /></div>
         <span class="title">{{ film.name || film.brand }}</span>
         <span class="info type">{{film.type}}</span>
         <span class="info iso">ISO {{film.iso}}</span>
         <span class="info owner">{{film.purchasedBy}}</span>
         <span class="info photos" *ngIf="film.photoCount && film.photoCount > 0">{{film.photoCount}}</span>
     </div>
+</ng-template>
+
+<ng-template #myFilmRowTemplate let-film>
+    <td>{{ film.name || film.brand }}</td>
+    <td>{{ film.type }}</td>
+    <td>{{ film.iso }}</td>
+    <td>{{ film.photoCount ?? 0 }}</td>
+    <td class="film-cell-image"><app-image-preview [imageUrl]="film.imageUrl" [alt]="film.name || film.brand" popoverPosition="left"></app-image-preview></td>
+</ng-template>
+
+<ng-template #allFilmRowTemplate let-film>
+    <td>{{ film.name || film.brand }}</td>
+    <td>{{ film.type }}</td>
+    <td>{{ film.iso }}</td>
+    <td>{{ film.purchasedBy }}</td>
+    <td>{{ film.photoCount ?? 0 }}</td>
+    <td class="film-cell-image"><app-image-preview [imageUrl]="film.imageUrl" [alt]="film.name || film.brand" popoverPosition="left"></app-image-preview></td>
 </ng-template>

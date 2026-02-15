@@ -3,9 +3,11 @@ import { Router } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { NO_ERRORS_SCHEMA } from '@angular/core';
 import { SessionsComponent } from '../../components/sessions/sessions.component';
-import { SessionService, AccountService } from '../../services';
+import { ImagePreviewComponent } from '../../components/common/image-preview/image-preview.component';
+import { SessionService, AccountService, UserSettingsService } from '../../services';
 import { SessionDto, IdentityDto, PagedResponseDto } from '../../DTOs';
 import { TestConfig } from '../test.config';
+import { UserSettingsDto } from '../../DTOs';
 
 describe('SessionsComponent', () => {
   let component: SessionsComponent;
@@ -47,17 +49,25 @@ describe('SessionsComponent', () => {
   beforeEach(async () => {
     const sessionServiceSpy = jasmine.createSpyObj('SessionService', ['getPaged']);
     const accountServiceSpy = jasmine.createSpyObj('AccountService', ['whoAmI']);
+    const userSettingsServiceSpy = jasmine.createSpyObj('UserSettingsService', ['getUserSettings']);
     const routerSpy = TestConfig.createRouterSpy();
 
+    userSettingsServiceSpy.getUserSettings.and.returnValue(of({
+      userId: 'user1',
+      isSubscribed: false,
+      tableView: false,
+      entitiesPerPage: 5
+    } as UserSettingsDto));
     accountServiceSpy.whoAmI.and.returnValue(of(mockIdentity));
     sessionServiceSpy.getPaged.and.returnValue(of(mockPagedResponse));
 
     await TestBed.configureTestingModule({
-      declarations: [SessionsComponent],
+      declarations: [SessionsComponent, ImagePreviewComponent],
       schemas: [NO_ERRORS_SCHEMA],
       providers: [
         { provide: SessionService, useValue: sessionServiceSpy },
         { provide: AccountService, useValue: accountServiceSpy },
+        { provide: UserSettingsService, useValue: userSettingsServiceSpy },
         { provide: Router, useValue: routerSpy }
       ]
     }).compileComponents();

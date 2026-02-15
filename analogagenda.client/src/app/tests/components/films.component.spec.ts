@@ -3,9 +3,13 @@ import { Router } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { FilmsComponent } from '../../components/films/films.component';
 import { CardListComponent } from '../../components/common/card-list/card-list.component';
+import { ListComponent } from '../../components/common/list/list.component';
+import { TableListComponent } from '../../components/common/table-list/table-list.component';
+import { ImagePreviewComponent } from '../../components/common/image-preview/image-preview.component';
 import { FilmSearchComponent } from '../../components/films/film-search/film-search.component';
-import { FilmService, AccountService, LocalStorageService } from '../../services';
+import { FilmService, AccountService, LocalStorageService, UserSettingsService } from '../../services';
 import { FilmDto, IdentityDto, PagedResponseDto } from '../../DTOs';
+import { UserSettingsDto } from '../../DTOs';
 import { FilmType, UsernameType } from '../../enums';
 import { TestConfig } from '../test.config';
 
@@ -15,6 +19,7 @@ describe('FilmsComponent', () => {
   let mockFilmService: jasmine.SpyObj<FilmService>;
   let mockAccountService: jasmine.SpyObj<AccountService>;
   let mockLocalStorageService: jasmine.SpyObj<LocalStorageService>;
+  let mockUserSettingsService: jasmine.SpyObj<UserSettingsService>;
   let mockRouter: jasmine.SpyObj<Router>;
 
   const mockIdentity: IdentityDto = {
@@ -32,7 +37,14 @@ describe('FilmsComponent', () => {
     const accountServiceSpy = jasmine.createSpyObj('AccountService', ['whoAmI']);
     const localStorageServiceSpy = jasmine.createSpyObj('LocalStorageService', ['getState', 'saveState', 'clearState']);
     const routerSpy = TestConfig.createRouterSpy();
-    
+    const userSettingsServiceSpy = jasmine.createSpyObj('UserSettingsService', ['getUserSettings']);
+    userSettingsServiceSpy.getUserSettings.and.returnValue(of({
+      userId: 'user1',
+      isSubscribed: false,
+      tableView: false,
+      entitiesPerPage: 5
+    } as UserSettingsDto));
+
     // Mock LocalStorageService to return null/empty state (no persisted state in tests)
     localStorageServiceSpy.getState.and.returnValue(null);
 
@@ -48,12 +60,13 @@ describe('FilmsComponent', () => {
     accountServiceSpy.whoAmI.and.returnValue(of(mockIdentity));
 
     await TestConfig.configureTestBed({
-      declarations: [FilmsComponent, CardListComponent],
-      imports: [FilmSearchComponent], // Add FilmSearchComponent to imports
+      declarations: [FilmsComponent, CardListComponent, ListComponent, TableListComponent, ImagePreviewComponent],
+      imports: [FilmSearchComponent],
       providers: [
         { provide: FilmService, useValue: filmServiceSpy },
         { provide: AccountService, useValue: accountServiceSpy },
         { provide: LocalStorageService, useValue: localStorageServiceSpy },
+        { provide: UserSettingsService, useValue: userSettingsServiceSpy },
         { provide: Router, useValue: routerSpy }
       ]
     }).compileComponents();
@@ -63,6 +76,7 @@ describe('FilmsComponent', () => {
     mockFilmService = TestBed.inject(FilmService) as jasmine.SpyObj<FilmService>;
     mockAccountService = TestBed.inject(AccountService) as jasmine.SpyObj<AccountService>;
     mockLocalStorageService = TestBed.inject(LocalStorageService) as jasmine.SpyObj<LocalStorageService>;
+    mockUserSettingsService = TestBed.inject(UserSettingsService) as jasmine.SpyObj<UserSettingsService>;
     mockRouter = TestBed.inject(Router) as jasmine.SpyObj<Router>;
   });
 

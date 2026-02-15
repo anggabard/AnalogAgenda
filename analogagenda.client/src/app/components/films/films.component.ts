@@ -20,6 +20,11 @@ export class FilmsComponent implements OnInit, OnDestroy {
 
   @ViewChild('myFilmCardTemplate') myFilmCardTemplate!: TemplateRef<any>;
   @ViewChild('allFilmCardTemplate') allFilmCardTemplate!: TemplateRef<any>;
+  @ViewChild('myFilmRowTemplate') myFilmRowTemplate!: TemplateRef<any>;
+  @ViewChild('allFilmRowTemplate') allFilmRowTemplate!: TemplateRef<any>;
+
+  myFilmTableHeaders = ['Title', 'Type', 'ISO', 'Photos', 'Preview'];
+  allFilmTableHeaders = ['Title', 'Type', 'ISO', 'Owner', 'Photos', 'Preview'];
 
   allDevelopedFilms: FilmDto[] = [];
   allNotDevelopedFilms: FilmDto[] = [];
@@ -57,28 +62,40 @@ export class FilmsComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.restoreState();
     this.loadUserSettings();
-    this.accountService.whoAmI().subscribe({
-      next: (identity: IdentityDto) => {
-        this.currentUsername = identity.username;
-        // Load both "my" and "all" films
-        this.loadMyDevelopedFilms();
-        this.loadMyNotDevelopedFilms();
-        this.loadAllDevelopedFilms();
-        this.loadAllNotDevelopedFilms();
-      },
-      error: (err) => {
-        console.error(err);
-      }
-    });
   }
 
   loadUserSettings(): void {
     this.userSettingsService.getUserSettings().subscribe({
       next: (settings) => {
         this.currentFilmId = settings.currentFilmId || null;
+        this.pageSize = settings.entitiesPerPage ?? 5;
+        this.accountService.whoAmI().subscribe({
+          next: (identity: IdentityDto) => {
+            this.currentUsername = identity.username;
+            this.loadMyDevelopedFilms();
+            this.loadMyNotDevelopedFilms();
+            this.loadAllDevelopedFilms();
+            this.loadAllNotDevelopedFilms();
+          },
+          error: (err) => {
+            console.error(err);
+          }
+        });
       },
       error: (error) => {
         console.error('Error loading user settings:', error);
+        this.accountService.whoAmI().subscribe({
+          next: (identity: IdentityDto) => {
+            this.currentUsername = identity.username;
+            this.loadMyDevelopedFilms();
+            this.loadMyNotDevelopedFilms();
+            this.loadAllDevelopedFilms();
+            this.loadAllNotDevelopedFilms();
+          },
+          error: (err) => {
+            console.error(err);
+          }
+        });
       }
     });
   }

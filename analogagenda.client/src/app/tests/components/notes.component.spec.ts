@@ -3,7 +3,10 @@ import { Router } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { NotesComponent } from '../../components/notes/notes.component';
 import { CardListComponent } from '../../components/common/card-list/card-list.component';
-import { NotesService } from '../../services';
+import { ListComponent } from '../../components/common/list/list.component';
+import { TableListComponent } from '../../components/common/table-list/table-list.component';
+import { ImagePreviewComponent } from '../../components/common/image-preview/image-preview.component';
+import { NotesService, UserSettingsService } from '../../services';
 import { NoteDto, PagedResponseDto } from '../../DTOs';
 import { TestConfig } from '../test.config';
 
@@ -16,18 +19,24 @@ describe('NotesComponent', () => {
   beforeEach(async () => {
     const notesServiceSpy = TestConfig.createCrudServiceSpy('NotesService', ['getNotesPaged']);
     const routerSpy = TestConfig.createRouterSpy();
+    const userSettingsServiceSpy = jasmine.createSpyObj('UserSettingsService', ['getUserSettings']);
+    userSettingsServiceSpy.getUserSettings.and.returnValue(of({
+      userId: 'user1',
+      isSubscribed: false,
+      tableView: false,
+      entitiesPerPage: 5
+    }));
 
-    // Set up default return values using TestConfig helpers
     const emptyPagedResponse = TestConfig.createEmptyPagedResponse<NoteDto>();
-    
     TestConfig.setupPaginatedServiceMocks(notesServiceSpy, [], {
       getNotesPaged: emptyPagedResponse
     });
 
     await TestConfig.configureTestBed({
-      declarations: [NotesComponent, CardListComponent],
+      declarations: [NotesComponent, CardListComponent, ListComponent, TableListComponent, ImagePreviewComponent],
       providers: [
         { provide: NotesService, useValue: notesServiceSpy },
+        { provide: UserSettingsService, useValue: userSettingsServiceSpy },
         { provide: Router, useValue: routerSpy }
       ]
     }).compileComponents();
@@ -44,7 +53,7 @@ describe('NotesComponent', () => {
 
 
   it('should load notes on initialization', () => {
-    // Arrange
+    // Arrange - BasePaginatedListComponent loads user settings then loadItems()
     const mockNotes: NoteDto[] = [
       {
         id: '1',

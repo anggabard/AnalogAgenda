@@ -2,6 +2,7 @@ import { Component, ViewChild, TemplateRef, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { Observable } from 'rxjs';
 import { PagedResponseDto } from '../../../DTOs';
+import { UserSettingsService } from '../../../services';
 
 /**
  * Abstract base component for paginated list views with common patterns
@@ -13,7 +14,8 @@ import { PagedResponseDto } from '../../../DTOs';
 })
 export abstract class BasePaginatedListComponent<TDto> {
   protected router = inject(Router);
-  
+  protected userSettingsService = inject(UserSettingsService);
+
   // Common pagination state
   currentPage = 1;
   pageSize = 5;
@@ -24,7 +26,15 @@ export abstract class BasePaginatedListComponent<TDto> {
   @ViewChild('cardTemplate') cardTemplate!: TemplateRef<any>;
 
   ngOnInit(): void {
-    this.loadItems();
+    this.userSettingsService.getUserSettings().subscribe({
+      next: (settings) => {
+        this.pageSize = settings.entitiesPerPage ?? 5;
+        this.loadItems();
+      },
+      error: () => {
+        this.loadItems();
+      }
+    });
   }
 
   /**

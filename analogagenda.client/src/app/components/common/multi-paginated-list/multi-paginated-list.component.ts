@@ -34,14 +34,16 @@ import { PagedResponseDto } from '../../../DTOs';
         <div *ngFor="let subList of activeListConfig.subLists" class="sub-list">
           <h4 *ngIf="subList.title">{{subList.title}}</h4>
           
-          <app-card-list
+          <app-list
             [items]="subList.state.items"
             [cardTemplate]="cardTemplate"
+            [rowTemplate]="rowTemplate"
+            [columnHeaders]="columnHeaders"
             [hasMore]="subList.state.hasMore"
             [loading]="subList.state.loading"
             (loadMore)="loadMore(subList)"
             (itemClick)="onItemClick($event)">
-          </app-card-list>
+          </app-list>
         </div>
       </div>
     </div>
@@ -51,16 +53,25 @@ import { PagedResponseDto } from '../../../DTOs';
 export class MultiPaginatedListComponent<TDto> {
   @Input() listConfigs: ListConfig<TDto>[] = [];
   @Input() cardTemplate!: TemplateRef<any>;
+  @Input() rowTemplate?: TemplateRef<any>;
+  @Input() columnHeaders: string[] = [];
+  @Input() pageSize?: number;
   @Input() showNewButton: boolean = true;
   @Input() newItemLabel: string = 'New Item';
-  
+
   @Output() newItemClick = new EventEmitter<void>();
   @Output() itemClick = new EventEmitter<TDto>();
 
   activeTabIndex = 0;
 
   ngOnInit(): void {
-    // Load initial data for all lists
+    if (this.pageSize != null) {
+      this.listConfigs.forEach(config => {
+        config.subLists.forEach(subList => {
+          subList.state.pageSize = this.pageSize!;
+        });
+      });
+    }
     this.listConfigs.forEach(config => {
       config.subLists.forEach(subList => {
         this.loadMore(subList);

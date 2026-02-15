@@ -1,33 +1,44 @@
 .home-container {
     padding: 20px;
     margin: 0 auto;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
 }
 
-/* Grid layout: each section in its own cell, no overlap (sessions-inspired structure) */
+/* Grid layout: fluid columns so sections resize with viewport (no clipping when shrinking) */
 .sections-row {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(320px, 450px));
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
     align-items: start;
-    justify-content: start;
     row-gap: 20px;
     column-gap: 70px;
+    min-width: 0;
+}
+
+.sections-row > * {
+    min-width: 0;
 }
 
 /* Mobile responsive */
 @media (max-width: 768px) {
     .home-container {
         padding: 10px;
+        overflow-x: hidden;
     }
 
     .sections-row {
-        grid-template-columns: 1fr;
-        justify-items: center;
+        grid-template-columns: minmax(0, 1fr);
+        justify-items: stretch;
+        min-width: 0;
+        overflow-x: hidden;
     }
 
     .sections-row > * {
-        max-width: 450px;
-        width: 100%;
-        justify-self: center;
+        max-width: 100%;
+        min-width: 0;
+        justify-self: stretch;
+        overflow-x: hidden;
     }
 
     .statistics-section .box,
@@ -35,6 +46,18 @@
     .current-film-section .box {
         max-width: 100%;
         padding: 1rem;
+        min-width: 0;
+        overflow-x: hidden;
+    }
+
+    .stats-table {
+        table-layout: fixed;
+        width: 100%;
+    }
+
+    .stats-table td {
+        word-wrap: break-word;
+        overflow-wrap: break-word;
     }
 
     .form-row {
@@ -130,6 +153,7 @@
 
 .settings-section {
     margin-bottom: 0;
+    min-width: 0;
 }
 
 .settings-section .box {
@@ -142,12 +166,15 @@
     width: 100%;
     max-width: 450px;
     margin: 0 auto;
+    min-width: 0;
+    box-sizing: border-box;
 }
 
 .settings-section .form {
     display: flex;
     flex-direction: column;
     gap: 1.25rem;
+    min-width: 0;
 }
 
 .settings-section .form-title {
@@ -250,6 +277,8 @@
     width: 100%;
     max-width: 450px;
     margin: 0 auto;
+    min-width: 0;
+    box-sizing: border-box;
 }
 
 .current-film-section .form-title {
@@ -265,6 +294,8 @@
     flex-direction: column;
     gap: 1rem;
     align-items: center;
+    min-width: 0;
+    width: 100%;
 }
 
 .film-image-container {
@@ -301,10 +332,17 @@
 
 .film-actions {
     display: flex;
+    flex-wrap: wrap;
     gap: 10px;
     width: 100%;
     justify-content: center;
     margin-top: 1rem;
+    min-width: 0;
+}
+
+.film-actions .btn {
+    min-width: 0;
+    max-width: 100%;
 }
 
 .no-current-film {

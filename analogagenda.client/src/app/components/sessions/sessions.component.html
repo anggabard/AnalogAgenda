@@ -6,14 +6,17 @@
     <div class="sessions-container">
         <div class="sessions-section">
             <h2 class="sessions-title">Development Sessions</h2>
-            <app-card-list 
-                [items]="sessions" 
+            <app-list
+                *ngIf="sessionCardTemplate"
+                [items]="sessions"
                 [cardTemplate]="sessionCardTemplate"
-                [hasMore]="hasMore" 
+                [rowTemplate]="sessionRowTemplate"
+                [columnHeaders]="sessionTableHeaders"
+                [hasMore]="hasMore"
                 [loading]="loading"
                 (loadMore)="loadMoreSessions()"
                 (itemClick)="onSessionSelected($event.id)">
-            </app-card-list>
+            </app-list>
         </div>
     </div>
 </div>
@@ -21,10 +24,18 @@
 <!-- Template for session cards -->
 <ng-template #sessionCardTemplate let-session>
     <div class="card">
-        <img class="image" [src]="session.imageUrl" />
+        <div class="image"><img *ngIf="session.imageUrl" [src]="session.imageUrl" [alt]="session.location" /></div>
         <span class="title">{{session.location}}</span>
         <span class="info date">{{formatDate(session.sessionDate)}}</span>
         <span class="info participants">{{parseParticipants(session.participants).join(', ')}}</span>
         <span class="info description" *ngIf="session.description">{{session.description}}</span>
     </div>
+</ng-template>
+
+<ng-template #sessionRowTemplate let-session>
+    <td>{{ session.location }}</td>
+    <td>{{ formatDate(session.sessionDate) }}</td>
+    <td>{{ parseParticipants(session.participants).join(', ') }}</td>
+    <td>{{ session.description || '' }}</td>
+    <td class="session-cell-image"><app-image-preview [imageUrl]="session.imageUrl" [alt]="session.location" popoverPosition="left"></app-image-preview></td>
 </ng-template>

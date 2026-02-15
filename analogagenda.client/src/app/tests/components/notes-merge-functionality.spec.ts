@@ -3,7 +3,7 @@ import { Router } from '@angular/router';
 import { of } from 'rxjs';
 import { NotesComponent } from '../../components/notes/notes.component';
 import { CardListComponent } from '../../components/common/card-list/card-list.component';
-import { NotesService } from '../../services';
+import { NotesService, UserSettingsService } from '../../services';
 import { NoteDto, PagedResponseDto } from '../../DTOs';
 
 describe('NotesComponent - Merge Functionality', () => {
@@ -52,6 +52,13 @@ describe('NotesComponent - Merge Functionality', () => {
   beforeEach(async () => {
     const notesServiceSpy = jasmine.createSpyObj('NotesService', ['getNotesPaged']);
     const routerSpy = jasmine.createSpyObj('Router', ['navigate']);
+    const userSettingsServiceSpy = jasmine.createSpyObj('UserSettingsService', ['getUserSettings']);
+    userSettingsServiceSpy.getUserSettings.and.returnValue(of({
+      userId: 'user1',
+      isSubscribed: false,
+      tableView: false,
+      entitiesPerPage: 5
+    }));
 
     notesServiceSpy.getNotesPaged.and.returnValue(of(mockPagedResponse));
 
@@ -59,16 +66,66 @@ describe('NotesComponent - Merge Functionality', () => {
       declarations: [NotesComponent, CardListComponent],
       providers: [
         { provide: NotesService, useValue: notesServiceSpy },
+        { provide: UserSettingsService, useValue: userSettingsServiceSpy },
         { provide: Router, useValue: routerSpy }
       ]
-    }).compileComponents();
+    })
+      .overrideComponent(NotesComponent, {
+        set: {
+          template: `
+            <div class="container">
+              <div class="header">
+                <button class="add-note" (click)="onNewNoteClick()">+ New Note +</button>
+                <button class="add-note merge-notes" (click)="openMergeModal()">Merge Notes</button>
+              </div>
+              <div class="notes-section">
+                <h2 class="notes-title">Notes</h2>
+                <app-card-list
+                  *ngIf="cardTemplate"
+                  [items]="notes"
+                  [cardTemplate]="cardTemplate"
+                  [hasMore]="hasMoreNotes"
+                  [loading]="loadingNotes"
+                  (loadMore)="loadMoreNotes()"
+                  (itemClick)="onNoteSelected($event.id)">
+                </app-card-list>
+              </div>
+            </div>
+            <ng-template #noteCardTemplate let-note>
+              <div class="card"><span>{{ note.name }}</span></div>
+            </ng-template>
+            <div class="modal-overlay" *ngIf="isMergeModalOpen" (click)="closeMergeModal()">
+              <div class="modal-content" (click)="$event.stopPropagation()">
+                <div class="modal-header">
+                  <h3>Merge Notes</h3>
+                  <button class="modal-close" (click)="closeMergeModal()">✕</button>
+                </div>
+                <div class="modal-body">
+                  <p style="text-align: center; margin-bottom: 20px;">Select 2 or more notes to merge:</p>
+                  <div class="items-grid">
+                    <div *ngFor="let note of notes" class="item-card"
+                         [class.selected]="isNoteSelected(note.id)"
+                         (click)="toggleNoteSelection(note.id)">
+                      <span class="item-name">{{ note.name }}</span>
+                    </div>
+                  </div>
+                  <div class="modal-footer" *ngIf="selectedNotesForMerge.size >= 2">
+                    <button class="btn btn-primary" (click)="showMergedNote()">
+                      Merge {{ selectedNotesForMerge.size }} Notes
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          `
+        }
+      })
+      .compileComponents();
 
     fixture = TestBed.createComponent(NotesComponent);
     component = fixture.componentInstance;
     mockNotesService = TestBed.inject(NotesService) as jasmine.SpyObj<NotesService>;
     mockRouter = TestBed.inject(Router) as jasmine.SpyObj<Router>;
-    
-    fixture.detectChanges();
   });
 
   it('should open merge modal', () => {

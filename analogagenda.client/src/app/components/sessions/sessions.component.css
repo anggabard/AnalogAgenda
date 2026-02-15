@@ -55,12 +55,22 @@
   border-color: #4CAF50;
 }
 
-.image {
+.card .image {
   width: 100%;
   height: 200px;
-  object-fit: cover;
-  border-radius: 8px;
+  background: rgb(241, 241, 241);
   margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 8px;
+}
+
+.card .image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .title {

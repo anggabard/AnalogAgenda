@@ -2,6 +2,11 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
 import { of } from 'rxjs';
 import { FilmsComponent } from '../../components/films/films.component';
+import { CardListComponent } from '../../components/common/card-list/card-list.component';
+import { ListComponent } from '../../components/common/list/list.component';
+import { TableListComponent } from '../../components/common/table-list/table-list.component';
+import { ImagePreviewComponent } from '../../components/common/image-preview/image-preview.component';
+import { FilmSearchComponent } from '../../components/films/film-search/film-search.component';
 import { FilmService, AccountService, LocalStorageService, UserSettingsService } from '../../services';
 import { IdentityDto, UserSettingsDto } from '../../DTOs';
 import { TestConfig } from '../test.config';
@@ -30,7 +35,8 @@ describe('FilmsComponent State Persistence', () => {
     const userSettingsServiceSpy = jasmine.createSpyObj('UserSettingsService', ['getUserSettings']);
 
     await TestConfig.configureTestBed({
-      declarations: [FilmsComponent],
+      declarations: [FilmsComponent, CardListComponent, ListComponent, TableListComponent, ImagePreviewComponent],
+      imports: [FilmSearchComponent],
       providers: [
         { provide: FilmService, useValue: filmServiceSpy },
         { provide: AccountService, useValue: accountServiceSpy },

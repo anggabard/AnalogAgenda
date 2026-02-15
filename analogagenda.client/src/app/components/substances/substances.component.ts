@@ -1,7 +1,7 @@
 import { Component, inject, OnInit, ViewChild, TemplateRef } from "@angular/core";
 import { Router } from "@angular/router";
 import { DevKitDto, PagedResponseDto } from "../../DTOs";
-import { DevKitService } from "../../services";
+import { DevKitService, UserSettingsService } from "../../services";
 
 @Component({
     selector: 'app-substances',
@@ -13,8 +13,14 @@ import { DevKitService } from "../../services";
 export class SubstancesComponent implements OnInit {
   private dk = inject(DevKitService);
   private router = inject(Router);
+  private userSettingsService = inject(UserSettingsService);
 
   @ViewChild('devKitCardTemplate') devKitCardTemplate!: TemplateRef<any>;
+  @ViewChild('availableDevKitRowTemplate') availableDevKitRowTemplate!: TemplateRef<any>;
+  @ViewChild('expiredDevKitRowTemplate') expiredDevKitRowTemplate!: TemplateRef<any>;
+
+  availableDevKitTableHeaders = ['Name', 'Type', 'Remaining', 'Mixed', 'Preview'];
+  expiredDevKitTableHeaders = ['Name', 'Type', 'Remaining', 'Preview'];
 
   availableDevKits: DevKitDto[] = [];
   expiredDevKits: DevKitDto[] = [];
@@ -29,8 +35,17 @@ export class SubstancesComponent implements OnInit {
   loadingExpired = false;
 
   ngOnInit(): void {
-    this.loadAvailableDevKits();
-    this.loadExpiredDevKits();
+    this.userSettingsService.getUserSettings().subscribe({
+      next: (settings) => {
+        this.pageSize = settings.entitiesPerPage ?? 5;
+        this.loadAvailableDevKits();
+        this.loadExpiredDevKits();
+      },
+      error: () => {
+        this.loadAvailableDevKits();
+        this.loadExpiredDevKits();
+      }
+    });
   }
 
   onNewKitClick() {
