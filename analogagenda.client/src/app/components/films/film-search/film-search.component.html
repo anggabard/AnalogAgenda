@@ -34,6 +34,22 @@
           {{ option.label }}
         </option>
       </select>
+
+      <div *ngIf="field.type === 'dateRange'" class="date-range-fields">
+        <input 
+          [id]="field.key + '-from'"
+          type="date"
+          [ngModel]="field.value?.from"
+          (ngModelChange)="field.value = field.value || {}; field.value.from = $event; onFieldValueChange()"
+          class="search-input date-input" />
+        <span class="date-range-to-label">To</span>
+        <input 
+          [id]="field.key + '-to'"
+          type="date"
+          [ngModel]="field.value?.to"
+          (ngModelChange)="field.value = field.value || {}; field.value.to = $event; onFieldValueChange()"
+          class="search-input date-input" />
+      </div>
     </div>
 
   </div>

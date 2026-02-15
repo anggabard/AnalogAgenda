@@ -7,12 +7,17 @@ import { DevKitDto, SessionDto } from '../../../DTOs';
 export interface SearchField {
   key: string;
   label: string;
-  type: 'text' | 'number' | 'dropdown';
+  type: 'text' | 'number' | 'dropdown' | 'dateRange';
   visible: boolean;
   defaultVisible: boolean;
   value: any;
   options?: any[];
   availableInMyFilms: boolean;
+}
+
+export interface ExposureDateRangeValue {
+  from: string;
+  to: string;
 }
 
 export interface SearchParams {
@@ -21,6 +26,9 @@ export interface SearchParams {
   id?: string;
   iso?: string;
   type?: string;
+  description?: string;
+  exposureDateFrom?: string;
+  exposureDateTo?: string;
   numberOfExposures?: number;
   purchasedBy?: string;
   developedWithDevKitId?: string;
@@ -107,6 +115,24 @@ export class FilmSearchComponent implements OnInit, OnDestroy {
       availableInMyFilms: true
     },
     {
+      key: 'description',
+      label: 'Description',
+      type: 'text',
+      visible: false,
+      defaultVisible: false,
+      value: '',
+      availableInMyFilms: true
+    },
+    {
+      key: 'exposureDate',
+      label: 'Exposure Date',
+      type: 'dateRange',
+      visible: false,
+      defaultVisible: false,
+      value: { from: '', to: '' } as ExposureDateRangeValue,
+      availableInMyFilms: true
+    },
+    {
       key: 'purchasedBy',
       label: 'Owner',
       type: 'dropdown',
@@ -181,7 +207,9 @@ export class FilmSearchComponent implements OnInit, OnDestroy {
   toggleFieldVisibility(field: SearchField): void {
     field.visible = !field.visible;
     if (!field.visible) {
-      field.value = field.type === 'number' ? null : '';
+      if (field.type === 'number') field.value = null;
+      else if (field.type === 'dateRange') field.value = { from: '', to: '' };
+      else field.value = '';
     }
     this.saveSearchFieldsState();
   }
@@ -205,7 +233,14 @@ export class FilmSearchComponent implements OnInit, OnDestroy {
     const searchParams: SearchParams = {};
     
     this.searchFields.forEach(field => {
-      if (field.visible && this.hasValue(field.value)) {
+      if (!field.visible) return;
+      if (field.type === 'dateRange' && field.key === 'exposureDate') {
+        const v = field.value as ExposureDateRangeValue;
+        if (v?.from?.trim()) searchParams.exposureDateFrom = v.from.trim();
+        if (v?.to?.trim()) searchParams.exposureDateTo = v.to.trim();
+        return;
+      }
+      if (this.hasValue(field.value)) {
         (searchParams as any)[field.key] = field.value;
       }
     });
@@ -215,7 +250,9 @@ export class FilmSearchComponent implements OnInit, OnDestroy {
 
   onClearFilters(): void {
     this.searchFields.forEach(field => {
-      field.value = field.type === 'number' ? null : '';
+      if (field.type === 'number') field.value = null;
+      else if (field.type === 'dateRange') field.value = { from: '', to: '' };
+      else field.value = '';
     });
     this.saveSearchFieldsState();
     this.clearFilters.emit();
@@ -228,6 +265,9 @@ export class FilmSearchComponent implements OnInit, OnDestroy {
   private hasValue(value: any): boolean {
     if (value === null || value === undefined) return false;
     if (typeof value === 'string') return value.trim() !== '';
+    if (typeof value === 'object' && value !== null && ('from' in value || 'to' in value)) {
+      return this.hasValue(value.from) || this.hasValue(value.to);
+    }
     return true;
   }
 
@@ -265,10 +305,29 @@ export class FilmSearchComponent implements OnInit, OnDestroy {
     
     if (state && state.searchFields) {
       state.searchFields.forEach((savedField: any) => {
+        if (savedField.key === 'exposureDateFrom' || savedField.key === 'exposureDateTo') {
+          const exposureField = this.searchFields.find(f => f.key === 'exposureDate');
+          if (exposureField) {
+            if (!exposureField.value || typeof exposureField.value !== 'object')
+              exposureField.value = { from: '', to: '' };
+            if (savedField.key === 'exposureDateFrom') exposureField.value.from = savedField.value ?? '';
+            else exposureField.value.to = savedField.value ?? '';
+            if (savedField.visible) exposureField.visible = true;
+          }
+          return;
+        }
         const field = this.searchFields.find(f => f.key === savedField.key);
         if (field) {
           field.visible = savedField.visible;
-          field.value = savedField.value;
+          if (field.type === 'dateRange' && field.key === 'exposureDate') {
+            const v = savedField.value;
+            field.value = {
+              from: (v && typeof v === 'object' && v.from) ? v.from : '',
+              to: (v && typeof v === 'object' && v.to) ? v.to : ''
+            };
+          } else {
+            field.value = savedField.value;
+          }
         }
       });
     }
@@ -276,11 +335,21 @@ export class FilmSearchComponent implements OnInit, OnDestroy {
 
   private applyInitialSearchParams(): void {
     if (this.initialSearchParams && Object.keys(this.initialSearchParams).length > 0) {
-      Object.keys(this.initialSearchParams).forEach(key => {
+      const params = this.initialSearchParams;
+      if (params.exposureDateFrom != null || params.exposureDateTo != null) {
+        const exposureField = this.searchFields.find(f => f.key === 'exposureDate');
+        if (exposureField && exposureField.value && typeof exposureField.value === 'object') {
+          exposureField.visible = true;
+          exposureField.value.from = params.exposureDateFrom ?? '';
+          exposureField.value.to = params.exposureDateTo ?? '';
+        }
+      }
+      Object.keys(params).forEach(key => {
+        if (key === 'exposureDateFrom' || key === 'exposureDateTo') return;
         const field = this.searchFields.find(f => f.key === key);
         if (field) {
           field.visible = true;
-          field.value = (this.initialSearchParams as any)[key];
+          field.value = (params as any)[key];
         }
       });
     }

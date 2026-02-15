@@ -69,7 +69,7 @@ public class FilmSearchTests : IDisposable
 
         var searchDto = new FilmSearchDto
         {
-            Name = "Test Film",
+            Brand = "Test Film",
             Type = "ColorNegative",
             Page = 1,
             PageSize = 5
@@ -82,7 +82,7 @@ public class FilmSearchTests : IDisposable
         var okResult = Assert.IsType<OkObjectResult>(result);
         var pagedResponse = Assert.IsType<PagedResponseDto<FilmDto>>(okResult.Value);
         
-        // Should filter by name and type
+        // Should filter by brand and type
         Assert.Single(pagedResponse.Data);
         Assert.Equal("Test Film 1", pagedResponse.Data.First().Brand);
     }
@@ -101,7 +101,7 @@ public class FilmSearchTests : IDisposable
 
         var searchDto = new FilmSearchDto
         {
-            Name = "My Film",
+            Brand = "My Film",
             Page = 1,
             PageSize = 5
         };
@@ -113,7 +113,7 @@ public class FilmSearchTests : IDisposable
         var okResult = Assert.IsType<OkObjectResult>(result);
         var pagedResponse = Assert.IsType<PagedResponseDto<FilmDto>>(okResult.Value);
         
-        // Should filter by user and name
+        // Should filter by user and brand
         Assert.Equal(2, pagedResponse.Data.Count());
         Assert.All(pagedResponse.Data, film => Assert.Contains("My Film", film.Brand));
     }
@@ -216,7 +216,7 @@ public class FilmSearchTests : IDisposable
 
         var searchDto = new FilmSearchDto
         {
-            Name = "Test",
+            Brand = "Test",
             Type = "ColorNegative",
             PurchasedBy = "Angel",
             Page = 1,

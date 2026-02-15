@@ -137,6 +137,36 @@ public class FilmController(
         return await GetMyFilteredFilms(f => !f.Developed, currentUserEnum, searchDto, includePhotos: false);
     }
 
+    private static bool NeedsExposureOrDescriptionIncludes(FilmSearchDto searchDto) =>
+        !string.IsNullOrEmpty(searchDto.Description)
+        || searchDto.ExposureDateFrom.HasValue
+        || searchDto.ExposureDateTo.HasValue;
+
+    private async Task<List<FilmEntity>> GetFilmsForSearchAsync(
+        Expression<Func<FilmEntity, bool>> predicate,
+        FilmSearchDto searchDto,
+        bool includePhotos
+    )
+    {
+        var needExposure = NeedsExposureOrDescriptionIncludes(searchDto);
+        if (includePhotos && needExposure)
+        {
+            var all = await databaseService.GetAllWithIncludesAsync<FilmEntity>(f => f.Photos, f => f.ExposureDates);
+            return all.Where(predicate.Compile()).ToList();
+        }
+        if (includePhotos)
+        {
+            var all = await databaseService.GetAllWithIncludesAsync<FilmEntity>(f => f.Photos);
+            return all.Where(predicate.Compile()).ToList();
+        }
+        if (needExposure)
+        {
+            var all = await databaseService.GetAllWithIncludesAsync<FilmEntity>(f => f.ExposureDates);
+            return all.Where(predicate.Compile()).ToList();
+        }
+        return await databaseService.GetAllAsync(predicate);
+    }
+
     private async Task<IActionResult> GetFilteredFilms(
         Expression<Func<FilmEntity, bool>> predicate,
         FilmSearchDto searchDto,
@@ -146,28 +176,18 @@ public class FilmController(
         // For backward compatibility, if page is 0 or negative, return all filtered films
         if (searchDto.Page <= 0)
         {
-            var entities = includePhotos 
-                ? await databaseService.GetAllWithIncludesAsync<FilmEntity>(f => f.Photos)
-                : await databaseService.GetAllAsync(predicate);
-            var filteredEntities = includePhotos
-                ? ApplySearchFilters(entities.Where(predicate.Compile()), searchDto)
-                : ApplySearchFilters(entities, searchDto);
+            var entities = await GetFilmsForSearchAsync(predicate, searchDto, includePhotos);
+            var filteredEntities = ApplySearchFilters(entities, searchDto);
             var results = filteredEntities
                 .ApplyStandardSorting()
                 .Select(dtoConvertor.ToDTO);
             return Ok(results);
         }
 
-        var allEntities = includePhotos
-            ? await databaseService.GetAllWithIncludesAsync<FilmEntity>(f => f.Photos)
-            : await databaseService.GetAllAsync(predicate);
-        var predicateFiltered = includePhotos
-            ? allEntities.Where(predicate.Compile())
-            : allEntities;
-        var searchFilteredEntities = ApplySearchFilters(predicateFiltered, searchDto);
+        var allEntities = await GetFilmsForSearchAsync(predicate, searchDto, includePhotos);
+        var searchFilteredEntities = ApplySearchFilters(allEntities, searchDto);
         var sortedEntities = searchFilteredEntities.ApplyStandardSorting().ToList();
 
-        // Apply pagination
         var totalCount = sortedEntities.Count;
         var skip = (searchDto.Page - 1) * searchDto.PageSize;
         var pagedData = sortedEntities.Skip(skip).Take(searchDto.PageSize).ToList();
@@ -192,14 +212,8 @@ public class FilmController(
     {
         if (searchDto.Page <= 0)
         {
-            // Get all entities with status filter, then filter by user in memory
-            var allEntities = includePhotos
-                ? await databaseService.GetAllWithIncludesAsync<FilmEntity>(f => f.Photos)
-                : await databaseService.GetAllAsync(statusPredicate);
-            var statusFiltered = includePhotos
-                ? allEntities.Where(statusPredicate.Compile())
-                : allEntities;
-            var myEntities = statusFiltered.Where(f => f.PurchasedBy == currentUserEnum);
+            var allEntities = await GetFilmsForSearchAsync(statusPredicate, searchDto, includePhotos);
+            var myEntities = allEntities.Where(f => f.PurchasedBy == currentUserEnum);
             var filteredEntities = ApplySearchFilters(myEntities, searchDto);
             var results = filteredEntities
                 .ApplyUserFilteredSorting()
@@ -207,14 +221,8 @@ public class FilmController(
             return Ok(results);
         }
 
-        // For pagination, we need to get all status-filtered entities and then page them
-        var allEntitiesForPaging = includePhotos
-            ? await databaseService.GetAllWithIncludesAsync<FilmEntity>(f => f.Photos)
-            : await databaseService.GetAllAsync(statusPredicate);
-        var statusFilteredForPaging = includePhotos
-            ? allEntitiesForPaging.Where(statusPredicate.Compile())
-            : allEntitiesForPaging;
-        var myFilms = statusFilteredForPaging.Where(f => f.PurchasedBy == currentUserEnum);
+        var allEntitiesForPaging = await GetFilmsForSearchAsync(statusPredicate, searchDto, includePhotos);
+        var myFilms = allEntitiesForPaging.Where(f => f.PurchasedBy == currentUserEnum);
         var filteredFilms = ApplySearchFilters(myFilms, searchDto);
         var sortedFilms = filteredFilms.ApplyUserFilteredSorting().ToList();
 
@@ -452,6 +460,23 @@ public class FilmController(
             {
                 filteredFilms = filteredFilms.Where(f => f.Type == filmType);
             }
+        }
+
+        if (!string.IsNullOrEmpty(searchDto.Description))
+        {
+            var term = searchDto.Description;
+            filteredFilms = filteredFilms.Where(f =>
+                f.Description != null && f.Description.Contains(term, StringComparison.OrdinalIgnoreCase)
+            );
+        }
+
+        if (searchDto.ExposureDateFrom.HasValue || searchDto.ExposureDateTo.HasValue)
+        {
+            var from = searchDto.ExposureDateFrom ?? DateOnly.MinValue;
+            var to = searchDto.ExposureDateTo ?? DateOnly.MaxValue;
+            filteredFilms = filteredFilms.Where(f =>
+                f.ExposureDates != null && f.ExposureDates.Any(ed => ed.Date >= from && ed.Date <= to)
+            );
         }
 
         if (!string.IsNullOrEmpty(searchDto.PurchasedBy))
