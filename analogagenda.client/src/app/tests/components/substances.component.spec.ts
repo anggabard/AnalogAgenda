@@ -3,7 +3,10 @@ import { Router } from '@angular/router';
 import { of } from 'rxjs';
 import { SubstancesComponent } from '../../components/substances/substances.component';
 import { CardListComponent } from '../../components/common/card-list/card-list.component';
-import { DevKitService } from '../../services';
+import { ListComponent } from '../../components/common/list/list.component';
+import { TableListComponent } from '../../components/common/table-list/table-list.component';
+import { ImagePreviewComponent } from '../../components/common/image-preview/image-preview.component';
+import { DevKitService, UserSettingsService } from '../../services';
 import { DevKitDto, PagedResponseDto } from '../../DTOs';
 import { DevKitType, UsernameType } from '../../enums';
 import { TestConfig } from '../test.config';
@@ -16,23 +19,29 @@ describe('SubstancesComponent', () => {
 
   beforeEach(async () => {
     const devKitServiceSpy = TestConfig.createCrudServiceSpy('DevKitService', [
-      'getAvailableDevKitsPaged', 
+      'getAvailableDevKitsPaged',
       'getExpiredDevKitsPaged'
     ]);
     const routerSpy = TestConfig.createRouterSpy();
+    const userSettingsServiceSpy = jasmine.createSpyObj('UserSettingsService', ['getUserSettings']);
+    userSettingsServiceSpy.getUserSettings.and.returnValue(of({
+      userId: 'user1',
+      isSubscribed: false,
+      tableView: false,
+      entitiesPerPage: 5
+    }));
 
-    // Set up default return values using TestConfig helpers
     const emptyPagedResponse = TestConfig.createEmptyPagedResponse<DevKitDto>();
-    
     TestConfig.setupPaginatedServiceMocks(devKitServiceSpy, [], {
       getAvailableDevKitsPaged: emptyPagedResponse,
       getExpiredDevKitsPaged: emptyPagedResponse
     });
 
     await TestConfig.configureTestBed({
-      declarations: [SubstancesComponent, CardListComponent],
+      declarations: [SubstancesComponent, CardListComponent, ListComponent, TableListComponent, ImagePreviewComponent],
       providers: [
         { provide: DevKitService, useValue: devKitServiceSpy },
+        { provide: UserSettingsService, useValue: userSettingsServiceSpy },
         { provide: Router, useValue: routerSpy }
       ]
     }).compileComponents();

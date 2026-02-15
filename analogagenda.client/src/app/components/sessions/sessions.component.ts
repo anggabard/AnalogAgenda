@@ -1,6 +1,6 @@
 import { Component, inject, OnInit, ViewChild, TemplateRef } from "@angular/core";
 import { Router } from "@angular/router";
-import { SessionService, AccountService } from "../../services";
+import { SessionService, AccountService, UserSettingsService } from "../../services";
 import { SessionDto, IdentityDto, PagedResponseDto } from "../../DTOs";
 
 @Component({
@@ -13,8 +13,12 @@ export class SessionsComponent implements OnInit {
   private router = inject(Router);
   private sessionService = inject(SessionService);
   private accountService = inject(AccountService);
+  private userSettingsService = inject(UserSettingsService);
 
   @ViewChild('sessionCardTemplate') sessionCardTemplate!: TemplateRef<any>;
+  @ViewChild('sessionRowTemplate') sessionRowTemplate!: TemplateRef<any>;
+
+  sessionTableHeaders = ['Location', 'Date', 'Participants', 'Description', 'Preview'];
 
   sessions: SessionDto[] = [];
   currentUsername: string = '';
@@ -26,13 +30,29 @@ export class SessionsComponent implements OnInit {
   loading = false;
 
   ngOnInit(): void {
-    this.accountService.whoAmI().subscribe({
-      next: (identity: IdentityDto) => {
-        this.currentUsername = identity.username;
-        this.loadSessions();
+    this.userSettingsService.getUserSettings().subscribe({
+      next: (settings) => {
+        this.pageSize = settings.entitiesPerPage ?? 5;
+        this.accountService.whoAmI().subscribe({
+          next: (identity: IdentityDto) => {
+            this.currentUsername = identity.username;
+            this.loadSessions();
+          },
+          error: (err) => {
+            console.error(err);
+          }
+        });
       },
-      error: (err) => {
-        console.error(err);
+      error: () => {
+        this.accountService.whoAmI().subscribe({
+          next: (identity: IdentityDto) => {
+            this.currentUsername = identity.username;
+            this.loadSessions();
+          },
+          error: (err) => {
+            console.error(err);
+          }
+        });
       }
     });
   }

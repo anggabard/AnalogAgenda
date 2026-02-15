@@ -6,23 +6,31 @@
 
     <div class="notes-section">
         <h2 class="notes-title">Notes</h2>
-        <app-card-list 
-            [items]="notes" 
-            [cardTemplate]="noteCardTemplate"
-            [hasMore]="hasMoreNotes" 
+        <app-list
+            *ngIf="cardTemplate && noteRowTemplate"
+            [items]="notes"
+            [cardTemplate]="cardTemplate"
+            [rowTemplate]="noteRowTemplate"
+            [columnHeaders]="noteTableHeaders"
+            [hasMore]="hasMoreNotes"
             [loading]="loadingNotes"
             (loadMore)="loadMoreNotes()"
             (itemClick)="onNoteSelected($event.id)">
-        </app-card-list>
+        </app-list>
     </div>
 </div>
 
 <!-- Template for note cards -->
 <ng-template #noteCardTemplate let-note>
     <div class="card">
-        <img class="image" [src]="note.imageUrl" />
+        <div class="image"><img *ngIf="note.imageUrl" [src]="note.imageUrl" [alt]="note.name" /></div>
         <span class="title">{{note.name}}</span>
     </div>
+</ng-template>
+
+<ng-template #noteRowTemplate let-note>
+    <td>{{ note.name }}</td>
+    <td class="note-cell-image"><app-image-preview [imageUrl]="note.imageUrl" [alt]="note.name" popoverPosition="left"></app-image-preview></td>
 </ng-template>
 
 <!-- Merge Modal -->

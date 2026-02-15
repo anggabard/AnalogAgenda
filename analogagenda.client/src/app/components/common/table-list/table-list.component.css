@@ -1,0 +1,168 @@
+.table-list-outer {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Only the table scrolls; header stays visible (sticky), footer is outside */
+.table-list-wrapper {
+  overflow-x: auto;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.table-list {
+  width: 100%;
+  border-collapse: collapse;
+  background: transparent;
+}
+
+.table-list th,
+.table-list td {
+  padding: 10px 12px;
+  text-align: left;
+  border-bottom: 1px solid rgba(37, 35, 35, 0.2);
+}
+
+/* Column names stay visible when scrolling (not scrollable) */
+.table-list th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  font-weight: 600;
+  color: rgba(37, 35, 35, 0.9);
+  background: rgba(37, 35, 35, 0.06);
+  text-align: center;
+  box-shadow: 0 1px 0 rgba(37, 35, 35, 0.2);
+}
+
+/* Alternating row colors (same as note-table) */
+.table-list tbody tr:nth-child(odd) {
+  background: #ffffff;
+}
+
+.table-list tbody tr:nth-child(even) {
+  background: #fafafa;
+}
+
+.table-list-row {
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.table-list-row:hover {
+  background: rgba(37, 35, 35, 0.06) !important;
+}
+
+.table-list td img.image {
+  max-width: 48px;
+  max-height: 48px;
+  object-fit: cover;
+  vertical-align: middle;
+}
+
+.table-list-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 10px;
+  padding: 4px 0;
+}
+
+/* Blue primary button style (matches app .btn-primary) */
+.load-more-btn {
+  flex: 0 0 auto;
+  padding: 10px 20px;
+  margin-right: 3px;
+  background-color: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.load-more-btn:hover {
+  background-color: #2563eb;
+}
+
+.load-more-btn:active {
+  background-color: #1d4ed8;
+}
+
+/* Allow image-preview popover to extend outside first/last column */
+.table-list th:first-child,
+.table-list td:first-child,
+.table-list th:last-child,
+.table-list td:last-child {
+  overflow: visible;
+}
+
+.loading-spinner-card {
+  flex: 0 0 auto;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.spinner {
+  width: 24px;
+  height: 24px;
+  animation: spin 1s linear infinite;
+}
+
+.spinner-bg {
+  fill: none;
+  stroke: rgba(37, 35, 35, 0.3);
+  opacity: 0.25;
+}
+
+.spinner-path {
+  fill: rgba(37, 35, 35, 0.8);
+  opacity: 0.75;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Desktop scrollbar styling */
+@media (min-width: 768px) {
+  .table-list-wrapper {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0, 0, 0, 0.3) transparent;
+  }
+
+  .table-list-wrapper::-webkit-scrollbar {
+    height: 8px;
+  }
+
+  .table-list-wrapper::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 4px;
+  }
+
+  .table-list-wrapper::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 4px;
+  }
+
+  .table-list-wrapper::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.5);
+  }
+}
+
+@media (max-width: 767px) {
+  .table-list-wrapper {
+    scrollbar-width: none;
+  }
+
+  .table-list-wrapper::-webkit-scrollbar {
+    display: none;
+  }
+}

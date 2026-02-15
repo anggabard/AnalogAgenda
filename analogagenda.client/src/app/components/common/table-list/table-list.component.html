@@ -1,0 +1,25 @@
+<div class="table-list-outer" [ngClass]="listClass">
+  <div class="table-list-wrapper">
+    <table class="table-list">
+      <thead *ngIf="columnHeaders?.length">
+        <tr>
+          <th *ngFor="let h of columnHeaders">{{ h }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let item of items" (click)="onItemClick(item)" class="table-list-row">
+          <ng-container *ngTemplateOutlet="rowTemplate; context: { $implicit: item }"></ng-container>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="table-list-footer">
+    <button *ngIf="hasMore && !loading" class="load-more-btn" (click)="onLoadMore()">Load more</button>
+    <div *ngIf="loading" class="loading-spinner-card">
+      <svg class="spinner" viewBox="0 0 24 24">
+        <circle class="spinner-bg" cx="12" cy="12" r="10" stroke-width="4"></circle>
+        <path class="spinner-path" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+      </svg>
+    </div>
+  </div>
+</div>

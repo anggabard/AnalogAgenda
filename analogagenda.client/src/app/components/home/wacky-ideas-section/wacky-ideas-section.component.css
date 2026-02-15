@@ -1,6 +1,7 @@
 .wacky-ideas-section {
     margin-bottom: 0;
-    width: fit-content;
+    min-width: 0;
+    max-width: 100%;
 }
 
 .wacky-ideas-section .box {
@@ -13,6 +14,7 @@
     width: 100%;
     max-width: 450px;
     margin: 0 auto;
+    box-sizing: border-box;
 }
 
 .wacky-ideas-section .section-header {
@@ -22,6 +24,16 @@
     margin-bottom: 1rem;
     gap: 1rem;
     flex-wrap: wrap;
+    min-width: 0;
+}
+
+.wacky-ideas-section .section-header .form-title {
+    min-width: 0;
+    flex: 1 1 auto;
+}
+
+.wacky-ideas-section .section-header .btn {
+    flex-shrink: 0;
 }
 
 .wacky-ideas-section .form-title {
@@ -48,6 +60,7 @@
     cursor: pointer;
     transition: all 0.3s ease;
     color: rgba(255, 255, 255, 0.9);
+    min-width: 0;
 }
 
 .idea-row-title {
@@ -73,6 +86,24 @@
 
 @media (max-width: 768px) {
     .wacky-ideas-section {
+        width: 100%;
+    }
+
+    .wacky-ideas-section .box {
+        max-width: 100%;
+    }
+
+    .wacky-ideas-section .section-header {
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
+    .wacky-ideas-section .section-header .form-title {
+        text-align: center;
+        width: 100%;
+    }
+
+    .wacky-ideas-section .section-header .btn {
         width: 100%;
     }
 }

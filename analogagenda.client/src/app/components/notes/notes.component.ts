@@ -21,6 +21,9 @@ export class NotesComponent extends BasePaginatedListComponent<NoteDto> {
   }
 
   @ViewChild('noteCardTemplate') declare cardTemplate: TemplateRef<any>;
+  @ViewChild('noteRowTemplate') noteRowTemplate!: TemplateRef<any>;
+
+  noteTableHeaders = ['Name', 'Preview'];
 
   protected getItemsObservable(page: number, pageSize: number): Observable<PagedResponseDto<NoteDto>> {
     return this.notesService.getNotesPaged(page, pageSize);

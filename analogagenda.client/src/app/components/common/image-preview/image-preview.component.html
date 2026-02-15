@@ -1,0 +1,18 @@
+<div #trigger class="image-preview" *ngIf="imageUrl" [class.preview-left]="popoverPosition === 'left'" (mouseenter)="onTriggerEnter()">
+  <span class="eye-icon" title="Preview image" (click)="openPreview(); $event.stopPropagation()" role="button" tabindex="0" (keydown.enter)="openPreview()" (keydown.space)="openPreview(); $event.preventDefault()">
+    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+      <circle cx="12" cy="12" r="3"></circle>
+    </svg>
+  </span>
+  <div class="preview-popover" [ngStyle]="popoverStyle">
+    <img [src]="imageUrl" [alt]="alt" />
+  </div>
+  <!-- Thumbnail preview modal (same pattern as upsert-film) -->
+  <div class="image-preview-overlay" *ngIf="showModal" (click)="closePreview(); $event.stopPropagation()">
+    <div class="image-preview-content" (click)="$event.stopPropagation()">
+      <img [src]="imageUrl" [alt]="alt" />
+      <button type="button" class="close-btn" (click)="closePreview(); $event.stopPropagation()" aria-label="Close">✖</button>
+    </div>
+  </div>
+</div>

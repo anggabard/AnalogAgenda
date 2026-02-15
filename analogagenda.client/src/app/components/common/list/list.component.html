@@ -1,0 +1,24 @@
+@if (!settingsLoaded) {
+  <div class="list-loading">Loading...</div>
+} @else if (useTableView) {
+  <app-table-list
+    [items]="items"
+    [rowTemplate]="rowTemplate!"
+    [columnHeaders]="columnHeaders"
+    [hasMore]="hasMore"
+    [loading]="loading"
+    [listClass]="listClass"
+    (loadMore)="onLoadMore()"
+    (itemClick)="onItemClick($event)">
+  </app-table-list>
+} @else {
+  <app-card-list
+    [items]="items"
+    [cardTemplate]="cardTemplate"
+    [hasMore]="hasMore"
+    [loading]="loading"
+    [listClass]="listClass"
+    (loadMore)="onLoadMore()"
+    (itemClick)="onItemClick($event)">
+  </app-card-list>
+}

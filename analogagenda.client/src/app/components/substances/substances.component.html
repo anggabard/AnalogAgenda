@@ -6,26 +6,32 @@
     <div class="devkits-container">
         <div class="devkit-section">
             <h2 class="devkit-title">Available Substances</h2>
-            <app-card-list 
-                [items]="availableDevKits" 
+            <app-list
+                *ngIf="devKitCardTemplate && availableDevKitRowTemplate"
+                [items]="availableDevKits"
                 [cardTemplate]="devKitCardTemplate"
-                [hasMore]="hasMoreAvailable" 
+                [rowTemplate]="availableDevKitRowTemplate"
+                [columnHeaders]="availableDevKitTableHeaders"
+                [hasMore]="hasMoreAvailable"
                 [loading]="loadingAvailable"
                 (loadMore)="loadMoreAvailableDevKits()"
                 (itemClick)="onKitSelected($event.id)">
-            </app-card-list>
+            </app-list>
         </div>
 
         <div class="devkit-section">
             <h2 class="devkit-title">Expired Substances</h2>
-            <app-card-list 
-                [items]="expiredDevKits" 
+            <app-list
+                *ngIf="devKitCardTemplate && expiredDevKitRowTemplate"
+                [items]="expiredDevKits"
                 [cardTemplate]="devKitCardTemplate"
-                [hasMore]="hasMoreExpired" 
+                [rowTemplate]="expiredDevKitRowTemplate"
+                [columnHeaders]="expiredDevKitTableHeaders"
+                [hasMore]="hasMoreExpired"
                 [loading]="loadingExpired"
                 (loadMore)="loadMoreExpiredDevKits()"
                 (itemClick)="onKitSelected($event.id)">
-            </app-card-list>
+            </app-list>
         </div>
     </div>
 </div>
@@ -33,10 +39,25 @@
 <!-- Template for dev kit cards -->
 <ng-template #devKitCardTemplate let-kit>
     <div class="card">
-        <img class="image" [src]="kit.imageUrl" />
+        <div class="image"><img *ngIf="kit.imageUrl" [src]="kit.imageUrl" [alt]="kit.name" /></div>
         <span class="title">{{kit.name}}</span>
         <span class="info type">{{kit.type}}</span>
         <span class="info ramaining">{{kit.filmsDeveloped}}/{{kit.validForFilms}}</span>
         <span class="info mixed" *ngIf="kit.mixedOn && kit.mixedOn.trim() && !kit.expired">Mixed</span>
     </div>
+</ng-template>
+
+<ng-template #availableDevKitRowTemplate let-kit>
+    <td>{{ kit.name }}</td>
+    <td>{{ kit.type }}</td>
+    <td>{{ kit.filmsDeveloped }}/{{ kit.validForFilms }}</td>
+    <td>{{ (kit.mixedOn && kit.mixedOn.trim()) ? 'true' : 'false' }}</td>
+    <td class="devkit-cell-image"><app-image-preview [imageUrl]="kit.imageUrl" [alt]="kit.name" popoverPosition="left"></app-image-preview></td>
+</ng-template>
+
+<ng-template #expiredDevKitRowTemplate let-kit>
+    <td>{{ kit.name }}</td>
+    <td>{{ kit.type }}</td>
+    <td>{{ kit.filmsDeveloped }}/{{ kit.validForFilms }}</td>
+    <td class="devkit-cell-image"><app-image-preview [imageUrl]="kit.imageUrl" [alt]="kit.name" popoverPosition="left"></app-image-preview></td>
 </ng-template>
