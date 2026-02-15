@@ -238,9 +238,15 @@ describe('FilmSearchComponent State Persistence', () => {
     component.ngOnInit();
 
     // Should not throw an error and should use default values
-    expect(component.searchFields.every(field => 
-      field.visible === field.defaultVisible && 
-      (field.value === '' || field.value === null)
+    const isDefaultValue = (field: { value: any }) => {
+      if (field.value === '' || field.value === null) return true;
+      if (field.value && typeof field.value === 'object' && 'from' in field.value && 'to' in field.value) {
+        return field.value.from === '' && field.value.to === '';
+      }
+      return false;
+    };
+    expect(component.searchFields.every(field =>
+      field.visible === field.defaultVisible && isDefaultValue(field)
     )).toBe(true);
   });
 

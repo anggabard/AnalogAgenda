@@ -247,7 +247,7 @@ describe('UpsertSessionComponent', () => {
       // Create test films
       mockFilm1 = {
         id: 'film-1',
-        name: 'Film 1',
+        brand: 'Film 1',
         iso: '400',
         type: FilmType.ColorNegative,
         numberOfExposures: 36,
@@ -262,7 +262,7 @@ describe('UpsertSessionComponent', () => {
 
       mockFilm2 = {
         id: 'film-2',
-        name: 'Film 2',
+        brand: 'Film 2',
         iso: '400',
         type: FilmType.ColorNegative,
         numberOfExposures: 36,
@@ -277,7 +277,7 @@ describe('UpsertSessionComponent', () => {
 
       mockFilm3 = {
         id: 'film-3',
-        name: 'Film 3',
+        brand: 'Film 3',
         iso: '400',
         type: FilmType.ColorNegative,
         numberOfExposures: 36,

@@ -304,7 +304,7 @@ describe('UpsertSessionComponent - Drag Drop Bug Regression Tests', () => {
   function createMockFilm(id: string, name: string): FilmDto {
     return {
       id,
-      name,
+      brand: name,
       iso: '400',
       type: FilmType.ColorNegative,
       numberOfExposures: 36,

@@ -4,7 +4,9 @@ public class FilmDto
 {
     public string Id { get; set; } = string.Empty;
 
-    public required string Name { get; set; }
+    public string Name { get; set; } = string.Empty;
+
+    public required string Brand { get; set; }
 
     public required string Iso { get; set; }
 

@@ -24,10 +24,10 @@
             <h1 class="form-title">Current Film</h1>
             <div class="current-film-card" *ngIf="currentFilm">
                 <div class="film-image-container">
-                    <img class="film-image" [src]="currentFilm.imageUrl" [alt]="currentFilm.name" />
+                    <img class="film-image" [src]="currentFilm.imageUrl" [alt]="currentFilm.name || currentFilm.brand" />
                 </div>
                 <div class="film-info">
-                    <h3>{{ currentFilm.name }}</h3>
+                    <h3>{{ currentFilm.name || currentFilm.brand }}</h3>
                     <p><strong>ISO:</strong> {{ currentFilm.iso }}</p>
                     <p><strong>Type:</strong> {{ currentFilm.type }}</p>
                     <p><strong>Exposures:</strong> {{ currentFilm.numberOfExposures }}</p>
@@ -128,13 +128,13 @@
                         [class.selected]="selectedFilmId === film.id"
                         (click)="selectedFilmId = film.id">
                         <div class="film-item-info">
-                            <div class="film-name">{{ film.name }}</div>
+                            <div class="film-name">{{ film.name || film.brand }}</div>
                             <div class="film-details">
                                 <span>ISO: {{ film.iso }}</span>
                                 <span>Type: {{ film.type }}</span>
                             </div>
                         </div>
-                        <img class="film-item-image" [src]="film.imageUrl" [alt]="film.name" />
+                        <img class="film-item-image" [src]="film.imageUrl" [alt]="film.name || film.brand" />
                     </div>
                     <div *ngIf="availableFilms.length === 0" class="no-films">
                         No not-developed films available

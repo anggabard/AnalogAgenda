@@ -33,6 +33,23 @@
   letter-spacing: 0.5px;
 }
 
+.date-range-fields {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+
+.date-range-to-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #495057;
+}
+
+.date-range-fields .date-input {
+  min-width: 140px;
+}
+
 .search-input,
 .search-select {
   padding: 8px 12px;

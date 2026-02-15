@@ -87,7 +87,7 @@ public class FilmControllerTests : IDisposable
         // Arrange
         var filmDto = new FilmDto
         {
-            Name = "Test Film",
+            Brand = "Test Film",
             Iso = "400",
             Type = "ColorNegative",
             NumberOfExposures = 36,
@@ -106,7 +106,7 @@ public class FilmControllerTests : IDisposable
         var createdResult = Assert.IsType<CreatedResult>(result);
         var createdDto = Assert.IsType<FilmDto>(createdResult.Value);
         Assert.NotNull(createdDto.Id);
-        Assert.Equal("Test Film", createdDto.Name);
+        Assert.Equal("Test Film", createdDto.Brand);
     }
 
     [Fact]
@@ -115,7 +115,7 @@ public class FilmControllerTests : IDisposable
         // Arrange
         var filmDto = new FilmDto
         {
-            Name = "Test Film",
+            Brand = "Test Film",
             Iso = "400",
             Type = "ColorNegative",
             NumberOfExposures = 36,
@@ -142,7 +142,7 @@ public class FilmControllerTests : IDisposable
         // Use different names to ensure unique IDs
         var filmDto = new FilmDto
         {
-            Name = "Test Film",
+            Brand = "Test Film",
             Iso = "400",
             Type = "ColorNegative",
             NumberOfExposures = 36,
@@ -182,7 +182,7 @@ public class FilmControllerTests : IDisposable
         // Arrange
         var filmDto = new FilmDto
         {
-            Name = "Test Film",
+            Brand = "Test Film",
             Iso = "400",
             Type = "ColorNegative",
             NumberOfExposures = 36,
@@ -208,7 +208,7 @@ public class FilmControllerTests : IDisposable
         // Arrange
         var filmDto = new FilmDto
         {
-            Name = "Test Film",
+            Brand = "Test Film",
             Iso = "400",
             Type = "ColorNegative",
             NumberOfExposures = 36,
@@ -234,7 +234,7 @@ public class FilmControllerTests : IDisposable
         // Arrange
         var filmDto = new FilmDto
         {
-            Name = "Test Film",
+            Brand = "Test Film",
             Iso = "400",
             Type = "ColorNegative",
             NumberOfExposures = 36,
@@ -269,7 +269,7 @@ public class FilmControllerTests : IDisposable
         // Arrange
         var filmDto = new FilmDto
         {
-            Name = "Test Film",
+            Brand = "Test Film",
             Iso = "400",
             Type = "ColorNegative",
             NumberOfExposures = 36,
@@ -312,7 +312,7 @@ public class FilmControllerTests : IDisposable
         // Arrange
         var film = new FilmEntity
         {
-            Name = "Test Film",
+            Brand = "Test Film",
             Iso = "400",
             Type = EFilmType.ColorNegative,
             NumberOfExposures = 36,
@@ -370,7 +370,7 @@ public class FilmControllerTests : IDisposable
         // Arrange
         var film = new FilmEntity
         {
-            Name = "Test Film",
+            Brand = "Test Film",
             Iso = "400",
             Type = EFilmType.ColorNegative,
             NumberOfExposures = 36,
@@ -416,7 +416,7 @@ public class FilmControllerTests : IDisposable
         
         var film = new FilmEntity
         {
-            Name = "Test Film",
+            Brand = "Test Film",
             Iso = "400",
             Type = EFilmType.ColorNegative,
             NumberOfExposures = 36,
@@ -512,7 +512,7 @@ public class FilmControllerTests : IDisposable
         // Arrange
         var film = new FilmEntity
         {
-            Name = "Test Film",
+            Brand = "Test Film",
             Iso = "400",
             Type = EFilmType.ColorNegative,
             NumberOfExposures = 36,
@@ -554,7 +554,7 @@ public class FilmControllerTests : IDisposable
         // Arrange
         var film = new FilmEntity
         {
-            Name = "Test Film",
+            Brand = "Test Film",
             Iso = "400",
             Type = EFilmType.ColorNegative,
             NumberOfExposures = 36,

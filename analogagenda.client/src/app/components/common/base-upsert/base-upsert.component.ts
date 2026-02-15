@@ -81,6 +81,12 @@ export abstract class BaseUpsertComponent<TDto> implements OnInit {
   protected abstract getEntityName(): string;
 
   /**
+   * Optional: return display name for delete modal (e.g. Film uses name || brand).
+   * Default uses item.name or item.brand if present.
+   */
+  protected getDisplayName?(item: TDto): string;
+
+  /**
    * Initialize form for creating new item
    */
   private initializeForCreate(): void {
@@ -101,7 +107,7 @@ export abstract class BaseUpsertComponent<TDto> implements OnInit {
     this.getItemObservable(this.id!).subscribe({
       next: (item: any) => {
         this.form.patchValue(item);
-        this.originalName = item.name || '';
+        this.originalName = this.getDisplayName ? this.getDisplayName(item) : (item.name ?? item.brand ?? '');
       }
     });
   }

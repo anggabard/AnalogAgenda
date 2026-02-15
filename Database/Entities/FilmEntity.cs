@@ -6,7 +6,9 @@ namespace Database.Entities;
 
 public class FilmEntity : BaseEntity, IImageEntity
 {
-    public required string Name { get; set; }
+    public string Name { get; set; } = string.Empty;
+
+    public required string Brand { get; set; }
 
     public required string Iso { get; set; }
 
@@ -40,7 +42,8 @@ public class FilmEntity : BaseEntity, IImageEntity
 
     public void Update(FilmDto dto)
     {
-        Name = dto.Name;
+        Name = dto.Name ?? string.Empty;
+        Brand = dto.Brand;
         Iso = dto.Iso;
         Type = dto.Type.ToEnum<EFilmType>();
         NumberOfExposures = dto.NumberOfExposures;

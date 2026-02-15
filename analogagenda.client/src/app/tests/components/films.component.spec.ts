@@ -267,7 +267,7 @@ describe('FilmsComponent', () => {
   ): FilmDto {
     return {
       id,
-      name,
+      brand: name,
       iso: '400',
       type: FilmType.ColorNegative,
       numberOfExposures: 36,

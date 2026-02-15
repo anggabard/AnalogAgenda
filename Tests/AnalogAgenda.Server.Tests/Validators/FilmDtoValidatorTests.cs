@@ -218,7 +218,7 @@ public class FilmDtoValidatorTests
         return new FilmDto
         {
             Id = "",
-            Name = "Test Film",
+            Brand = "Test Film",
             Iso = iso,
             Type = EFilmType.ColorNegative.ToString(),
             NumberOfExposures = 36,

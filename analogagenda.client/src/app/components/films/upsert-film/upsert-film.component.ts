@@ -111,9 +111,14 @@ export class UpsertFilmComponent extends BaseUpsertComponent<FilmDto> implements
   
   private searchSubject = new Subject<string>();
 
+  protected override getDisplayName(item: FilmDto): string {
+    return (item.name?.trim()) ? item.name : item.brand;
+  }
+
   protected createForm(): FormGroup {
     return this.fb.group({
-      name: ['', Validators.required],
+      name: [''],
+      brand: ['', Validators.required],
       iso: ['400', [Validators.required, this.isoValidator]],
       type: [FilmType.ColorNegative, Validators.required],
       numberOfExposures: [36, [Validators.required, Validators.min(1)]],
@@ -554,17 +559,17 @@ export class UpsertFilmComponent extends BaseUpsertComponent<FilmDto> implements
 
   // Add new thumbnail methods
   get canAddThumbnail(): boolean {
-    const filmName = this.form.get('name')?.value;
-    return filmName && filmName.trim().length > 0;
+    const brand = this.form.get('brand')?.value;
+    return brand && brand.trim().length > 0;
   }
 
   onAddNewThumbnail(): void {
     if (!this.canAddThumbnail) return;
     
-    const filmName = this.form.get('name')?.value;
+    const brand = this.form.get('brand')?.value;
     const iso = this.form.get('iso')?.value;
     // Include ISO in the film name for better identification
-    this.newThumbnailFilmName = iso ? `${filmName} ${iso}` : filmName;
+    this.newThumbnailFilmName = iso ? `${brand} ${iso}` : brand;
     this.showAddThumbnailModal = true;
   }
 

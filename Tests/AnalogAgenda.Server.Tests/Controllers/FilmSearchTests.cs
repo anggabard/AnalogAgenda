@@ -59,9 +59,9 @@ public class FilmSearchTests : IDisposable
     public async Task GetDevelopedFilms_WithSearchParams_AppliesFilters()
     {
         // Arrange
-        var film1 = new FilmEntity { Id = "1", Name = "Test Film 1", Type = EFilmType.ColorNegative, Developed = true, Iso = "400" };
-        var film2 = new FilmEntity { Id = "2", Name = "Test Film 2", Type = EFilmType.ColorPositive, Developed = true, Iso = "200" };
-        var film3 = new FilmEntity { Id = "3", Name = "Other Film", Type = EFilmType.ColorNegative, Developed = true, Iso = "400" };
+        var film1 = new FilmEntity { Id = "1", Brand = "Test Film 1", Type = EFilmType.ColorNegative, Developed = true, Iso = "400" };
+        var film2 = new FilmEntity { Id = "2", Brand = "Test Film 2", Type = EFilmType.ColorPositive, Developed = true, Iso = "200" };
+        var film3 = new FilmEntity { Id = "3", Brand = "Other Film", Type = EFilmType.ColorNegative, Developed = true, Iso = "400" };
 
         await _databaseService.AddAsync(film1);
         await _databaseService.AddAsync(film2);
@@ -69,7 +69,7 @@ public class FilmSearchTests : IDisposable
 
         var searchDto = new FilmSearchDto
         {
-            Name = "Test Film",
+            Brand = "Test Film",
             Type = "ColorNegative",
             Page = 1,
             PageSize = 5
@@ -82,18 +82,18 @@ public class FilmSearchTests : IDisposable
         var okResult = Assert.IsType<OkObjectResult>(result);
         var pagedResponse = Assert.IsType<PagedResponseDto<FilmDto>>(okResult.Value);
         
-        // Should filter by name and type
+        // Should filter by brand and type
         Assert.Single(pagedResponse.Data);
-        Assert.Equal("Test Film 1", pagedResponse.Data.First().Name);
+        Assert.Equal("Test Film 1", pagedResponse.Data.First().Brand);
     }
 
     [Fact]
     public async Task GetMyDevelopedFilms_WithSearchParams_AppliesFilters()
     {
         // Arrange
-        var film1 = new FilmEntity { Id = "1", Name = "My Film 1", PurchasedBy = EUsernameType.Angel, Developed = true, Iso = "400" };
-        var film2 = new FilmEntity { Id = "2", Name = "Other Film", PurchasedBy = EUsernameType.Cristiana, Developed = true, Iso = "200" };
-        var film3 = new FilmEntity { Id = "3", Name = "My Film 2", PurchasedBy = EUsernameType.Angel, Developed = true, Iso = "400" };
+        var film1 = new FilmEntity { Id = "1", Brand = "My Film 1", PurchasedBy = EUsernameType.Angel, Developed = true, Iso = "400" };
+        var film2 = new FilmEntity { Id = "2", Brand = "Other Film", PurchasedBy = EUsernameType.Cristiana, Developed = true, Iso = "200" };
+        var film3 = new FilmEntity { Id = "3", Brand = "My Film 2", PurchasedBy = EUsernameType.Angel, Developed = true, Iso = "400" };
 
         await _databaseService.AddAsync(film1);
         await _databaseService.AddAsync(film2);
@@ -101,7 +101,7 @@ public class FilmSearchTests : IDisposable
 
         var searchDto = new FilmSearchDto
         {
-            Name = "My Film",
+            Brand = "My Film",
             Page = 1,
             PageSize = 5
         };
@@ -113,18 +113,18 @@ public class FilmSearchTests : IDisposable
         var okResult = Assert.IsType<OkObjectResult>(result);
         var pagedResponse = Assert.IsType<PagedResponseDto<FilmDto>>(okResult.Value);
         
-        // Should filter by user and name
+        // Should filter by user and brand
         Assert.Equal(2, pagedResponse.Data.Count());
-        Assert.All(pagedResponse.Data, film => Assert.Contains("My Film", film.Name));
+        Assert.All(pagedResponse.Data, film => Assert.Contains("My Film", film.Brand));
     }
 
     [Fact]
     public async Task GetNotDevelopedFilms_WithEmptySearchParams_ReturnsAllNotDeveloped()
     {
         // Arrange
-        var film1 = new FilmEntity { Id = "1", Name = "Film 1", Developed = false, Iso = "400" };
-        var film2 = new FilmEntity { Id = "2", Name = "Film 2", Developed = false, Iso = "200" };
-        var film3 = new FilmEntity { Id = "3", Name = "Film 3", Developed = true, Iso = "400" };
+        var film1 = new FilmEntity { Id = "1", Brand = "Film 1", Developed = false, Iso = "400" };
+        var film2 = new FilmEntity { Id = "2", Brand = "Film 2", Developed = false, Iso = "200" };
+        var film3 = new FilmEntity { Id = "3", Brand = "Film 3", Developed = true, Iso = "400" };
 
         await _databaseService.AddAsync(film1);
         await _databaseService.AddAsync(film2);
@@ -150,8 +150,8 @@ public class FilmSearchTests : IDisposable
     public async Task GetMyNotDevelopedFilms_WithDevKitFilter_AppliesFilter()
     {
         // Arrange
-        var film1 = new FilmEntity { Id = "1", Name = "Film 1", PurchasedBy = EUsernameType.Angel, Developed = false, DevelopedWithDevKitId = "devkit1", Iso = "400" };
-        var film2 = new FilmEntity { Id = "2", Name = "Film 2", PurchasedBy = EUsernameType.Angel, Developed = false, DevelopedWithDevKitId = "devkit2", Iso = "200" };
+        var film1 = new FilmEntity { Id = "1", Brand = "Film 1", PurchasedBy = EUsernameType.Angel, Developed = false, DevelopedWithDevKitId = "devkit1", Iso = "400" };
+        var film2 = new FilmEntity { Id = "2", Brand = "Film 2", PurchasedBy = EUsernameType.Angel, Developed = false, DevelopedWithDevKitId = "devkit2", Iso = "200" };
 
         await _databaseService.AddAsync(film1);
         await _databaseService.AddAsync(film2);
@@ -171,15 +171,15 @@ public class FilmSearchTests : IDisposable
         var pagedResponse = Assert.IsType<PagedResponseDto<FilmDto>>(okResult.Value);
         
         Assert.Single(pagedResponse.Data);
-        Assert.Equal("Film 1", pagedResponse.Data.First().Name);
+        Assert.Equal("Film 1", pagedResponse.Data.First().Brand);
     }
 
     [Fact]
     public async Task GetDevelopedFilms_WithSessionFilter_AppliesFilter()
     {
         // Arrange
-        var film1 = new FilmEntity { Id = "1", Name = "Film 1", Developed = true, DevelopedInSessionId = "session1", Iso = "400" };
-        var film2 = new FilmEntity { Id = "2", Name = "Film 2", Developed = true, DevelopedInSessionId = "session2", Iso = "200" };
+        var film1 = new FilmEntity { Id = "1", Brand = "Film 1", Developed = true, DevelopedInSessionId = "session1", Iso = "400" };
+        var film2 = new FilmEntity { Id = "2", Brand = "Film 2", Developed = true, DevelopedInSessionId = "session2", Iso = "200" };
 
         await _databaseService.AddAsync(film1);
         await _databaseService.AddAsync(film2);
@@ -199,16 +199,16 @@ public class FilmSearchTests : IDisposable
         var pagedResponse = Assert.IsType<PagedResponseDto<FilmDto>>(okResult.Value);
         
         Assert.Single(pagedResponse.Data);
-        Assert.Equal("Film 1", pagedResponse.Data.First().Name);
+        Assert.Equal("Film 1", pagedResponse.Data.First().Brand);
     }
 
     [Fact]
     public async Task GetDevelopedFilms_WithMultipleFilters_AppliesAllFilters()
     {
         // Arrange
-        var film1 = new FilmEntity { Id = "1", Name = "Test Film 1", Type = EFilmType.ColorNegative, PurchasedBy = EUsernameType.Angel, Developed = true, Iso = "400" };
-        var film2 = new FilmEntity { Id = "2", Name = "Test Film 2", Type = EFilmType.ColorPositive, PurchasedBy = EUsernameType.Angel, Developed = true, Iso = "200" };
-        var film3 = new FilmEntity { Id = "3", Name = "Other Film", Type = EFilmType.ColorNegative, PurchasedBy = EUsernameType.Cristiana, Developed = true, Iso = "400" };
+        var film1 = new FilmEntity { Id = "1", Brand = "Test Film 1", Type = EFilmType.ColorNegative, PurchasedBy = EUsernameType.Angel, Developed = true, Iso = "400" };
+        var film2 = new FilmEntity { Id = "2", Brand = "Test Film 2", Type = EFilmType.ColorPositive, PurchasedBy = EUsernameType.Angel, Developed = true, Iso = "200" };
+        var film3 = new FilmEntity { Id = "3", Brand = "Other Film", Type = EFilmType.ColorNegative, PurchasedBy = EUsernameType.Cristiana, Developed = true, Iso = "400" };
 
         await _databaseService.AddAsync(film1);
         await _databaseService.AddAsync(film2);
@@ -216,7 +216,7 @@ public class FilmSearchTests : IDisposable
 
         var searchDto = new FilmSearchDto
         {
-            Name = "Test",
+            Brand = "Test",
             Type = "ColorNegative",
             PurchasedBy = "Angel",
             Page = 1,
@@ -232,7 +232,7 @@ public class FilmSearchTests : IDisposable
         
         // Should match all criteria
         Assert.Single(pagedResponse.Data);
-        Assert.Equal("Test Film 1", pagedResponse.Data.First().Name);
+        Assert.Equal("Test Film 1", pagedResponse.Data.First().Brand);
     }
 
     [Fact]
@@ -241,11 +241,11 @@ public class FilmSearchTests : IDisposable
         // Arrange
         var films = new List<FilmEntity>
         {
-            new() { Id = "1", Name = "Film 1", Developed = true, Iso = "400" },
-            new() { Id = "2", Name = "Film 2", Developed = true, Iso = "200" },
-            new() { Id = "3", Name = "Film 3", Developed = true, Iso = "400" },
-            new() { Id = "4", Name = "Film 4", Developed = true, Iso = "200" },
-            new() { Id = "5", Name = "Film 5", Developed = true, Iso = "400" }
+            new() { Id = "1", Brand = "Film 1", Developed = true, Iso = "400" },
+            new() { Id = "2", Brand = "Film 2", Developed = true, Iso = "200" },
+            new() { Id = "3", Brand = "Film 3", Developed = true, Iso = "400" },
+            new() { Id = "4", Brand = "Film 4", Developed = true, Iso = "200" },
+            new() { Id = "5", Brand = "Film 5", Developed = true, Iso = "400" }
         };
 
         foreach (var film in films)

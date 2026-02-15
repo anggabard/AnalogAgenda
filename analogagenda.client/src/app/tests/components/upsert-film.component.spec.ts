@@ -26,7 +26,7 @@ describe('UpsertFilmComponent', () => {
     const thumbnailServiceSpy = jasmine.createSpyObj('UsedFilmThumbnailService', ['searchByFilmName', 'uploadThumbnail']);
     
     // Set up default return values for the spies
-    filmServiceSpy.getById.and.returnValue(of({ formattedExposureDate: '' }));
+    filmServiceSpy.getById.and.returnValue(of({ formattedExposureDate: '', brand: 'Test Film' }));
     sessionServiceSpy.getAll.and.returnValue(of([]));
     devKitServiceSpy.getAll.and.returnValue(of([]));
     photoServiceSpy.getAll.and.returnValue(of([]));
@@ -411,16 +411,16 @@ describe('UpsertFilmComponent', () => {
       expect(component.showThumbnailDropdown).toBeFalsy();
     });
 
-    it('should determine canAddThumbnail based on film name', () => {
-      component.form.patchValue({ name: 'Test Film' });
+    it('should determine canAddThumbnail based on film brand', () => {
+      component.form.patchValue({ brand: 'Test Film' });
       expect(component.canAddThumbnail).toBeTruthy();
 
-      component.form.patchValue({ name: '' });
+      component.form.patchValue({ brand: '' });
       expect(component.canAddThumbnail).toBeFalsy();
     });
 
     it('should open add thumbnail modal when onAddNewThumbnail is called', () => {
-      component.form.patchValue({ name: 'Test Film', iso: '400' });
+      component.form.patchValue({ brand: 'Test Film', iso: '400' });
       
       component.onAddNewThumbnail();
 
@@ -538,7 +538,7 @@ describe('UpsertFilmComponent', () => {
       // Set up mock return values for services
       mockFilmService.getById.and.returnValue(of({
         id: 'test-id',
-        name: 'Test Film',
+        brand: 'Test Film',
         iso: '400',
         type: FilmType.ColorNegative,
         numberOfExposures: 36,
@@ -607,7 +607,7 @@ describe('UpsertFilmComponent', () => {
     it('should call filmService.add with bulkCount parameter', () => {
       // Arrange
       const mockFilmDto = {
-        name: 'Test Film',
+        brand: 'Test Film',
         iso: '400',
         type: FilmType.ColorNegative,
         numberOfExposures: 36,
@@ -634,7 +634,7 @@ describe('UpsertFilmComponent', () => {
     it('should call filmService.add with bulkCount 1 when bulkCount is 1', () => {
       // Arrange
       const mockFilmDto = {
-        name: 'Test Film',
+        brand: 'Test Film',
         iso: '400',
         type: 'ColorNegative',
         numberOfExposures: 36,
@@ -660,7 +660,7 @@ describe('UpsertFilmComponent', () => {
     it('should handle bulk upload errors', () => {
       // Arrange
       const mockFilmDto = {
-        name: 'Test Film',
+        brand: 'Test Film',
         iso: '400',
         type: 'ColorNegative',
         numberOfExposures: 36,
@@ -706,7 +706,7 @@ describe('UpsertFilmComponent', () => {
       // Set up mock return values for services
       mockFilmService.getById.and.returnValue(of({
         id: 'test-id',
-        name: 'Test Film',
+        brand: 'Test Film',
         iso: '400',
         type: FilmType.ColorNegative,
         numberOfExposures: 36,
@@ -828,7 +828,7 @@ describe('UpsertFilmComponent', () => {
       
       // Make the form valid
       component.form.patchValue({
-        name: 'Test Film',
+        brand: 'Test Film',
         iso: '400',
         type: FilmType.ColorNegative,
         numberOfExposures: 36,
@@ -863,7 +863,7 @@ describe('UpsertFilmComponent', () => {
     it('should load existing exposure dates when opening modal for editing', () => {
       const filmWithExposureDates = {
         id: 'test-id',
-        name: 'Test Film',
+        brand: 'Test Film',
         iso: '400',
         type: FilmType.ColorNegative,
         numberOfExposures: 36,
@@ -915,7 +915,7 @@ describe('UpsertFilmComponent', () => {
       component.id = filmId;
       mockFilmService.getById.and.returnValue(of({
         id: filmId,
-        name: 'Test Film',
+        brand: 'Test Film',
         iso: '400',
         type: FilmType.ColorNegative,
         numberOfExposures: 36,
@@ -950,7 +950,7 @@ describe('UpsertFilmComponent', () => {
       component.id = filmId;
       mockFilmService.getById.and.returnValue(of({
         id: filmId,
-        name: 'Test Film',
+        brand: 'Test Film',
         iso: '400',
         type: FilmType.ColorNegative,
         numberOfExposures: 36,

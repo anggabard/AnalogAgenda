@@ -135,8 +135,8 @@ public class SessionEntityTests
         // Arrange
         var devKit1 = new DevKitEntity { Id = "devkit1", Name = "DevKit 1", Url = "http://example.com" };
         var devKit2 = new DevKitEntity { Id = "devkit2", Name = "DevKit 2", Url = "http://example.com" };
-        var film1 = new FilmEntity { Id = "film1", Name = "Film 1", Iso = "400" };
-        var film2 = new FilmEntity { Id = "film2", Name = "Film 2", Iso = "200" };
+        var film1 = new FilmEntity { Id = "film1", Brand = "Film 1", Iso = "400" };
+        var film2 = new FilmEntity { Id = "film2", Brand = "Film 2", Iso = "200" };
         
         var entity = new SessionEntity
         {

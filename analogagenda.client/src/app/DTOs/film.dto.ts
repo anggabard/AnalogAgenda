@@ -2,7 +2,8 @@ import { FilmType, UsernameType } from "../enums";
 
 export interface FilmDto {
   id: string;
-  name: string;
+  name?: string;
+  brand: string;
   iso: string;
   type: FilmType;
   numberOfExposures: number;
