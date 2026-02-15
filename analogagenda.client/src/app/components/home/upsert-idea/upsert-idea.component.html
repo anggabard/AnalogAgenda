@@ -1,0 +1,29 @@
+<form [formGroup]="form" (ngSubmit)="submit()" class="form">
+    <div *ngIf="errorMessage" class="error-message">
+        {{ errorMessage }}
+    </div>
+
+    <div>
+        <label for="ideaTitle">Title</label>
+        <input type="text" id="ideaTitle" formControlName="title" placeholder="Title" class="input" />
+    </div>
+
+    <div>
+        <label for="ideaDescription">Description</label>
+        <textarea id="ideaDescription" formControlName="description" placeholder="Description" class="input textarea" rows="4"></textarea>
+    </div>
+
+    <div class="form-actions">
+        <button type="submit" class="btn btn-primary" [disabled]="!form.valid || isSubmitting">
+            {{ isEditMode ? 'Save' : 'Add' }}
+        </button>
+        <button
+            *ngIf="isEditMode"
+            type="button"
+            class="btn btn-danger btn-right"
+            (click)="onDelete()"
+            [disabled]="isSubmitting">
+            Delete
+        </button>
+    </div>
+</form>

@@ -177,5 +177,12 @@ public class DtoConvertor(Configuration.Sections.System systemCfg, Storage stora
         TableView = entity.TableView,
         EntitiesPerPage = entity.EntitiesPerPage
     };
+
+    public IdeaDto ToDTO(IdeaEntity entity) => new()
+    {
+        Id = entity.Id,
+        Title = entity.Title,
+        Description = entity.Description
+    };
 }
 

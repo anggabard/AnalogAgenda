@@ -1,4 +1,5 @@
 <div class="home-container">
+    <div class="sections-row">
     <!-- Film Check Section -->
     <div class="statistics-section">
         <div class="box">
@@ -103,6 +104,14 @@
         </div>
     </div>
 
+    <!-- Wacky Ideas Section -->
+    <app-wacky-ideas-section
+        (addIdea)="openAddIdeaModal()"
+        (editIdea)="openEditIdeaModal($event)"
+        #wackyIdeasSection>
+    </app-wacky-ideas-section>
+    </div>
+
     <!-- Change Current Film Modal -->
     <div class="modal-overlay" *ngIf="isChangeCurrentFilmModalOpen" (click)="closeChangeCurrentFilmModal()">
         <div class="modal-content" (click)="$event.stopPropagation()">
@@ -140,6 +149,26 @@
                     Save
                 </button>
                 <button class="btn btn-secondary" (click)="closeChangeCurrentFilmModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Upsert Idea Modal -->
+    <div class="modal-overlay" *ngIf="isUpsertIdeaModalOpen"
+        (mousedown)="onUpsertIdeaOverlayMouseDown($event)"
+        (mouseup)="onUpsertIdeaOverlayMouseUp($event)">
+        <div class="modal-content" (mousedown)="onUpsertIdeaModalContentMouseDown()">
+            <div class="modal-header">
+                <div></div>
+                <h3>{{ selectedIdea ? 'Edit Idea' : 'Add Idea' }}</h3>
+                <button class="modal-close" (click)="closeUpsertIdeaModal()">✕</button>
+            </div>
+            <div class="modal-body">
+                <app-upsert-idea
+                    [idea]="selectedIdea"
+                    (saved)="onIdeaSaved()"
+                    (deleted)="onIdeaDeleted()">
+                </app-upsert-idea>
             </div>
         </div>
     </div>

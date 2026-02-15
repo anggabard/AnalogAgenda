@@ -1,13 +1,33 @@
 .home-container {
     padding: 20px;
-    max-width: 1200px;
     margin: 0 auto;
+}
+
+/* Grid layout: each section in its own cell, no overlap (sessions-inspired structure) */
+.sections-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 450px));
+    align-items: start;
+    justify-content: start;
+    row-gap: 20px;
+    column-gap: 70px;
 }
 
 /* Mobile responsive */
 @media (max-width: 768px) {
     .home-container {
         padding: 10px;
+    }
+
+    .sections-row {
+        grid-template-columns: 1fr;
+        justify-items: center;
+    }
+
+    .sections-row > * {
+        max-width: 450px;
+        width: 100%;
+        justify-self: center;
     }
 
     .statistics-section .box,
@@ -68,7 +88,7 @@
 }
 
 .statistics-section {
-    margin-bottom: 30px;
+    margin-bottom: 0;
 }
 
 .statistics-section .box {
@@ -109,7 +129,7 @@
 }
 
 .settings-section {
-    margin-bottom: 30px;
+    margin-bottom: 0;
 }
 
 .settings-section .box {
@@ -217,7 +237,7 @@
 }
 
 .current-film-section {
-    margin-bottom: 30px;
+    margin-bottom: 0;
 }
 
 .current-film-section .box {

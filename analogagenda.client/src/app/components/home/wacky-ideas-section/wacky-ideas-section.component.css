@@ -1,0 +1,99 @@
+.wacky-ideas-section {
+    margin-bottom: 0;
+    width: fit-content;
+}
+
+.wacky-ideas-section .box {
+    background-color: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    color: #fff;
+    width: 100%;
+    max-width: 450px;
+    margin: 0 auto;
+}
+
+.wacky-ideas-section .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.wacky-ideas-section .form-title {
+    color: #fff;
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin: 0;
+}
+
+.ideas-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.idea-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.idea-row-title {
+    flex: 1;
+    min-width: 0;
+}
+
+.idea-row-icon {
+    flex-shrink: 0;
+    opacity: 0.8;
+}
+
+.idea-row:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.3);
+}
+
+.no-ideas {
+    padding: 1rem;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.9rem;
+}
+
+@media (max-width: 768px) {
+    .wacky-ideas-section {
+        width: 100%;
+    }
+}
+
+/* Match app button styling (same as home .btn) */
+.wacky-ideas-section .btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    background-color: rgba(37, 35, 35, 1);
+    color: white;
+}
+
+.wacky-ideas-section .btn-primary {
+    background-color: rgba(37, 35, 35, 1);
+    color: white;
+}
+
+.wacky-ideas-section .btn-primary:hover:not(:disabled) {
+    opacity: 0.9;
+}

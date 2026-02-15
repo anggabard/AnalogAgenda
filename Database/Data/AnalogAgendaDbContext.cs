@@ -19,6 +19,7 @@ public class AnalogAgendaDbContext(DbContextOptions<AnalogAgendaDbContext> optio
     public DbSet<UsedDevKitThumbnailEntity> UsedDevKitThumbnails { get; set; }
     public DbSet<ExposureDateEntity> ExposureDates { get; set; }
     public DbSet<UserSettingsEntity> UserSettings { get; set; }
+    public DbSet<IdeaEntity> Ideas { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -223,6 +224,15 @@ public class AnalogAgendaDbContext(DbContextOptions<AnalogAgendaDbContext> optio
                 .WithMany()
                 .HasForeignKey(e => e.CurrentFilmId)
                 .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        // Configure IdeaEntity
+        modelBuilder.Entity<IdeaEntity>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).HasMaxLength(50);
+            entity.Property(e => e.Title).IsRequired().HasMaxLength(500);
+            entity.Property(e => e.Description).HasMaxLength(2000);
         });
     }
 }
