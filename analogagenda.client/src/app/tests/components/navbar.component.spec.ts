@@ -69,79 +69,49 @@ describe('NavbarComponent', () => {
   });
 
   it('should toggle sidebar when toggleSidebar is called', () => {
-    // Arrange
-    spyOn(component.isOpenEvent, 'emit');
     expect(component.isSidebarOpen).toBeFalse();
 
-    // Act
     component.toggleSidebar();
-
-    // Assert
     expect(component.isSidebarOpen).toBeTrue();
-    expect(component.isOpenEvent.emit).toHaveBeenCalledWith(true);
 
-    // Act again
     component.toggleSidebar();
-
-    // Assert
     expect(component.isSidebarOpen).toBeFalse();
-    expect(component.isOpenEvent.emit).toHaveBeenCalledWith(false);
   });
 
   it('should navigate to notes and close sidebar when onNotesClick is called', () => {
-    // Arrange
-    spyOn(component.isOpenEvent, 'emit');
     component.isSidebarOpen = true;
 
-    // Act
     component.onNotesClick();
 
-    // Assert
     expect(mockRouter.navigate).toHaveBeenCalledWith(['/notes']);
     expect(component.isSidebarOpen).toBeFalse();
-    expect(component.isOpenEvent.emit).toHaveBeenCalledWith(false);
   });
 
   it('should navigate to home and close sidebar when onHomeClick is called', () => {
-    // Arrange
-    spyOn(component.isOpenEvent, 'emit');
     component.isSidebarOpen = true;
 
-    // Act
     component.onHomeClick();
 
-    // Assert
     expect(mockRouter.navigate).toHaveBeenCalledWith(['/home']);
     expect(component.isSidebarOpen).toBeFalse();
-    expect(component.isOpenEvent.emit).toHaveBeenCalledWith(false);
   });
 
   it('should navigate to substances and close sidebar when onSubstancesClick is called', () => {
-    // Arrange
-    spyOn(component.isOpenEvent, 'emit');
     component.isSidebarOpen = true;
 
-    // Act
     component.onSubstancesClick();
 
-    // Assert
     expect(mockRouter.navigate).toHaveBeenCalledWith(['/substances']);
     expect(component.isSidebarOpen).toBeFalse();
-    expect(component.isOpenEvent.emit).toHaveBeenCalledWith(false);
   });
 
   it('should navigate to change password and close sidebar when onChangePasswordClick is called', () => {
-    // Arrange
-    spyOn(component.isOpenEvent, 'emit');
     component.isSidebarOpen = true;
 
-    // Act
     component.onChangePasswordClick();
 
-    // Assert
     expect(mockRouter.navigate).toHaveBeenCalledWith(['/change-password']);
     expect(component.isSidebarOpen).toBeFalse();
-    expect(component.isOpenEvent.emit).toHaveBeenCalledWith(false);
   });
 
   it('should logout and navigate to login on successful logout', () => {
@@ -178,18 +148,15 @@ describe('NavbarComponent', () => {
     });
 
     it('should toggle sidebar when mobile toggle button is clicked', () => {
-      spyOn(component.isOpenEvent, 'emit');
       fixture.detectChanges();
-      
       const compiled = fixture.nativeElement;
       const mobileToggle = compiled.querySelector('.mobile-toggle') as HTMLElement;
-      
+
       expect(component.isSidebarOpen).toBeFalse();
-      
+
       mobileToggle.click();
-      
+
       expect(component.isSidebarOpen).toBeTrue();
-      expect(component.isOpenEvent.emit).toHaveBeenCalledWith(true);
     });
 
     it('should toggle sidebar open class when isSidebarOpen is true', () => {

@@ -1,7 +1,5 @@
 <form [formGroup]="form" (ngSubmit)="submit()" class="form">
-    <div *ngIf="errorMessage" class="error-message">
-        {{ errorMessage }}
-    </div>
+    <app-error-message [message]="errorMessage"></app-error-message>
 
     <div>
         <label for="ideaTitle">Title</label>

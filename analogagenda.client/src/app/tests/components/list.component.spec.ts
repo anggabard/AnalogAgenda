@@ -1,9 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Component, TemplateRef, ViewChild } from '@angular/core';
 import { of } from 'rxjs';
-import { ListComponent } from '../../components/common/list/list.component';
-import { CardListComponent } from '../../components/common/card-list/card-list.component';
-import { TableListComponent } from '../../components/common/table-list/table-list.component';
+import { ListComponent, CardListComponent, TableListComponent } from '../../components/common';
 import { UserSettingsService } from '../../services';
 import { UserSettingsDto } from '../../DTOs';
 import { FilmDto } from '../../DTOs';

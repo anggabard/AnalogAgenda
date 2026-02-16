@@ -1,5 +1,5 @@
 <div class="container">
-  <p *ngIf="errorMessage" class="error-message" role="alert">{{ errorMessage }}</p>
+  <app-error-message [message]="errorMessage"></app-error-message>
   <div class="tab-container">
     <div class="tabs">
       <button [class.active]="activeTab === 'my'" (click)="setActiveTab('my')">My Photos</button>

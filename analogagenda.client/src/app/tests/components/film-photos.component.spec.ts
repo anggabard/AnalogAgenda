@@ -6,6 +6,7 @@ import { FilmService, PhotoService, AccountService } from '../../services';
 import { FilmDto, PhotoDto } from '../../DTOs';
 import { FilmType, UsernameType } from '../../enums';
 import { TestConfig } from '../test.config';
+import { DownloadHelper } from '../../helpers/download.helper';
 
 describe('FilmPhotosComponent', () => {
   let component: FilmPhotosComponent;
@@ -277,24 +278,17 @@ describe('FilmPhotosComponent', () => {
   });
 
   describe('Sanitization', () => {
-    beforeEach(async () => {
-      await initializeComponent();
+    it('should use DownloadHelper for sanitizing file names', () => {
+      expect(DownloadHelper.sanitizeForFileName('Test@Film#Name$With%Special&Chars!')).toBe('TestFilmNameWithSpecialChars');
     });
 
-    it('should sanitize file names correctly', () => {
-      const result = (component as any).sanitizeFileName('Test@Film#Name$With%Special&Chars!');
-      expect(result).toBe('TestFilmNameWithSpecialChars');
+    it('should handle empty file names via DownloadHelper', () => {
+      expect(DownloadHelper.sanitizeForFileName('')).toBe('file');
     });
 
-    it('should handle empty file names', () => {
-      const result = (component as any).sanitizeFileName('');
-      expect(result).toBe('photos');
-    });
-
-    it('should truncate long file names', () => {
+    it('should truncate long file names via DownloadHelper', () => {
       const longName = 'A'.repeat(100);
-      const result = (component as any).sanitizeFileName(longName);
-      expect(result.length).toBe(50);
+      expect(DownloadHelper.sanitizeForFileName(longName).length).toBe(50);
     });
   });
 });

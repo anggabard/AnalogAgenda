@@ -1,3 +1,4 @@
+import { NO_ERRORS_SCHEMA } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
@@ -25,11 +26,13 @@ export class TestConfig {
     declarations?: any[];
     imports?: any[];
     providers?: any[];
+    schemas?: any[];
   }) {
     return TestBed.configureTestingModule({
       imports: [HttpClientTestingModule, DragDropModule, ReactiveFormsModule, FormsModule, ...(config.imports || [])],
       declarations: config.declarations || [],
-      providers: config.providers || []
+      providers: config.providers || [],
+      schemas: config.schemas ?? [NO_ERRORS_SCHEMA]
     });
   }
 

@@ -133,6 +133,12 @@ export class PhotosContentComponent implements OnChanges {
     this.isDeleteModalOpen = false;
   }
 
+  getDeleteConfirmMessage(): string {
+    if (!this.currentPreviewPhoto) return '';
+    const index = this.currentPreviewPhoto.index.toString().padStart(3, '0');
+    return `Are you sure you want to delete photo #${index}?`;
+  }
+
   confirmDelete() {
     if (this.currentPreviewPhoto) {
       this.deletePhoto.emit(this.currentPreviewPhoto);

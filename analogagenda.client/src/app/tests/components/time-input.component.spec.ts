@@ -1,6 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { FormsModule } from '@angular/forms';
-import { TimeInputComponent } from '../../components/common/time-input/time-input.component';
+import { TimeInputComponent } from '../../components/common';
 
 describe('TimeInputComponent', () => {
   let component: TimeInputComponent;

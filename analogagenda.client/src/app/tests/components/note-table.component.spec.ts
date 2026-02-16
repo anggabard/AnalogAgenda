@@ -1,3 +1,4 @@
+import { NO_ERRORS_SCHEMA } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute, Router } from '@angular/router';
 import { of, throwError } from 'rxjs';
@@ -26,6 +27,7 @@ describe('NoteTableComponent', () => {
 
     await TestBed.configureTestingModule({
       declarations: [NoteTableComponent],
+      schemas: [NO_ERRORS_SCHEMA],
       providers: [
         { provide: NotesService, useValue: notesServiceSpy },
         { provide: Router, useValue: routerSpy },

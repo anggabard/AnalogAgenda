@@ -1,4 +1,4 @@
-import { Component, EventEmitter, inject, Output } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { AccountService } from '../../services';
 import { IdentityDto } from '../../DTOs';
@@ -10,8 +10,6 @@ import { IdentityDto } from '../../DTOs';
     standalone: false
 })
 export class NavbarComponent {
-  @Output() isOpenEvent = new EventEmitter<boolean>();
-
   isSidebarOpen = false;
   username: string = "";
 
@@ -24,7 +22,6 @@ export class NavbarComponent {
 
   toggleSidebar() {
     this.isSidebarOpen = !this.isSidebarOpen;
-    this.isOpenEvent.emit(this.isSidebarOpen);
   }
 
   onNotesClick() {
@@ -68,7 +65,6 @@ export class NavbarComponent {
 
   private closeMobileSidebar() {
     this.isSidebarOpen = false;
-    this.isOpenEvent.emit(this.isSidebarOpen);
   }
 
 }

@@ -1,10 +1,7 @@
 :root {
-  --bg-color: #e4eaf5;
   --bg-menu-panel: #7c92a4  ;
   --bg-menu-highlight: #e0e0e0a6;
-  --bg-dark: #e88e72;
   --text-light: #ffffffb2;
-  --text-dark: #4b2e2e;
 }
 
 html, body {
@@ -209,6 +206,39 @@ button:hover:not(:disabled) {
   text-align: center;
 }
 
+/* ===== TAB STRIP (My / All) - Used in films and photos ===== */
+.tab-container {
+  margin-bottom: 20px;
+}
+
+.tabs {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+
+.tabs button {
+  padding: 10px 20px;
+  border: 2px solid #ccc;
+  background-color: #f8f9fa;
+  color: #333;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+}
+
+.tabs button.active {
+  background-color: rgba(37, 35, 35, 0.897);
+  color: white;
+  border-color: rgba(37, 35, 35, 0.897);
+}
+
+.tabs button:hover {
+  background-color: rgba(37, 35, 35, 0.7);
+  color: white;
+}
+
 /* ===== FORM VALIDATION STYLES ===== */
 
 /* Invalid field styling - red border when field is invalid and touched */
@@ -227,14 +257,6 @@ select.ng-invalid.ng-touched:focus,
 textarea.ng-invalid.ng-touched:focus {
   border-color: #dc2626 !important;
   box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2) !important;
-}
-
-/* Validation error message text */
-.validation-error {
-  color: #ef4444;
-  font-size: 0.875rem;
-  margin-top: 0.25rem;
-  font-weight: 500;
 }
 
 /* ===== MOBILE FIXES ===== */

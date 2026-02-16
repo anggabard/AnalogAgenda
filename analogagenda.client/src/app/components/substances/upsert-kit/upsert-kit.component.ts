@@ -2,7 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { FormGroup, Validators } from '@angular/forms';
 import { Observable, Subject } from 'rxjs';
 import { debounceTime, distinctUntilChanged, switchMap } from 'rxjs/operators';
-import { BaseUpsertComponent } from '../../common/base-upsert/base-upsert.component';
+import { BaseUpsertComponent } from '../../common';
 import { DevKitService, UsedDevKitThumbnailService } from '../../../services';
 import { DevKitType, UsernameType } from '../../../enums';
 import { DevKitDto, UsedDevKitThumbnailDto } from '../../../DTOs';

@@ -1,0 +1,11 @@
+<div class="delete-modal-overlay" *ngIf="open" (click)="onOverlayClick()">
+  <div class="delete-modal" (click)="$event.stopPropagation()">
+    <h2>{{ title }}</h2>
+    <p *ngIf="message">{{ message }}</p>
+    <ng-content></ng-content>
+    <div class="delete-modal-actions">
+      <button type="button" class="cancel-btn" (click)="onCancel()">{{ cancelLabel }}</button>
+      <button type="button" class="delete-confirm-btn" (click)="onConfirm()">{{ confirmLabel }}</button>
+    </div>
+  </div>
+</div>
