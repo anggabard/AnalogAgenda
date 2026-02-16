@@ -11,22 +11,17 @@
   display: flex;
   flex-direction: column;
   z-index: 1000;
+  overflow-x: hidden;
   overflow-y: auto;
 }
 
-/* Ensure navbar component takes full width */
+/* Ensure navbar component takes full width and never causes horizontal scroll */
 :host {
   display: block;
   width: 100%;
+  max-width: 100vw;
   margin: 0;
   padding: 0;
-}
-
-/* Global styles to prevent horizontal scroll */
-html, body {
-  margin: 0;
-  padding: 0;
-  width: 100%;
   overflow-x: hidden;
 }
 
@@ -48,6 +43,16 @@ html, body {
   
   .nav.open {
     transform: translateX(0);
+  }
+
+  /* Username styling - match desktop look */
+  .nav > span {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-light);
+    padding: 20px 25px 12px;
+    display: block;
+    text-align: center;
   }
 }
 
