@@ -574,5 +574,140 @@ public class FilmControllerTests : IDisposable
         Assert.IsType<BadRequestObjectResult>(result);
     }
 
+    [Fact]
+    public async Task DeleteFilm_AsOwner_ReturnsNoContent()
+    {
+        SetControllerUser(nameof(EUsernameType.Angel));
+        var film = new FilmEntity
+        {
+            Id = "film-to-delete",
+            Brand = "Test",
+            Iso = "400",
+            Type = EFilmType.ColorNegative,
+            NumberOfExposures = 36,
+            Cost = 10,
+            PurchasedBy = EUsernameType.Angel,
+            PurchasedOn = DateTime.UtcNow,
+            ImageId = Guid.Empty,
+            Developed = false
+        };
+        await _databaseService.AddAsync(film);
+
+        var result = await _controller.DeleteFilm(film.Id);
+
+        Assert.IsType<NoContentResult>(result);
+        var deleted = await _databaseService.GetByIdAsync<FilmEntity>(film.Id);
+        Assert.Null(deleted);
+    }
+
+    [Fact]
+    public async Task DeleteFilm_NonOwner_ReturnsForbid()
+    {
+        SetControllerUser(nameof(EUsernameType.Cristiana));
+        var film = new FilmEntity
+        {
+            Id = "film-owned-by-angel",
+            Brand = "Test",
+            Iso = "400",
+            Type = EFilmType.ColorNegative,
+            NumberOfExposures = 36,
+            Cost = 10,
+            PurchasedBy = EUsernameType.Angel,
+            PurchasedOn = DateTime.UtcNow,
+            ImageId = Guid.Empty,
+            Developed = false
+        };
+        await _databaseService.AddAsync(film);
+
+        var result = await _controller.DeleteFilm(film.Id);
+
+        Assert.IsType<ForbidResult>(result);
+        var stillExists = await _databaseService.GetByIdAsync<FilmEntity>(film.Id);
+        Assert.NotNull(stillExists);
+    }
+
+    [Fact]
+    public async Task DeleteFilm_Unauthenticated_ReturnsUnauthorized()
+    {
+        _controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = new DefaultHttpContext { User = new ClaimsPrincipal() }
+        };
+        var film = new FilmEntity
+        {
+            Id = "film-no-auth",
+            Brand = "Test",
+            Iso = "400",
+            Type = EFilmType.ColorNegative,
+            NumberOfExposures = 36,
+            Cost = 10,
+            PurchasedBy = EUsernameType.Angel,
+            PurchasedOn = DateTime.UtcNow,
+            ImageId = Guid.Empty,
+            Developed = false
+        };
+        await _databaseService.AddAsync(film);
+
+        var result = await _controller.DeleteFilm(film.Id);
+
+        Assert.IsType<UnauthorizedResult>(result);
+    }
+
+    [Fact]
+    public async Task UpdateFilm_PurchasedByIgnored_RemainsUnchanged()
+    {
+        SetControllerUser(nameof(EUsernameType.Angel));
+        var film = new FilmEntity
+        {
+            Id = "film-edit-owner",
+            Brand = "Original",
+            Iso = "400",
+            Type = EFilmType.ColorNegative,
+            NumberOfExposures = 36,
+            Cost = 10,
+            PurchasedBy = EUsernameType.Angel,
+            PurchasedOn = DateTime.UtcNow,
+            ImageId = Guid.Empty,
+            Developed = false
+        };
+        await _databaseService.AddAsync(film);
+        var updateDto = new FilmDto
+        {
+            Id = film.Id,
+            Brand = "Updated Brand",
+            Iso = "400",
+            Type = EFilmType.ColorNegative.ToString(),
+            NumberOfExposures = 36,
+            Cost = 10,
+            PurchasedBy = nameof(EUsernameType.Cristiana),
+            PurchasedOn = DateOnly.FromDateTime(film.PurchasedOn),
+            Description = "",
+            Developed = false,
+            ImageUrl = ""
+        };
+
+        var result = await _controller.UpdateFilm(film.Id, updateDto);
+
+        Assert.IsType<NoContentResult>(result);
+        var updated = await _databaseService.GetByIdAsync<FilmEntity>(film.Id);
+        Assert.NotNull(updated);
+        Assert.Equal("Updated Brand", updated.Brand);
+        Assert.Equal(EUsernameType.Angel, updated.PurchasedBy);
+    }
+
+    private void SetControllerUser(string userName)
+    {
+        var claims = new List<Claim>
+        {
+            new(ClaimTypes.NameIdentifier, "test-id"),
+            new(ClaimTypes.Name, userName),
+            new(ClaimTypes.Email, "test@example.com")
+        };
+        var identity = new ClaimsIdentity(claims, "TestAuthType");
+        _controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = new DefaultHttpContext { User = new ClaimsPrincipal(identity) }
+        };
+    }
 }
 

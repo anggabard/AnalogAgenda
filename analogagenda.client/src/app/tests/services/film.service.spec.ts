@@ -53,7 +53,7 @@ describe('FilmService', () => {
       service.getMyDevelopedFilmsPaged().subscribe();
 
       // Assert
-      const req = httpMock.expectOne(`${baseUrl}/my/developed?page=1&pageSize=5`);
+      const req = httpMock.expectOne(`${baseUrl}/my/developed?page=1&pageSize=20`);
       expect(req.request.method).toBe('GET');
       req.flush(mockResponse);
     });
@@ -254,7 +254,7 @@ describe('FilmService', () => {
       });
 
       // Assert HTTP call
-      const req = httpMock.expectOne(`${baseUrl}/my/developed?page=1&pageSize=5`);
+      const req = httpMock.expectOne(`${baseUrl}/my/developed?page=1&pageSize=20`);
       req.flush('Server Error', { status: 500, statusText: 'Internal Server Error' });
     });
 
@@ -269,7 +269,7 @@ describe('FilmService', () => {
       });
 
       // Assert HTTP call
-      const req = httpMock.expectOne(`${baseUrl}/developed?page=1&pageSize=5`);
+      const req = httpMock.expectOne(`${baseUrl}/developed?page=1&pageSize=20`);
       req.flush('Not Found', { status: 404, statusText: 'Not Found' });
     });
   });

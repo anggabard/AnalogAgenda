@@ -32,6 +32,8 @@ export class PhotosComponent implements OnInit {
   loadingFilms = false;
   /** Loading photos for the next batch of sections. */
   loadingPhotos = false;
+  /** User-visible error message (batch load, download, restrict, delete). */
+  errorMessage: string | null = null;
 
   ngOnInit() {
     this.accountService.whoAmI().subscribe({
@@ -49,6 +51,7 @@ export class PhotosComponent implements OnInit {
     this.revealedCount = 0;
     this.loadingFilms = true;
     this.loadingPhotos = false;
+    this.errorMessage = null;
     const request$ =
       this.activeTab === 'my'
         ? this.filmService.getMyDevelopedFilmsAll()
@@ -75,24 +78,27 @@ export class PhotosComponent implements OnInit {
     return !!(this.currentUsername && film.purchasedBy === this.currentUsername);
   }
 
-  /** Load photos for the next batch of films and append to filmSections. */
+  /** Load photos for the next batch of films and append to filmSections. On failure, leave revealedCount unchanged so user can retry. */
   private revealNextBatch() {
     if (this.loadingPhotos || this.revealedCount >= this.allFilms.length) return;
     const batch = this.allFilms.slice(this.revealedCount, this.revealedCount + this.batchSize);
     if (batch.length === 0) return;
     this.loadingPhotos = true;
+    this.errorMessage = null;
+    const batchStart = this.revealedCount;
     const promises = batch.map((film) =>
       lastValueFrom(this.photoService.getPhotosByFilmId(film.id)).then((photos) => ({ film, photos: photos || [] }))
     );
     Promise.all(promises)
       .then((results) => {
         results.forEach((r) => this.filmSections.push({ film: r.film, photos: r.photos }));
-        this.revealedCount += batch.length;
+        this.revealedCount = batchStart + batch.length;
         this.loadingPhotos = false;
       })
       .catch((err) => {
         console.error('Error loading photos for batch:', err);
         this.loadingPhotos = false;
+        this.errorMessage = 'Failed to load some photos. You can try "Load more" again.';
       });
   }
 
@@ -111,6 +117,7 @@ export class PhotosComponent implements OnInit {
   downloadAllLoadingSectionId: string | null = null;
 
   onDownloadPhoto(section: FilmWithPhotos, photo: PhotoDto) {
+    this.errorMessage = null;
     this.photoService.downloadPhoto(photo.id).subscribe({
       next: (blob) => {
         const url = window.URL.createObjectURL(blob);
@@ -123,10 +130,14 @@ export class PhotosComponent implements OnInit {
         document.body.removeChild(link);
         window.URL.revokeObjectURL(url);
       },
+      error: () => {
+        this.errorMessage = 'Failed to download photo.';
+      },
     });
   }
 
   onDownloadAll(section: FilmWithPhotos, small: boolean) {
+    this.errorMessage = null;
     this.downloadAllLoadingSectionId = section.film.id;
     this.photoService.downloadAllPhotos(section.film.id, small).subscribe({
       next: (blob) => {
@@ -151,24 +162,33 @@ export class PhotosComponent implements OnInit {
       },
       error: () => {
         this.downloadAllLoadingSectionId = null;
+        this.errorMessage = 'Failed to download photos archive.';
       },
     });
   }
 
   onRestrictToggle(section: FilmWithPhotos, photo: PhotoDto) {
+    this.errorMessage = null;
     const newRestricted = !photo.restricted;
     this.photoService.setRestricted(photo.id, newRestricted).subscribe({
       next: (updated) => {
         const idx = section.photos.findIndex((p) => p.id === updated.id);
         if (idx >= 0) section.photos[idx].restricted = updated.restricted;
       },
+      error: () => {
+        this.errorMessage = 'Failed to update photo access.';
+      },
     });
   }
 
   onDeletePhoto(section: FilmWithPhotos, photo: PhotoDto) {
+    this.errorMessage = null;
     this.photoService.deletePhoto(photo.id).subscribe({
       next: () => {
         section.photos = section.photos.filter((p) => p.id !== photo.id);
+      },
+      error: () => {
+        this.errorMessage = 'Failed to delete photo.';
       },
     });
   }

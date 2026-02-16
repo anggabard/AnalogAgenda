@@ -147,22 +147,23 @@ public class FilmController(
     private async Task<List<FilmEntity>> GetFilmsForSearchAsync(
         Expression<Func<FilmEntity, bool>> predicate,
         FilmSearchDto searchDto,
-        bool includePhotos
+        bool includePhotos,
+        bool useExposureDateSorting = false
     )
     {
         var needExposure = NeedsExposureOrDescriptionIncludes(searchDto);
-        if (includePhotos && needExposure)
+        var needExposureDates = needExposure || useExposureDateSorting;
+        if (includePhotos && needExposureDates)
         {
             var all = await databaseService.GetAllWithIncludesAsync<FilmEntity>(f => f.Photos, f => f.ExposureDates);
             return all.Where(predicate.Compile()).ToList();
         }
         if (includePhotos)
         {
-            // Load Photos and ExposureDates so we can sort by exposure date (e.g. for Photos page)
-            var all = await databaseService.GetAllWithIncludesAsync<FilmEntity>(f => f.Photos, f => f.ExposureDates);
+            var all = await databaseService.GetAllWithIncludesAsync<FilmEntity>(f => f.Photos);
             return all.Where(predicate.Compile()).ToList();
         }
-        if (needExposure)
+        if (needExposureDates)
         {
             var all = await databaseService.GetAllWithIncludesAsync<FilmEntity>(f => f.ExposureDates);
             return all.Where(predicate.Compile()).ToList();
@@ -180,7 +181,7 @@ public class FilmController(
         // For backward compatibility, if page is 0 or negative, return all filtered films
         if (searchDto.Page <= 0)
         {
-            var entities = await GetFilmsForSearchAsync(predicate, searchDto, includePhotos);
+            var entities = await GetFilmsForSearchAsync(predicate, searchDto, includePhotos, useExposureDateSorting);
             var filteredEntities = ApplySearchFilters(entities, searchDto);
             var sorted = useExposureDateSorting
                 ? filteredEntities.ApplyExposureDateSorting()
@@ -189,7 +190,7 @@ public class FilmController(
             return Ok(results);
         }
 
-        var allEntities = await GetFilmsForSearchAsync(predicate, searchDto, includePhotos);
+        var allEntities = await GetFilmsForSearchAsync(predicate, searchDto, includePhotos, useExposureDateSorting);
         var searchFilteredEntities = ApplySearchFilters(allEntities, searchDto);
         var sortedEntities = (useExposureDateSorting
             ? searchFilteredEntities.ApplyExposureDateSorting()
@@ -221,7 +222,7 @@ public class FilmController(
     {
         if (searchDto.Page <= 0)
         {
-            var allEntities = await GetFilmsForSearchAsync(statusPredicate, searchDto, includePhotos);
+            var allEntities = await GetFilmsForSearchAsync(statusPredicate, searchDto, includePhotos, useExposureDateSorting);
             var myEntities = allEntities.Where(f => f.PurchasedBy == currentUserEnum);
             var filteredEntities = ApplySearchFilters(myEntities, searchDto);
             var sorted = useExposureDateSorting
@@ -231,7 +232,7 @@ public class FilmController(
             return Ok(results);
         }
 
-        var allEntitiesForPaging = await GetFilmsForSearchAsync(statusPredicate, searchDto, includePhotos);
+        var allEntitiesForPaging = await GetFilmsForSearchAsync(statusPredicate, searchDto, includePhotos, useExposureDateSorting);
         var myFilms = allEntitiesForPaging.Where(f => f.PurchasedBy == currentUserEnum);
         var filteredFilms = ApplySearchFilters(myFilms, searchDto);
         var sortedFilms = (useExposureDateSorting
@@ -252,28 +253,6 @@ public class FilmController(
         };
 
         return Ok(pagedResults);
-    }
-
-    /// <summary>
-    /// Diagnostic: returns which "All films" list(s) this film would appear in (without any search filters).
-    /// Use this to verify why a film might not show on the All tab (e.g. wrong section, or pagination).
-    /// </summary>
-    [HttpGet("diagnostics/visibility/{id}")]
-    public async Task<IActionResult> GetFilmVisibility(string id)
-    {
-        var entity = await databaseService.GetByIdAsync<FilmEntity>(id);
-        if (entity == null)
-            return NotFound(new { exists = false, message = "Film not found." });
-
-        return Ok(new
-        {
-            exists = true,
-            id = entity.Id,
-            developed = entity.Developed,
-            appearsInAllDevelopedList = entity.Developed,
-            appearsInAllNotDevelopedList = !entity.Developed,
-            purchasedBy = entity.PurchasedBy.ToString()
-        });
     }
 
     [HttpGet("{id}")]
@@ -320,6 +299,8 @@ public class FilmController(
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteFilm(string id)
     {
+        if (!User.IsAuthenticated())
+            return Unauthorized();
         var entity = await databaseService.GetByIdAsync<FilmEntity>(id);
         if (entity == null)
             return NotFound();

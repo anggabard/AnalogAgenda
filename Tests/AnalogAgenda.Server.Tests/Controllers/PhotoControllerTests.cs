@@ -225,5 +225,77 @@ public class PhotoControllerTests : IDisposable
         // Assert
         Assert.IsType<NotFoundResult>(result);
     }
+
+    [Fact]
+    public async Task SetPhotoRestricted_AsOwner_WithValidPhoto_ReturnsOkAndUpdatesRestricted()
+    {
+        var filmId = "film-1";
+        var film = new FilmEntity { Id = filmId, Brand = "Test", Iso = "400", PurchasedBy = EUsernameType.Angel };
+        await _databaseService.AddAsync(film);
+        var photoId = "photo-1";
+        var photo = new PhotoEntity { Id = photoId, FilmId = filmId, Index = 1, ImageId = Guid.NewGuid(), Restricted = false };
+        await _databaseService.AddAsync(photo);
+
+        var result = await _controller.SetPhotoRestricted(photoId, new SetRestrictedDto { Restricted = true });
+
+        var okResult = Assert.IsType<OkObjectResult>(result);
+        var dto = Assert.IsType<PhotoDto>(okResult.Value);
+        Assert.True(dto.Restricted);
+        var updated = await _databaseService.GetByIdAsync<PhotoEntity>(photoId);
+        Assert.NotNull(updated);
+        Assert.True(updated!.Restricted);
+    }
+
+    [Fact]
+    public async Task SetPhotoRestricted_AsOwner_SetToFalse_ReturnsOk()
+    {
+        var filmId = "film-1";
+        var film = new FilmEntity { Id = filmId, Brand = "Test", Iso = "400", PurchasedBy = EUsernameType.Angel };
+        await _databaseService.AddAsync(film);
+        var photoId = "photo-1";
+        var photo = new PhotoEntity { Id = photoId, FilmId = filmId, Index = 1, ImageId = Guid.NewGuid(), Restricted = true };
+        await _databaseService.AddAsync(photo);
+
+        var result = await _controller.SetPhotoRestricted(photoId, new SetRestrictedDto { Restricted = false });
+
+        Assert.IsType<OkObjectResult>(result);
+        var updated = await _databaseService.GetByIdAsync<PhotoEntity>(photoId);
+        Assert.NotNull(updated);
+        Assert.False(updated!.Restricted);
+    }
+
+    [Fact]
+    public async Task SetPhotoRestricted_NonOwner_ReturnsForbid()
+    {
+        var filmId = "film-1";
+        var film = new FilmEntity { Id = filmId, Brand = "Test", Iso = "400", PurchasedBy = EUsernameType.Cristiana };
+        await _databaseService.AddAsync(film);
+        var photoId = "photo-1";
+        var photo = new PhotoEntity { Id = photoId, FilmId = filmId, Index = 1, ImageId = Guid.NewGuid() };
+        await _databaseService.AddAsync(photo);
+
+        var result = await _controller.SetPhotoRestricted(photoId, new SetRestrictedDto { Restricted = true });
+
+        Assert.IsType<ForbidResult>(result);
+    }
+
+    [Fact]
+    public async Task SetPhotoRestricted_NonExistentPhoto_ReturnsNotFound()
+    {
+        var result = await _controller.SetPhotoRestricted("non-existent", new SetRestrictedDto { Restricted = true });
+        Assert.IsType<NotFoundResult>(result);
+    }
+
+    [Fact]
+    public async Task SetPhotoRestricted_PhotoExistsButFilmMissing_ReturnsForbid()
+    {
+        var photoId = "photo-orphan";
+        var photo = new PhotoEntity { Id = photoId, FilmId = "missing-film", Index = 1, ImageId = Guid.NewGuid() };
+        await _databaseService.AddAsync(photo);
+
+        var result = await _controller.SetPhotoRestricted(photoId, new SetRestrictedDto { Restricted = true });
+
+        Assert.IsType<ForbidResult>(result);
+    }
 }
 
