@@ -3,7 +3,7 @@ import { Router } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { NO_ERRORS_SCHEMA } from '@angular/core';
 import { SessionsComponent } from '../../components/sessions/sessions.component';
-import { ImagePreviewComponent } from '../../components/common/image-preview/image-preview.component';
+import { ImagePreviewComponent } from '../../components/common';
 import { SessionService, AccountService, UserSettingsService } from '../../services';
 import { SessionDto, IdentityDto, PagedResponseDto } from '../../DTOs';
 import { TestConfig } from '../test.config';

@@ -123,17 +123,10 @@
   </div>
 </div>
 
-<!-- Delete Confirmation Modal -->
-<div class="delete-modal-overlay" *ngIf="isDeleteModalOpen" (click)="closeDeleteModal()">
-  <div class="delete-modal" (click)="$event.stopPropagation()">
-    <h2>Confirm Delete</h2>
-    <p *ngIf="currentPreviewPhoto">
-      Are you sure you want to delete photo
-      <strong>#{{ currentPreviewPhoto!.index.toString().padStart(3, '0') }}</strong>?
-    </p>
-    <div class="delete-modal-actions">
-      <button class="cancel-btn" (click)="closeDeleteModal()">Cancel</button>
-      <button class="delete-confirm-btn" (click)="confirmDelete()">Delete</button>
-    </div>
-  </div>
-</div>
+<app-confirm-delete-modal
+  [open]="isDeleteModalOpen"
+  title="Confirm Delete"
+  [message]="getDeleteConfirmMessage()"
+  (confirm)="confirmDelete()"
+  (cancel)="closeDeleteModal()">
+</app-confirm-delete-modal>

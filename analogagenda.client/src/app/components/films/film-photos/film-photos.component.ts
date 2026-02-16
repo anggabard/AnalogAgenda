@@ -2,6 +2,7 @@ import { Component, inject, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { PhotoService, FilmService, AccountService } from '../../../services';
 import { PhotoDto, FilmDto } from '../../../DTOs';
+import { DownloadHelper } from '../../../helpers/download.helper';
 
 @Component({
   selector: 'app-film-photos',
@@ -65,15 +66,9 @@ export class FilmPhotosComponent implements OnInit {
   onDownloadPhoto(photo: PhotoDto) {
     this.photoService.downloadPhoto(photo.id).subscribe({
       next: (blob) => {
-        const url = window.URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
         const displayName = (this.film?.name?.trim() || this.film?.brand) || 'photo';
-        link.download = `${photo.index.toString().padStart(3, '0')}-${this.sanitizeFileName(displayName)}.jpg`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        window.URL.revokeObjectURL(url);
+        const filename = `${photo.index.toString().padStart(3, '0')}-${DownloadHelper.sanitizeForFileName(displayName)}.jpg`;
+        DownloadHelper.triggerBlobDownload(blob, filename);
       },
       error: () => {
         this.errorMessage = 'Error downloading photo.';
@@ -85,26 +80,19 @@ export class FilmPhotosComponent implements OnInit {
     this.downloadAllLoading = true;
     this.photoService.downloadAllPhotos(this.filmId, small).subscribe({
       next: (blob) => {
-        const url = window.URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
         const hasName = this.film?.name?.trim();
-        const brand = this.film?.brand ? this.sanitizeNameForFileName(this.film.brand) : '';
+        const brand = this.film?.brand ? DownloadHelper.sanitizePathUnsafeChars(this.film.brand) : '';
         const titlePart = hasName
-          ? `${this.sanitizeNameForFileName(this.film!.name!.trim())} - ${brand}`
+          ? `${DownloadHelper.sanitizePathUnsafeChars(this.film!.name!.trim())} - ${brand}`
           : brand;
-        const isoPart = this.film?.iso ? ` - ISO ${this.sanitizeFileName(this.film.iso)}` : '';
+        const isoPart = this.film?.iso ? ` - ISO ${DownloadHelper.sanitizeForFileName(this.film.iso)}` : '';
         const formattedDate = this.film?.formattedExposureDate
-          ? this.sanitizeDateForFileName(this.film.formattedExposureDate)
+          ? DownloadHelper.sanitizePathUnsafeChars(this.film.formattedExposureDate)
           : '';
         const datePart = formattedDate ? ` - ${formattedDate}` : '';
         const sizeSuffix = small ? '-small' : '';
         const baseName = [titlePart || 'photos', isoPart, datePart].filter(Boolean).join('');
-        link.download = `${baseName}${sizeSuffix}.zip`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        window.URL.revokeObjectURL(url);
+        DownloadHelper.triggerBlobDownload(blob, `${baseName}${sizeSuffix}.zip`);
         this.downloadAllLoading = false;
       },
       error: () => {
@@ -184,18 +172,5 @@ export class FilmPhotosComponent implements OnInit {
       this.uploadLoading = false;
       this.errorMessage = 'There was an error uploading photos.';
     }
-  }
-
-  private sanitizeFileName(fileName: string): string {
-    const sanitized = fileName.replace(/[^a-zA-Z0-9.\-_]/g, '');
-    return (sanitized || 'photos').substring(0, 50);
-  }
-
-  private sanitizeDateForFileName(dateString: string): string {
-    return dateString.replace(/[<>:"/\\|?*]/g, '').substring(0, 50);
-  }
-
-  private sanitizeNameForFileName(name: string): string {
-    return name.replace(/[<>:"/\\|?*]/g, '').substring(0, 50);
   }
 }

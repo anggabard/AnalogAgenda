@@ -6,9 +6,7 @@
                 <h1 class="form-title">Edit Film</h1>
             </ng-template>
 
-            <div *ngIf="errorMessage" class="error-message">
-                {{ errorMessage }}
-            </div>
+            <app-error-message [message]="errorMessage"></app-error-message>
 
             <div *ngIf="successMessage" class="success-message">
                 {{ successMessage }}
@@ -176,18 +174,13 @@
         <!-- Delete Button -->
         <button *ngIf="!isInsert" class="delete-btn" (click)="isDeleteModalOpen = true">Delete</button>
 
-        <div class="delete-modal-overlay" *ngIf="isDeleteModalOpen" (click)="isDeleteModalOpen = false">
-            <div class="delete-modal" (click)="$event.stopPropagation()">
-                <h2>Confirm Delete</h2>
-                <p>
-                    Are you sure you want to delete <strong>{{ this.originalName }}</strong> Film?
-                </p>
-                <div class="delete-modal-actions">
-                    <button class="cancel-btn" (click)="isDeleteModalOpen = false">Cancel</button>
-                    <button class="delete-btn" (click)="onDelete()">Delete</button>
-                </div>
-            </div>
-        </div>
+        <app-confirm-delete-modal
+            [open]="isDeleteModalOpen"
+            title="Confirm Delete"
+            [message]="'Are you sure you want to delete ' + (originalName || '') + ' Film?'"
+            (confirm)="onDelete()"
+            (cancel)="isDeleteModalOpen = false">
+        </app-confirm-delete-modal>
     </div>
 
     <!-- Session Assignment Modal -->

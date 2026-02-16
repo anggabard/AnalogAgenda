@@ -1,6 +1,6 @@
 import { Component, ViewChild, TemplateRef } from "@angular/core";
 import { Observable } from "rxjs";
-import { BasePaginatedListComponent } from "../common/base-paginated-list/base-paginated-list.component";
+import { BasePaginatedListComponent } from '../common';
 import { NotesService } from "../../services";
 import { NoteDto, PagedResponseDto } from "../../DTOs";
 

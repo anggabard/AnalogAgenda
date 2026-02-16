@@ -178,10 +178,4 @@ export abstract class BaseUpsertComponent<TDto> implements OnInit {
     });
   }
 
-  /**
-   * Toggle delete confirmation modal
-   */
-  toggleDeleteModal(): void {
-    this.isDeleteModalOpen = !this.isDeleteModalOpen;
-  }
 }

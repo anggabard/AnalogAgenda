@@ -5,9 +5,7 @@
       <form [formGroup]="form" (ngSubmit)="submit()" class="form">
         <h1 class="form-title">Login</h1>
 
-        <div *ngIf="errorMessage" class="error-message">
-          {{ errorMessage }}
-        </div>
+        <app-error-message [message]="errorMessage"></app-error-message>
 
         <input type="text" formControlName="username" placeholder="Username" class="input" />
         <input type="password" formControlName="password" placeholder="Password" class="input" />

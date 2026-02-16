@@ -6,9 +6,7 @@
     </div>
   </div>
 
-  <div *ngIf="errorMessage" class="error-message">
-    {{ errorMessage }}
-  </div>
+  <app-error-message [message]="errorMessage"></app-error-message>
 
   <div *ngIf="loading" class="loading-container">
     <div class="spinner"></div>

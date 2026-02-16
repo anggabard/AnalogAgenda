@@ -2,7 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { FormGroup, Validators, AbstractControl, ValidationErrors } from '@angular/forms';
 import { Observable, forkJoin, Subject } from 'rxjs';
 import { switchMap, debounceTime, distinctUntilChanged } from 'rxjs/operators';
-import { BaseUpsertComponent } from '../../common/base-upsert/base-upsert.component';
+import { BaseUpsertComponent } from '../../common';
 import { FilmService, SessionService, DevKitService, UsedFilmThumbnailService } from '../../../services';
 import { FilmType, UsernameType } from '../../../enums';
 import { FilmDto, SessionDto, DevKitDto, UsedFilmThumbnailDto, ExposureDateEntry } from '../../../DTOs';

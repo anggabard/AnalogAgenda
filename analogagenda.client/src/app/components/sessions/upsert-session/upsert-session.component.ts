@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { FormGroup, Validators } from '@angular/forms';
 import { Observable, forkJoin } from 'rxjs';
-import { BaseUpsertComponent } from '../../common/base-upsert/base-upsert.component';
+import { BaseUpsertComponent } from '../../common';
 import { SessionService, DevKitService, FilmService } from '../../../services';
 import { SessionDto, DevKitDto, FilmDto } from '../../../DTOs';
 import { DateHelper } from '../../../helpers/date.helper';

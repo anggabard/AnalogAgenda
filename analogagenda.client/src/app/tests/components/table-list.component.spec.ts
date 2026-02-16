@@ -1,6 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Component, TemplateRef, ViewChild } from '@angular/core';
-import { TableListComponent } from '../../components/common/table-list/table-list.component';
+import { TableListComponent } from '../../components/common';
 import { FilmDto } from '../../DTOs';
 import { FilmType, UsernameType } from '../../enums';
 
