@@ -2,7 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute, Router } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { FilmPhotosComponent } from '../../components/films/film-photos/film-photos.component';
-import { FilmService, PhotoService } from '../../services';
+import { FilmService, PhotoService, AccountService } from '../../services';
 import { FilmDto, PhotoDto } from '../../DTOs';
 import { FilmType, UsernameType } from '../../enums';
 import { TestConfig } from '../test.config';
@@ -12,6 +12,7 @@ describe('FilmPhotosComponent', () => {
   let fixture: ComponentFixture<FilmPhotosComponent>;
   let mockFilmService: jasmine.SpyObj<FilmService>;
   let mockPhotoService: jasmine.SpyObj<PhotoService>;
+  let mockAccountService: jasmine.SpyObj<AccountService>;
   let mockRouter: jasmine.SpyObj<Router>;
   let mockActivatedRoute: any;
 
@@ -38,9 +39,11 @@ describe('FilmPhotosComponent', () => {
   beforeEach(async () => {
     const filmServiceSpy = jasmine.createSpyObj('FilmService', ['getById']);
     const photoServiceSpy = jasmine.createSpyObj('PhotoService', [
-      'getPhotosByFilmId', 'downloadPhoto', 'downloadAllPhotos', 'deletePhoto', 'uploadMultiplePhotos', 'getPreviewUrl'
+      'getPhotosByFilmId', 'downloadPhoto', 'downloadAllPhotos', 'deletePhoto', 'uploadMultiplePhotos', 'setRestricted', 'getPreviewUrl'
     ]);
     photoServiceSpy.getPreviewUrl.and.callFake((photo: PhotoDto) => `preview-${photo.id}`);
+    const accountServiceSpy = jasmine.createSpyObj('AccountService', ['whoAmI']);
+    accountServiceSpy.whoAmI.and.returnValue(of({ username: 'Angel', email: 'angel@test.com' }));
     const routerSpy = TestConfig.createRouterSpy();
 
     mockActivatedRoute = {
@@ -56,6 +59,7 @@ describe('FilmPhotosComponent', () => {
       providers: [
         { provide: FilmService, useValue: filmServiceSpy },
         { provide: PhotoService, useValue: photoServiceSpy },
+        { provide: AccountService, useValue: accountServiceSpy },
         { provide: Router, useValue: routerSpy },
         { provide: ActivatedRoute, useValue: mockActivatedRoute }
       ]
@@ -65,34 +69,27 @@ describe('FilmPhotosComponent', () => {
     component = fixture.componentInstance;
     mockFilmService = TestBed.inject(FilmService) as jasmine.SpyObj<FilmService>;
     mockPhotoService = TestBed.inject(PhotoService) as jasmine.SpyObj<PhotoService>;
+    mockAccountService = TestBed.inject(AccountService) as jasmine.SpyObj<AccountService>;
     mockRouter = TestBed.inject(Router) as jasmine.SpyObj<Router>;
   });
 
-  // Helper method to initialize component with mock data
   const initializeComponent = async () => {
     mockFilmService.getById.and.returnValue(of(mockFilm));
     mockPhotoService.getPhotosByFilmId.and.returnValue(of(mockPhotos));
-    
-    // Directly set the component properties for testing
+    mockAccountService.whoAmI.and.returnValue(of({ username: 'Angel', email: 'angel@test.com' }));
+
     component.filmId = 'test-film-id';
     component.film = mockFilm;
-    // Always reset photos to a fresh copy of mockPhotos to prevent state leakage
     component.photos = JSON.parse(JSON.stringify(mockPhotos));
     component.errorMessage = null;
     component.uploadLoading = false;
     component.uploadProgress = { current: 0, total: 0 };
-    component.isPreviewModalOpen = false;
-    component.isDeleteModalOpen = false;
-    component.currentPreviewPhoto = null;
-    component.currentPhotoIndex = 0;
-    
+    component.downloadAllLoading = false;
+
     fixture.detectChanges();
-    
-    // Set loading to false after detectChanges to ensure it's not overridden
     component.loading = false;
   };
 
-  // Helper to get fresh photos array
   const getFreshPhotos = () => JSON.parse(JSON.stringify(mockPhotos));
 
   afterEach(() => {
@@ -104,318 +101,37 @@ describe('FilmPhotosComponent', () => {
   });
 
   it('should initialize with film ID from route and load data', async () => {
-    // Arrange & Act
-    await initializeComponent();
+    mockFilmService.getById.and.returnValue(of(mockFilm));
+    mockPhotoService.getPhotosByFilmId.and.returnValue(of(mockPhotos));
+    mockAccountService.whoAmI.and.returnValue(of({ username: 'Angel', email: 'angel@test.com' }));
+    fixture.detectChanges();
 
-    // Assert
+    await new Promise((r) => setTimeout(r, 0));
+
     expect(component.filmId).toBe('test-film-id');
     expect(component.film).toEqual(mockFilm);
-    expect(component.photos).toEqual(mockPhotos);
+    expect(component.photos.length).toBe(3);
     expect(component.loading).toBeFalsy();
   });
 
-  it('should handle missing film ID', () => {
-    // Arrange
+  it('should navigate to /films when film ID is missing', () => {
     mockActivatedRoute.snapshot.paramMap.get.and.returnValue(null);
     const newFixture = TestBed.createComponent(FilmPhotosComponent);
-    const newComponent = newFixture.componentInstance;
-    
-    // Directly set the expected error state
-    newComponent.filmId = '';
-    newComponent.errorMessage = 'Film ID not provided.';
-    newComponent.loading = false;
+    newFixture.detectChanges();
 
-    // Assert
-    expect(newComponent.errorMessage).toBe('Film ID not provided.');
-    expect(newComponent.loading).toBeFalsy();
+    expect(mockRouter.navigate).toHaveBeenCalledWith(['/films']);
   });
 
-  it('should handle film loading error', () => {
-    // Arrange & Act - Directly set the error state
-    component.filmId = 'test-film-id';
-    component.errorMessage = 'Error loading film details.';
-    component.loading = false;
+  it('should set errorMessage when film/photos loading fails', async () => {
+    mockFilmService.getById.and.returnValue(of(mockFilm));
+    mockPhotoService.getPhotosByFilmId.and.returnValue(throwError(() => new Error('fail')));
+    mockAccountService.whoAmI.and.returnValue(of({ username: 'Angel', email: 'a@b.com' }));
+    fixture.detectChanges();
 
-    // Assert
-    expect(component.errorMessage).toBe('Error loading film details.');
+    await new Promise((r) => setTimeout(r, 50));
+
+    expect(component.errorMessage).toBe('Error loading film photos.');
     expect(component.loading).toBeFalsy();
-  });
-
-  it('should handle photos loading error', () => {
-    // Arrange & Act - Directly set the error state
-    component.filmId = 'test-film-id';
-    component.errorMessage = 'Error loading photos.';
-    component.loading = false;
-
-    // Assert
-    expect(component.errorMessage).toBe('Error loading photos.');
-    expect(component.loading).toBeFalsy();
-  });
-
-  describe('Photo Preview', () => {
-    beforeEach(async () => {
-      await initializeComponent();
-      // Reset photos array to fresh copy
-      component.photos = JSON.parse(JSON.stringify(mockPhotos));
-    });
-
-    afterEach(() => {
-      // Ensure photos array is reset after each test to prevent state leakage
-      component.photos = JSON.parse(JSON.stringify(mockPhotos));
-      component.currentPhotoIndex = 0;
-      component.currentPreviewPhoto = null;
-      component.isPreviewModalOpen = false;
-    });
-
-    it('should open preview modal', () => {
-      // Act
-      component.openPreview(component.photos[1]);
-
-      // Assert
-      expect(component.isPreviewModalOpen).toBeTruthy();
-      expect(component.currentPreviewPhoto).toEqual(component.photos[1]);
-      expect(component.currentPhotoIndex).toBe(1);
-    });
-
-    it('should close preview modal', () => {
-      // Arrange
-      component.openPreview(component.photos[0]);
-
-      // Act
-      component.closePreview();
-
-      // Assert
-      expect(component.isPreviewModalOpen).toBeFalsy();
-      expect(component.currentPreviewPhoto).toBeNull();
-      expect(component.currentPhotoIndex).toBe(0);
-    });
-
-    it('should navigate to next photo', () => {
-      // Arrange
-      component.openPreview(component.photos[0]);
-
-      // Act
-      component.nextPhoto();
-
-      // Assert
-      expect(component.currentPhotoIndex).toBe(1);
-      expect(component.currentPreviewPhoto).toEqual(component.photos[1]);
-    });
-
-    it('should navigate to previous photo', () => {
-      // Arrange
-      component.openPreview(component.photos[1]);
-
-      // Act
-      component.previousPhoto();
-
-      // Assert
-      expect(component.currentPhotoIndex).toBe(0);
-      expect(component.currentPreviewPhoto).toEqual(component.photos[0]);
-    });
-
-    it('should not navigate previous when at first photo', () => {
-      // Arrange
-      component.openPreview(component.photos[0]);
-
-      // Act
-      component.previousPhoto();
-
-      // Assert
-      expect(component.currentPhotoIndex).toBe(0);
-      expect(component.currentPreviewPhoto).toEqual(component.photos[0]);
-    });
-
-    it('should not navigate next when at last photo', () => {
-      // Arrange - ensure photos array is properly set with fresh copy
-      component.photos = getFreshPhotos();
-      expect(component.photos.length).toBe(3); // Verify we have 3 photos
-      component.openPreview(component.photos[2]); // Last photo (index 2)
-      expect(component.currentPhotoIndex).toBe(2); // Verify we're at the last photo
-
-      // Act
-      component.nextPhoto();
-
-      // Assert - should not navigate past the last photo
-      expect(component.currentPhotoIndex).toBe(2);
-      expect(component.currentPreviewPhoto).toEqual(component.photos[2]);
-    });
-
-    it('should handle keyboard navigation - left arrow', () => {
-      // Arrange
-      component.openPreview(component.photos[1]);
-      const event = new KeyboardEvent('keydown', { key: 'ArrowLeft' });
-      spyOn(event, 'preventDefault');
-
-      // Act
-      component.onKeyDown(event);
-
-      // Assert
-      expect(event.preventDefault).toHaveBeenCalled();
-      expect(component.currentPhotoIndex).toBe(0);
-    });
-
-    it('should handle keyboard navigation - right arrow', () => {
-      // Arrange
-      component.openPreview(component.photos[0]);
-      const event = new KeyboardEvent('keydown', { key: 'ArrowRight' });
-      spyOn(event, 'preventDefault');
-
-      // Act
-      component.onKeyDown(event);
-
-      // Assert
-      expect(event.preventDefault).toHaveBeenCalled();
-      expect(component.currentPhotoIndex).toBe(1);
-    });
-
-    it('should handle keyboard navigation - escape', () => {
-      // Arrange
-      component.openPreview(component.photos[0]);
-      const event = new KeyboardEvent('keydown', { key: 'Escape' });
-      spyOn(event, 'preventDefault');
-
-      // Act
-      component.onKeyDown(event);
-
-      // Assert
-      expect(event.preventDefault).toHaveBeenCalled();
-      expect(component.isPreviewModalOpen).toBeFalsy();
-    });
-
-    it('should check navigation availability correctly', () => {
-      // Arrange - ensure photos array is properly set with fresh copy
-      component.photos = getFreshPhotos();
-      expect(component.photos.length).toBe(3); // Verify we have 3 photos
-      component.openPreview(component.photos[1]); // Middle photo
-
-      // Assert
-      expect(component.canNavigatePrevious()).toBeTruthy();
-      expect(component.canNavigateNext()).toBeTruthy();
-
-      // Check first photo
-      component.openPreview(component.photos[0]);
-      expect(component.canNavigatePrevious()).toBeFalsy();
-      expect(component.canNavigateNext()).toBeTruthy();
-
-      // Check last photo - reset photos array to ensure clean state
-      component.photos = getFreshPhotos();
-      component.openPreview(component.photos[2]);
-      expect(component.currentPhotoIndex).toBe(2); // Verify we're at the last photo
-      expect(component.photos.length).toBe(3); // Verify we still have 3 photos
-      expect(component.canNavigatePrevious()).toBeTruthy();
-      expect(component.canNavigateNext()).toBeFalsy();
-    });
-  });
-
-  describe('Delete Modal', () => {
-    beforeEach(async () => {
-      await initializeComponent();
-      // Reset photos array to fresh copy
-      component.photos = JSON.parse(JSON.stringify(mockPhotos));
-      component.openPreview(component.photos[0]);
-    });
-
-    afterEach(() => {
-      // Ensure photos array is reset after each test to prevent state leakage
-      component.photos = JSON.parse(JSON.stringify(mockPhotos));
-      component.currentPhotoIndex = 0;
-      component.currentPreviewPhoto = null;
-      component.isPreviewModalOpen = false;
-      component.isDeleteModalOpen = false;
-    });
-
-    it('should open delete modal', () => {
-      // Act
-      component.openDeleteModal();
-
-      // Assert
-      expect(component.isDeleteModalOpen).toBeTruthy();
-    });
-
-    it('should close delete modal', () => {
-      // Arrange
-      component.openDeleteModal();
-
-      // Act
-      component.closeDeleteModal();
-
-      // Assert
-      expect(component.isDeleteModalOpen).toBeFalsy();
-    });
-
-    it('should confirm delete and remove photo from list', (done) => {
-      // Arrange - ensure photos array is properly set with fresh copy
-      component.photos = getFreshPhotos();
-      expect(component.photos.length).toBe(3); // Verify we start with 3 photos
-      component.openPreview(component.photos[0]);
-      mockPhotoService.deletePhoto.and.returnValue(of({}));
-      component.openDeleteModal();
-      const initialPhotoCount = component.photos.length;
-      expect(initialPhotoCount).toBe(3); // Verify initial count
-
-      // Act
-      component.confirmDelete();
-
-      // Assert - need to wait for async operation
-      setTimeout(() => {
-        expect(mockPhotoService.deletePhoto).toHaveBeenCalledWith('photo1');
-        expect(component.photos.length).toBe(initialPhotoCount - 1);
-        expect(component.photos.length).toBe(2); // Should have 2 photos after deletion
-        expect(component.photos.find(p => p.id === 'photo1')).toBeUndefined();
-        expect(component.isDeleteModalOpen).toBeFalsy();
-        done();
-      }, 100);
-    });
-
-    it('should handle delete error', () => {
-      // Arrange
-      mockPhotoService.deletePhoto.and.returnValue(throwError('Delete failed'));
-      component.openDeleteModal();
-
-      // Act
-      component.confirmDelete();
-
-      // Assert
-      expect(component.errorMessage).toBe('Error deleting photo.');
-      expect(component.isDeleteModalOpen).toBeFalsy();
-    });
-
-    it('should close preview when deleting last photo', () => {
-      // Arrange
-      const freshPhotos = getFreshPhotos();
-      component.photos = [freshPhotos[0]]; // Only one photo
-      component.openPreview(component.photos[0]);
-      mockPhotoService.deletePhoto.and.returnValue(of({}));
-      component.openDeleteModal();
-
-      // Act
-      component.confirmDelete();
-
-      // Assert
-      expect(component.isPreviewModalOpen).toBeFalsy();
-    });
-
-    it('should adjust photo index after deletion', (done) => {
-      // Arrange - ensure photos array is properly set with fresh copy
-      component.photos = getFreshPhotos();
-      expect(component.photos.length).toBe(3); // Verify we start with 3 photos
-      component.openPreview(component.photos[2]); // Last photo (index 2)
-      expect(component.currentPhotoIndex).toBe(2); // Verify we're at the last photo
-      mockPhotoService.deletePhoto.and.returnValue(of({}));
-      component.openDeleteModal();
-
-      // Act
-      component.confirmDelete();
-
-      // Assert - need to wait for async operation
-      setTimeout(() => {
-        expect(component.photos.length).toBe(2); // Should have 2 photos after deletion
-        expect(component.currentPhotoIndex).toBe(1); // Adjusted to last available index
-        expect(component.currentPreviewPhoto).toEqual(component.photos[1]);
-        done();
-      }, 100);
-    });
   });
 
   describe('Download Functions', () => {
@@ -423,11 +139,10 @@ describe('FilmPhotosComponent', () => {
       await initializeComponent();
     });
 
-    it('should download single photo', () => {
-      // Arrange
+    it('should download single photo via onDownloadPhoto', () => {
       const mockBlob = new Blob(['fake-image-data'], { type: 'image/jpeg' });
       mockPhotoService.downloadPhoto.and.returnValue(of(mockBlob));
-      
+
       spyOn(window.URL, 'createObjectURL').and.returnValue('blob-url');
       spyOn(window.URL, 'revokeObjectURL');
       spyOn(document, 'createElement').and.returnValue({
@@ -439,29 +154,23 @@ describe('FilmPhotosComponent', () => {
       spyOn(document.body, 'appendChild');
       spyOn(document.body, 'removeChild');
 
-      // Act
-      component.downloadPhoto(mockPhotos[0]);
+      component.onDownloadPhoto(mockPhotos[0]);
 
-      // Assert
       expect(mockPhotoService.downloadPhoto).toHaveBeenCalledWith('photo1');
     });
 
-    it('should handle download photo error', () => {
-      // Arrange
-      mockPhotoService.downloadPhoto.and.returnValue(throwError('Download failed'));
+    it('should set errorMessage when download photo fails', () => {
+      mockPhotoService.downloadPhoto.and.returnValue(throwError(() => new Error('Download failed')));
 
-      // Act
-      component.downloadPhoto(mockPhotos[0]);
+      component.onDownloadPhoto(mockPhotos[0]);
 
-      // Assert
       expect(component.errorMessage).toBe('Error downloading photo.');
     });
 
-    it('should download all photos', () => {
-      // Arrange
+    it('should download all photos via onDownloadAllPhotos', () => {
       const mockZipBlob = new Blob(['fake-zip-data'], { type: 'application/zip' });
       mockPhotoService.downloadAllPhotos.and.returnValue(of(mockZipBlob));
-      
+
       spyOn(window.URL, 'createObjectURL').and.returnValue('blob-url');
       spyOn(window.URL, 'revokeObjectURL');
       spyOn(document, 'createElement').and.returnValue({
@@ -473,106 +182,96 @@ describe('FilmPhotosComponent', () => {
       spyOn(document.body, 'appendChild');
       spyOn(document.body, 'removeChild');
 
-      // Act
-      component.downloadAllPhotos();
+      component.onDownloadAllPhotos(false);
 
-      // Assert
       expect(mockPhotoService.downloadAllPhotos).toHaveBeenCalledWith('test-film-id', false);
     });
 
-    it('should handle download all photos error', () => {
-      // Arrange
-      mockPhotoService.downloadAllPhotos.and.returnValue(throwError('Download failed'));
+    it('should set errorMessage when download all photos fails', () => {
+      mockPhotoService.downloadAllPhotos.and.returnValue(throwError(() => new Error('Download failed')));
 
-      // Act
-      component.downloadAllPhotos();
+      component.onDownloadAllPhotos(false);
 
-      // Assert
       expect(component.errorMessage).toBe('Error downloading photos archive.');
+    });
+  });
+
+  describe('onDeletePhoto', () => {
+    beforeEach(async () => {
+      await initializeComponent();
+    });
+
+    it('should remove photo from list on success', (done) => {
+      mockPhotoService.deletePhoto.and.returnValue(of(undefined));
+      component.photos = getFreshPhotos();
+
+      component.onDeletePhoto(component.photos[0]);
+
+      setTimeout(() => {
+        expect(mockPhotoService.deletePhoto).toHaveBeenCalledWith('photo1');
+        expect(component.photos.length).toBe(2);
+        expect(component.photos.find((p) => p.id === 'photo1')).toBeUndefined();
+        done();
+      }, 50);
+    });
+
+    it('should set errorMessage when delete fails', () => {
+      mockPhotoService.deletePhoto.and.returnValue(throwError(() => new Error('Delete failed')));
+
+      component.onDeletePhoto(mockPhotos[0]);
+
+      expect(component.errorMessage).toBe('Error deleting photo.');
     });
   });
 
   describe('Photo Upload', () => {
     beforeEach(async () => {
       await initializeComponent();
-      // Reset photos array to fresh copy
       component.photos = getFreshPhotos();
-      mockPhotoService.uploadMultiplePhotos = jasmine.createSpy('uploadMultiplePhotos').and.returnValue(Promise.resolve([]));
+      (mockPhotoService as any).uploadMultiplePhotos = jasmine.createSpy('uploadMultiplePhotos').and.returnValue(Promise.resolve([]));
     });
 
-    afterEach(() => {
-      // Ensure photos array is reset after each test to prevent state leakage
-      component.photos = getFreshPhotos();
-    });
-
-    it('should upload photos and add them to the list as they complete', async () => {
-      // Arrange
+    it('should upload photos and update loading state', async () => {
       const file1 = new File(['test1'], '1.jpg', { type: 'image/jpeg' });
-      const file2 = new File(['test2'], '2.jpg', { type: 'image/jpeg' });
-      const files = [file1, file2] as any;
-      
-      const newPhoto1: PhotoDto = { id: 'new-photo-1', filmId: 'test-film-id', index: 1, imageUrl: 'url1', imageBase64: '' };
-      const newPhoto2: PhotoDto = { id: 'new-photo-2', filmId: 'test-film-id', index: 2, imageUrl: 'url2', imageBase64: '' };
+      const files = [file1] as any;
 
-      let callback: ((photo: PhotoDto) => void) | undefined;
-      mockPhotoService.uploadMultiplePhotos.and.callFake((filmId, fileList, existing, onPhotoUploaded) => {
-        callback = onPhotoUploaded;
-        return Promise.resolve([
-          { success: true, photo: newPhoto1 },
-          { success: true, photo: newPhoto2 }
-        ]);
-      });
+      (mockPhotoService.uploadMultiplePhotos as jasmine.Spy).and.returnValue(Promise.resolve([{ success: true, photo: mockPhotos[0] }]));
 
-      // Act
       await (component as any).processPhotoUploads(files);
 
-      // Note: The callback is called internally by processPhotoUploads, so we don't need to call it manually
-      // The component will add photos via the callback during the upload process
-
-      // Assert
       expect(mockPhotoService.uploadMultiplePhotos).toHaveBeenCalled();
       expect(component.uploadLoading).toBe(false);
     });
 
     it('should handle upload errors', async () => {
-      // Arrange
       const file1 = new File(['test1'], '1.jpg', { type: 'image/jpeg' });
       const files = [file1] as any;
 
-      mockPhotoService.uploadMultiplePhotos.and.returnValue(Promise.resolve([
-        { success: false, error: 'Upload failed' }
-      ]));
+      (mockPhotoService.uploadMultiplePhotos as jasmine.Spy).and.returnValue(Promise.resolve([{ success: false, error: 'Upload failed' }]));
 
-      // Act
       await (component as any).processPhotoUploads(files);
 
-      // Assert
       expect(component.uploadLoading).toBe(false);
       expect(component.errorMessage).toContain('failed');
     });
 
-    it('should set uploadLoading to true during upload', async () => {
-      // Arrange
+    it('should set uploadLoading during upload', async () => {
       const file1 = new File(['test1'], '1.jpg', { type: 'image/jpeg' });
       const files = [file1] as any;
 
-      let resolveUpload: any;
+      let resolveUpload: (value: Array<{ success: boolean; photo?: PhotoDto; error?: string }>) => void;
       const uploadPromise = new Promise<Array<{ success: boolean; photo?: PhotoDto; error?: string }>>((resolve) => {
         resolveUpload = resolve;
       });
-      mockPhotoService.uploadMultiplePhotos.and.returnValue(uploadPromise);
+      (mockPhotoService.uploadMultiplePhotos as jasmine.Spy).and.returnValue(uploadPromise);
 
-      // Act
       const uploadProcess = (component as any).processPhotoUploads(files);
 
-      // Assert - loading should be true during upload
       expect(component.uploadLoading).toBe(true);
 
-      // Complete upload
-      resolveUpload([{ success: true, photo: mockPhotos[0] }]);
+      resolveUpload!([{ success: true, photo: mockPhotos[0] }]);
       await uploadProcess;
 
-      // Assert - loading should be false after upload
       expect(component.uploadLoading).toBe(false);
     });
   });
@@ -583,27 +282,18 @@ describe('FilmPhotosComponent', () => {
     });
 
     it('should sanitize file names correctly', () => {
-      // Act
       const result = (component as any).sanitizeFileName('Test@Film#Name$With%Special&Chars!');
-
-      // Assert - The sanitizeFileName method removes special characters, keeps letters/numbers/dots/dashes/underscores
       expect(result).toBe('TestFilmNameWithSpecialChars');
     });
 
     it('should handle empty file names', () => {
-      // Act
       const result = (component as any).sanitizeFileName('');
-
-      // Assert - Empty string should default to 'photos'
       expect(result).toBe('photos');
     });
 
     it('should truncate long file names', () => {
-      // Act
       const longName = 'A'.repeat(100);
       const result = (component as any).sanitizeFileName(longName);
-
-      // Assert - Should truncate to 50 characters
       expect(result.length).toBe(50);
     });
   });

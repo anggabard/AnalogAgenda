@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using AnalogAgenda.Server.Controllers;
 using AnalogAgenda.Server.Tests.Helpers;
 using Azure.Storage.Blobs;
@@ -8,6 +9,7 @@ using Database.DTOs;
 using Database.Entities;
 using Database.Services;
 using Database.Services.Interfaces;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
 
@@ -47,6 +49,12 @@ public class PhotoControllerTests : IDisposable
                                  .Returns(_mockBlobClient.Object);
 
         _controller = new PhotoController(_databaseService, _mockBlobService.Object, _dtoConvertor, _entityConvertor);
+
+        var identity = new ClaimsIdentity(new[] { new Claim(ClaimTypes.Name, nameof(EUsernameType.Angel)) }, "TestAuth");
+        _controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = new DefaultHttpContext { User = new ClaimsPrincipal(identity) }
+        };
     }
 
     public void Dispose()
@@ -99,7 +107,7 @@ public class PhotoControllerTests : IDisposable
     {
         // Arrange
         var filmId = "test-film-id";
-        var film = new FilmEntity { Id = filmId, Brand = "Test Film", Iso = "400" };
+        var film = new FilmEntity { Id = filmId, Brand = "Test Film", Iso = "400", PurchasedBy = EUsernameType.Angel };
         await _databaseService.AddAsync(film);
 
         var photo1 = new PhotoEntity { FilmId = filmId, Index = 2, Id = "photo2", ImageId = Guid.NewGuid() };
@@ -129,7 +137,7 @@ public class PhotoControllerTests : IDisposable
     {
         // Arrange
         var filmId = "test-film-id";
-        var film = new FilmEntity { Id = filmId, Brand = "Test Film", Iso = "400" };
+        var film = new FilmEntity { Id = filmId, Brand = "Test Film", Iso = "400", PurchasedBy = EUsernameType.Angel };
         await _databaseService.AddAsync(film);
 
         // Act
@@ -172,7 +180,7 @@ public class PhotoControllerTests : IDisposable
     {
         // Arrange
         var filmId = "test-film-id";
-        var film = new FilmEntity { Id = filmId, Brand = "Test Film", Iso = "400" };
+        var film = new FilmEntity { Id = filmId, Brand = "Test Film", Iso = "400", PurchasedBy = EUsernameType.Angel };
         await _databaseService.AddAsync(film);
 
         // Act
@@ -186,8 +194,12 @@ public class PhotoControllerTests : IDisposable
     public async Task DeletePhoto_WithValidId_ReturnsNoContent()
     {
         // Arrange
+        var filmId = "test-film";
+        var film = new FilmEntity { Id = filmId, Brand = "Test Film", Iso = "400", PurchasedBy = EUsernameType.Angel };
+        await _databaseService.AddAsync(film);
+
         var id = "test-photo-key";
-        var photo = new PhotoEntity { Id = id, FilmId = "test-film", Index = 1, ImageId = Guid.NewGuid() };
+        var photo = new PhotoEntity { Id = id, FilmId = filmId, Index = 1, ImageId = Guid.NewGuid() };
         await _databaseService.AddAsync(photo);
 
         // Act
