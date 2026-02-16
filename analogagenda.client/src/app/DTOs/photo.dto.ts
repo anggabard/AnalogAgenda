@@ -4,6 +4,7 @@ export interface PhotoDto extends HasImageDto {
   id: string;
   filmId: string;
   index: number;
+  restricted?: boolean;
 }
 
 export interface PhotoCreateDto {

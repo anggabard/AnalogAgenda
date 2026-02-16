@@ -271,5 +271,76 @@ public class FilmSearchTests : IDisposable
         Assert.Equal(2, pagedResponse.PageSize);
         Assert.Equal(5, pagedResponse.TotalCount);
     }
+
+    [Fact]
+    public async Task GetDevelopedFilms_WithNoPurchasedByFilter_ReturnsFilmsFromAllUsers()
+    {
+        var angelFilm = new FilmEntity
+        {
+            Id = "angel-1",
+            Brand = "Angel Film",
+            PurchasedBy = EUsernameType.Angel,
+            Developed = true,
+            Iso = "400"
+        };
+        var cristianaFilm = new FilmEntity
+        {
+            Id = "cristiana-1",
+            Brand = "Cristiana Film",
+            PurchasedBy = EUsernameType.Cristiana,
+            Developed = true,
+            Iso = "200"
+        };
+        await _databaseService.AddAsync(angelFilm);
+        await _databaseService.AddAsync(cristianaFilm);
+
+        var searchDto = new FilmSearchDto { Page = 1, PageSize = 10 };
+
+        var result = await _controller.GetDevelopedFilms(searchDto);
+
+        var okResult = Assert.IsType<OkObjectResult>(result);
+        var pagedResponse = Assert.IsType<PagedResponseDto<FilmDto>>(okResult.Value);
+        Assert.Equal(2, pagedResponse.TotalCount);
+        var brands = pagedResponse.Data.Select(f => f.Brand).OrderBy(b => b).ToList();
+        Assert.Contains("Angel Film", brands);
+        Assert.Contains("Cristiana Film", brands);
+    }
+
+    [Fact]
+    public async Task GetDevelopedFilms_WithPurchasedByFilter_ReturnsOnlyThatOwnersFilms()
+    {
+        var angelFilm = new FilmEntity
+        {
+            Id = "angel-1",
+            Brand = "Angel Film",
+            PurchasedBy = EUsernameType.Angel,
+            Developed = true,
+            Iso = "400"
+        };
+        var cristianaFilm = new FilmEntity
+        {
+            Id = "cristiana-1",
+            Brand = "Cristiana Film",
+            PurchasedBy = EUsernameType.Cristiana,
+            Developed = true,
+            Iso = "200"
+        };
+        await _databaseService.AddAsync(angelFilm);
+        await _databaseService.AddAsync(cristianaFilm);
+
+        var searchDto = new FilmSearchDto
+        {
+            Page = 1,
+            PageSize = 10,
+            PurchasedBy = "Angel"
+        };
+
+        var result = await _controller.GetDevelopedFilms(searchDto);
+
+        var okResult = Assert.IsType<OkObjectResult>(result);
+        var pagedResponse = Assert.IsType<PagedResponseDto<FilmDto>>(okResult.Value);
+        Assert.Single(pagedResponse.Data);
+        Assert.Equal("Angel Film", pagedResponse.Data.Single().Brand);
+    }
 }
 

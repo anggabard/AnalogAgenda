@@ -33,7 +33,8 @@ public class DtoConvertor(Configuration.Sections.System systemCfg, Storage stora
         Id = entity.Id,
         FilmId = entity.FilmId,
         Index = entity.Index,
-        ImageUrl = BuildImageUrl(ContainerName.photos, entity.ImageId)
+        ImageUrl = BuildImageUrl(ContainerName.photos, entity.ImageId),
+        Restricted = entity.Restricted
     };
 
     public FilmDto ToDTO(FilmEntity entity)

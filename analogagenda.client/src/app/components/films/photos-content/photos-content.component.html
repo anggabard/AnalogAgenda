@@ -1,0 +1,139 @@
+<div class="photos-content">
+  <div class="actions-bar">
+    <div class="photos-count">
+      <div *ngIf="mode === 'edit' && uploadLoading && uploadProgress.total > 0" class="upload-progress">
+        Uploading photo {{ uploadProgress.current }} of {{ uploadProgress.total }}
+      </div>
+      <div *ngIf="mode !== 'edit' || !uploadLoading || uploadProgress.total === 0">
+        <span *ngIf="showOwner && film">{{ film.purchasedBy }} • </span>{{ photos.length }} photo{{ photos.length !== 1 ? 's' : '' }}
+      </div>
+    </div>
+    <div class="action-buttons">
+      <!-- Edit mode: Add Photos + Download -->
+      <ng-container *ngIf="mode === 'edit' && isOwner">
+        <button class="add-photos-btn" [disabled]="uploadLoading" (click)="addPhotos.emit()">
+          <span class="button-content" [class.loading]="uploadLoading">
+            📸 Add Photos
+          </span>
+          <svg *ngIf="uploadLoading" class="button-spinner" viewBox="0 0 24 24">
+            <circle class="spinner-bg" cx="12" cy="12" r="10" stroke-width="4"></circle>
+            <path class="spinner-path" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+          </svg>
+        </button>
+      </ng-container>
+      <!-- View mode: Edit film + Edit photos when owner -->
+      <ng-container *ngIf="mode === 'view' && isOwner">
+        <button class="edit-film-btn" (click)="navigateToEditFilm()">✏️ Edit film</button>
+        <button class="edit-photos-btn" (click)="navigateToEditPhotos()">📷 Edit photos</button>
+      </ng-container>
+      <!-- Download dropdown (both modes when there are photos) -->
+      <div class="download-dropdown-container">
+        <button class="download-all-btn" [disabled]="downloadAllLoading" (click)="toggleDownloadDropdown()">
+          <span class="button-content" [class.loading]="downloadAllLoading">
+            📦 Download
+          </span>
+          <span class="dropdown-arrow">▼</span>
+          <svg *ngIf="downloadAllLoading" class="button-spinner" viewBox="0 0 24 24">
+            <circle class="spinner-bg" cx="12" cy="12" r="10" stroke-width="4"></circle>
+            <path class="spinner-path" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+          </svg>
+        </button>
+        <div class="download-dropdown-menu" *ngIf="downloadDropdownOpen && !downloadAllLoading">
+          <button class="dropdown-item" (click)="onDownloadAll(false)">📦 Download All XL</button>
+          <button class="dropdown-item" (click)="onDownloadAll(true)">📦 Download All XS</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="photos-grid">
+    <div
+      *ngFor="let photo of photos"
+      class="photo-item"
+      (click)="openPreview(photo)"
+    >
+      <div class="photo-thumbnail">
+        <img [src]="photoService.getPreviewUrl(photo)" [alt]="'Photo ' + photo.index" />
+      </div>
+      <div class="photo-info">
+        <span class="photo-index">#{{ photo.index.toString().padStart(3, '0') }}</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Preview Modal -->
+<div
+  class="image-preview-overlay"
+  *ngIf="isPreviewModalOpen"
+  (click)="closePreview()"
+  (keydown)="onKeyDown($event)"
+  tabindex="0"
+>
+  <div
+    class="preview-content"
+    (click)="$event.stopPropagation()"
+    (touchstart)="onTouchStart($event)"
+    (touchend)="onTouchEnd($event)"
+  >
+    <button
+      class="nav-arrow prev-arrow"
+      (click)="previousPhoto()"
+      *ngIf="canNavigatePrevious()"
+      title="Previous photo"
+    >
+      &#8249;
+    </button>
+    <button
+      class="nav-arrow next-arrow"
+      (click)="nextPhoto()"
+      *ngIf="canNavigateNext()"
+      title="Next photo"
+    >
+      &#8250;
+    </button>
+    <img
+      *ngIf="currentPreviewPhoto"
+      [src]="photoService.getPreviewUrl(currentPreviewPhoto!)"
+      [alt]="'Photo ' + currentPreviewPhoto.index"
+    />
+    <div class="preview-actions">
+      <button
+        class="preview-action-btn download-preview-btn"
+        (click)="onDownload(currentPreviewPhoto!)"
+        *ngIf="currentPreviewPhoto"
+      >
+        📥 Download
+      </button>
+      <button
+        class="preview-action-btn restrict-btn"
+        (click)="onRestrictToggle()"
+        *ngIf="currentPreviewPhoto && isOwner"
+      >
+        {{ currentPreviewPhoto.restricted ? '🔓 Allow access' : '🔒 Restrict access' }}
+      </button>
+      <button
+        class="preview-action-btn delete-btn"
+        (click)="openDeleteModal()"
+        *ngIf="currentPreviewPhoto && isOwner"
+      >
+        🗑️ Delete
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="delete-modal-overlay" *ngIf="isDeleteModalOpen" (click)="closeDeleteModal()">
+  <div class="delete-modal" (click)="$event.stopPropagation()">
+    <h2>Confirm Delete</h2>
+    <p *ngIf="currentPreviewPhoto">
+      Are you sure you want to delete photo
+      <strong>#{{ currentPreviewPhoto!.index.toString().padStart(3, '0') }}</strong>?
+    </p>
+    <div class="delete-modal-actions">
+      <button class="cancel-btn" (click)="closeDeleteModal()">Cancel</button>
+      <button class="delete-confirm-btn" (click)="confirmDelete()">Delete</button>
+    </div>
+  </div>
+</div>

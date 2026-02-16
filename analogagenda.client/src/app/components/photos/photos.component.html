@@ -1,0 +1,44 @@
+<div class="container">
+  <div class="tab-container">
+    <div class="tabs">
+      <button [class.active]="activeTab === 'my'" (click)="setActiveTab('my')">My Photos</button>
+      <button [class.active]="activeTab === 'all'" (click)="setActiveTab('all')">All Photos</button>
+    </div>
+  </div>
+
+  <div class="photos-scroll">
+    <ng-container *ngFor="let section of filmSections">
+      <div class="film-section">
+        <div class="film-section-header">
+          <h2 class="film-title">
+            {{ (section.film.name?.trim() ? section.film.name + ' - ' + section.film.brand : section.film.brand) }} - {{ section.film.formattedExposureDate || 'Photos' }}
+          </h2>
+          <p class="film-details">{{ section.film.type }} • ISO {{ section.film.iso }}</p>
+        </div>
+        <app-photos-content
+          [photos]="section.photos"
+          [film]="section.film"
+          mode="view"
+          [isOwner]="isOwner(section.film)"
+          [showOwner]="activeTab === 'all'"
+          [downloadAllLoading]="downloadAllLoadingSectionId === section.film.id"
+          (download)="onDownloadPhoto(section, $event)"
+          (downloadAll)="onDownloadAll(section, $event)"
+          (deletePhoto)="onDeletePhoto(section, $event)"
+          (restrictToggle)="onRestrictToggle(section, $event)"
+        ></app-photos-content>
+      </div>
+    </ng-container>
+
+    <div *ngIf="loading" class="loading-row">
+      <div class="spinner"></div>
+      <span>Loading more...</span>
+    </div>
+    <button *ngIf="hasMore && !loading" type="button" class="load-more-photos-btn" (click)="onLoadMore()">
+      Load more
+    </button>
+    <div *ngIf="!loading && filmSections.length === 0" class="empty-state">
+      <p>No developed films with photos yet.</p>
+    </div>
+  </div>
+</div>

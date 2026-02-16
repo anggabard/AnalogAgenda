@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, ViewChild, TemplateRef, OnDestroy } from "@angular/core";
+import { Component, inject, OnInit, ViewChild, TemplateRef, OnDestroy, HostListener } from "@angular/core";
 import { Router } from "@angular/router";
 import { FilmService, AccountService, LocalStorageService, UserSettingsService } from "../../services";
 import { FilmDto, IdentityDto, PagedResponseDto } from "../../DTOs";
@@ -39,7 +39,8 @@ export class FilmsComponent implements OnInit, OnDestroy {
   allNotDevelopedPage = 1;
   myDevelopedPage = 1;
   myNotDevelopedPage = 1;
-  pageSize = 5;
+  /** Default page size when user hasn't set entitiesPerPage; backend also needs to respect requested pageSize. */
+  pageSize = 10;
   
   // Has more state - separate for each list
   hasMoreAllDeveloped = false;
@@ -68,7 +69,7 @@ export class FilmsComponent implements OnInit, OnDestroy {
     this.userSettingsService.getUserSettings().subscribe({
       next: (settings) => {
         this.currentFilmId = settings.currentFilmId || null;
-        this.pageSize = settings.entitiesPerPage ?? 5;
+        this.pageSize = Math.max(1, settings.entitiesPerPage ?? 20);
         this.accountService.whoAmI().subscribe({
           next: (identity: IdentityDto) => {
             this.currentUsername = identity.username;
@@ -296,6 +297,22 @@ export class FilmsComponent implements OnInit, OnDestroy {
 
   loadMoreAllNotDevelopedFilms(): void {
     this.loadAllNotDevelopedFilms();
+  }
+
+  /** Infinite scroll: load more when user scrolls near the bottom (same threshold as Photos page). */
+  @HostListener('window:scroll', [])
+  onWindowScroll(): void {
+    const threshold = 300;
+    const pos = window.innerHeight + window.scrollY;
+    const max = document.body.offsetHeight - threshold;
+    if (pos < max) return;
+    if (this.activeTab === 'all') {
+      if (this.hasMoreAllNotDeveloped && !this.loadingAllNotDeveloped) this.loadMoreAllNotDevelopedFilms();
+      if (this.hasMoreAllDeveloped && !this.loadingAllDeveloped) this.loadMoreAllDevelopedFilms();
+    } else {
+      if (this.hasMoreMyNotDeveloped && !this.loadingMyNotDeveloped) this.loadMoreMyNotDevelopedFilms();
+      if (this.hasMoreMyDeveloped && !this.loadingMyDeveloped) this.loadMoreMyDevelopedFilms();
+    }
   }
 
   // State persistence methods

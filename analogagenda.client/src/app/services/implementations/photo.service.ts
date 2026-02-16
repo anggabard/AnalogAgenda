@@ -34,6 +34,11 @@ export class PhotoService extends BaseService {
     return this.delete(id);
   }
 
+  // Set restricted access for a photo (owner only)
+  setRestricted(id: string, restricted: boolean): Observable<PhotoDto> {
+    return this.patch<PhotoDto>(`${id}/restricted`, { restricted });
+  }
+
   // Get preview URL for a photo (returns direct blob storage URL)
   getPreviewUrl(photo: PhotoDto): string {
     return photo.imageUrl.replace("photos/", "photos/preview/")

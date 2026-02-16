@@ -48,6 +48,19 @@ public static class EntitySortingExtensions
     }
 
     /// <summary>
+    /// Sort films by exposure date (most recent first). Requires ExposureDates to be loaded.
+    /// Films with no exposure dates are ordered by PurchasedOn descending and appear after films with dates.
+    /// </summary>
+    public static IOrderedEnumerable<FilmEntity> ApplyExposureDateSorting(this IEnumerable<FilmEntity> films)
+    {
+        return films.OrderByDescending(f =>
+            f.ExposureDates != null && f.ExposureDates.Count > 0
+                ? f.ExposureDates.Max(e => e.Date)
+                : (DateOnly?)null
+        ).ThenByDescending(f => f.PurchasedOn);
+    }
+
+    /// <summary>
     /// Apply standard Photo sorting: by index
     /// </summary>
     public static IOrderedEnumerable<PhotoEntity> ApplyStandardSorting(this IEnumerable<PhotoEntity> photos)

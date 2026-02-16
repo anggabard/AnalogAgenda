@@ -1,0 +1,353 @@
+.photos-content {
+  color: white;
+}
+
+.actions-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 1rem;
+}
+
+.photos-count {
+  font-size: 1.1rem;
+  font-weight: 500;
+}
+
+.upload-progress {
+  font-size: 0.95rem;
+  opacity: 0.9;
+}
+
+.add-photos-btn,
+.download-all-btn,
+.edit-film-btn,
+.edit-photos-btn {
+  background: #4b5563;
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  position: relative;
+  min-width: 140px;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.download-dropdown-container {
+  position: relative;
+}
+
+.download-all-btn .dropdown-arrow {
+  font-size: 0.75rem;
+  opacity: 0.8;
+}
+
+.download-dropdown-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 0.5rem;
+  background: #374151;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+  z-index: 100;
+  min-width: 180px;
+}
+
+.dropdown-item {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: transparent;
+  color: white;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 500;
+  transition: background 0.2s ease;
+}
+
+.dropdown-item:hover {
+  background: #4b5563;
+}
+
+.add-photos-btn {
+  background: #10b981;
+}
+
+.add-photos-btn:hover:not(:disabled) {
+  background: #059669;
+  transform: translateY(-1px);
+}
+
+.edit-film-btn,
+.edit-photos-btn {
+  background: #4b5563;
+}
+
+.edit-film-btn:hover,
+.edit-photos-btn:hover {
+  background: #374151;
+  transform: translateY(-1px);
+}
+
+.download-all-btn:hover:not(:disabled) {
+  background: #374151;
+  transform: translateY(-1px);
+}
+
+.add-photos-btn:disabled,
+.download-all-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.button-content.loading {
+  opacity: 0.3;
+}
+
+.button-spinner {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  animation: spin-button 1s linear infinite;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.button-spinner .spinner-bg {
+  fill: none;
+  stroke: currentColor;
+  opacity: 0.25;
+}
+
+.button-spinner .spinner-path {
+  fill: currentColor;
+  opacity: 0.75;
+}
+
+@keyframes spin-button {
+  to {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
+}
+
+.photos-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 1.5rem;
+}
+
+.photo-item {
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.photo-item:hover {
+  transform: scale(1.05);
+}
+
+.photo-thumbnail {
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: 12px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.photo-thumbnail img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.photo-info {
+  padding: 0.75rem;
+  text-align: center;
+}
+
+.photo-index {
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.8);
+  font-weight: 500;
+}
+
+.image-preview-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.preview-content {
+  position: relative;
+  max-width: 90vw;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.preview-content img {
+  max-width: 100%;
+  max-height: 80vh;
+  border-radius: 8px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+}
+
+.preview-actions {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.preview-action-btn {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.preview-action-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateY(-1px);
+}
+
+.download-preview-btn {
+  background: #10b981;
+  border-color: #10b981;
+}
+
+.download-preview-btn:hover {
+  background: #059669;
+  border-color: #059669;
+}
+
+.restrict-btn {
+  background: #6b7280;
+  border-color: #6b7280;
+}
+
+.restrict-btn:hover {
+  background: #4b5563;
+  border-color: #4b5563;
+}
+
+.delete-btn {
+  background: #ef4444;
+  border-color: #ef4444;
+}
+
+.delete-btn:hover {
+  background: #dc2626;
+  border-color: #dc2626;
+}
+
+.nav-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: white;
+  font-size: 2rem;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  z-index: 1001;
+}
+
+.prev-arrow {
+  left: -4rem;
+}
+
+.next-arrow {
+  right: -4rem;
+}
+
+.nav-arrow:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.5);
+  transform: translateY(-50%) scale(1.1);
+}
+
+@media (max-width: 768px) {
+  .actions-bar {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .action-buttons {
+    flex-direction: row;
+    flex-wrap: wrap;
+    width: 100%;
+    justify-content: center;
+    gap: 0.5rem;
+  }
+
+  /* Fixed-size buttons (no resize), centered horizontally – same style as Download */
+  .edit-film-btn,
+  .edit-photos-btn,
+  .download-all-btn,
+  .add-photos-btn {
+    width: auto;
+    min-width: 120px;
+    height: 44px;
+    padding: 0.5rem 1rem;
+    font-size: 0.85rem;
+    justify-content: center;
+    flex: none;
+  }
+
+  .photos-grid {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 1rem;
+  }
+
+  .preview-actions {
+    flex-direction: column;
+    width: 100%;
+    max-width: 200px;
+  }
+
+  .nav-arrow {
+    display: none;
+  }
+}
