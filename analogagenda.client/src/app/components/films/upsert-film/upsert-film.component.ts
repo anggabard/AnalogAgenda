@@ -781,11 +781,15 @@ export class UpsertFilmComponent extends BaseUpsertComponent<FilmDto> implements
     }
   }
 
+  protected override afterPatchValueForEdit(_item: FilmDto): void {
+    this.form.get('purchasedBy')?.disable();
+  }
+
   // Override submit to handle exposure dates for new films
   override submit(): void {
     if (this.form.invalid) return;
 
-    const formData = this.form.value as FilmDto;
+    const formData = (this.isInsert ? this.form.value : this.form.getRawValue()) as FilmDto;
     this.loading = true;
     this.errorMessage = null;
 

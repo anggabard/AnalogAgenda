@@ -47,6 +47,11 @@ export class NavbarComponent {
     this.closeMobileSidebar();
   }
 
+  onPhotosClick() {
+    this.router.navigate(['/photos']);
+    this.closeMobileSidebar();
+  }
+
   onSessionsClick() {
     this.router.navigate(['/sessions']);
     this.closeMobileSidebar();

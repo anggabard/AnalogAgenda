@@ -12,7 +12,8 @@ public class EntityConvertor()
         Id = dto.Id,
         FilmId = dto.FilmId,
         Index = dto.Index,
-        ImageId = Guid.Empty // ImageId should be set by the controller, not derived from URL
+        ImageId = Guid.Empty, // ImageId should be set by the controller, not derived from URL
+        Restricted = dto.Restricted
     };
 
     public FilmEntity ToEntity(FilmDto dto) => new()

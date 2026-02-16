@@ -108,9 +108,15 @@ export abstract class BaseUpsertComponent<TDto> implements OnInit {
       next: (item: any) => {
         this.form.patchValue(item);
         this.originalName = this.getDisplayName ? this.getDisplayName(item) : (item.name ?? item.brand ?? '');
+        this.afterPatchValueForEdit(item);
       }
     });
   }
+
+  /**
+   * Override in subclass to run logic after form is patched in edit mode (e.g. disable immutable fields).
+   */
+  protected afterPatchValueForEdit(_item: TDto): void {}
 
   /**
    * Submit form (create or update)

@@ -104,7 +104,8 @@ public class FilmController(
     [HttpGet("developed")]
     public async Task<IActionResult> GetDevelopedFilms([FromQuery] FilmSearchDto searchDto)
     {
-        return await GetFilteredFilms(f => f.Developed, searchDto, includePhotos: true);
+        // "All" developed films: return all users' films, sorted by exposure date (newest first)
+        return await GetFilteredFilms(f => f.Developed, searchDto, includePhotos: true, useExposureDateSorting: true);
     }
 
     [HttpGet("my/developed")]
@@ -116,12 +117,13 @@ public class FilmController(
 
         var currentUserEnum = currentUser.ToEnum<EUsernameType>();
 
-        return await GetMyFilteredFilms(f => f.Developed, currentUserEnum, searchDto, includePhotos: true);
+        return await GetMyFilteredFilms(f => f.Developed, currentUserEnum, searchDto, includePhotos: true, useExposureDateSorting: true);
     }
 
     [HttpGet("not-developed")]
     public async Task<IActionResult> GetNotDevelopedFilms([FromQuery] FilmSearchDto searchDto)
     {
+        // "All" not-developed films: return all users' films; PurchasedBy filter applied only when set in search
         return await GetFilteredFilms(f => !f.Developed, searchDto, includePhotos: false);
     }
 
@@ -145,11 +147,13 @@ public class FilmController(
     private async Task<List<FilmEntity>> GetFilmsForSearchAsync(
         Expression<Func<FilmEntity, bool>> predicate,
         FilmSearchDto searchDto,
-        bool includePhotos
+        bool includePhotos,
+        bool useExposureDateSorting = false
     )
     {
         var needExposure = NeedsExposureOrDescriptionIncludes(searchDto);
-        if (includePhotos && needExposure)
+        var needExposureDates = needExposure || useExposureDateSorting;
+        if (includePhotos && needExposureDates)
         {
             var all = await databaseService.GetAllWithIncludesAsync<FilmEntity>(f => f.Photos, f => f.ExposureDates);
             return all.Where(predicate.Compile()).ToList();
@@ -159,7 +163,7 @@ public class FilmController(
             var all = await databaseService.GetAllWithIncludesAsync<FilmEntity>(f => f.Photos);
             return all.Where(predicate.Compile()).ToList();
         }
-        if (needExposure)
+        if (needExposureDates)
         {
             var all = await databaseService.GetAllWithIncludesAsync<FilmEntity>(f => f.ExposureDates);
             return all.Where(predicate.Compile()).ToList();
@@ -170,33 +174,38 @@ public class FilmController(
     private async Task<IActionResult> GetFilteredFilms(
         Expression<Func<FilmEntity, bool>> predicate,
         FilmSearchDto searchDto,
-        bool includePhotos = false
+        bool includePhotos = false,
+        bool useExposureDateSorting = false
     )
     {
         // For backward compatibility, if page is 0 or negative, return all filtered films
         if (searchDto.Page <= 0)
         {
-            var entities = await GetFilmsForSearchAsync(predicate, searchDto, includePhotos);
+            var entities = await GetFilmsForSearchAsync(predicate, searchDto, includePhotos, useExposureDateSorting);
             var filteredEntities = ApplySearchFilters(entities, searchDto);
-            var results = filteredEntities
-                .ApplyStandardSorting()
-                .Select(dtoConvertor.ToDTO);
+            var sorted = useExposureDateSorting
+                ? filteredEntities.ApplyExposureDateSorting()
+                : filteredEntities.ApplyStandardSorting();
+            var results = sorted.Select(dtoConvertor.ToDTO);
             return Ok(results);
         }
 
-        var allEntities = await GetFilmsForSearchAsync(predicate, searchDto, includePhotos);
+        var allEntities = await GetFilmsForSearchAsync(predicate, searchDto, includePhotos, useExposureDateSorting);
         var searchFilteredEntities = ApplySearchFilters(allEntities, searchDto);
-        var sortedEntities = searchFilteredEntities.ApplyStandardSorting().ToList();
+        var sortedEntities = (useExposureDateSorting
+            ? searchFilteredEntities.ApplyExposureDateSorting()
+            : searchFilteredEntities.ApplyStandardSorting()).ToList();
 
         var totalCount = sortedEntities.Count;
-        var skip = (searchDto.Page - 1) * searchDto.PageSize;
-        var pagedData = sortedEntities.Skip(skip).Take(searchDto.PageSize).ToList();
+        var pageSize = searchDto.PageSize < 1 ? 1 : searchDto.PageSize;
+        var skip = (searchDto.Page - 1) * pageSize;
+        var pagedData = sortedEntities.Skip(skip).Take(pageSize).ToList();
 
         var pagedResults = new PagedResponseDto<FilmDto>
         {
             Data = pagedData.Select(dtoConvertor.ToDTO),
             TotalCount = totalCount,
-            PageSize = searchDto.PageSize,
+            PageSize = pageSize,
             CurrentPage = searchDto.Page,
         };
 
@@ -207,34 +216,39 @@ public class FilmController(
         Expression<Func<FilmEntity, bool>> statusPredicate,
         EUsernameType currentUserEnum,
         FilmSearchDto searchDto,
-        bool includePhotos = false
+        bool includePhotos = false,
+        bool useExposureDateSorting = false
     )
     {
         if (searchDto.Page <= 0)
         {
-            var allEntities = await GetFilmsForSearchAsync(statusPredicate, searchDto, includePhotos);
+            var allEntities = await GetFilmsForSearchAsync(statusPredicate, searchDto, includePhotos, useExposureDateSorting);
             var myEntities = allEntities.Where(f => f.PurchasedBy == currentUserEnum);
             var filteredEntities = ApplySearchFilters(myEntities, searchDto);
-            var results = filteredEntities
-                .ApplyUserFilteredSorting()
-                .Select(dtoConvertor.ToDTO);
+            var sorted = useExposureDateSorting
+                ? filteredEntities.ApplyExposureDateSorting()
+                : filteredEntities.ApplyUserFilteredSorting();
+            var results = sorted.Select(dtoConvertor.ToDTO);
             return Ok(results);
         }
 
-        var allEntitiesForPaging = await GetFilmsForSearchAsync(statusPredicate, searchDto, includePhotos);
+        var allEntitiesForPaging = await GetFilmsForSearchAsync(statusPredicate, searchDto, includePhotos, useExposureDateSorting);
         var myFilms = allEntitiesForPaging.Where(f => f.PurchasedBy == currentUserEnum);
         var filteredFilms = ApplySearchFilters(myFilms, searchDto);
-        var sortedFilms = filteredFilms.ApplyUserFilteredSorting().ToList();
+        var sortedFilms = (useExposureDateSorting
+            ? filteredFilms.ApplyExposureDateSorting()
+            : filteredFilms.ApplyUserFilteredSorting()).ToList();
 
         var totalCount = sortedFilms.Count;
-        var skip = (searchDto.Page - 1) * searchDto.PageSize;
-        var pagedData = sortedFilms.Skip(skip).Take(searchDto.PageSize).ToList();
+        var pageSize = searchDto.PageSize < 1 ? 1 : searchDto.PageSize;
+        var skip = (searchDto.Page - 1) * pageSize;
+        var pagedData = sortedFilms.Skip(skip).Take(pageSize).ToList();
 
         var pagedResults = new PagedResponseDto<FilmDto>
         {
             Data = pagedData.Select(dtoConvertor.ToDTO),
             TotalCount = totalCount,
-            PageSize = searchDto.PageSize,
+            PageSize = pageSize,
             CurrentPage = searchDto.Page,
         };
 
@@ -269,10 +283,10 @@ public class FilmController(
 
         try
         {
-            // Update entity using the Update method
+            var existingPurchasedBy = existingEntity.PurchasedBy;
             existingEntity.Update(updateDto);
+            existingEntity.PurchasedBy = existingPurchasedBy; // Owner is immutable after creation
 
-            // UpdateAsync will handle UpdatedDate
             await databaseService.UpdateAsync(existingEntity);
             return NoContent();
         }
@@ -285,14 +299,20 @@ public class FilmController(
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteFilm(string id)
     {
-        // First, delete all associated photos
-        await DeleteAssociatedPhotosAsync(id);
-
-        // Then delete the film itself
+        if (!User.IsAuthenticated())
+            return Unauthorized();
         var entity = await databaseService.GetByIdAsync<FilmEntity>(id);
         if (entity == null)
             return NotFound();
 
+        var currentUser = User.Name();
+        if (string.IsNullOrEmpty(currentUser))
+            return Unauthorized();
+        var currentUserEnum = currentUser.ToEnum<EUsernameType>();
+        if (entity.PurchasedBy != currentUserEnum)
+            return Forbid();
+
+        await DeleteAssociatedPhotosAsync(id);
         await databaseService.DeleteAsync(entity);
         return NoContent();
     }

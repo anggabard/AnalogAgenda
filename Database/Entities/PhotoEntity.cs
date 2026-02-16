@@ -10,6 +10,8 @@ public class PhotoEntity : BaseEntity, IImageEntity
 
     public Guid ImageId { get; set; }
 
+    public bool Restricted { get; set; }
+
     // Navigation property
     public FilmEntity Film { get; set; } = default!;
 

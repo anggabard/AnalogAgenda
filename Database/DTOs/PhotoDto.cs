@@ -9,4 +9,6 @@ public class PhotoDto : HasImage
     public required string FilmId { get; set; }
 
     public int Index { get; set; }
+
+    public bool Restricted { get; set; }
 }

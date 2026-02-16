@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, ViewChild, TemplateRef, OnDestroy } from "@angular/core";
+import { Component, inject, OnInit, ViewChild, TemplateRef, OnDestroy, HostListener } from "@angular/core";
 import { Router } from "@angular/router";
 import { FilmService, AccountService, LocalStorageService, UserSettingsService } from "../../services";
 import { FilmDto, IdentityDto, PagedResponseDto } from "../../DTOs";
@@ -39,7 +39,8 @@ export class FilmsComponent implements OnInit, OnDestroy {
   allNotDevelopedPage = 1;
   myDevelopedPage = 1;
   myNotDevelopedPage = 1;
-  pageSize = 5;
+  /** Default page size when user hasn't set entitiesPerPage; backend also needs to respect requested pageSize. */
+  pageSize = 10;
   
   // Has more state - separate for each list
   hasMoreAllDeveloped = false;
@@ -59,6 +60,10 @@ export class FilmsComponent implements OnInit, OnDestroy {
   myFilmsIsSearching = false;
   allFilmsIsSearching = false;
 
+  /** Debounce timer for scroll-to-load; cleared in ngOnDestroy. */
+  private scrollLoadDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+  private readonly scrollDebounceMs = 150;
+
   ngOnInit(): void {
     this.restoreState();
     this.loadUserSettings();
@@ -68,7 +73,7 @@ export class FilmsComponent implements OnInit, OnDestroy {
     this.userSettingsService.getUserSettings().subscribe({
       next: (settings) => {
         this.currentFilmId = settings.currentFilmId || null;
-        this.pageSize = settings.entitiesPerPage ?? 5;
+        this.pageSize = Math.max(1, settings.entitiesPerPage ?? 20);
         this.accountService.whoAmI().subscribe({
           next: (identity: IdentityDto) => {
             this.currentUsername = identity.username;
@@ -101,6 +106,10 @@ export class FilmsComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    if (this.scrollLoadDebounceTimer != null) {
+      clearTimeout(this.scrollLoadDebounceTimer);
+      this.scrollLoadDebounceTimer = null;
+    }
     this.saveState();
   }
 
@@ -296,6 +305,38 @@ export class FilmsComponent implements OnInit, OnDestroy {
 
   loadMoreAllNotDevelopedFilms(): void {
     this.loadAllNotDevelopedFilms();
+  }
+
+  /** Infinite scroll: debounced; near bottom loads at most one list per tick (developed first, then not-developed). */
+  @HostListener('window:scroll', [])
+  onWindowScroll(): void {
+    if (this.scrollLoadDebounceTimer != null) {
+      clearTimeout(this.scrollLoadDebounceTimer);
+    }
+    this.scrollLoadDebounceTimer = setTimeout(() => {
+      this.scrollLoadDebounceTimer = null;
+      this.maybeLoadMoreOnScroll();
+    }, this.scrollDebounceMs);
+  }
+
+  private maybeLoadMoreOnScroll(): void {
+    const threshold = 300;
+    const pos = window.innerHeight + window.scrollY;
+    const max = document.body.offsetHeight - threshold;
+    if (pos < max) return;
+    if (this.activeTab === 'all') {
+      if (this.hasMoreAllDeveloped && !this.loadingAllDeveloped) {
+        this.loadMoreAllDevelopedFilms();
+        return;
+      }
+      if (this.hasMoreAllNotDeveloped && !this.loadingAllNotDeveloped) this.loadMoreAllNotDevelopedFilms();
+    } else {
+      if (this.hasMoreMyDeveloped && !this.loadingMyDeveloped) {
+        this.loadMoreMyDevelopedFilms();
+        return;
+      }
+      if (this.hasMoreMyNotDeveloped && !this.loadingMyNotDeveloped) this.loadMoreMyNotDevelopedFilms();
+    }
   }
 
   // State persistence methods

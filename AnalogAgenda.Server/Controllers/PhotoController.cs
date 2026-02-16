@@ -1,3 +1,4 @@
+using AnalogAgenda.Server.Identity;
 using Azure.Storage.Blobs;
 using Database.DBObjects.Enums;
 using Database.DTOs;
@@ -34,12 +35,14 @@ public class PhotoController(
 
         try
         {
-            // Validate film exists
+            // Validate film exists and current user is owner
             var filmEntity = await databaseService.GetByIdAsync<FilmEntity>(photoDto.FilmId);
             if (filmEntity == null)
             {
                 return NotFound("Film not found.");
             }
+            if (!IsCurrentUserFilmOwner(filmEntity))
+                return Forbid();
 
             // Get existing photos to calculate index
             var existingPhotos = await databaseService.GetAllAsync<PhotoEntity>(
@@ -123,6 +126,7 @@ public class PhotoController(
                 FilmId = photoDto.FilmId,
                 Index = photoIndex,
                 ImageBase64 = string.Empty, // Don't store base64 in entity - it's in blob storage
+                Restricted = false
             };
 
             var entity = entityConvertor.ToEntity(photoEntityDto);
@@ -155,7 +159,15 @@ public class PhotoController(
     [HttpGet("film/{filmId}")]
     public async Task<IActionResult> GetPhotosByFilmId(string filmId)
     {
+        var filmEntity = await databaseService.GetByIdAsync<FilmEntity>(filmId);
+        if (filmEntity == null)
+            return NotFound("Film not found.");
+
         var photos = await databaseService.GetAllAsync<PhotoEntity>(p => p.FilmId == filmId);
+        var isOwner = IsCurrentUserFilmOwner(filmEntity);
+        if (!isOwner)
+            photos = photos.Where(p => !p.Restricted).ToList();
+
         var sortedPhotos = photos
             .ApplyStandardSorting()
             .Select(dtoConvertor.ToDTO)
@@ -170,6 +182,13 @@ public class PhotoController(
         var photoEntity = await databaseService.GetByIdAsync<PhotoEntity>(id);
         if (photoEntity == null)
             return NotFound("Photo not found.");
+
+        if (photoEntity.Restricted)
+        {
+            var filmEntity = await databaseService.GetByIdAsync<FilmEntity>(photoEntity.FilmId);
+            if (filmEntity == null || !IsCurrentUserFilmOwner(filmEntity))
+                return NotFound("Photo not found.");
+        }
 
         try
         {
@@ -207,6 +226,9 @@ public class PhotoController(
         if (filmEntity == null)
             return NotFound("Associated film not found.");
 
+        if (photoEntity.Restricted && !IsCurrentUserFilmOwner(filmEntity))
+            return NotFound("Photo not found.");
+
         try
         {
             var base64WithType = await BlobImageHelper.DownloadImageAsBase64WithContentTypeAsync(
@@ -240,7 +262,9 @@ public class PhotoController(
         if (filmEntity == null)
             return NotFound("Film not found.");
 
-        var photos = await databaseService.GetAllAsync<PhotoEntity>(p => p.FilmId == filmId);
+        var allPhotos = await databaseService.GetAllAsync<PhotoEntity>(p => p.FilmId == filmId);
+        var isOwner = IsCurrentUserFilmOwner(filmEntity);
+        var photos = isOwner ? allPhotos : allPhotos.Where(p => !p.Restricted).ToList();
         if (photos.Count == 0)
             return NotFound("No photos found for this film.");
 
@@ -267,7 +291,7 @@ public class PhotoController(
 
                 using (var archive = new ZipArchive(tempFileStream, ZipArchiveMode.Create, leaveOpen: true))
                 {
-                    foreach (var photo in photos.OrderBy(p => p.Index))
+                    foreach (var photo in photos.OrderBy(p => p.Index).ToList())
                     {
                         // Determine which blob path to use based on small parameter
                         string blobPath = small
@@ -325,6 +349,10 @@ public class PhotoController(
         if (entity == null)
             return NotFound();
 
+        var filmEntity = await databaseService.GetByIdAsync<FilmEntity>(entity.FilmId);
+        if (filmEntity == null || !IsCurrentUserFilmOwner(filmEntity))
+            return Forbid();
+
         // Delete image blob and preview blob (photos always have real images, no default)
         if (entity.ImageId != Guid.Empty)
         {
@@ -334,6 +362,38 @@ public class PhotoController(
 
         await databaseService.DeleteAsync(entity);
         return NoContent();
+    }
+
+    [HttpPatch("{id}/restricted")]
+    public async Task<IActionResult> SetPhotoRestricted(string id, [FromBody] SetRestrictedDto dto)
+    {
+        var photoEntity = await databaseService.GetByIdAsync<PhotoEntity>(id);
+        if (photoEntity == null)
+            return NotFound();
+
+        var filmEntity = await databaseService.GetByIdAsync<FilmEntity>(photoEntity.FilmId);
+        if (filmEntity == null || !IsCurrentUserFilmOwner(filmEntity))
+            return Forbid();
+
+        photoEntity.Restricted = dto.Restricted;
+        await databaseService.UpdateAsync(photoEntity);
+        return Ok(dtoConvertor.ToDTO(photoEntity));
+    }
+
+    private bool IsCurrentUserFilmOwner(FilmEntity film)
+    {
+        var currentUser = User.Name();
+        if (string.IsNullOrEmpty(currentUser))
+            return false;
+        try
+        {
+            var currentUserEnum = currentUser.ToEnum<EUsernameType>();
+            return film.PurchasedBy == currentUserEnum;
+        }
+        catch
+        {
+            return false;
+        }
     }
 
     private static string SanitizeFileName(string fileName)

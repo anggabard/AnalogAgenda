@@ -10,6 +10,8 @@ export { UpsertKitComponent } from './substances/upsert-kit/upsert-kit.component
 export { FilmsComponent } from './films/films.component'
 export { UpsertFilmComponent } from './films/upsert-film/upsert-film.component'
 export { FilmPhotosComponent } from './films/film-photos/film-photos.component'
+export { PhotosContentComponent } from './films/photos-content/photos-content.component'
+export { PhotosComponent } from './photos/photos.component'
 export { SessionsComponent } from './sessions/sessions.component'
 export { UpsertSessionComponent } from './sessions/upsert-session/upsert-session.component'
 export { ChangePasswordComponent } from './change-password/change-password.component'

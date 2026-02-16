@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using AnalogAgenda.Server.Controllers;
 using AnalogAgenda.Server.Tests.Helpers;
 using Azure.Storage.Blobs;
@@ -8,6 +9,7 @@ using Database.DTOs;
 using Database.Entities;
 using Database.Services;
 using Database.Services.Interfaces;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
 
@@ -47,6 +49,12 @@ public class PhotoControllerTests : IDisposable
                                  .Returns(_mockBlobClient.Object);
 
         _controller = new PhotoController(_databaseService, _mockBlobService.Object, _dtoConvertor, _entityConvertor);
+
+        var identity = new ClaimsIdentity(new[] { new Claim(ClaimTypes.Name, nameof(EUsernameType.Angel)) }, "TestAuth");
+        _controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = new DefaultHttpContext { User = new ClaimsPrincipal(identity) }
+        };
     }
 
     public void Dispose()
@@ -99,7 +107,7 @@ public class PhotoControllerTests : IDisposable
     {
         // Arrange
         var filmId = "test-film-id";
-        var film = new FilmEntity { Id = filmId, Brand = "Test Film", Iso = "400" };
+        var film = new FilmEntity { Id = filmId, Brand = "Test Film", Iso = "400", PurchasedBy = EUsernameType.Angel };
         await _databaseService.AddAsync(film);
 
         var photo1 = new PhotoEntity { FilmId = filmId, Index = 2, Id = "photo2", ImageId = Guid.NewGuid() };
@@ -129,7 +137,7 @@ public class PhotoControllerTests : IDisposable
     {
         // Arrange
         var filmId = "test-film-id";
-        var film = new FilmEntity { Id = filmId, Brand = "Test Film", Iso = "400" };
+        var film = new FilmEntity { Id = filmId, Brand = "Test Film", Iso = "400", PurchasedBy = EUsernameType.Angel };
         await _databaseService.AddAsync(film);
 
         // Act
@@ -172,7 +180,7 @@ public class PhotoControllerTests : IDisposable
     {
         // Arrange
         var filmId = "test-film-id";
-        var film = new FilmEntity { Id = filmId, Brand = "Test Film", Iso = "400" };
+        var film = new FilmEntity { Id = filmId, Brand = "Test Film", Iso = "400", PurchasedBy = EUsernameType.Angel };
         await _databaseService.AddAsync(film);
 
         // Act
@@ -186,8 +194,12 @@ public class PhotoControllerTests : IDisposable
     public async Task DeletePhoto_WithValidId_ReturnsNoContent()
     {
         // Arrange
+        var filmId = "test-film";
+        var film = new FilmEntity { Id = filmId, Brand = "Test Film", Iso = "400", PurchasedBy = EUsernameType.Angel };
+        await _databaseService.AddAsync(film);
+
         var id = "test-photo-key";
-        var photo = new PhotoEntity { Id = id, FilmId = "test-film", Index = 1, ImageId = Guid.NewGuid() };
+        var photo = new PhotoEntity { Id = id, FilmId = filmId, Index = 1, ImageId = Guid.NewGuid() };
         await _databaseService.AddAsync(photo);
 
         // Act
@@ -212,6 +224,78 @@ public class PhotoControllerTests : IDisposable
 
         // Assert
         Assert.IsType<NotFoundResult>(result);
+    }
+
+    [Fact]
+    public async Task SetPhotoRestricted_AsOwner_WithValidPhoto_ReturnsOkAndUpdatesRestricted()
+    {
+        var filmId = "film-1";
+        var film = new FilmEntity { Id = filmId, Brand = "Test", Iso = "400", PurchasedBy = EUsernameType.Angel };
+        await _databaseService.AddAsync(film);
+        var photoId = "photo-1";
+        var photo = new PhotoEntity { Id = photoId, FilmId = filmId, Index = 1, ImageId = Guid.NewGuid(), Restricted = false };
+        await _databaseService.AddAsync(photo);
+
+        var result = await _controller.SetPhotoRestricted(photoId, new SetRestrictedDto { Restricted = true });
+
+        var okResult = Assert.IsType<OkObjectResult>(result);
+        var dto = Assert.IsType<PhotoDto>(okResult.Value);
+        Assert.True(dto.Restricted);
+        var updated = await _databaseService.GetByIdAsync<PhotoEntity>(photoId);
+        Assert.NotNull(updated);
+        Assert.True(updated!.Restricted);
+    }
+
+    [Fact]
+    public async Task SetPhotoRestricted_AsOwner_SetToFalse_ReturnsOk()
+    {
+        var filmId = "film-1";
+        var film = new FilmEntity { Id = filmId, Brand = "Test", Iso = "400", PurchasedBy = EUsernameType.Angel };
+        await _databaseService.AddAsync(film);
+        var photoId = "photo-1";
+        var photo = new PhotoEntity { Id = photoId, FilmId = filmId, Index = 1, ImageId = Guid.NewGuid(), Restricted = true };
+        await _databaseService.AddAsync(photo);
+
+        var result = await _controller.SetPhotoRestricted(photoId, new SetRestrictedDto { Restricted = false });
+
+        Assert.IsType<OkObjectResult>(result);
+        var updated = await _databaseService.GetByIdAsync<PhotoEntity>(photoId);
+        Assert.NotNull(updated);
+        Assert.False(updated!.Restricted);
+    }
+
+    [Fact]
+    public async Task SetPhotoRestricted_NonOwner_ReturnsForbid()
+    {
+        var filmId = "film-1";
+        var film = new FilmEntity { Id = filmId, Brand = "Test", Iso = "400", PurchasedBy = EUsernameType.Cristiana };
+        await _databaseService.AddAsync(film);
+        var photoId = "photo-1";
+        var photo = new PhotoEntity { Id = photoId, FilmId = filmId, Index = 1, ImageId = Guid.NewGuid() };
+        await _databaseService.AddAsync(photo);
+
+        var result = await _controller.SetPhotoRestricted(photoId, new SetRestrictedDto { Restricted = true });
+
+        Assert.IsType<ForbidResult>(result);
+    }
+
+    [Fact]
+    public async Task SetPhotoRestricted_NonExistentPhoto_ReturnsNotFound()
+    {
+        var result = await _controller.SetPhotoRestricted("non-existent", new SetRestrictedDto { Restricted = true });
+        Assert.IsType<NotFoundResult>(result);
+    }
+
+    [Fact]
+    public async Task SetPhotoRestricted_PhotoExistsButFilmMissing_ReturnsForbid()
+    {
+        var photoId = "photo-orphan";
+        var photo = new PhotoEntity { Id = photoId, FilmId = "missing-film", Index = 1, ImageId = Guid.NewGuid() };
+        await _databaseService.AddAsync(photo);
+
+        var result = await _controller.SetPhotoRestricted(photoId, new SetRestrictedDto { Restricted = true });
+
+        Assert.IsType<ForbidResult>(result);
     }
 }
 
