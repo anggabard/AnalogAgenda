@@ -60,6 +60,10 @@ export class FilmsComponent implements OnInit, OnDestroy {
   myFilmsIsSearching = false;
   allFilmsIsSearching = false;
 
+  /** Debounce timer for scroll-to-load; cleared in ngOnDestroy. */
+  private scrollLoadDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+  private readonly scrollDebounceMs = 150;
+
   ngOnInit(): void {
     this.restoreState();
     this.loadUserSettings();
@@ -102,6 +106,10 @@ export class FilmsComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    if (this.scrollLoadDebounceTimer != null) {
+      clearTimeout(this.scrollLoadDebounceTimer);
+      this.scrollLoadDebounceTimer = null;
+    }
     this.saveState();
   }
 
@@ -299,19 +307,35 @@ export class FilmsComponent implements OnInit, OnDestroy {
     this.loadAllNotDevelopedFilms();
   }
 
-  /** Infinite scroll: load more when user scrolls near the bottom (same threshold as Photos page). */
+  /** Infinite scroll: debounced; near bottom loads at most one list per tick (developed first, then not-developed). */
   @HostListener('window:scroll', [])
   onWindowScroll(): void {
+    if (this.scrollLoadDebounceTimer != null) {
+      clearTimeout(this.scrollLoadDebounceTimer);
+    }
+    this.scrollLoadDebounceTimer = setTimeout(() => {
+      this.scrollLoadDebounceTimer = null;
+      this.maybeLoadMoreOnScroll();
+    }, this.scrollDebounceMs);
+  }
+
+  private maybeLoadMoreOnScroll(): void {
     const threshold = 300;
     const pos = window.innerHeight + window.scrollY;
     const max = document.body.offsetHeight - threshold;
     if (pos < max) return;
     if (this.activeTab === 'all') {
+      if (this.hasMoreAllDeveloped && !this.loadingAllDeveloped) {
+        this.loadMoreAllDevelopedFilms();
+        return;
+      }
       if (this.hasMoreAllNotDeveloped && !this.loadingAllNotDeveloped) this.loadMoreAllNotDevelopedFilms();
-      if (this.hasMoreAllDeveloped && !this.loadingAllDeveloped) this.loadMoreAllDevelopedFilms();
     } else {
+      if (this.hasMoreMyDeveloped && !this.loadingMyDeveloped) {
+        this.loadMoreMyDevelopedFilms();
+        return;
+      }
       if (this.hasMoreMyNotDeveloped && !this.loadingMyNotDeveloped) this.loadMoreMyNotDevelopedFilms();
-      if (this.hasMoreMyDeveloped && !this.loadingMyDeveloped) this.loadMoreMyDevelopedFilms();
     }
   }
 

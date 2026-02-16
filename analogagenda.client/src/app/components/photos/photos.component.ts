@@ -84,11 +84,16 @@ export class PhotosComponent implements OnInit {
     const promises = batch.map((film) =>
       lastValueFrom(this.photoService.getPhotosByFilmId(film.id)).then((photos) => ({ film, photos: photos || [] }))
     );
-    Promise.all(promises).then((results) => {
-      results.forEach((r) => this.filmSections.push({ film: r.film, photos: r.photos }));
-      this.revealedCount += batch.length;
-      this.loadingPhotos = false;
-    });
+    Promise.all(promises)
+      .then((results) => {
+        results.forEach((r) => this.filmSections.push({ film: r.film, photos: r.photos }));
+        this.revealedCount += batch.length;
+        this.loadingPhotos = false;
+      })
+      .catch((err) => {
+        console.error('Error loading photos for batch:', err);
+        this.loadingPhotos = false;
+      });
   }
 
   onLoadMore() {
