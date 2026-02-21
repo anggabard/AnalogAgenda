@@ -57,7 +57,10 @@ export class FilmCheckSectionComponent implements OnInit {
               userCountsByTypeMap.set(userEnum, { ...emptyCountsByType() });
             });
 
-            films.forEach(film => {
+            // Only count films that have at least one exposure date (in progress); backend sends empty formattedExposureDate when none
+            const filmsInProgress = films.filter(film => !!film.formattedExposureDate);
+
+            filmsInProgress.forEach(film => {
               const user = film.purchasedBy;
               if (subscribedUserEnums.includes(user)) {
                 userCountMap.set(user, (userCountMap.get(user) ?? 0) + 1);

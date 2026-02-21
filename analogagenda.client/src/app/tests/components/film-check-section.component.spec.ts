@@ -73,11 +73,11 @@ describe('FilmCheckSectionComponent', () => {
     expect(component.popoverOpen).toBe(false);
   });
 
-  it('should aggregate counts by user and include Total row when films exist', () => {
+  it('should aggregate counts by user and include Total row when films exist (only films with exposure dates count)', () => {
     const films: FilmDto[] = [
-      { id: '1', brand: 'Fuji', purchasedBy: UsernameType.Angel, type: FilmType.ColorNegative } as FilmDto,
-      { id: '2', brand: 'Kodak', purchasedBy: UsernameType.Angel, type: FilmType.BlackAndWhite } as FilmDto,
-      { id: '3', brand: 'Ilford', purchasedBy: UsernameType.Tudor, type: FilmType.ColorNegative } as FilmDto
+      { id: '1', brand: 'Fuji', purchasedBy: UsernameType.Angel, type: FilmType.ColorNegative, formattedExposureDate: '2024-01-15' } as FilmDto,
+      { id: '2', brand: 'Kodak', purchasedBy: UsernameType.Angel, type: FilmType.BlackAndWhite, formattedExposureDate: '2024-02-01' } as FilmDto,
+      { id: '3', brand: 'Ilford', purchasedBy: UsernameType.Tudor, type: FilmType.ColorNegative, formattedExposureDate: '2024-01-20' } as FilmDto
     ];
     mockFilmService.getNotDevelopedFilms.and.returnValue(of(films));
     mockUserSettingsService.getSubscribedUsers.and.returnValue(of([
@@ -106,5 +106,28 @@ describe('FilmCheckSectionComponent', () => {
     component = fixture.componentInstance;
     fixture.detectChanges();
     expect(component.displayRows).toEqual([]);
+  });
+
+  it('should not count not-developed films without exposure dates (not in progress)', () => {
+    const filmsNoExposure: FilmDto[] = [
+      { id: '1', brand: 'Fuji', purchasedBy: UsernameType.Angel, type: FilmType.ColorNegative } as FilmDto,
+      { id: '2', brand: 'Kodak', purchasedBy: UsernameType.Tudor, type: FilmType.BlackAndWhite } as FilmDto
+    ];
+    mockFilmService.getNotDevelopedFilms.and.returnValue(of(filmsNoExposure));
+    mockUserSettingsService.getSubscribedUsers.and.returnValue(of([
+      { username: UsernameType.Angel },
+      { username: UsernameType.Tudor }
+    ]));
+
+    fixture = TestBed.createComponent(FilmCheckSectionComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+
+    const angelRow = component.displayRows.find(r => r.user === 'Angel');
+    const tudorRow = component.displayRows.find(r => r.user === 'Tudor');
+    const totalRow = component.displayRows.find(r => r.user === 'Total');
+    expect(angelRow?.count).toBe(0);
+    expect(tudorRow?.count).toBe(0);
+    expect(totalRow?.count).toBe(0);
   });
 });

@@ -39,10 +39,11 @@ public class DtoConvertor(Configuration.Sections.System systemCfg, Storage stora
 
     public FilmDto ToDTO(FilmEntity entity)
     {
-        // Get dates from ExposureDates navigation property (if loaded)
+        // Get dates from ExposureDates navigation property (if loaded). No fallback: empty when no exposure dates.
         var exposureDates = entity.ExposureDates?.Select(e => e.Date).ToList() ?? [];
-        var fallbackDate = DateOnly.FromDateTime(entity.PurchasedOn);
-        var formattedDate = DateFormattingHelper.FormatExposureDateRange(exposureDates, fallbackDate);
+        var formattedDate = exposureDates.Count > 0
+            ? DateFormattingHelper.FormatExposureDateRange(exposureDates, null)
+            : string.Empty;
 
         return new FilmDto()
         {

@@ -149,6 +149,51 @@ describe('FilmService', () => {
     });
   });
 
+  describe('All films (page=0)', () => {
+    it('getNotDevelopedFilms should request full list with page=0', () => {
+      const mockFilms: FilmDto[] = [
+        createMockFilm('1', 'Not Developed 1', UsernameType.Angel, false),
+        createMockFilm('2', 'Not Developed 2', UsernameType.Tudor, false)
+      ];
+
+      service.getNotDevelopedFilms().subscribe((films) => {
+        expect(films).toEqual(mockFilms);
+      });
+
+      const req = httpMock.expectOne(`${baseUrl}/not-developed?page=0`);
+      expect(req.request.method).toBe('GET');
+      req.flush(mockFilms);
+    });
+
+    it('getDevelopedFilmsAll should request full list with page=0', () => {
+      const mockFilms: FilmDto[] = [
+        createMockFilm('1', 'Developed 1', UsernameType.Angel, true)
+      ];
+
+      service.getDevelopedFilmsAll().subscribe((films) => {
+        expect(films).toEqual(mockFilms);
+      });
+
+      const req = httpMock.expectOne(`${baseUrl}/developed?page=0`);
+      expect(req.request.method).toBe('GET');
+      req.flush(mockFilms);
+    });
+
+    it('getMyDevelopedFilmsAll should request full list with page=0', () => {
+      const mockFilms: FilmDto[] = [
+        createMockFilm('1', 'My Developed 1', UsernameType.Angel, true)
+      ];
+
+      service.getMyDevelopedFilmsAll().subscribe((films) => {
+        expect(films).toEqual(mockFilms);
+      });
+
+      const req = httpMock.expectOne(`${baseUrl}/my/developed?page=0`);
+      expect(req.request.method).toBe('GET');
+      req.flush(mockFilms);
+    });
+  });
+
   describe('Bulk Upload', () => {
     it('should call add with bulkCount query parameter when bulkCount > 1', () => {
       // Arrange

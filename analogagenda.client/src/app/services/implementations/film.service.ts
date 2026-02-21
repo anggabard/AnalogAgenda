@@ -1,7 +1,6 @@
 import { Injectable } from '@angular/core';
 import { FilmDto, PagedResponseDto, ExposureDateDto } from '../../DTOs';
-import { Observable, EMPTY } from 'rxjs';
-import { expand, reduce } from 'rxjs/operators';
+import { Observable } from 'rxjs';
 import { BasePaginatedService } from '../base-paginated.service';
 import { SearchParams } from '../../components/films/film-search/film-search.component';
 
@@ -39,17 +38,9 @@ export class FilmService extends BasePaginatedService<FilmDto> {
     return this.put(`${filmId}/exposure-dates`, exposureDates);
   }
 
-  /** Get all not-developed films (all users). Fetches all pages to avoid pagination limiting results. */
+  /** Get all not-developed films (all users). Backend returns full list when page=0. */
   getNotDevelopedFilms(): Observable<FilmDto[]> {
-    const pageSize = 500;
-    return this.getFilteredPaged('not-developed', 1, pageSize).pipe(
-      expand((res) =>
-        res.hasNextPage
-          ? this.getFilteredPaged('not-developed', res.currentPage + 1, pageSize)
-          : EMPTY
-      ),
-      reduce((acc: FilmDto[], res) => { acc.push(...res.data); return acc; }, [] as FilmDto[])
-    );
+    return this.get<FilmDto[]>('not-developed?page=0');
   }
 
   /** Get all developed films (all users). Backend returns full list when page=0. */

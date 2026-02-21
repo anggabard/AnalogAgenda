@@ -31,7 +31,6 @@ export class SettingsSectionComponent {
       },
       error: (error) => {
         console.error('Error updating settings:', error);
-        this.settingsUpdated.emit();
       }
     });
   }
