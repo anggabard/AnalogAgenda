@@ -136,7 +136,7 @@ public class FilmController(
 
         var currentUserEnum = currentUser.ToEnum<EUsernameType>();
 
-        return await GetMyFilteredFilms(f => !f.Developed, currentUserEnum, searchDto, includePhotos: false, useExposureDateSorting: true);
+        return await GetMyFilteredFilms(f => !f.Developed, currentUserEnum, searchDto, includePhotos: false, useExposureDateSorting: true, includeExposureDatesForDto: true);
     }
 
     private static bool NeedsExposureOrDescriptionIncludes(FilmSearchDto searchDto) =>
@@ -219,12 +219,13 @@ public class FilmController(
         EUsernameType currentUserEnum,
         FilmSearchDto searchDto,
         bool includePhotos = false,
-        bool useExposureDateSorting = false
+        bool useExposureDateSorting = false,
+        bool includeExposureDatesForDto = false
     )
     {
         if (searchDto.Page <= 0)
         {
-            var allEntities = await GetFilmsForSearchAsync(statusPredicate, searchDto, includePhotos, useExposureDateSorting);
+            var allEntities = await GetFilmsForSearchAsync(statusPredicate, searchDto, includePhotos, useExposureDateSorting, includeExposureDatesForDto);
             var myEntities = allEntities.Where(f => f.PurchasedBy == currentUserEnum);
             var filteredEntities = ApplySearchFilters(myEntities, searchDto);
             var sorted = useExposureDateSorting
@@ -234,7 +235,7 @@ public class FilmController(
             return Ok(results);
         }
 
-        var allEntitiesForPaging = await GetFilmsForSearchAsync(statusPredicate, searchDto, includePhotos, useExposureDateSorting);
+        var allEntitiesForPaging = await GetFilmsForSearchAsync(statusPredicate, searchDto, includePhotos, useExposureDateSorting, includeExposureDatesForDto);
         var myFilms = allEntitiesForPaging.Where(f => f.PurchasedBy == currentUserEnum);
         var filteredFilms = ApplySearchFilters(myFilms, searchDto);
         var sortedFilms = (useExposureDateSorting
