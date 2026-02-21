@@ -1,0 +1,25 @@
+<div class="current-film-section" *ngIf="userSettings">
+    <div class="box">
+        <h1 class="form-title">Current Film</h1>
+        <div class="current-film-card" *ngIf="currentFilm">
+            <div class="film-image-container">
+                <img class="film-image" [src]="currentFilm.imageUrl" [alt]="currentFilm.name || currentFilm.brand" />
+            </div>
+            <div class="film-info">
+                <h3>{{ currentFilm.name || currentFilm.brand }}</h3>
+                <p><strong>ISO:</strong> {{ currentFilm.iso }}</p>
+                <p><strong>Type:</strong> {{ currentFilm.type }}</p>
+                <p><strong>Exposures:</strong> {{ currentFilm.numberOfExposures }}</p>
+                <p *ngIf="currentFilm.formattedExposureDate"><strong>First Exposure Date:</strong> {{ currentFilm.formattedExposureDate }}</p>
+            </div>
+            <div class="film-actions">
+                <button class="btn btn-primary" (click)="editCurrentFilm()">Edit Film</button>
+                <button class="btn btn-secondary" (click)="onChangeCurrentFilm()">Change Current Film</button>
+            </div>
+        </div>
+        <div class="no-current-film" *ngIf="!currentFilm">
+            <p>No current film selected</p>
+            <button class="btn btn-primary" (click)="onChangeCurrentFilm()">Select Current Film</button>
+        </div>
+    </div>
+</div>

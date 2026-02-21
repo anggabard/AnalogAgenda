@@ -1,10 +1,6 @@
 import { Component, OnInit, inject, ViewChild } from '@angular/core';
-import { Router } from '@angular/router';
-import { forkJoin, of } from 'rxjs';
-import { catchError, map, switchMap } from 'rxjs/operators';
-import { FilmDto, UserSettingsDto, ExposureDateDto, IdeaDto } from '../../DTOs';
+import { FilmDto, UserSettingsDto, IdeaDto } from '../../DTOs';
 import { FilmService, UserSettingsService } from '../../services';
-import { UsernameType } from '../../enums';
 import { WackyIdeasSectionComponent } from './wacky-ideas-section/wacky-ideas-section.component';
 
 @Component({
@@ -16,14 +12,12 @@ import { WackyIdeasSectionComponent } from './wacky-ideas-section/wacky-ideas-se
 export class HomeComponent implements OnInit {
     private filmService = inject(FilmService);
     private userSettingsService = inject(UserSettingsService);
-    private router = inject(Router);
 
     @ViewChild('wackyIdeasSection') wackyIdeasSection?: WackyIdeasSectionComponent;
 
     userSettings: UserSettingsDto | null = null;
     currentFilm: FilmDto | null = null;
-    userStats: Array<{ user: string; count: number }> = [];
-    
+
     // Modal state
     isChangeCurrentFilmModalOpen = false;
     availableFilms: FilmDto[] = [];
@@ -36,7 +30,6 @@ export class HomeComponent implements OnInit {
 
     ngOnInit(): void {
         this.loadUserSettings();
-        this.loadUserStats();
     }
 
     loadUserSettings(): void {
@@ -65,119 +58,10 @@ export class HomeComponent implements OnInit {
         });
     }
 
-    loadUserStats(): void {
-        // First get all subscribed users
-        this.userSettingsService.getSubscribedUsers().pipe(
-            switchMap((subscribedUsers) => {
-                // The username should match the enum values directly (Angel, Tudor, Cristiana)
-                const subscribedUserEnums = subscribedUsers
-                    .map(u => u.username)
-                    .filter(username => Object.values(UsernameType).includes(username as UsernameType)) as string[];
-
-                if (subscribedUserEnums.length === 0) {
-                    return of([]);
-                }
-
-                // Get all not-developed films and calculate counts
-                return this.filmService.getNotDevelopedFilms().pipe(
-                    switchMap((films) => {
-                        if (films.length === 0) {
-                            // Return stats for all subscribed users with 0 count
-                            return of(subscribedUserEnums.map(userEnum => ({
-                                user: this.getUserDisplayName(userEnum),
-                                count: 0
-                            })));
-                        }
-
-                        // For each film, get its exposure dates to check if it's in progress
-                        const exposureDateRequests = films.map(film =>
-                            this.filmService.getExposureDates(film.id).pipe(
-                                map((exposureDates) => ({
-                                    film,
-                                    hasExposureDates: exposureDates.length > 0
-                                })),
-                                catchError(() => of({ film, hasExposureDates: false }))
-                            )
-                        );
-
-                        return forkJoin(exposureDateRequests).pipe(
-                            map((results) => {
-                                // Filter films that are in progress (have exposure dates)
-                                const inProgressFilms = results
-                                    .filter(r => r.hasExposureDates)
-                                    .map(r => r.film);
-
-                                // Group by purchasedBy and count, only for subscribed users
-                                const statsMap = new Map<string, number>();
-                                
-                                inProgressFilms.forEach(film => {
-                                    const user = film.purchasedBy;
-                                    if (subscribedUserEnums.includes(user)) {
-                                        const currentCount = statsMap.get(user) || 0;
-                                        statsMap.set(user, currentCount + 1);
-                                    }
-                                });
-
-                                // Create stats for all subscribed users, showing 0 for those without films
-                                return subscribedUserEnums.map(userEnum => ({
-                                    user: this.getUserDisplayName(userEnum),
-                                    count: statsMap.get(userEnum) || 0
-                                }));
-                            })
-                        );
-                    })
-                );
-            })
-        ).subscribe({
-            next: (stats) => {
-                // Sort by user name
-                this.userStats = stats.sort((a, b) => a.user.localeCompare(b.user));
-            },
-            error: (error) => {
-                console.error('Error loading user stats:', error);
-                this.userStats = [];
-            }
-        });
-    }
-
-    getUserDisplayName(userEnum: string): string {
-        // Map enum values to display names
-        const userMap: Record<string, string> = {
-            [UsernameType.Angel]: 'Angel',
-            [UsernameType.Tudor]: 'Tudor',
-            [UsernameType.Cristiana]: 'Cristiana'
-        };
-        return userMap[userEnum] || userEnum;
-    }
-
-    onSettingsChange(): void {
-        if (!this.userSettings) return;
-
-        const updatedSettings: Partial<UserSettingsDto> = {
-            userId: this.userSettings.userId,
-            isSubscribed: this.userSettings.isSubscribed,
-            tableView: this.userSettings.tableView,
-            entitiesPerPage: this.userSettings.entitiesPerPage,
-            currentFilmId: this.userSettings.currentFilmId
-        };
-
-        this.userSettingsService.updateUserSettings(updatedSettings).subscribe({
-            next: () => {
-                // Settings updated successfully
-            },
-            error: (error) => {
-                console.error('Error updating settings:', error);
-                // Reload settings to revert changes
-                this.loadUserSettings();
-            }
-        });
-    }
-
     openChangeCurrentFilmModal(): void {
         this.isChangeCurrentFilmModalOpen = true;
         this.selectedFilmId = null;
-        
-        // Load available not-developed films
+
         this.filmService.getNotDevelopedFilms().subscribe({
             next: (films) => {
                 this.availableFilms = films;
@@ -198,7 +82,7 @@ export class HomeComponent implements OnInit {
     changeCurrentFilm(): void {
         if (!this.selectedFilmId || !this.userSettings) return;
 
-        const updatedSettings: Partial<UserSettingsDto> = {
+        const updatedSettings = {
             userId: this.userSettings.userId,
             currentFilmId: this.selectedFilmId,
             isSubscribed: this.userSettings.isSubscribed,
@@ -208,7 +92,6 @@ export class HomeComponent implements OnInit {
 
         this.userSettingsService.updateUserSettings(updatedSettings).subscribe({
             next: () => {
-                // Reload settings to get updated current film
                 this.loadUserSettings();
                 this.closeChangeCurrentFilmModal();
             },
@@ -216,12 +99,6 @@ export class HomeComponent implements OnInit {
                 console.error('Error changing current film:', error);
             }
         });
-    }
-
-    editCurrentFilm(): void {
-        if (this.currentFilm) {
-            this.router.navigate(['/films', this.currentFilm.id]);
-        }
     }
 
     openAddIdeaModal(): void {

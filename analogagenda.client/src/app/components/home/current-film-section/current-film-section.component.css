@@ -1,0 +1,150 @@
+:host {
+    display: block;
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+.current-film-section {
+    margin-bottom: 0;
+    min-width: 0;
+    max-width: 100%;
+    width: 100%;
+}
+
+.current-film-section .box {
+    background-color: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    color: #fff;
+    width: 100%;
+    max-width: 450px;
+    margin: 0 auto;
+    min-width: 0;
+    box-sizing: border-box;
+}
+
+.current-film-section .form-title {
+    color: #fff;
+    text-align: center;
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin: 0 0 1rem 0;
+}
+
+.current-film-section .current-film-card {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    align-items: center;
+    min-width: 0;
+    width: 100%;
+}
+
+.current-film-section .film-image-container {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    margin-bottom: 1rem;
+}
+
+.current-film-section .film-image {
+    max-width: 200px;
+    max-height: 300px;
+    width: auto;
+    height: auto;
+    border-radius: 6px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.current-film-section .film-info {
+    width: 100%;
+    text-align: center;
+}
+
+.current-film-section .film-info h3 {
+    margin: 0 0 10px 0;
+    font-size: 1.3rem;
+    color: #fff;
+}
+
+.current-film-section .film-info p {
+    margin: 5px 0;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.current-film-section .film-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    width: 100%;
+    justify-content: center;
+    margin-top: 1rem;
+    min-width: 0;
+}
+
+.current-film-section .film-actions .btn {
+    min-width: 0;
+    max-width: 100%;
+}
+
+.current-film-section .no-current-film {
+    text-align: center;
+    padding: 2rem 0;
+}
+
+.current-film-section .no-current-film p {
+    margin-bottom: 15px;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.current-film-section .btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+}
+
+.current-film-section .btn-primary {
+    background-color: rgba(37, 35, 35, 1);
+    color: white;
+}
+
+.current-film-section .btn-secondary {
+    background-color: rgba(37, 35, 35, 1);
+    color: white;
+}
+
+@media (max-width: 768px) {
+    .current-film-section {
+        width: 100%;
+        max-width: 100%;
+    }
+
+    .current-film-section .box {
+        max-width: 100%;
+        width: 100%;
+        padding: 1rem;
+        min-width: 0;
+        overflow-x: hidden;
+        box-sizing: border-box;
+    }
+
+    .current-film-section .film-image {
+        max-width: 150px;
+        max-height: 225px;
+    }
+
+    .current-film-section .film-actions {
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .current-film-section .film-actions .btn {
+        width: 100%;
+    }
+}

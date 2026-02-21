@@ -5,7 +5,11 @@ import { By } from '@angular/platform-browser';
 import { HomeComponent } from '../../components/home/home.component';
 import { FilmService, UserSettingsService, IdeaService } from '../../services';
 import { WackyIdeasSectionComponent } from '../../components/home/wacky-ideas-section/wacky-ideas-section.component';
-import { UpsertIdeaComponent } from '../../components/home/upsert-idea/upsert-idea.component';
+import { UpsertIdeaComponent } from '../../components/home/wacky-ideas-section/upsert-idea/upsert-idea.component';
+import { FilmCheckSectionComponent } from '../../components/home/film-check-section/film-check-section.component';
+import { FilmCheckUserComponent } from '../../components/home/film-check-section/film-check-user/film-check-user.component';
+import { CurrentFilmSectionComponent } from '../../components/home/current-film-section/current-film-section.component';
+import { SettingsSectionComponent } from '../../components/home/settings-section/settings-section.component';
 import { TestConfig } from '../test.config';
 import { FilmDto, UserSettingsDto, IdeaDto } from '../../DTOs';
 import { FilmType, UsernameType } from '../../enums';
@@ -43,7 +47,15 @@ describe('HomeComponent', () => {
     ideaServiceSpy.getAll.and.returnValue(of([]));
 
     await TestConfig.configureTestBed({
-      declarations: [HomeComponent, WackyIdeasSectionComponent, UpsertIdeaComponent],
+      declarations: [
+        HomeComponent,
+        WackyIdeasSectionComponent,
+        UpsertIdeaComponent,
+        FilmCheckSectionComponent,
+        FilmCheckUserComponent,
+        CurrentFilmSectionComponent,
+        SettingsSectionComponent
+      ],
       providers: [
         { provide: FilmService, useValue: filmServiceSpy },
         { provide: UserSettingsService, useValue: userSettingsServiceSpy },

@@ -1,0 +1,84 @@
+:host {
+    display: block;
+    min-width: 0;
+    max-width: 100%;
+    overflow: visible;
+    box-sizing: border-box;
+}
+
+.film-check-section {
+    margin-bottom: 0;
+    min-width: 0;
+    max-width: 100%;
+    width: 100%;
+    overflow: visible;
+    box-sizing: border-box;
+}
+
+.film-check-section .stats-table tbody {
+    text-align: center;
+}
+
+.film-check-section .box {
+    position: relative;
+    overflow: visible;
+    background-color: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    color: #fff;
+    max-width: 450px;
+    margin: 0 auto;
+}
+
+.film-check-section.popover-open .box {
+    z-index: 1000;
+}
+
+.film-check-section .form-title {
+    color: #fff;
+    text-align: center;
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin: 0 0 1rem 0;
+}
+
+.film-check-section .stats-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1rem;
+}
+
+.film-check-section .stats-table th,
+.film-check-section .stats-table td {
+    padding: 12px;
+    text-align: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.film-check-section .stats-table tbody tr:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+@media (max-width: 768px) {
+    .film-check-section .box {
+        max-width: 100%;
+        padding: 1rem;
+        min-width: 0;
+        overflow: visible;
+        box-sizing: border-box;
+    }
+
+    .film-check-section .stats-table {
+        table-layout: fixed;
+        width: 100%;
+    }
+
+    .film-check-section .stats-table th,
+    .film-check-section .stats-table td {
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+    }
+}

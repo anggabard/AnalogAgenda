@@ -1,6 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { of } from 'rxjs';
-import { UpsertIdeaComponent } from '../../components/home/upsert-idea/upsert-idea.component';
+import { UpsertIdeaComponent } from '../../components/home/wacky-ideas-section/upsert-idea/upsert-idea.component';
 import { IdeaService } from '../../services';
 import { TestConfig } from '../test.config';
 import { IdeaDto } from '../../DTOs';

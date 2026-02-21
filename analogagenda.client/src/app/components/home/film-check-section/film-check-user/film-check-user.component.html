@@ -1,0 +1,23 @@
+<td>{{ userLabel }}</td>
+<td>{{ count }}</td>
+<td class="eye-cell">
+  <div
+    class="eye-wrapper"
+    (mouseenter)="onEyeEnter()"
+    (mouseleave)="onEyeLeave()">
+    <svg class="eye-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+      <circle cx="12" cy="12" r="3"></circle>
+    </svg>
+    <div class="popover" *ngIf="showPopover">
+      <table class="popover-table">
+        <tbody>
+          <tr *ngFor="let ft of filmTypes">
+            <td class="popover-label">{{ ft.label }}</td>
+            <td class="popover-count">{{ getCountForType(ft.type) }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</td>

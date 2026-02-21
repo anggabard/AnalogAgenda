@@ -16,7 +16,11 @@ import {
   ErrorMessageComponent
 } from './components/common';
 import { WackyIdeasSectionComponent } from './components/home/wacky-ideas-section/wacky-ideas-section.component';
-import { UpsertIdeaComponent } from './components/home/upsert-idea/upsert-idea.component';
+import { UpsertIdeaComponent } from './components/home/wacky-ideas-section/upsert-idea/upsert-idea.component';
+import { FilmCheckSectionComponent } from './components/home/film-check-section/film-check-section.component';
+import { FilmCheckUserComponent } from './components/home/film-check-section/film-check-user/film-check-user.component';
+import { CurrentFilmSectionComponent } from './components/home/current-film-section/current-film-section.component';
+import { SettingsSectionComponent } from './components/home/settings-section/settings-section.component';
 import { MainLayoutComponent, AuthLayoutComponent} from './layouts';
 
 @NgModule({
@@ -26,6 +30,10 @@ import { MainLayoutComponent, AuthLayoutComponent} from './layouts';
     HomeComponent,
     WackyIdeasSectionComponent,
     UpsertIdeaComponent,
+    FilmCheckSectionComponent,
+    FilmCheckUserComponent,
+    CurrentFilmSectionComponent,
+    SettingsSectionComponent,
     AppComponent,
     NotesComponent,
     SubstancesComponent,
