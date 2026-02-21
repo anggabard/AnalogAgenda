@@ -61,10 +61,10 @@ export class FilmCheckSectionComponent implements OnInit {
               const user = film.purchasedBy;
               if (subscribedUserEnums.includes(user)) {
                 userCountMap.set(user, (userCountMap.get(user) ?? 0) + 1);
-                const counts = userCountsByTypeMap.get(user)! as unknown as Record<string, number>;
-                const filmType = film.type as FilmType;
-                if (filmType in counts) {
-                  counts[filmType] = (counts[filmType] ?? 0) + 1;
+                const counts = userCountsByTypeMap.get(user)!;
+                const key = film.type as keyof FilmCheckCountsByType;
+                if (key in counts) {
+                  counts[key] = (counts[key] ?? 0) + 1;
                 }
               }
             });

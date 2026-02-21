@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { FilmDto, PagedResponseDto, ExposureDateDto } from '../../DTOs';
 import { Observable, EMPTY } from 'rxjs';
-import { expand, reduce, map } from 'rxjs/operators';
+import { expand, reduce } from 'rxjs/operators';
 import { BasePaginatedService } from '../base-paginated.service';
 import { SearchParams } from '../../components/films/film-search/film-search.component';
 
@@ -48,7 +48,7 @@ export class FilmService extends BasePaginatedService<FilmDto> {
           ? this.getFilteredPaged('not-developed', res.currentPage + 1, pageSize)
           : EMPTY
       ),
-      reduce((acc: FilmDto[], res) => acc.concat(res.data), [] as FilmDto[])
+      reduce((acc: FilmDto[], res) => { acc.push(...res.data); return acc; }, [] as FilmDto[])
     );
   }
 

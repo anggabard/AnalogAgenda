@@ -1,5 +1,4 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { By } from '@angular/platform-browser';
 import { FilmCheckUserComponent } from '../../components/home/film-check-section/film-check-user/film-check-user.component';
 import { TestConfig } from '../test.config';
 import { FilmType } from '../../enums';
