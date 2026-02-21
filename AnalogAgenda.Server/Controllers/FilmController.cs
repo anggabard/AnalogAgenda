@@ -77,25 +77,25 @@ public class FilmController(
         [FromQuery] int pageSize = 5
     )
     {
+        var entities = await databaseService.GetAllWithIncludesAsync<FilmEntity>(f => f.ExposureDates);
+        var sorted = entities.ApplyExposureDateSorting().ToList();
+
         // For backward compatibility, if page is 0 or negative, return all films
         if (page <= 0)
         {
-            var entities = await databaseService.GetAllAsync<FilmEntity>();
-            var results = entities.Select(dtoConvertor.ToDTO);
+            var results = sorted.Select(dtoConvertor.ToDTO);
             return Ok(results);
         }
 
-        var pagedEntities = await databaseService.GetPagedAsync<FilmEntity>(
-            page,
-            pageSize,
-            entities => entities.ApplyStandardSorting()
-        );
+        var totalCount = sorted.Count;
+        var pageSizeClamped = pageSize < 1 ? 1 : pageSize;
+        var pagedData = sorted.Skip((page - 1) * pageSizeClamped).Take(pageSizeClamped).ToList();
         var pagedResults = new PagedResponseDto<FilmDto>
         {
-            Data = pagedEntities.Data.Select(dtoConvertor.ToDTO),
-            TotalCount = pagedEntities.TotalCount,
-            PageSize = pagedEntities.PageSize,
-            CurrentPage = pagedEntities.CurrentPage,
+            Data = pagedData.Select(dtoConvertor.ToDTO),
+            TotalCount = totalCount,
+            PageSize = pageSizeClamped,
+            CurrentPage = page,
         };
 
         return Ok(pagedResults);
@@ -123,8 +123,8 @@ public class FilmController(
     [HttpGet("not-developed")]
     public async Task<IActionResult> GetNotDevelopedFilms([FromQuery] FilmSearchDto searchDto)
     {
-        // "All" not-developed films: return all users' films; PurchasedBy filter applied only when set in search
-        return await GetFilteredFilms(f => !f.Developed, searchDto, includePhotos: false);
+        // "All" not-developed films: exposure-date sort; include ExposureDates for FormattedExposureDate (Film Check) and sort
+        return await GetFilteredFilms(f => !f.Developed, searchDto, includePhotos: false, useExposureDateSorting: true, includeExposureDatesForDto: true);
     }
 
     [HttpGet("my/not-developed")]
@@ -136,7 +136,7 @@ public class FilmController(
 
         var currentUserEnum = currentUser.ToEnum<EUsernameType>();
 
-        return await GetMyFilteredFilms(f => !f.Developed, currentUserEnum, searchDto, includePhotos: false);
+        return await GetMyFilteredFilms(f => !f.Developed, currentUserEnum, searchDto, includePhotos: false, useExposureDateSorting: true, includeExposureDatesForDto: true);
     }
 
     private static bool NeedsExposureOrDescriptionIncludes(FilmSearchDto searchDto) =>
@@ -148,11 +148,12 @@ public class FilmController(
         Expression<Func<FilmEntity, bool>> predicate,
         FilmSearchDto searchDto,
         bool includePhotos,
-        bool useExposureDateSorting = false
+        bool useExposureDateSorting = false,
+        bool includeExposureDatesForDto = false
     )
     {
         var needExposure = NeedsExposureOrDescriptionIncludes(searchDto);
-        var needExposureDates = needExposure || useExposureDateSorting;
+        var needExposureDates = needExposure || useExposureDateSorting || includeExposureDatesForDto;
         if (includePhotos && needExposureDates)
         {
             var all = await databaseService.GetAllWithIncludesAsync<FilmEntity>(f => f.Photos, f => f.ExposureDates);
@@ -175,13 +176,14 @@ public class FilmController(
         Expression<Func<FilmEntity, bool>> predicate,
         FilmSearchDto searchDto,
         bool includePhotos = false,
-        bool useExposureDateSorting = false
+        bool useExposureDateSorting = false,
+        bool includeExposureDatesForDto = false
     )
     {
         // For backward compatibility, if page is 0 or negative, return all filtered films
         if (searchDto.Page <= 0)
         {
-            var entities = await GetFilmsForSearchAsync(predicate, searchDto, includePhotos, useExposureDateSorting);
+            var entities = await GetFilmsForSearchAsync(predicate, searchDto, includePhotos, useExposureDateSorting, includeExposureDatesForDto);
             var filteredEntities = ApplySearchFilters(entities, searchDto);
             var sorted = useExposureDateSorting
                 ? filteredEntities.ApplyExposureDateSorting()
@@ -190,7 +192,7 @@ public class FilmController(
             return Ok(results);
         }
 
-        var allEntities = await GetFilmsForSearchAsync(predicate, searchDto, includePhotos, useExposureDateSorting);
+        var allEntities = await GetFilmsForSearchAsync(predicate, searchDto, includePhotos, useExposureDateSorting, includeExposureDatesForDto);
         var searchFilteredEntities = ApplySearchFilters(allEntities, searchDto);
         var sortedEntities = (useExposureDateSorting
             ? searchFilteredEntities.ApplyExposureDateSorting()
@@ -217,12 +219,13 @@ public class FilmController(
         EUsernameType currentUserEnum,
         FilmSearchDto searchDto,
         bool includePhotos = false,
-        bool useExposureDateSorting = false
+        bool useExposureDateSorting = false,
+        bool includeExposureDatesForDto = false
     )
     {
         if (searchDto.Page <= 0)
         {
-            var allEntities = await GetFilmsForSearchAsync(statusPredicate, searchDto, includePhotos, useExposureDateSorting);
+            var allEntities = await GetFilmsForSearchAsync(statusPredicate, searchDto, includePhotos, useExposureDateSorting, includeExposureDatesForDto);
             var myEntities = allEntities.Where(f => f.PurchasedBy == currentUserEnum);
             var filteredEntities = ApplySearchFilters(myEntities, searchDto);
             var sorted = useExposureDateSorting
@@ -232,7 +235,7 @@ public class FilmController(
             return Ok(results);
         }
 
-        var allEntitiesForPaging = await GetFilmsForSearchAsync(statusPredicate, searchDto, includePhotos, useExposureDateSorting);
+        var allEntitiesForPaging = await GetFilmsForSearchAsync(statusPredicate, searchDto, includePhotos, useExposureDateSorting, includeExposureDatesForDto);
         var myFilms = allEntitiesForPaging.Where(f => f.PurchasedBy == currentUserEnum);
         var filteredFilms = ApplySearchFilters(myFilms, searchDto);
         var sortedFilms = (useExposureDateSorting

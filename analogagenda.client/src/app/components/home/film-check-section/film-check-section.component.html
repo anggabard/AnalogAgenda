@@ -1,0 +1,28 @@
+<div class="film-check-section" [class.popover-open]="popoverOpen">
+    <div class="box">
+        <h1 class="form-title">Film Check</h1>
+        <table class="stats-table">
+            <thead>
+                <tr>
+                    <th>User</th>
+                    <th>Count</th>
+                    <th>Types</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr
+                    *ngFor="let row of displayRows"
+                    app-film-check-user
+                    [userLabel]="row.user"
+                    [count]="row.count"
+                    [countsByType]="row.countsByType"
+                    (popoverShow)="onPopoverShow()"
+                    (popoverHide)="onPopoverHide()">
+                </tr>
+                <tr *ngIf="displayRows.length === 0">
+                    <td colspan="3">No subscribed users</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>

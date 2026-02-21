@@ -1,115 +1,23 @@
 <div class="home-container">
     <div class="sections-row">
-    <!-- Film Check Section -->
-    <div class="statistics-section">
-        <div class="box">
-            <h1 class="form-title">Film Check</h1>
-            <table class="stats-table">
-                <tbody>
-                    <tr *ngFor="let stat of userStats">
-                        <td>{{ stat.user }}</td>
-                        <td>{{ stat.count }}</td>
-                    </tr>
-                    <tr *ngIf="userStats.length === 0">
-                        <td colspan="2">No subscribed users</td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-    </div>
+        <app-film-check-section></app-film-check-section>
 
-    <!-- Current Film Card -->
-    <div class="current-film-section" *ngIf="userSettings">
-        <div class="box">
-            <h1 class="form-title">Current Film</h1>
-            <div class="current-film-card" *ngIf="currentFilm">
-                <div class="film-image-container">
-                    <img class="film-image" [src]="currentFilm.imageUrl" [alt]="currentFilm.name || currentFilm.brand" />
-                </div>
-                <div class="film-info">
-                    <h3>{{ currentFilm.name || currentFilm.brand }}</h3>
-                    <p><strong>ISO:</strong> {{ currentFilm.iso }}</p>
-                    <p><strong>Type:</strong> {{ currentFilm.type }}</p>
-                    <p><strong>Exposures:</strong> {{ currentFilm.numberOfExposures }}</p>
-                    <p *ngIf="currentFilm.formattedExposureDate"><strong>First Exposure Date:</strong> {{ currentFilm.formattedExposureDate }}</p>
-                </div>
-                <div class="film-actions">
-                    <button class="btn btn-primary" (click)="editCurrentFilm()">Edit Film</button>
-                    <button class="btn btn-secondary" (click)="openChangeCurrentFilmModal()">Change Current Film</button>
-                </div>
-            </div>
-            <div class="no-current-film" *ngIf="!currentFilm">
-                <p>No current film selected</p>
-                <button class="btn btn-primary" (click)="openChangeCurrentFilmModal()">Select Current Film</button>
-            </div>
-        </div>
-    </div>
+        <app-current-film-section
+            [userSettings]="userSettings"
+            [currentFilm]="currentFilm"
+            (changeCurrentFilmRequested)="openChangeCurrentFilmModal()">
+        </app-current-film-section>
 
-    <!-- User Settings Form -->
-    <div class="settings-section" *ngIf="userSettings">
-        <div class="box">
-            <form class="form">
-                <h1 class="form-title">Settings</h1>
-                
-                <!-- Subscribed Toggle -->
-                <div class="form-row">
-                    <label for="subscribedToggle">Subscribed</label>
-                    <div class="toggle-border-small">
-                        <input 
-                            id="subscribedToggle" 
-                            type="checkbox" 
-                            [(ngModel)]="userSettings.isSubscribed"
-                            (change)="onSettingsChange()"
-                            [ngModelOptions]="{standalone: true}"
-                        />
-                        <label for="subscribedToggle">
-                            <div class="handle-small"></div>
-                        </label>
-                    </div>
-                </div>
+        <app-settings-section
+            [userSettings]="userSettings"
+            (settingsUpdated)="loadUserSettings()">
+        </app-settings-section>
 
-                <!-- Table View Toggle -->
-                <div class="form-row">
-                    <label for="tableViewToggle">Table View</label>
-                    <div class="toggle-border-small">
-                        <input 
-                            id="tableViewToggle" 
-                            type="checkbox" 
-                            [(ngModel)]="userSettings.tableView"
-                            (change)="onSettingsChange()"
-                            [ngModelOptions]="{standalone: true}"
-                        />
-                        <label for="tableViewToggle">
-                            <div class="handle-small"></div>
-                        </label>
-                    </div>
-                </div>
-
-                <!-- Entities Per Page -->
-                <div class="form-row">
-                    <label for="entitiesPerPage">Entities per Page</label>
-                    <input 
-                        type="number" 
-                        id="entitiesPerPage"
-                        [(ngModel)]="userSettings.entitiesPerPage"
-                        (change)="onSettingsChange()"
-                        [ngModelOptions]="{standalone: true}"
-                        min="1"
-                        max="99"
-                        maxlength="2"
-                        class="input input-small"
-                    />
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- Wacky Ideas Section -->
-    <app-wacky-ideas-section
-        (addIdea)="openAddIdeaModal()"
-        (editIdea)="openEditIdeaModal($event)"
-        #wackyIdeasSection>
-    </app-wacky-ideas-section>
+        <app-wacky-ideas-section
+            (addIdea)="openAddIdeaModal()"
+            (editIdea)="openEditIdeaModal($event)"
+            #wackyIdeasSection>
+        </app-wacky-ideas-section>
     </div>
 
     <!-- Change Current Film Modal -->

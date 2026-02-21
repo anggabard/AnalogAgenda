@@ -1,7 +1,7 @@
 import { Component, Input, Output, EventEmitter, OnInit, OnChanges, SimpleChanges, inject } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { IdeaDto } from '../../../DTOs';
-import { IdeaService } from '../../../services';
+import { IdeaDto } from '../../../../DTOs';
+import { IdeaService } from '../../../../services';
 
 @Component({
     selector: 'app-upsert-idea',

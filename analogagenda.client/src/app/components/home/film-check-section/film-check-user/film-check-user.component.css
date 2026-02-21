@@ -1,0 +1,79 @@
+.eye-cell {
+  padding: 12px;
+  vertical-align: middle;
+}
+
+.eye-wrapper {
+  position: relative;
+  display: inline-block;
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+}
+
+.eye-icon {
+  flex-shrink: 0;
+  opacity: 0.8;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.eye-wrapper:hover .eye-icon {
+  opacity: 1;
+}
+
+.popover {
+  position: absolute;
+  left: 100%;
+  top: 50%;
+  transform: translateY(-50%);
+  margin-left: 8px;
+  z-index: 2000;
+  background-color: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 12px;
+  padding: 0.75rem 1rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  color: #1a1a1a;
+  min-width: 160px;
+  pointer-events: none;
+}
+
+.popover-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.popover-table td {
+  padding: 4px 8px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  color: #1a1a1a;
+}
+
+.popover-table tr:last-child td {
+  border-bottom: none;
+}
+
+.popover-label {
+  text-align: left;
+}
+
+.popover-count {
+  text-align: right;
+  font-weight: 600;
+}
+
+@media (max-width: 768px) {
+  .eye-cell {
+    padding: 8px;
+  }
+
+  .popover {
+    left: auto;
+    right: 100%;
+    margin-left: 0;
+    margin-right: 8px;
+  }
+}

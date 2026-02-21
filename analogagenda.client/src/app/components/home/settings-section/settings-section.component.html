@@ -1,0 +1,56 @@
+<div class="settings-section" *ngIf="userSettings">
+    <div class="box">
+        <form class="form">
+            <h1 class="form-title">Settings</h1>
+            
+            <!-- Subscribed Toggle -->
+            <div class="form-row">
+                <label for="subscribedToggle">Subscribed</label>
+                <div class="toggle-border-small">
+                    <input 
+                        id="subscribedToggle" 
+                        type="checkbox" 
+                        [(ngModel)]="userSettings.isSubscribed"
+                        (change)="onSettingsChange()"
+                        [ngModelOptions]="{standalone: true}"
+                    />
+                    <label for="subscribedToggle">
+                        <div class="handle-small"></div>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Table View Toggle -->
+            <div class="form-row">
+                <label for="tableViewToggle">Table View</label>
+                <div class="toggle-border-small">
+                    <input 
+                        id="tableViewToggle" 
+                        type="checkbox" 
+                        [(ngModel)]="userSettings.tableView"
+                        (change)="onSettingsChange()"
+                        [ngModelOptions]="{standalone: true}"
+                    />
+                    <label for="tableViewToggle">
+                        <div class="handle-small"></div>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Entities Per Page -->
+            <div class="form-row">
+                <label for="entitiesPerPage">Entities per Page</label>
+                <input 
+                    type="number" 
+                    id="entitiesPerPage"
+                    [(ngModel)]="userSettings.entitiesPerPage"
+                    (change)="onSettingsChange()"
+                    [ngModelOptions]="{standalone: true}"
+                    min="1"
+                    max="99"
+                    class="input input-small"
+                />
+            </div>
+        </form>
+    </div>
+</div>
