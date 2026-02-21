@@ -77,25 +77,25 @@ public class FilmController(
         [FromQuery] int pageSize = 5
     )
     {
+        var entities = await databaseService.GetAllWithIncludesAsync<FilmEntity>(f => f.ExposureDates);
+        var sorted = entities.ApplyExposureDateSorting().ToList();
+
         // For backward compatibility, if page is 0 or negative, return all films
         if (page <= 0)
         {
-            var entities = await databaseService.GetAllAsync<FilmEntity>();
-            var results = entities.Select(dtoConvertor.ToDTO);
+            var results = sorted.Select(dtoConvertor.ToDTO);
             return Ok(results);
         }
 
-        var pagedEntities = await databaseService.GetPagedAsync<FilmEntity>(
-            page,
-            pageSize,
-            entities => entities.ApplyStandardSorting()
-        );
+        var totalCount = sorted.Count;
+        var pageSizeClamped = pageSize < 1 ? 1 : pageSize;
+        var pagedData = sorted.Skip((page - 1) * pageSizeClamped).Take(pageSizeClamped).ToList();
         var pagedResults = new PagedResponseDto<FilmDto>
         {
-            Data = pagedEntities.Data.Select(dtoConvertor.ToDTO),
-            TotalCount = pagedEntities.TotalCount,
-            PageSize = pagedEntities.PageSize,
-            CurrentPage = pagedEntities.CurrentPage,
+            Data = pagedData.Select(dtoConvertor.ToDTO),
+            TotalCount = totalCount,
+            PageSize = pageSizeClamped,
+            CurrentPage = page,
         };
 
         return Ok(pagedResults);
@@ -123,8 +123,8 @@ public class FilmController(
     [HttpGet("not-developed")]
     public async Task<IActionResult> GetNotDevelopedFilms([FromQuery] FilmSearchDto searchDto)
     {
-        // "All" not-developed films: return all users' films; include ExposureDates so HasExposureDates is set for Film Check
-        return await GetFilteredFilms(f => !f.Developed, searchDto, includePhotos: false, useExposureDateSorting: false, includeExposureDatesForDto: true);
+        // "All" not-developed films: exposure-date sort; include ExposureDates for FormattedExposureDate (Film Check) and sort
+        return await GetFilteredFilms(f => !f.Developed, searchDto, includePhotos: false, useExposureDateSorting: true, includeExposureDatesForDto: true);
     }
 
     [HttpGet("my/not-developed")]
@@ -136,7 +136,7 @@ public class FilmController(
 
         var currentUserEnum = currentUser.ToEnum<EUsernameType>();
 
-        return await GetMyFilteredFilms(f => !f.Developed, currentUserEnum, searchDto, includePhotos: false);
+        return await GetMyFilteredFilms(f => !f.Developed, currentUserEnum, searchDto, includePhotos: false, useExposureDateSorting: true);
     }
 
     private static bool NeedsExposureOrDescriptionIncludes(FilmSearchDto searchDto) =>
