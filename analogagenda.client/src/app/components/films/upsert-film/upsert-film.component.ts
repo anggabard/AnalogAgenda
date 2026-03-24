@@ -9,6 +9,7 @@ import { FilmDto, SessionDto, DevKitDto, UsedFilmThumbnailDto, ExposureDateEntry
 import { DateHelper } from '../../../helpers/date.helper';
 import { ErrorHandlingHelper } from '../../../helpers/error-handling.helper';
 import { modalListMatches } from '../../../helpers/modal-list-search.helper';
+import { sortUsedFilmThumbnailsByBrandIsoSimilarity } from '../../../helpers/used-film-thumbnail-rank.helper';
 
 @Component({
     selector: 'app-upsert-film',
@@ -58,7 +59,9 @@ export class UpsertFilmComponent extends BaseUpsertComponent<FilmDto> implements
     // Search for all thumbnails if query is empty, or filter by query
     this.thumbnailService.searchByFilmName(searchQuery || '').subscribe({
       next: (results) => {
-        this.thumbnailSearchResults = results;
+        const brand = this.form.get('brand')?.value as string | null | undefined;
+        const iso = this.form.get('iso')?.value as string | null | undefined;
+        this.thumbnailSearchResults = sortUsedFilmThumbnailsByBrandIsoSimilarity(results, brand, iso);
         this.showThumbnailDropdown = true;
       },
       error: (err) => {

@@ -166,13 +166,12 @@ public class DevKitController(IDatabaseService databaseService, IBlobService blo
             .Select(x => x.SessionId)
             .ToHashSet();
 
-        var allSessions = (await databaseService.GetAllAsync<SessionEntity>())
+        var allSessions = await databaseService.GetAllAsync<SessionEntity>();
+        var rows = (showAll
+                ? allSessions
+                : allSessions.Where(s => selectedIds.Contains(s.Id)))
             .ApplyStandardSorting()
             .ToList();
-
-        IEnumerable<SessionEntity> rows = showAll
-            ? allSessions
-            : allSessions.Where(s => selectedIds.Contains(s.Id));
 
         var result = rows.Select(s => new DevKitSessionAssignmentRowDto
         {
@@ -246,15 +245,14 @@ public class DevKitController(IDatabaseService databaseService, IBlobService blo
             .Select(x => x.FilmId)
             .ToHashSet();
 
-        var allDeveloped = (await databaseService.GetAllWhereWithIncludesAsync<FilmEntity>(
-                f => f.Developed,
-                f => f.ExposureDates))
+        var allDeveloped = await databaseService.GetAllWhereWithIncludesAsync<FilmEntity>(
+            f => f.Developed,
+            f => f.ExposureDates);
+        var rows = (showAll
+                ? allDeveloped
+                : allDeveloped.Where(f => selectedIds.Contains(f.Id)))
             .ApplyExposureDateSorting()
             .ToList();
-
-        IEnumerable<FilmEntity> rows = showAll
-            ? allDeveloped
-            : allDeveloped.Where(f => selectedIds.Contains(f.Id));
 
         var result = rows.Select(f =>
         {
