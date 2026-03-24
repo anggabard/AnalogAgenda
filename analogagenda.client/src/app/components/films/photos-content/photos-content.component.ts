@@ -114,6 +114,7 @@ export class PhotosContentComponent implements OnInit, OnChanges {
     this.bulkSelectionMode = true;
     this.selectedPhotoIds = new Set();
     this.optionsDropdownOpen = false;
+    this.downloadDropdownOpen = false;
   }
 
   /** Photos that can be toggled in bulk mode (respects idea-results allowlist). */
@@ -157,7 +158,11 @@ export class PhotosContentComponent implements OnInit, OnChanges {
   }
 
   toggleOptionsDropdown(): void {
-    this.optionsDropdownOpen = !this.optionsDropdownOpen;
+    const next = !this.optionsDropdownOpen;
+    if (next) {
+      this.downloadDropdownOpen = false;
+    }
+    this.optionsDropdownOpen = next;
   }
 
   onBulkDeleteFromMenu(): void {
@@ -313,8 +318,12 @@ export class PhotosContentComponent implements OnInit, OnChanges {
     if (this.currentPreviewPhoto) this.restrictToggle.emit(this.currentPreviewPhoto);
   }
 
-  toggleDownloadDropdown() {
-    this.downloadDropdownOpen = !this.downloadDropdownOpen;
+  toggleDownloadDropdown(): void {
+    const next = !this.downloadDropdownOpen;
+    if (next) {
+      this.optionsDropdownOpen = false;
+    }
+    this.downloadDropdownOpen = next;
   }
 
   onDownloadAll(small: boolean) {

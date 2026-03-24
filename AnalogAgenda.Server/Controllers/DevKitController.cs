@@ -246,8 +246,9 @@ public class DevKitController(IDatabaseService databaseService, IBlobService blo
             .Select(x => x.FilmId)
             .ToHashSet();
 
-        var allDeveloped = (await databaseService.GetAllWithIncludesAsync<FilmEntity>(f => f.ExposureDates))
-            .Where(f => f.Developed)
+        var allDeveloped = (await databaseService.GetAllWhereWithIncludesAsync<FilmEntity>(
+                f => f.Developed,
+                f => f.ExposureDates))
             .ApplyExposureDateSorting()
             .ToList();
 
