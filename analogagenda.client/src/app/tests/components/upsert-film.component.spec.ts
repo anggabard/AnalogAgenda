@@ -6,6 +6,7 @@ import { UpsertFilmComponent } from '../../components/films/upsert-film/upsert-f
 import { FilmService, SessionService, DevKitService, PhotoService, UsedFilmThumbnailService } from '../../services';
 import { DevKitType, UsernameType, FilmType } from '../../enums';
 import { TestConfig } from '../test.config';
+import { sortUsedFilmThumbnailsByBrandIsoSimilarity } from '../../helpers/used-film-thumbnail-rank.helper';
 
 describe('UpsertFilmComponent', () => {
   let component: UpsertFilmComponent;
@@ -390,7 +391,13 @@ describe('UpsertFilmComponent', () => {
       component.onThumbnailSearchClick();
 
       expect(mockThumbnailService.searchByFilmName).toHaveBeenCalledWith('');
-      expect(component.thumbnailSearchResults).toEqual(mockThumbnails);
+      expect(component.thumbnailSearchResults).toEqual(
+        sortUsedFilmThumbnailsByBrandIsoSimilarity(
+          mockThumbnails,
+          component.form.get('brand')?.value,
+          component.form.get('iso')?.value
+        )
+      );
       expect(component.showThumbnailDropdown).toBeTruthy();
     });
 

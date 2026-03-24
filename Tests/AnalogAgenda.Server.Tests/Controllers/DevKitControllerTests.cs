@@ -535,5 +535,250 @@ public class DevKitControllerTests : IDisposable
         Assert.Equal(filmInJunction.Id, rows[0].Id);
         Assert.True(rows[0].IsSelected);
     }
+
+    [Fact]
+    public async Task GetSessionAssignment_ShowAll_OrdersSessionsNewestFirst()
+    {
+        var kitId = "devkitOrdSess";
+        var kit = new DevKitEntity
+        {
+            Id = kitId,
+            Name = "Kit",
+            Url = "https://k",
+            Type = EDevKitType.BW,
+            PurchasedBy = EUsernameType.Angel,
+            PurchasedOn = DateTime.UtcNow,
+            ImageId = Guid.NewGuid()
+        };
+        var baseDate = DateTime.UtcNow.Date;
+        var sNew = new SessionEntity
+        {
+            Id = "sOrdNew",
+            Location = "N",
+            Participants = "[]",
+            SessionDate = baseDate.AddDays(-1),
+            ImageId = Guid.NewGuid()
+        };
+        var sMid = new SessionEntity
+        {
+            Id = "sOrdMid",
+            Location = "M",
+            Participants = "[]",
+            SessionDate = baseDate.AddDays(-10),
+            ImageId = Guid.NewGuid()
+        };
+        var sOld = new SessionEntity
+        {
+            Id = "sOrdOld",
+            Location = "O",
+            Participants = "[]",
+            SessionDate = baseDate.AddDays(-30),
+            ImageId = Guid.NewGuid()
+        };
+
+        _dbContext.DevKits.Add(kit);
+        _dbContext.Sessions.AddRange(sNew, sMid, sOld);
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _controller.GetSessionAssignment(kitId, showAll: true);
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var rows = ((IEnumerable<DevKitSessionAssignmentRowDto>)ok.Value!).ToList();
+
+        Assert.Equal(3, rows.Count);
+        Assert.Equal(new[] { "sOrdNew", "sOrdMid", "sOrdOld" }, rows.Select(r => r.Id));
+    }
+
+    [Fact]
+    public async Task GetSessionAssignment_ShowFalse_OrdersSelectedSessionsNewestFirst()
+    {
+        var kitId = "devkitOrdSess2";
+        var kit = new DevKitEntity
+        {
+            Id = kitId,
+            Name = "Kit",
+            Url = "https://k",
+            Type = EDevKitType.BW,
+            PurchasedBy = EUsernameType.Angel,
+            PurchasedOn = DateTime.UtcNow,
+            ImageId = Guid.NewGuid()
+        };
+        var baseDate = DateTime.UtcNow.Date;
+        var sNew = new SessionEntity
+        {
+            Id = "s2New",
+            Location = "N",
+            Participants = "[]",
+            SessionDate = baseDate.AddDays(-2),
+            ImageId = Guid.NewGuid()
+        };
+        var sMid = new SessionEntity
+        {
+            Id = "s2Mid",
+            Location = "M",
+            Participants = "[]",
+            SessionDate = baseDate.AddDays(-15),
+            ImageId = Guid.NewGuid()
+        };
+        var sOld = new SessionEntity
+        {
+            Id = "s2Old",
+            Location = "O",
+            Participants = "[]",
+            SessionDate = baseDate.AddDays(-40),
+            ImageId = Guid.NewGuid()
+        };
+
+        _dbContext.DevKits.Add(kit);
+        _dbContext.Sessions.AddRange(sNew, sMid, sOld);
+        await _dbContext.SaveChangesAsync();
+        _dbContext.DevKitSessions.AddRange(
+            new DevKitSessionEntity { DevKitId = kitId, SessionId = sMid.Id },
+            new DevKitSessionEntity { DevKitId = kitId, SessionId = sOld.Id });
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _controller.GetSessionAssignment(kitId, showAll: false);
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var rows = ((IEnumerable<DevKitSessionAssignmentRowDto>)ok.Value!).ToList();
+
+        Assert.Equal(2, rows.Count);
+        Assert.Equal(new[] { "s2Mid", "s2Old" }, rows.Select(r => r.Id));
+    }
+
+    [Fact]
+    public async Task GetFilmAssignment_ShowAll_OrdersFilmsByExposureNewestFirst()
+    {
+        var kitId = "devkitOrdFilm";
+        var kit = new DevKitEntity
+        {
+            Id = kitId,
+            Name = "Kit",
+            Url = "https://k",
+            Type = EDevKitType.BW,
+            PurchasedBy = EUsernameType.Angel,
+            PurchasedOn = DateTime.UtcNow,
+            ImageId = Guid.NewGuid()
+        };
+        var filmNew = new FilmEntity
+        {
+            Id = "fOrdNew",
+            Brand = "B",
+            Iso = "400",
+            Type = EFilmType.ColorNegative,
+            PurchasedBy = EUsernameType.Angel,
+            PurchasedOn = DateTime.UtcNow.AddDays(-200),
+            ImageId = Guid.NewGuid(),
+            Developed = true
+        };
+        var filmMid = new FilmEntity
+        {
+            Id = "fOrdMid",
+            Brand = "B",
+            Iso = "400",
+            Type = EFilmType.ColorNegative,
+            PurchasedBy = EUsernameType.Angel,
+            PurchasedOn = DateTime.UtcNow.AddDays(-100),
+            ImageId = Guid.NewGuid(),
+            Developed = true
+        };
+        var filmUnsel = new FilmEntity
+        {
+            Id = "fOrdUnsel",
+            Brand = "B",
+            Iso = "400",
+            Type = EFilmType.ColorNegative,
+            PurchasedBy = EUsernameType.Angel,
+            PurchasedOn = DateTime.UtcNow.AddDays(-50),
+            ImageId = Guid.NewGuid(),
+            Developed = true
+        };
+
+        _dbContext.DevKits.Add(kit);
+        _dbContext.Films.AddRange(filmNew, filmMid, filmUnsel);
+        await _dbContext.SaveChangesAsync();
+
+        _dbContext.ExposureDates.AddRange(
+            new ExposureDateEntity { Id = "expOrdN", FilmId = filmNew.Id, Date = new DateOnly(2025, 6, 1), Description = string.Empty },
+            new ExposureDateEntity { Id = "expOrdM", FilmId = filmMid.Id, Date = new DateOnly(2020, 1, 1), Description = string.Empty },
+            new ExposureDateEntity { Id = "expOrdU", FilmId = filmUnsel.Id, Date = new DateOnly(2023, 8, 1), Description = string.Empty });
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _controller.GetFilmAssignment(kitId, showAll: true);
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var rows = ((IEnumerable<DevKitFilmAssignmentRowDto>)ok.Value!).ToList();
+
+        Assert.Equal(3, rows.Count);
+        Assert.Equal(new[] { "fOrdNew", "fOrdUnsel", "fOrdMid" }, rows.Select(r => r.Id));
+    }
+
+    [Fact]
+    public async Task GetFilmAssignment_ShowFalse_OrdersSelectedFilmsByExposureNewestFirst()
+    {
+        var kitId = "devkitOrdFilm2";
+        var kit = new DevKitEntity
+        {
+            Id = kitId,
+            Name = "Kit",
+            Url = "https://k",
+            Type = EDevKitType.BW,
+            PurchasedBy = EUsernameType.Angel,
+            PurchasedOn = DateTime.UtcNow,
+            ImageId = Guid.NewGuid()
+        };
+        var filmNew = new FilmEntity
+        {
+            Id = "f2New",
+            Brand = "B",
+            Iso = "400",
+            Type = EFilmType.ColorNegative,
+            PurchasedBy = EUsernameType.Angel,
+            PurchasedOn = DateTime.UtcNow.AddDays(-200),
+            ImageId = Guid.NewGuid(),
+            Developed = true
+        };
+        var filmOld = new FilmEntity
+        {
+            Id = "f2Old",
+            Brand = "B",
+            Iso = "400",
+            Type = EFilmType.ColorNegative,
+            PurchasedBy = EUsernameType.Angel,
+            PurchasedOn = DateTime.UtcNow.AddDays(-100),
+            ImageId = Guid.NewGuid(),
+            Developed = true
+        };
+        var filmOther = new FilmEntity
+        {
+            Id = "f2Other",
+            Brand = "B",
+            Iso = "400",
+            Type = EFilmType.ColorNegative,
+            PurchasedBy = EUsernameType.Angel,
+            PurchasedOn = DateTime.UtcNow.AddDays(-50),
+            ImageId = Guid.NewGuid(),
+            Developed = true
+        };
+
+        _dbContext.DevKits.Add(kit);
+        _dbContext.Films.AddRange(filmNew, filmOld, filmOther);
+        await _dbContext.SaveChangesAsync();
+
+        _dbContext.ExposureDates.AddRange(
+            new ExposureDateEntity { Id = "exp2New", FilmId = filmNew.Id, Date = new DateOnly(2025, 1, 1), Description = string.Empty },
+            new ExposureDateEntity { Id = "exp2Old", FilmId = filmOld.Id, Date = new DateOnly(2019, 1, 1), Description = string.Empty },
+            new ExposureDateEntity { Id = "exp2Oth", FilmId = filmOther.Id, Date = new DateOnly(2024, 1, 1), Description = string.Empty });
+        await _dbContext.SaveChangesAsync();
+
+        _dbContext.DevKitFilms.AddRange(
+            new DevKitFilmEntity { DevKitId = kitId, FilmId = filmNew.Id },
+            new DevKitFilmEntity { DevKitId = kitId, FilmId = filmOld.Id });
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _controller.GetFilmAssignment(kitId, showAll: false);
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var rows = ((IEnumerable<DevKitFilmAssignmentRowDto>)ok.Value!).ToList();
+
+        Assert.Equal(2, rows.Count);
+        Assert.Equal(new[] { "f2New", "f2Old" }, rows.Select(r => r.Id));
+    }
 }
 
