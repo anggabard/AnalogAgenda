@@ -8,3 +8,4 @@ export { TimeInputComponent } from './time-input/time-input.component';
 export { ConfirmDeleteModalComponent } from './confirm-delete-modal/confirm-delete-modal.component';
 export { ModalComponent } from './modal/modal.component';
 export { ErrorMessageComponent } from './error-message/error-message.component';
+export { QuantityStepperComponent } from './quantity-stepper/quantity-stepper.component';

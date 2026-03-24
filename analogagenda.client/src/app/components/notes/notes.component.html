@@ -40,8 +40,14 @@
     </div>
     <div class="modal-body">
         <p style="text-align: center; margin-bottom: 20px; color: #666;">Select 2 or more notes to merge:</p>
+        <input
+            type="search"
+            class="modal-list-search"
+            [(ngModel)]="mergeModalSearch"
+            placeholder="Search notes..."
+            aria-label="Search notes" />
         <div class="items-grid">
-            <div *ngFor="let note of notes" 
+            <div *ngFor="let note of notesForMergeModal" 
                  class="item-card"
                  [class.selected]="isNoteSelected(note.id)"
                  (click)="toggleNoteSelection(note.id)">

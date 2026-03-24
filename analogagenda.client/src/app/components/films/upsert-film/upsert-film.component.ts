@@ -8,6 +8,7 @@ import { FilmType, UsernameType } from '../../../enums';
 import { FilmDto, SessionDto, DevKitDto, UsedFilmThumbnailDto, ExposureDateEntry } from '../../../DTOs';
 import { DateHelper } from '../../../helpers/date.helper';
 import { ErrorHandlingHelper } from '../../../helpers/error-handling.helper';
+import { modalListMatches } from '../../../helpers/modal-list-search.helper';
 
 @Component({
     selector: 'app-upsert-film',
@@ -74,6 +75,8 @@ export class UpsertFilmComponent extends BaseUpsertComponent<FilmDto> implements
   showSessionModal = false;
   showDevKitModal = false;
   showExpiredDevKits = false;
+  sessionAssignModalSearch = '';
+  devKitAssignModalSearch = '';
   
   // Available items for modals
   availableSessions: SessionDto[] = [];
@@ -379,6 +382,7 @@ export class UpsertFilmComponent extends BaseUpsertComponent<FilmDto> implements
   closeSessionModal(): void {
     this.showSessionModal = false;
     this.selectedSessionId = null;
+    this.sessionAssignModalSearch = '';
   }
 
   selectSession(sessionId: string): void {
@@ -419,6 +423,7 @@ export class UpsertFilmComponent extends BaseUpsertComponent<FilmDto> implements
   closeDevKitModal(): void {
     this.showDevKitModal = false;
     this.selectedDevKitId = null;
+    this.devKitAssignModalSearch = '';
     // Reset expired checkbox when closing modal
     this.showExpiredDevKits = false;
   }
@@ -503,6 +508,21 @@ export class UpsertFilmComponent extends BaseUpsertComponent<FilmDto> implements
     return this.availableDevKits
       .filter(devKit => !devKit.expired)
       .sort((a, b) => a.name.localeCompare(b.name));
+  }
+
+  get sessionsForAssignModal(): SessionDto[] {
+    return this.availableSessions.filter((s) =>
+      modalListMatches(
+        this.sessionAssignModalSearch,
+        s.location,
+        this.formatSessionDateDisplay(s.sessionDate),
+        s.participantsList?.join(', ')
+      ));
+  }
+
+  get devKitsForAssignModal(): DevKitDto[] {
+    return this.filteredAvailableDevKits.filter((dk) =>
+      modalListMatches(this.devKitAssignModalSearch, dk.name, dk.type));
   }
 
   get hasExpiredDevKits(): boolean {
@@ -844,6 +864,10 @@ export class UpsertFilmComponent extends BaseUpsertComponent<FilmDto> implements
         this.errorMessage = ErrorHandlingHelper.handleError(err, `${actionName} ${this.getEntityName()}`);
       }
     });
+  }
+
+  formatSessionDateDisplay(sessionDate: string | null | undefined): string {
+    return DateHelper.formatDdMmYyyy(sessionDate ?? '');
   }
 
 }

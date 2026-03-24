@@ -1,0 +1,115 @@
+:host {
+  display: inline-flex;
+}
+
+/* Layout shell */
+.quantity-stepper {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-radius: 8px;
+  padding: 4px 6px;
+}
+
+/* Light UI: same language as .tabs button.active / add-film (global styles.css) */
+.quantity-stepper-root--solid .quantity-stepper {
+  background: #f8f9fa;
+  border: 2px solid #ccc;
+}
+
+.quantity-stepper-root--solid .stepper-btn {
+  min-width: 2.25rem;
+  height: 2.25rem;
+  padding: 0 0.5rem;
+  border: none;
+  border-radius: 6px;
+  background-color: rgba(37, 35, 35, 0.897);
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 500;
+  line-height: 1;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.quantity-stepper-root--solid .stepper-btn:hover:not(:disabled) {
+  background-color: rgba(37, 35, 35, 0.7);
+  color: #fff;
+}
+
+.quantity-stepper-root--solid .stepper-btn:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.quantity-stepper-root--solid .stepper-value {
+  min-width: 1.75rem;
+  text-align: center;
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: #333;
+}
+
+/* Dark form strip: match upsert-film .photo-btn */
+.quantity-stepper-root--glass .quantity-stepper {
+  background: transparent;
+  border: none;
+  padding: 0;
+  gap: 0.45rem;
+}
+
+.quantity-stepper-root--glass .stepper-btn {
+  min-width: 2.25rem;
+  height: 2.25rem;
+  padding: 0 0.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 6px;
+  background-color: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 1rem;
+  font-weight: 500;
+  line-height: 1;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.quantity-stepper-root--glass .stepper-btn:hover:not(:disabled) {
+  background-color: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.7);
+}
+
+.quantity-stepper-root--glass .stepper-btn:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.quantity-stepper-root--glass .stepper-value {
+  min-width: 1.5rem;
+  text-align: center;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.stepper-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+}
+
+@media (max-width: 640px) {
+  .quantity-stepper-root--solid .stepper-btn {
+    min-width: 2.5rem;
+    height: 2.5rem;
+  }
+
+  .quantity-stepper-root--glass .stepper-btn {
+    min-width: 2.5rem;
+    height: 2.5rem;
+  }
+}

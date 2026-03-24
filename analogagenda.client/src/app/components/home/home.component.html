@@ -29,9 +29,15 @@
                 <button class="modal-close" (click)="closeChangeCurrentFilmModal()">✕</button>
             </div>
             <div class="modal-body">
+                <input
+                    type="search"
+                    class="modal-list-search"
+                    [(ngModel)]="changeCurrentFilmModalSearch"
+                    placeholder="Search films..."
+                    aria-label="Search films" />
                 <div class="film-list">
                     <div 
-                        *ngFor="let film of availableFilms" 
+                        *ngFor="let film of filmsForChangeModal" 
                         class="film-item"
                         [class.selected]="selectedFilmId === film.id"
                         (click)="selectedFilmId = film.id">

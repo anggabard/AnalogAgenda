@@ -203,18 +203,23 @@ export class NotesMergeComponent implements OnInit {
     };
   }
 
-  /** Film counter controls */
+  /** Film counter from quantity stepper — must refresh merged timeline */
+  onFilmCountStepperChange(next: number): void {
+    if (next < 1 || next > 100 || next === this.filmCount) return;
+    this.filmCount = next;
+    this.recalculateAndSortEntries();
+  }
+
+  /** Film counter controls (used by tests / imperative callers) */
   incrementFilmCount() {
     if (this.filmCount < 100) {
-      this.filmCount++;
-      this.recalculateAndSortEntries();
+      this.onFilmCountStepperChange(this.filmCount + 1);
     }
   }
 
   decrementFilmCount() {
     if (this.filmCount > 1) {
-      this.filmCount--;
-      this.recalculateAndSortEntries();
+      this.onFilmCountStepperChange(this.filmCount - 1);
     }
   }
 

@@ -36,6 +36,33 @@
 }
 
 
+.exp-badge {
+  position: absolute;
+  z-index: 2;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 0.68em;
+  font-weight: 500;
+  padding: 0.28em 0.5em;
+  border-radius: 10px;
+  background: rgba(255, 152, 0, 0.95);
+  color: #fff;
+  text-transform: lowercase;
+  letter-spacing: 0.03em;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+  outline: 1px solid rgba(255, 255, 255, 0.55);
+  outline-offset: 0;
+}
+
+.exp-badge-my {
+  right: 0.625em;
+  top: 0.625em;
+}
+
+.exp-badge-all {
+  left: 0.625em;
+  top: 0.625em;
+}
+
 .card {
   position: relative;
   flex: 0 0 auto;

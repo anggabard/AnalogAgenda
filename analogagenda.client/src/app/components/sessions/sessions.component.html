@@ -14,6 +14,7 @@
                 [columnHeaders]="sessionTableHeaders"
                 [hasMore]="hasMore"
                 [loading]="loading"
+                listClass="sessions-card-list"
                 (loadMore)="loadMoreSessions()"
                 (itemClick)="onSessionSelected($event.id)">
             </app-list>
@@ -28,7 +29,6 @@
         <span class="title">{{session.location}}</span>
         <span class="info date">{{formatDate(session.sessionDate)}}</span>
         <span class="info participants">{{parseParticipants(session.participants).join(', ')}}</span>
-        <span class="info description" *ngIf="session.description">{{session.description}}</span>
     </div>
 </ng-template>
 

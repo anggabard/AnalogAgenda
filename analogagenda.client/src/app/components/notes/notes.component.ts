@@ -3,6 +3,7 @@ import { Observable } from "rxjs";
 import { BasePaginatedListComponent } from '../common';
 import { NotesService } from "../../services";
 import { NoteDto, PagedResponseDto } from "../../DTOs";
+import { modalListMatches } from "../../helpers/modal-list-search.helper";
 
 @Component({
     selector: 'app-notes',
@@ -15,6 +16,7 @@ export class NotesComponent extends BasePaginatedListComponent<NoteDto> {
   // Merge modal state
   isMergeModalOpen = false;
   selectedNotesForMerge: Set<string> = new Set();
+  mergeModalSearch = '';
 
   constructor(private notesService: NotesService) {
     super();
@@ -66,11 +68,17 @@ export class NotesComponent extends BasePaginatedListComponent<NoteDto> {
   openMergeModal(): void {
     this.isMergeModalOpen = true;
     this.selectedNotesForMerge.clear();
+    this.mergeModalSearch = '';
   }
 
   closeMergeModal(): void {
     this.isMergeModalOpen = false;
     this.selectedNotesForMerge.clear();
+    this.mergeModalSearch = '';
+  }
+
+  get notesForMergeModal(): NoteDto[] {
+    return this.notes.filter((n) => modalListMatches(this.mergeModalSearch, n.name));
   }
 
   toggleNoteSelection(noteId: string): void {

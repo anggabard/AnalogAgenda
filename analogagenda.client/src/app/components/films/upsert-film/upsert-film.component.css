@@ -255,53 +255,11 @@ label {
   background-color: rgba(37, 35, 35, 1);
 }
 
-/* --- Bulk Controls --- */
+/* --- Bulk Controls (quantity stepper) --- */
 .bulk-controls {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  background-color: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 6px;
-  padding: 0.5rem;
-}
-
-.bulk-btn {
-  width: 32px;
-  height: 32px;
-  padding: 0;
-  border: 1px solid rgba(255, 255, 255, 0.4);
-  border-radius: 4px;
-  background-color: rgba(255, 255, 255, 0.1);
-  color: rgba(255, 255, 255, 0.9);
-  font-size: 0.9rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.bulk-btn:hover:not(:disabled) {
-  background-color: rgba(255, 255, 255, 0.2);
-  border-color: rgba(255, 255, 255, 0.6);
-  transform: translateY(-1px);
-}
-
-.bulk-btn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-  transform: none;
-}
-
-.bulk-count {
-  min-width: 24px;
-  text-align: center;
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.9);
-  font-size: 0.9rem;
 }
 
 /* --- Loading Spinner --- */

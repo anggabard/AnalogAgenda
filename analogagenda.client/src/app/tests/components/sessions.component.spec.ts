@@ -211,8 +211,7 @@ describe('SessionsComponent', () => {
 
     const result = component.formatDate(dateString);
 
-    expect(result).toBeTruthy();
-    expect(typeof result).toBe('string');
+    expect(result).toBe('01/10/2023');
   });
 
   it('should increment page number after loading sessions', () => {

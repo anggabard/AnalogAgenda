@@ -1,5 +1,6 @@
 import { Component, OnInit, inject, ViewChild } from '@angular/core';
 import { FilmDto, UserSettingsDto, IdeaDto } from '../../DTOs';
+import { modalListMatches } from '../../helpers/modal-list-search.helper';
 import { FilmService, UserSettingsService } from '../../services';
 import { WackyIdeasSectionComponent } from './wacky-ideas-section/wacky-ideas-section.component';
 
@@ -22,6 +23,7 @@ export class HomeComponent implements OnInit {
     isChangeCurrentFilmModalOpen = false;
     availableFilms: FilmDto[] = [];
     selectedFilmId: string | null = null;
+    changeCurrentFilmModalSearch = '';
 
     // Upsert Idea modal state
     isUpsertIdeaModalOpen = false;
@@ -61,6 +63,7 @@ export class HomeComponent implements OnInit {
     openChangeCurrentFilmModal(): void {
         this.isChangeCurrentFilmModalOpen = true;
         this.selectedFilmId = null;
+        this.changeCurrentFilmModalSearch = '';
 
         this.filmService.getNotDevelopedFilms().subscribe({
             next: (films) => {
@@ -77,6 +80,18 @@ export class HomeComponent implements OnInit {
         this.isChangeCurrentFilmModalOpen = false;
         this.selectedFilmId = null;
         this.availableFilms = [];
+        this.changeCurrentFilmModalSearch = '';
+    }
+
+    get filmsForChangeModal(): FilmDto[] {
+        return this.availableFilms.filter((f) =>
+            modalListMatches(
+                this.changeCurrentFilmModalSearch,
+                f.name,
+                f.brand,
+                f.type,
+                f.iso
+            ));
     }
 
     changeCurrentFilm(): void {

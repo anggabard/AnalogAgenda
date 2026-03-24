@@ -22,9 +22,13 @@ export class FilmsComponent implements OnInit, OnDestroy {
   @ViewChild('allFilmCardTemplate') allFilmCardTemplate!: TemplateRef<any>;
   @ViewChild('myFilmRowTemplate') myFilmRowTemplate!: TemplateRef<any>;
   @ViewChild('allFilmRowTemplate') allFilmRowTemplate!: TemplateRef<any>;
+  @ViewChild('myNotDevelopedFilmRowTemplate') myNotDevelopedFilmRowTemplate!: TemplateRef<any>;
+  @ViewChild('allNotDevelopedFilmRowTemplate') allNotDevelopedFilmRowTemplate!: TemplateRef<any>;
 
   myFilmTableHeaders = ['Title', 'Type', 'ISO', 'Photos', 'Preview'];
   allFilmTableHeaders = ['Title', 'Type', 'ISO', 'Owner', 'Photos', 'Preview'];
+  myNotDevelopedFilmTableHeaders = ['Title', 'Type', 'ISO', 'Exposed', 'Preview'];
+  allNotDevelopedFilmTableHeaders = ['Title', 'Type', 'ISO', 'Owner', 'Exposed', 'Preview'];
 
   allDevelopedFilms: FilmDto[] = [];
   allNotDevelopedFilms: FilmDto[] = [];
@@ -351,6 +355,10 @@ export class FilmsComponent implements OnInit, OnDestroy {
       allFilmsIsSearching: this.allFilmsIsSearching
     };
     this.localStorageService.saveState(this.FILMS_PAGE_STATE_KEY, state);
+  }
+
+  isFilmExposed(film: FilmDto): boolean {
+    return !!(film.formattedExposureDate && film.formattedExposureDate.trim());
   }
 
   private restoreState(): void {

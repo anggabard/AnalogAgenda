@@ -13,7 +13,8 @@ import {
   TimeInputComponent,
   ConfirmDeleteModalComponent,
   ModalComponent,
-  ErrorMessageComponent
+  ErrorMessageComponent,
+  QuantityStepperComponent
 } from './components/common';
 import { WackyIdeasSectionComponent } from './components/home/wacky-ideas-section/wacky-ideas-section.component';
 import { UpsertIdeaComponent } from './components/home/wacky-ideas-section/upsert-idea/upsert-idea.component';
@@ -57,6 +58,7 @@ import { MainLayoutComponent, AuthLayoutComponent} from './layouts';
     ConfirmDeleteModalComponent,
     ModalComponent,
     ErrorMessageComponent,
+    QuantityStepperComponent,
     NotesMergeComponent
   ],
   imports: [

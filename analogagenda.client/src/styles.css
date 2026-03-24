@@ -119,6 +119,32 @@ button:hover:not(:disabled) {
   background: #f9fafb;
 }
 
+/* Modal list filter — shared (home, notes, upsert-film, upsert-session) */
+.modal-list-search {
+  display: block;
+  width: 100%;
+  max-width: min(100%, 900px);
+  box-sizing: border-box;
+  margin: 0 auto 12px;
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-family: inherit;
+  color: #111827;
+  background: #fff;
+}
+
+.modal-list-search::placeholder {
+  color: #9ca3af;
+}
+
+.modal-list-search:focus {
+  outline: none;
+  border-color: #6b7280;
+  box-shadow: 0 0 0 2px rgba(107, 114, 128, 0.15);
+}
+
 /* Delete Modal - Common pattern */
 .delete-modal-overlay {
   position: fixed;

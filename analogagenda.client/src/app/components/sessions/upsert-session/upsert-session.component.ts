@@ -5,6 +5,7 @@ import { BaseUpsertComponent } from '../../common';
 import { SessionService, DevKitService, FilmService } from '../../../services';
 import { SessionDto, DevKitDto, FilmDto } from '../../../DTOs';
 import { DateHelper } from '../../../helpers/date.helper';
+import { modalListMatches } from '../../../helpers/modal-list-search.helper';
 import { CdkDragDrop, moveItemInArray, transferArrayItem } from '@angular/cdk/drag-drop';
 
 interface DevKitWithFilms {
@@ -44,6 +45,8 @@ export class UpsertSessionComponent extends BaseUpsertComponent<SessionDto> impl
   showExpiredDevKits = false;
   selectedDevKitsForModal: string[] = [];
   selectedFilmsForModal: string[] = [];
+  addDevKitModalSearch = '';
+  addFilmModalSearch = '';
   successMessage: string | null = null;
   
   // Participants management
@@ -258,7 +261,8 @@ export class UpsertSessionComponent extends BaseUpsertComponent<SessionDto> impl
     this.availableUnassignedFilms = allFilms.filter(f => 
       !sessionfilmIds.includes(f.id) && 
       f.developedInSessionId !== this.id && // Don't show films already assigned to this session
-      !f.developed // Only show NOT developed films
+      !f.developed &&
+      !!(f.formattedExposureDate && f.formattedExposureDate.trim())
     );
   }
 
@@ -270,7 +274,8 @@ export class UpsertSessionComponent extends BaseUpsertComponent<SessionDto> impl
       next: (data) => {
         if (this.isInsert) {
           this.availableDevKits = data.devKits;
-          this.availableUnassignedFilms = data.films.filter(f => !f.developed); // Only show NOT developed films
+          this.availableUnassignedFilms = data.films.filter(f =>
+            !f.developed && !!(f.formattedExposureDate && f.formattedExposureDate.trim()));
         }
       },
       error: (err) => {
@@ -422,6 +427,23 @@ export class UpsertSessionComponent extends BaseUpsertComponent<SessionDto> impl
       : this.availableDevKits.filter(dk => !dk.expired);
   }
 
+  get devKitsForAddModal(): DevKitDto[] {
+    return this.filteredAvailableDevKits.filter((dk) =>
+      modalListMatches(this.addDevKitModalSearch, dk.name, dk.type));
+  }
+
+  get filmsForAddModal(): FilmDto[] {
+    return this.availableUnassignedFilms.filter((f) =>
+      modalListMatches(
+        this.addFilmModalSearch,
+        f.name,
+        f.brand,
+        f.type,
+        f.iso,
+        f.purchasedBy
+      ));
+  }
+
   toggleDevKitSelection(devKitId: string): void {
     const index = this.selectedDevKitsForModal.indexOf(devKitId);
     if (index >= 0) {
@@ -472,11 +494,13 @@ export class UpsertSessionComponent extends BaseUpsertComponent<SessionDto> impl
 
   closeAddDevKitModal(): void {
     this.selectedDevKitsForModal = [];
+    this.addDevKitModalSearch = '';
     this.showAddDevKitModal = false;
   }
 
   closeAddFilmModal(): void {
     this.selectedFilmsForModal = [];
+    this.addFilmModalSearch = '';
     this.showAddFilmModal = false;
   }
 
@@ -529,5 +553,9 @@ export class UpsertSessionComponent extends BaseUpsertComponent<SessionDto> impl
 
   trackByDevKitDtoId(index: number, devKit: DevKitDto): string {
     return devKit.id;
+  }
+
+  formatDisplaySessionDate(value: string | null | undefined): string {
+    return DateHelper.formatDdMmYyyy(value ?? '');
   }
 }

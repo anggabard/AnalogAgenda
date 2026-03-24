@@ -5,7 +5,7 @@
       <h2>{{ isInsert ? 'New Session' : (isViewMode ? 'Session Details' : 'Edit Session') }}</h2>
       <div class="session-details" *ngIf="currentItem">
         <span class="location">{{ currentItem.location || 'No location set' }}</span>
-        <span class="date">{{ currentItem.sessionDate | date:'mediumDate' }}</span>
+        <span class="date">{{ formatDisplaySessionDate(currentItem.sessionDate) }}</span>
       </div>
     </div>
     <div class="header-actions">
@@ -288,8 +288,14 @@
         <span>Show expired dev kits</span>
       </label>
     </div>
+    <input
+      type="search"
+      class="modal-list-search"
+      [(ngModel)]="addDevKitModalSearch"
+      placeholder="Search solutions..."
+      aria-label="Search solutions" />
     <div class="items-grid">
-      <div *ngFor="let devKit of filteredAvailableDevKits; trackBy: trackByDevKitDtoId" class="item-card" 
+      <div *ngFor="let devKit of devKitsForAddModal; trackBy: trackByDevKitDtoId" class="item-card" 
            [class.expired]="devKit.expired"
            [class.selected]="isDevKitSelectedForModal(devKit.id)"
            (click)="toggleDevKitSelection(devKit.id)">
@@ -324,8 +330,14 @@
     <button class="modal-close" (click)="closeAddFilmModal()">✕</button>
   </div>
   <div class="modal-body">
+      <input
+        type="search"
+        class="modal-list-search"
+        [(ngModel)]="addFilmModalSearch"
+        placeholder="Search films..."
+        aria-label="Search films" />
       <div class="items-grid">
-        <div *ngFor="let film of availableUnassignedFilms; trackBy: trackByFilmId" class="item-card"
+        <div *ngFor="let film of filmsForAddModal; trackBy: trackByFilmId" class="item-card"
              [class.selected]="isFilmSelectedForModal(film.id)"
              (click)="toggleFilmSelection(film.id)">
           <div class="item-content">
@@ -379,7 +391,7 @@
   (cancel)="isDeleteModalOpen = false">
   <p *ngIf="currentItem">
     Are you sure you want to delete this session at <strong>{{ currentItem.location }}</strong>
-    on <strong>{{ currentItem.sessionDate | date:'mediumDate' }}</strong>?
+    on <strong>{{ formatDisplaySessionDate(currentItem.sessionDate) }}</strong>?
   </p>
   <div class="side-effects">
     <h3>⚠️ Side Effects:</h3>
