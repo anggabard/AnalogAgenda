@@ -387,17 +387,6 @@ label {
   overflow-y: auto;
 }
 
-.modal-list-search {
-  width: 100%;
-  max-width: 100%;
-  box-sizing: border-box;
-  margin-bottom: 1rem;
-  padding: 10px 12px;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
-  font-size: 1rem;
-}
-
 .modal-options {
   margin-bottom: 1rem;
 }

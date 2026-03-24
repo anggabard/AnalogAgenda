@@ -92,7 +92,7 @@
 <!-- Templates for different card types -->
 <ng-template #myFilmCardTemplate let-film>
     <div class="card">
-        <span class="exp-badge exp-badge-my" *ngIf="!film.developed && film.formattedExposureDate">exp</span>
+        <span class="exp-badge exp-badge-my" *ngIf="!film.developed && isFilmExposed(film)">exp</span>
         <div class="image"><img *ngIf="film.imageUrl" [src]="film.imageUrl" [alt]="film.name || film.brand" /></div>
         <span class="title">{{ film.name || film.brand }}</span>
         <span class="info type">{{film.type}}</span>
@@ -103,7 +103,7 @@
 
 <ng-template #allFilmCardTemplate let-film>
     <div class="card">
-        <span class="exp-badge exp-badge-all" *ngIf="!film.developed && film.formattedExposureDate">exp</span>
+        <span class="exp-badge exp-badge-all" *ngIf="!film.developed && isFilmExposed(film)">exp</span>
         <div class="image"><img *ngIf="film.imageUrl" [src]="film.imageUrl" [alt]="film.name || film.brand" /></div>
         <span class="title">{{ film.name || film.brand }}</span>
         <span class="info type">{{film.type}}</span>
