@@ -25,6 +25,9 @@ public class EntityConvertor()
         Type = dto.Type.ToEnum<EFilmType>(),
         NumberOfExposures = dto.NumberOfExposures,
         Cost = dto.Cost,
+        CostCurrency = string.IsNullOrWhiteSpace(dto.CostCurrency)
+            ? ECurrency.RON
+            : dto.CostCurrency.ToEnum<ECurrency>(),
         PurchasedBy = dto.PurchasedBy.ToEnum<EUsernameType>(),
         PurchasedOn = new DateTime(dto.PurchasedOn, TimeOnly.MinValue, DateTimeKind.Utc),
         ImageId = string.IsNullOrEmpty(dto.ImageUrl) ? Guid.Empty : BlobUrlHelper.GetImageInfoFromUrl(dto.ImageUrl).ImageId,
@@ -166,7 +169,8 @@ public class EntityConvertor()
     {
         Id = string.IsNullOrEmpty(dto.Id) ? string.Empty : dto.Id,
         Title = dto.Title,
-        Description = dto.Description ?? string.Empty
+        Description = dto.Description ?? string.Empty,
+        Outcome = dto.Outcome ?? string.Empty
     };
 }
 

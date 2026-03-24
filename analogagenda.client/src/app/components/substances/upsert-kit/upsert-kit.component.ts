@@ -5,9 +5,15 @@ import { debounceTime, distinctUntilChanged, switchMap } from 'rxjs/operators';
 import { BaseUpsertComponent } from '../../common';
 import { DevKitService, UsedDevKitThumbnailService } from '../../../services';
 import { DevKitType, UsernameType } from '../../../enums';
-import { DevKitDto, UsedDevKitThumbnailDto } from '../../../DTOs';
+import {
+  DevKitDto,
+  UsedDevKitThumbnailDto,
+  DevKitSessionAssignmentRowDto,
+  DevKitFilmAssignmentRowDto
+} from '../../../DTOs';
 import { DateHelper } from '../../../helpers/date.helper';
 import { ErrorHandlingHelper } from '../../../helpers/error-handling.helper';
+import { modalListMatches } from '../../../helpers/modal-list-search.helper';
 
 @Component({
     selector: 'app-upsert-kit',
@@ -266,6 +272,182 @@ export class UpsertKitComponent extends BaseUpsertComponent<DevKitDto> implement
 
   closeThumbnailPreview(): void {
     this.showThumbnailPreview = false;
+  }
+
+  // Dev kit ↔ sessions / films assignment modals (edit mode only)
+  showSessionsAssignmentModal = false;
+  showFilmsAssignmentModal = false;
+  showAllSessionsAssignment = false;
+  showAllFilmsAssignment = false;
+  sessionAssignmentRows: DevKitSessionAssignmentRowDto[] = [];
+  filmAssignmentRows: DevKitFilmAssignmentRowDto[] = [];
+  selectedSessionAssignmentIds = new Set<string>();
+  selectedFilmAssignmentIds = new Set<string>();
+  sessionAssignmentSearch = '';
+  filmAssignmentSearch = '';
+  assignmentSaveLoading = false;
+  private initialSessionAssignmentLoad = true;
+  private initialFilmAssignmentLoad = true;
+
+  openSessionsAssignmentModal(): void {
+    if (!this.id) return;
+    this.showSessionsAssignmentModal = true;
+    this.showAllSessionsAssignment = false;
+    this.sessionAssignmentSearch = '';
+    this.initialSessionAssignmentLoad = true;
+    this.selectedSessionAssignmentIds = new Set();
+    this.loadSessionAssignment();
+  }
+
+  closeSessionsAssignmentModal(): void {
+    this.showSessionsAssignmentModal = false;
+    this.sessionAssignmentRows = [];
+    this.sessionAssignmentSearch = '';
+  }
+
+  onShowAllSessionsAssignmentChange(): void {
+    this.loadSessionAssignment();
+  }
+
+  loadSessionAssignment(): void {
+    if (!this.id) return;
+    this.errorMessage = null;
+    this.devKitService.getSessionAssignment(this.id, this.showAllSessionsAssignment).subscribe({
+      next: (rows) => {
+        this.sessionAssignmentRows = rows;
+        if (this.initialSessionAssignmentLoad) {
+          this.selectedSessionAssignmentIds = new Set(rows.filter((r) => r.isSelected).map((r) => r.id));
+          this.initialSessionAssignmentLoad = false;
+        }
+      },
+      error: (err) => {
+        this.errorMessage = ErrorHandlingHelper.handleError(err, 'loading sessions');
+      }
+    });
+  }
+
+  get sessionsForAssignmentModal(): DevKitSessionAssignmentRowDto[] {
+    return this.sessionAssignmentRows.filter((r) =>
+      modalListMatches(this.sessionAssignmentSearch, r.location, r.participantsPreview, r.sessionDate)
+    );
+  }
+
+  isSessionAssignmentSelected(id: string): boolean {
+    return this.selectedSessionAssignmentIds.has(id);
+  }
+
+  toggleSessionAssignment(id: string): void {
+    const next = new Set(this.selectedSessionAssignmentIds);
+    if (next.has(id)) {
+      next.delete(id);
+    } else {
+      next.add(id);
+    }
+    this.selectedSessionAssignmentIds = next;
+  }
+
+  formatSessionAssignmentDate(sessionDate: string): string {
+    return DateHelper.formatDdMmYyyy(sessionDate);
+  }
+
+  saveSessionAssignment(): void {
+    if (!this.id) return;
+    this.assignmentSaveLoading = true;
+    this.errorMessage = null;
+    this.devKitService.putSessionAssignment(this.id, [...this.selectedSessionAssignmentIds]).subscribe({
+      next: (rows) => {
+        this.sessionAssignmentRows = rows;
+        this.selectedSessionAssignmentIds = new Set(rows.filter((r) => r.isSelected).map((r) => r.id));
+        this.assignmentSaveLoading = false;
+        this.closeSessionsAssignmentModal();
+      },
+      error: (err) => {
+        this.assignmentSaveLoading = false;
+        this.errorMessage = ErrorHandlingHelper.handleError(err, 'saving session assignment');
+      }
+    });
+  }
+
+  openFilmsAssignmentModal(): void {
+    if (!this.id) return;
+    this.showFilmsAssignmentModal = true;
+    this.showAllFilmsAssignment = false;
+    this.filmAssignmentSearch = '';
+    this.initialFilmAssignmentLoad = true;
+    this.selectedFilmAssignmentIds = new Set();
+    this.loadFilmAssignment();
+  }
+
+  closeFilmsAssignmentModal(): void {
+    this.showFilmsAssignmentModal = false;
+    this.filmAssignmentRows = [];
+    this.filmAssignmentSearch = '';
+  }
+
+  onShowAllFilmsAssignmentChange(): void {
+    this.loadFilmAssignment();
+  }
+
+  loadFilmAssignment(): void {
+    if (!this.id) return;
+    this.errorMessage = null;
+    this.devKitService.getFilmAssignment(this.id, this.showAllFilmsAssignment).subscribe({
+      next: (rows) => {
+        this.filmAssignmentRows = rows;
+        if (this.initialFilmAssignmentLoad) {
+          this.selectedFilmAssignmentIds = new Set(rows.filter((r) => r.isSelected).map((r) => r.id));
+          this.initialFilmAssignmentLoad = false;
+        }
+      },
+      error: (err) => {
+        this.errorMessage = ErrorHandlingHelper.handleError(err, 'loading films');
+      }
+    });
+  }
+
+  get filmsForAssignmentModal(): DevKitFilmAssignmentRowDto[] {
+    return this.filmAssignmentRows.filter((r) =>
+      modalListMatches(
+        this.filmAssignmentSearch,
+        r.name,
+        r.brand,
+        r.type,
+        r.iso,
+        r.formattedExposureDate
+      )
+    );
+  }
+
+  isFilmAssignmentSelected(id: string): boolean {
+    return this.selectedFilmAssignmentIds.has(id);
+  }
+
+  toggleFilmAssignment(id: string): void {
+    const next = new Set(this.selectedFilmAssignmentIds);
+    if (next.has(id)) {
+      next.delete(id);
+    } else {
+      next.add(id);
+    }
+    this.selectedFilmAssignmentIds = next;
+  }
+
+  saveFilmAssignment(): void {
+    if (!this.id) return;
+    this.assignmentSaveLoading = true;
+    this.errorMessage = null;
+    this.devKitService.putFilmAssignment(this.id, [...this.selectedFilmAssignmentIds]).subscribe({
+      next: (rows) => {
+        this.filmAssignmentRows = rows;
+        this.selectedFilmAssignmentIds = new Set(rows.filter((r) => r.isSelected).map((r) => r.id));
+        this.assignmentSaveLoading = false;
+        this.closeFilmsAssignmentModal();
+      },
+      error: (err) => {
+        this.assignmentSaveLoading = false;
+        this.errorMessage = ErrorHandlingHelper.handleError(err, 'saving film assignment');
+      }
+    });
   }
 
   /** Expiration date as "day - month - year" for tooltip, or null when mixedOn is not set */

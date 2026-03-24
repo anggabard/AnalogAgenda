@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { Router } from '@angular/router';
 import { of } from 'rxjs';
 import { UpsertIdeaComponent } from '../../components/home/wacky-ideas-section/upsert-idea/upsert-idea.component';
 import { IdeaService } from '../../services';
@@ -9,18 +10,21 @@ describe('UpsertIdeaComponent', () => {
   let component: UpsertIdeaComponent;
   let fixture: ComponentFixture<UpsertIdeaComponent>;
   let mockIdeaService: jasmine.SpyObj<IdeaService>;
+  let mockRouter: jasmine.SpyObj<Router>;
 
   beforeEach(async () => {
     const ideaServiceSpy = jasmine.createSpyObj('IdeaService', ['add', 'update', 'deleteById']);
     ideaServiceSpy.add.and.returnValue(of({ id: 'new1', title: 'New', description: '' }));
     ideaServiceSpy.update.and.returnValue(of(undefined));
     ideaServiceSpy.deleteById.and.returnValue(of(undefined));
+    mockRouter = TestConfig.createRouterSpy();
 
     await TestConfig.configureTestBed({
       declarations: [UpsertIdeaComponent],
       providers: [
-        { provide: IdeaService, useValue: ideaServiceSpy }
-      ]
+        { provide: IdeaService, useValue: ideaServiceSpy },
+        { provide: Router, useValue: mockRouter },
+      ],
     }).compileComponents();
 
     fixture = TestBed.createComponent(UpsertIdeaComponent);
@@ -87,15 +91,68 @@ describe('UpsertIdeaComponent', () => {
     expect(component.saved.emit).toHaveBeenCalled();
   });
 
-  it('should call deleteById and emit deleted in edit mode when delete is confirmed', () => {
+  it('should call deleteById and emit deleted when confirmDelete runs', () => {
     spyOn(component.deleted, 'emit');
-    spyOn(window, 'confirm').and.returnValue(true);
     component.idea = { id: 'abc', title: 'To Delete', description: '' };
     fixture.detectChanges();
 
-    component.onDelete();
+    component.confirmDelete();
 
     expect(mockIdeaService.deleteById).toHaveBeenCalledWith('abc');
     expect(component.deleted.emit).toHaveBeenCalledWith('abc');
+    expect(component.isDeleteModalOpen).toBeFalse();
+  });
+
+  it('should always show outcome field in create mode', () => {
+    component.idea = null;
+    fixture.detectChanges();
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.querySelector('#ideaOutcome')).toBeTruthy();
+  });
+
+  it('should not show View Results in create mode', () => {
+    component.idea = null;
+    fixture.detectChanges();
+    const compiled = fixture.nativeElement as HTMLElement;
+    const buttons = Array.from(compiled.querySelectorAll('button')).map((b) => b.textContent?.trim());
+    expect(buttons.some((t) => t?.includes('View Results'))).toBeFalse();
+  });
+
+  it('should show View Results in edit mode', () => {
+    component.idea = { id: 'abc', title: 'T', description: '' };
+    fixture.detectChanges();
+    const compiled = fixture.nativeElement as HTMLElement;
+    const viewBtn = Array.from(compiled.querySelectorAll('button')).find((b) =>
+      b.textContent?.trim().includes('View Results')
+    );
+    expect(viewBtn).toBeTruthy();
+  });
+
+  it('should navigate to idea results when View Results is clicked', () => {
+    component.idea = { id: 'idea-123', title: 'T', description: '' };
+    fixture.detectChanges();
+    component.onViewResults();
+    expect(mockRouter.navigate).toHaveBeenCalledWith(['/idea', 'idea-123']);
+  });
+
+  it('should include outcome in add payload', () => {
+    component.idea = null;
+    fixture.detectChanges();
+    component.form.patchValue({ title: 'T', description: 'D', outcome: 'Did the thing' });
+    component.submit();
+    expect(mockIdeaService.add).toHaveBeenCalledWith(
+      jasmine.objectContaining({ title: 'T', description: 'D', outcome: 'Did the thing' })
+    );
+  });
+
+  it('should include outcome in update payload', () => {
+    component.idea = { id: 'abc', title: 'Old', description: '', outcome: 'old' };
+    fixture.detectChanges();
+    component.form.patchValue({ title: 'Old', outcome: 'updated outcome' });
+    component.submit();
+    expect(mockIdeaService.update).toHaveBeenCalledWith(
+      'abc',
+      jasmine.objectContaining({ outcome: 'updated outcome' })
+    );
   });
 });

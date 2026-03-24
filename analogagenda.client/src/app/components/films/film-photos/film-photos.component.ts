@@ -1,8 +1,12 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject, OnInit, ViewChild } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { PhotoService, FilmService, AccountService } from '../../../services';
-import { PhotoDto, FilmDto } from '../../../DTOs';
+import { forkJoin, of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
+import { PhotoService, FilmService, AccountService, IdeaService } from '../../../services';
+import { PhotoDto, FilmDto, IdeaDto } from '../../../DTOs';
 import { DownloadHelper } from '../../../helpers/download.helper';
+import { modalListMatches } from '../../../helpers/modal-list-search.helper';
+import { PhotosContentComponent } from '../photos-content/photos-content.component';
 
 @Component({
   selector: 'app-film-photos',
@@ -11,11 +15,14 @@ import { DownloadHelper } from '../../../helpers/download.helper';
   standalone: false,
 })
 export class FilmPhotosComponent implements OnInit {
+  @ViewChild(PhotosContentComponent) photosContent?: PhotosContentComponent;
+
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private filmService = inject(FilmService);
   private photoService = inject(PhotoService);
   private accountService = inject(AccountService);
+  private ideaService = inject(IdeaService);
 
   filmId: string = '';
   film: FilmDto | null = null;
@@ -27,6 +34,13 @@ export class FilmPhotosComponent implements OnInit {
   uploadLoading = false;
   uploadProgress: { current: number; total: number } = { current: 0, total: 0 };
   downloadAllLoading = false;
+
+  isBulkDeleteModalOpen = false;
+  photosPendingBulkDelete: PhotoDto[] = [];
+  isWackyModalOpen = false;
+  wackyModalSearch = '';
+  ideasForPicker: IdeaDto[] = [];
+  photosForWacky: PhotoDto[] = [];
 
   ngOnInit() {
     this.filmId = this.route.snapshot.paramMap.get('id') || '';
@@ -172,5 +186,84 @@ export class FilmPhotosComponent implements OnInit {
       this.uploadLoading = false;
       this.errorMessage = 'There was an error uploading photos.';
     }
+  }
+
+  onBulkDeleteRequest(photos: PhotoDto[]): void {
+    this.photosPendingBulkDelete = photos;
+    this.isBulkDeleteModalOpen = true;
+  }
+
+  closeBulkDeleteModal(): void {
+    this.isBulkDeleteModalOpen = false;
+    this.photosPendingBulkDelete = [];
+  }
+
+  confirmBulkDelete(): void {
+    const toDelete = [...this.photosPendingBulkDelete];
+    if (toDelete.length === 0) {
+      this.closeBulkDeleteModal();
+      return;
+    }
+    const idSet = new Set(toDelete.map((p) => p.id));
+    const requests = toDelete.map((p) =>
+      this.photoService.deletePhoto(p.id).pipe(catchError(() => of(null)))
+    );
+    forkJoin(requests).subscribe({
+      next: () => {
+        this.photos = this.photos.filter((p) => !idSet.has(p.id));
+        this.closeBulkDeleteModal();
+        this.photosContent?.exitBulkSelectionMode();
+      },
+      error: () => {
+        this.errorMessage = 'Error deleting photos.';
+        this.closeBulkDeleteModal();
+      },
+    });
+  }
+
+  get bulkDeleteMessage(): string {
+    const n = this.photosPendingBulkDelete.length;
+    return `Delete ${n} selected photo${n === 1 ? '' : 's'}? This cannot be undone.`;
+  }
+
+  onWackyResultRequest(photos: PhotoDto[]): void {
+    this.photosForWacky = photos;
+    this.wackyModalSearch = '';
+    this.ideaService.getAll().subscribe({
+      next: (ideas) => {
+        this.ideasForPicker = ideas;
+        this.isWackyModalOpen = true;
+      },
+      error: () => {
+        this.errorMessage = 'Error loading ideas.';
+      },
+    });
+  }
+
+  closeWackyModal(): void {
+    this.isWackyModalOpen = false;
+    this.ideasForPicker = [];
+    this.photosForWacky = [];
+    this.wackyModalSearch = '';
+  }
+
+  get ideasForWackyModal(): IdeaDto[] {
+    return this.ideasForPicker.filter((idea) =>
+      modalListMatches(this.wackyModalSearch, idea.title, idea.description)
+    );
+  }
+
+  attachPhotosToIdea(idea: IdeaDto): void {
+    const ids = this.photosForWacky.map((p) => p.id);
+    if (ids.length === 0) return;
+    this.ideaService.addPhotosToIdea(idea.id, ids).subscribe({
+      next: () => {
+        this.closeWackyModal();
+        this.photosContent?.exitBulkSelectionMode();
+      },
+      error: () => {
+        this.errorMessage = 'Error attaching photos to idea.';
+      },
+    });
   }
 }

@@ -1,3 +1,4 @@
+using System.Linq;
 using AnalogAgenda.Server.Controllers;
 using AnalogAgenda.Server.Tests.Helpers;
 using Azure.Storage.Blobs;
@@ -322,6 +323,217 @@ public class DevKitControllerTests : IDisposable
 
         // Assert
         Assert.IsType<NotFoundResult>(result);
+    }
+
+    /// <summary>
+    /// Assignment GET uses DevKitSessions only: SessionDevKit navigation must not imply IsSelected.
+    /// </summary>
+    [Fact]
+    public async Task GetSessionAssignment_ShowAll_IsSelectedFromDevKitSessionsOnly_IgnoresLegacyJoin()
+    {
+        var kitId = "devkit01";
+        var kit = new DevKitEntity
+        {
+            Id = kitId,
+            Name = "Kit",
+            Url = "https://k",
+            Type = EDevKitType.BW,
+            PurchasedBy = EUsernameType.Angel,
+            PurchasedOn = DateTime.UtcNow,
+            ImageId = Guid.NewGuid()
+        };
+        var sessionLegacyOnly = new SessionEntity
+        {
+            Id = "sesslegacy",
+            Location = "A",
+            Participants = "[]",
+            SessionDate = DateTime.UtcNow.AddDays(-5),
+            ImageId = Guid.NewGuid()
+        };
+        sessionLegacyOnly.UsedDevKits.Add(kit);
+        var sessionInJunction = new SessionEntity
+        {
+            Id = "sessjunct1",
+            Location = "B",
+            Participants = "[]",
+            SessionDate = DateTime.UtcNow.AddDays(-1),
+            ImageId = Guid.NewGuid()
+        };
+
+        _dbContext.DevKits.Add(kit);
+        _dbContext.Sessions.AddRange(sessionLegacyOnly, sessionInJunction);
+        await _dbContext.SaveChangesAsync();
+
+        _dbContext.DevKitSessions.Add(new DevKitSessionEntity { DevKitId = kitId, SessionId = sessionInJunction.Id });
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _controller.GetSessionAssignment(kitId, showAll: true);
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var rows = ((IEnumerable<DevKitSessionAssignmentRowDto>)ok.Value!).ToList();
+
+        var legacyRow = rows.Single(r => r.Id == sessionLegacyOnly.Id);
+        var junctionRow = rows.Single(r => r.Id == sessionInJunction.Id);
+        Assert.False(legacyRow.IsSelected);
+        Assert.True(junctionRow.IsSelected);
+    }
+
+    [Fact]
+    public async Task GetSessionAssignment_ShowFalse_ReturnsOnlySessionsInDevKitSessions()
+    {
+        var kitId = "devkit01";
+        var kit = new DevKitEntity
+        {
+            Id = kitId,
+            Name = "Kit",
+            Url = "https://k",
+            Type = EDevKitType.BW,
+            PurchasedBy = EUsernameType.Angel,
+            PurchasedOn = DateTime.UtcNow,
+            ImageId = Guid.NewGuid()
+        };
+        var sessionLegacyOnly = new SessionEntity
+        {
+            Id = "sesslegacy",
+            Location = "A",
+            Participants = "[]",
+            SessionDate = DateTime.UtcNow.AddDays(-5),
+            ImageId = Guid.NewGuid()
+        };
+        sessionLegacyOnly.UsedDevKits.Add(kit);
+        var sessionInJunction = new SessionEntity
+        {
+            Id = "sessjunct1",
+            Location = "B",
+            Participants = "[]",
+            SessionDate = DateTime.UtcNow.AddDays(-1),
+            ImageId = Guid.NewGuid()
+        };
+
+        _dbContext.DevKits.Add(kit);
+        _dbContext.Sessions.AddRange(sessionLegacyOnly, sessionInJunction);
+        await _dbContext.SaveChangesAsync();
+        _dbContext.DevKitSessions.Add(new DevKitSessionEntity { DevKitId = kitId, SessionId = sessionInJunction.Id });
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _controller.GetSessionAssignment(kitId, showAll: false);
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var rows = ((IEnumerable<DevKitSessionAssignmentRowDto>)ok.Value!).ToList();
+
+        Assert.Single(rows);
+        Assert.Equal(sessionInJunction.Id, rows[0].Id);
+        Assert.True(rows[0].IsSelected);
+    }
+
+    /// <summary>
+    /// Assignment GET uses DevKitFilms only: Film.DevelopedWithDevKitId must not imply IsSelected.
+    /// </summary>
+    [Fact]
+    public async Task GetFilmAssignment_ShowAll_IsSelectedFromDevKitFilmsOnly_IgnoresDevelopedWithDevKitId()
+    {
+        var kitId = "devkit02";
+        var kit = new DevKitEntity
+        {
+            Id = kitId,
+            Name = "Kit2",
+            Url = "https://k",
+            Type = EDevKitType.BW,
+            PurchasedBy = EUsernameType.Angel,
+            PurchasedOn = DateTime.UtcNow,
+            ImageId = Guid.NewGuid()
+        };
+        var filmLegacyFkOnly = new FilmEntity
+        {
+            Id = "filmlegacy01",
+            Brand = "B",
+            Iso = "400",
+            Type = EFilmType.ColorNegative,
+            PurchasedBy = EUsernameType.Angel,
+            PurchasedOn = DateTime.UtcNow,
+            ImageId = Guid.NewGuid(),
+            Developed = true,
+            DevelopedWithDevKitId = kitId
+        };
+        var filmInJunction = new FilmEntity
+        {
+            Id = "filmjunct001",
+            Brand = "B",
+            Iso = "400",
+            Type = EFilmType.ColorNegative,
+            PurchasedBy = EUsernameType.Angel,
+            PurchasedOn = DateTime.UtcNow,
+            ImageId = Guid.NewGuid(),
+            Developed = true,
+            DevelopedWithDevKitId = null
+        };
+
+        _dbContext.DevKits.Add(kit);
+        _dbContext.Films.AddRange(filmLegacyFkOnly, filmInJunction);
+        await _dbContext.SaveChangesAsync();
+        _dbContext.DevKitFilms.Add(new DevKitFilmEntity { DevKitId = kitId, FilmId = filmInJunction.Id });
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _controller.GetFilmAssignment(kitId, showAll: true);
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var rows = ((IEnumerable<DevKitFilmAssignmentRowDto>)ok.Value!).ToList();
+
+        var legacyRow = rows.Single(r => r.Id == filmLegacyFkOnly.Id);
+        var junctionRow = rows.Single(r => r.Id == filmInJunction.Id);
+        Assert.False(legacyRow.IsSelected);
+        Assert.True(junctionRow.IsSelected);
+    }
+
+    [Fact]
+    public async Task GetFilmAssignment_ShowFalse_ReturnsOnlyFilmsInDevKitFilms()
+    {
+        var kitId = "devkit02";
+        var kit = new DevKitEntity
+        {
+            Id = kitId,
+            Name = "Kit2",
+            Url = "https://k",
+            Type = EDevKitType.BW,
+            PurchasedBy = EUsernameType.Angel,
+            PurchasedOn = DateTime.UtcNow,
+            ImageId = Guid.NewGuid()
+        };
+        var filmLegacyFkOnly = new FilmEntity
+        {
+            Id = "filmlegacy01",
+            Brand = "B",
+            Iso = "400",
+            Type = EFilmType.ColorNegative,
+            PurchasedBy = EUsernameType.Angel,
+            PurchasedOn = DateTime.UtcNow,
+            ImageId = Guid.NewGuid(),
+            Developed = true,
+            DevelopedWithDevKitId = kitId
+        };
+        var filmInJunction = new FilmEntity
+        {
+            Id = "filmjunct001",
+            Brand = "B",
+            Iso = "400",
+            Type = EFilmType.ColorNegative,
+            PurchasedBy = EUsernameType.Angel,
+            PurchasedOn = DateTime.UtcNow,
+            ImageId = Guid.NewGuid(),
+            Developed = true,
+            DevelopedWithDevKitId = null
+        };
+
+        _dbContext.DevKits.Add(kit);
+        _dbContext.Films.AddRange(filmLegacyFkOnly, filmInJunction);
+        await _dbContext.SaveChangesAsync();
+        _dbContext.DevKitFilms.Add(new DevKitFilmEntity { DevKitId = kitId, FilmId = filmInJunction.Id });
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _controller.GetFilmAssignment(kitId, showAll: false);
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var rows = ((IEnumerable<DevKitFilmAssignmentRowDto>)ok.Value!).ToList();
+
+        Assert.Single(rows);
+        Assert.Equal(filmInJunction.Id, rows[0].Id);
+        Assert.True(rows[0].IsSelected);
     }
 }
 

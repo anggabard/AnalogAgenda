@@ -53,4 +53,9 @@ export class FilmService extends BasePaginatedService<FilmDto> {
     return this.get<FilmDto[]>('my/developed?page=0');
   }
 
+  /** Get all not-developed films for the current user. Backend returns full list when page=0. */
+  getMyNotDevelopedFilmsAll(): Observable<FilmDto[]> {
+    return this.get<FilmDto[]>('my/not-developed?page=0');
+  }
+
 }

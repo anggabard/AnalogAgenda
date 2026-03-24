@@ -4,7 +4,7 @@ import { Observable, forkJoin, Subject } from 'rxjs';
 import { switchMap, debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { BaseUpsertComponent } from '../../common';
 import { FilmService, SessionService, DevKitService, UsedFilmThumbnailService } from '../../../services';
-import { FilmType, UsernameType } from '../../../enums';
+import { FilmType, UsernameType, CurrencyType } from '../../../enums';
 import { FilmDto, SessionDto, DevKitDto, UsedFilmThumbnailDto, ExposureDateEntry } from '../../../DTOs';
 import { DateHelper } from '../../../helpers/date.helper';
 import { ErrorHandlingHelper } from '../../../helpers/error-handling.helper';
@@ -118,6 +118,18 @@ export class UpsertFilmComponent extends BaseUpsertComponent<FilmDto> implements
     return (item.name?.trim()) ? item.name : item.brand;
   }
 
+  toggleCostCurrency(): void {
+    const cur = this.form.get('costCurrency')?.value as string;
+    this.form.patchValue({
+      costCurrency: cur === CurrencyType.EUR ? CurrencyType.RON : CurrencyType.EUR
+    });
+  }
+
+  get costCurrencyLabel(): string {
+    const v = this.form.get('costCurrency')?.value as string;
+    return v === CurrencyType.EUR ? CurrencyType.EUR : CurrencyType.RON;
+  }
+
   protected createForm(): FormGroup {
     return this.fb.group({
       name: [''],
@@ -126,6 +138,7 @@ export class UpsertFilmComponent extends BaseUpsertComponent<FilmDto> implements
       type: [FilmType.ColorNegative, Validators.required],
       numberOfExposures: [36, [Validators.required, Validators.min(1)]],
       cost: [0, [Validators.required, Validators.min(0)]],
+      costCurrency: [CurrencyType.RON, Validators.required],
       purchasedBy: ['', Validators.required],
       purchasedOn: [DateHelper.getTodayForInput(), Validators.required],
       imageUrl: [''],
@@ -801,7 +814,11 @@ export class UpsertFilmComponent extends BaseUpsertComponent<FilmDto> implements
     }
   }
 
-  protected override afterPatchValueForEdit(_item: FilmDto): void {
+  protected override afterPatchValueForEdit(item: FilmDto): void {
+    const cc = item.costCurrency;
+    if (!cc || (cc !== CurrencyType.RON && cc !== CurrencyType.EUR)) {
+      this.form.patchValue({ costCurrency: CurrencyType.RON });
+    }
     this.form.get('purchasedBy')?.disable();
   }
 

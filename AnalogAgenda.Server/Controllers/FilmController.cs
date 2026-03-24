@@ -1,3 +1,4 @@
+using AnalogAgenda.Server.Helpers;
 using AnalogAgenda.Server.Identity;
 using Database.DBObjects;
 using Database.DBObjects.Enums;
@@ -291,6 +292,11 @@ public class FilmController(
             existingEntity.PurchasedBy = existingPurchasedBy; // Owner is immutable after creation
 
             await databaseService.UpdateAsync(existingEntity);
+            await databaseService.ReplaceEntitiesAsync<DevKitFilmEntity>(
+                x => x.FilmId == id,
+                string.IsNullOrEmpty(existingEntity.DevelopedWithDevKitId)
+                    ? []
+                    : [new DevKitFilmEntity { DevKitId = existingEntity.DevelopedWithDevKitId!, FilmId = id }]);
             return NoContent();
         }
         catch (Exception ex)
@@ -389,8 +395,8 @@ public class FilmController(
                 await databaseService.AddAsync(exposureDate);
             }
 
-            // If film has exposure dates, set it as current film for the user
-            if (exposureDates.Any(ed => ed.Date != default(DateOnly)))
+            // If film has exposure dates, set it as current film for the user (only for films they own)
+            if (exposureDates.Any(ed => ed.Date != default(DateOnly)) && FilmOwnerHelper.IsCurrentUserFilmOwner(User, film))
             {
                 var currentUserId = User.Id();
                 if (!string.IsNullOrEmpty(currentUserId))

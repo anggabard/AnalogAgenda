@@ -1,3 +1,4 @@
+using AnalogAgenda.Server.Helpers;
 using AnalogAgenda.Server.Identity;
 using Azure.Storage.Blobs;
 using Database.DBObjects.Enums;
@@ -41,7 +42,7 @@ public class PhotoController(
             {
                 return NotFound("Film not found.");
             }
-            if (!IsCurrentUserFilmOwner(filmEntity))
+            if (!FilmOwnerHelper.IsCurrentUserFilmOwner(User, filmEntity))
                 return Forbid();
 
             // Get existing photos to calculate index
@@ -164,7 +165,7 @@ public class PhotoController(
             return NotFound("Film not found.");
 
         var photos = await databaseService.GetAllAsync<PhotoEntity>(p => p.FilmId == filmId);
-        var isOwner = IsCurrentUserFilmOwner(filmEntity);
+        var isOwner = FilmOwnerHelper.IsCurrentUserFilmOwner(User, filmEntity);
         if (!isOwner)
             photos = photos.Where(p => !p.Restricted).ToList();
 
@@ -186,7 +187,7 @@ public class PhotoController(
         if (photoEntity.Restricted)
         {
             var filmEntity = await databaseService.GetByIdAsync<FilmEntity>(photoEntity.FilmId);
-            if (filmEntity == null || !IsCurrentUserFilmOwner(filmEntity))
+            if (filmEntity == null || !FilmOwnerHelper.IsCurrentUserFilmOwner(User, filmEntity))
                 return NotFound("Photo not found.");
         }
 
@@ -226,7 +227,7 @@ public class PhotoController(
         if (filmEntity == null)
             return NotFound("Associated film not found.");
 
-        if (photoEntity.Restricted && !IsCurrentUserFilmOwner(filmEntity))
+        if (photoEntity.Restricted && !FilmOwnerHelper.IsCurrentUserFilmOwner(User, filmEntity))
             return NotFound("Photo not found.");
 
         try
@@ -263,7 +264,7 @@ public class PhotoController(
             return NotFound("Film not found.");
 
         var allPhotos = await databaseService.GetAllAsync<PhotoEntity>(p => p.FilmId == filmId);
-        var isOwner = IsCurrentUserFilmOwner(filmEntity);
+        var isOwner = FilmOwnerHelper.IsCurrentUserFilmOwner(User, filmEntity);
         var photos = isOwner ? allPhotos : allPhotos.Where(p => !p.Restricted).ToList();
         if (photos.Count == 0)
             return NotFound("No photos found for this film.");
@@ -350,7 +351,7 @@ public class PhotoController(
             return NotFound();
 
         var filmEntity = await databaseService.GetByIdAsync<FilmEntity>(entity.FilmId);
-        if (filmEntity == null || !IsCurrentUserFilmOwner(filmEntity))
+        if (filmEntity == null || !FilmOwnerHelper.IsCurrentUserFilmOwner(User, filmEntity))
             return Forbid();
 
         // Delete image blob and preview blob (photos always have real images, no default)
@@ -372,28 +373,12 @@ public class PhotoController(
             return NotFound();
 
         var filmEntity = await databaseService.GetByIdAsync<FilmEntity>(photoEntity.FilmId);
-        if (filmEntity == null || !IsCurrentUserFilmOwner(filmEntity))
+        if (filmEntity == null || !FilmOwnerHelper.IsCurrentUserFilmOwner(User, filmEntity))
             return Forbid();
 
         photoEntity.Restricted = dto.Restricted;
         await databaseService.UpdateAsync(photoEntity);
         return Ok(dtoConvertor.ToDTO(photoEntity));
-    }
-
-    private bool IsCurrentUserFilmOwner(FilmEntity film)
-    {
-        var currentUser = User.Name();
-        if (string.IsNullOrEmpty(currentUser))
-            return false;
-        try
-        {
-            var currentUserEnum = currentUser.ToEnum<EUsernameType>();
-            return film.PurchasedBy == currentUserEnum;
-        }
-        catch
-        {
-            return false;
-        }
     }
 
     private static string SanitizeFileName(string fileName)

@@ -7,6 +7,7 @@ import {
   ElementRef,
   Output,
   OnChanges,
+  OnInit,
   SimpleChanges,
 } from '@angular/core';
 import { Router } from '@angular/router';
@@ -19,25 +20,38 @@ import { PhotoDto, FilmDto } from '../../../DTOs';
   styleUrl: './photos-content.component.css',
   standalone: false,
 })
-export class PhotosContentComponent implements OnChanges {
+export class PhotosContentComponent implements OnInit, OnChanges {
   private router = inject(Router);
   private elementRef = inject(ElementRef);
   public photoService = inject(PhotoService);
 
   @Input() photos: PhotoDto[] = [];
   @Input() film: FilmDto | null = null;
-  @Input() mode: 'edit' | 'view' = 'view';
+  @Input() mode: 'edit' | 'view' | 'ideaResults' = 'view';
   @Input() isOwner = false;
   @Input() uploadLoading = false;
   @Input() uploadProgress: { current: number; total: number } = { current: 0, total: 0 };
   @Input() downloadAllLoading = false;
   @Input() showOwner = false;
+  /** Owner-only: bulk select, delete, attach to wacky idea */
+  @Input() bulkSelectionEnabled = false;
+
+  ngOnInit(): void {
+    this.rebuildAllowedBulkIdSet();
+  }
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['photos'] && this.currentPreviewPhoto && this.photos.length > 0) {
       const stillPresent = this.photos.some((p) => p.id === this.currentPreviewPhoto!.id);
       if (!stillPresent) {
         this.closePreview();
+      }
+    }
+    if (changes['photos'] && this.selectedPhotoIds.size > 0) {
+      const valid = new Set(this.photos.map((p) => p.id));
+      const next = new Set([...this.selectedPhotoIds].filter((id) => valid.has(id)));
+      if (next.size !== this.selectedPhotoIds.size) {
+        this.selectedPhotoIds = next;
       }
     }
   }
@@ -47,14 +61,164 @@ export class PhotosContentComponent implements OnChanges {
   @Output() downloadAll = new EventEmitter<boolean>();
   @Output() deletePhoto = new EventEmitter<PhotoDto>();
   @Output() restrictToggle = new EventEmitter<PhotoDto>();
+  @Output() bulkDeleteRequest = new EventEmitter<PhotoDto[]>();
+  @Output() wackyResultRequest = new EventEmitter<PhotoDto[]>();
+  /** Idea results page: remove link only (not blob delete) */
+  @Output() removeLinkedPhotosRequest = new EventEmitter<PhotoDto[]>();
+  private _allowedBulkPhotoIds: string[] | null = null;
+
+  /**
+   * When null/undefined: no allowlist — all photos are bulk-eligible.
+   * When [] or non-empty: only IDs in the set are eligible ([] means none).
+   */
+  @Input()
+  set allowedBulkPhotoIds(value: string[] | null) {
+    this._allowedBulkPhotoIds = value;
+    this.rebuildAllowedBulkIdSet();
+  }
+
+  get allowedBulkPhotoIds(): string[] | null {
+    return this._allowedBulkPhotoIds;
+  }
 
   isPreviewModalOpen = false;
   currentPreviewPhoto: PhotoDto | null = null;
   currentPhotoIndex = 0;
   isDeleteModalOpen = false;
   downloadDropdownOpen = false;
+  optionsDropdownOpen = false;
+  bulkSelectionMode = false;
+  selectedPhotoIds = new Set<string>();
+  /** null = no allowlist; otherwise membership set (may be empty). */
+  private allowedBulkIdSet: Set<string> | null = null;
   private touchStartX = 0;
   private touchStartY = 0;
+
+  private rebuildAllowedBulkIdSet(): void {
+    if (this._allowedBulkPhotoIds == null) {
+      this.allowedBulkIdSet = null;
+    } else {
+      this.allowedBulkIdSet = new Set(this._allowedBulkPhotoIds);
+    }
+  }
+
+  get selectedBulkCount(): number {
+    return this.selectedPhotoIds.size;
+  }
+
+  getSelectedPhotos(): PhotoDto[] {
+    return this.photos.filter((p) => this.selectedPhotoIds.has(p.id));
+  }
+
+  startBulkSelection(): void {
+    this.bulkSelectionMode = true;
+    this.selectedPhotoIds = new Set();
+    this.optionsDropdownOpen = false;
+    this.downloadDropdownOpen = false;
+  }
+
+  /** Photos that can be toggled in bulk mode (respects idea-results allowlist). */
+  getEligibleBulkPhotos(): PhotoDto[] {
+    if (this.allowedBulkIdSet === null) {
+      return this.photos;
+    }
+    return this.photos.filter((p) => this.allowedBulkIdSet!.has(p.id));
+  }
+
+  selectAllPhotos(): void {
+    const eligible = this.getEligibleBulkPhotos();
+    this.selectedPhotoIds = new Set(eligible.map((p) => p.id));
+  }
+
+  /** Select every eligible photo, or clear selection when all are already selected. */
+  toggleSelectAllOrDeselectAll(): void {
+    if (this.allEligibleBulkSelected) {
+      this.selectedPhotoIds = new Set();
+    } else {
+      this.selectAllPhotos();
+    }
+  }
+
+  get allEligibleBulkSelected(): boolean {
+    const eligible = this.getEligibleBulkPhotos();
+    if (eligible.length === 0) {
+      return false;
+    }
+    return eligible.every((p) => this.selectedPhotoIds.has(p.id));
+  }
+
+  cancelBulkSelection(): void {
+    this.bulkSelectionMode = false;
+    this.selectedPhotoIds = new Set();
+    this.optionsDropdownOpen = false;
+  }
+
+  exitBulkSelectionMode(): void {
+    this.cancelBulkSelection();
+  }
+
+  toggleOptionsDropdown(): void {
+    const next = !this.optionsDropdownOpen;
+    if (next) {
+      this.downloadDropdownOpen = false;
+    }
+    this.optionsDropdownOpen = next;
+  }
+
+  onBulkDeleteFromMenu(): void {
+    this.optionsDropdownOpen = false;
+    const selected = this.getSelectedPhotos();
+    if (selected.length === 0) return;
+    this.bulkDeleteRequest.emit(selected);
+  }
+
+  onWackyResultFromMenu(): void {
+    this.optionsDropdownOpen = false;
+    const selected = this.getSelectedPhotos();
+    if (selected.length === 0) return;
+    this.wackyResultRequest.emit(selected);
+  }
+
+  isPhotoBulkSelected(photo: PhotoDto): boolean {
+    return this.selectedPhotoIds.has(photo.id);
+  }
+
+  togglePhotoBulkSelected(photo: PhotoDto): void {
+    const next = new Set(this.selectedPhotoIds);
+    if (next.has(photo.id)) {
+      next.delete(photo.id);
+    } else {
+      next.add(photo.id);
+    }
+    this.selectedPhotoIds = next;
+  }
+
+  canToggleBulkForPhoto(photo: PhotoDto): boolean {
+    if (this.allowedBulkIdSet === null) {
+      return true;
+    }
+    return this.allowedBulkIdSet.has(photo.id);
+  }
+
+  onPhotoItemClick(photo: PhotoDto): void {
+    if (this.bulkSelectionMode && this.bulkSelectionEnabled) {
+      if (!this.canToggleBulkForPhoto(photo)) {
+        return;
+      }
+      this.togglePhotoBulkSelected(photo);
+      return;
+    }
+    this.openPreview(photo);
+  }
+
+  onRemoveFromIdeaMenu(): void {
+    this.optionsDropdownOpen = false;
+    const selected = this.getSelectedPhotos();
+    if (selected.length === 0) {
+      return;
+    }
+    this.removeLinkedPhotosRequest.emit(selected);
+  }
 
   openPreview(photo: PhotoDto) {
     this.currentPreviewPhoto = photo;
@@ -154,8 +318,12 @@ export class PhotosContentComponent implements OnChanges {
     if (this.currentPreviewPhoto) this.restrictToggle.emit(this.currentPreviewPhoto);
   }
 
-  toggleDownloadDropdown() {
-    this.downloadDropdownOpen = !this.downloadDropdownOpen;
+  toggleDownloadDropdown(): void {
+    const next = !this.downloadDropdownOpen;
+    if (next) {
+      this.optionsDropdownOpen = false;
+    }
+    this.downloadDropdownOpen = next;
   }
 
   onDownloadAll(small: boolean) {
@@ -177,6 +345,10 @@ export class PhotosContentComponent implements OnChanges {
     const dropdownContainer = this.elementRef.nativeElement.querySelector('.download-dropdown-container');
     if (dropdownContainer && !dropdownContainer.contains(target)) {
       this.downloadDropdownOpen = false;
+    }
+    const optionsContainer = this.elementRef.nativeElement.querySelector('.options-dropdown-container');
+    if (optionsContainer && !optionsContainer.contains(target)) {
+      this.optionsDropdownOpen = false;
     }
   }
 }

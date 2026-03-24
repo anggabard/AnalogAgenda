@@ -39,6 +39,10 @@ public class SessionController(IDatabaseService databaseService, IBlobService bl
             await SyncNavigationPropertiesAsync(entity, dto);
 
             await databaseService.AddAsync(entity);
+
+            await databaseService.ReplaceEntitiesAsync<DevKitSessionEntity>(
+                x => x.SessionId == entity.Id,
+                entity.UsedDevKits.Select(d => new DevKitSessionEntity { DevKitId = d.Id, SessionId = entity.Id }));
             
             // Return the created entity as DTO
             var createdDto = dtoConvertor.ToDTO(entity);
@@ -218,6 +222,10 @@ public class SessionController(IDatabaseService databaseService, IBlobService bl
         
         // UpdateAsync will handle UpdatedDate
         await databaseService.UpdateAsync(originalSession);
+
+        await databaseService.ReplaceEntitiesAsync<DevKitSessionEntity>(
+            x => x.SessionId == originalSession.Id,
+            originalSession.UsedDevKits.Select(d => new DevKitSessionEntity { DevKitId = d.Id, SessionId = originalSession.Id }));
         
         // Process the business logic
         await ProcessSessionBusinessLogic(updateDto, originalDto);
@@ -443,6 +451,11 @@ public class SessionController(IDatabaseService databaseService, IBlobService bl
         
         // UpdateAsync will handle UpdatedDate automatically
         await databaseService.UpdateAsync(existingEntity);
+        await databaseService.ReplaceEntitiesAsync<DevKitFilmEntity>(
+            x => x.FilmId == filmId,
+            string.IsNullOrEmpty(existingEntity.DevelopedWithDevKitId)
+                ? []
+                : [new DevKitFilmEntity { DevKitId = existingEntity.DevelopedWithDevKitId!, FilmId = filmId }]);
     }
     
     /// <summary>

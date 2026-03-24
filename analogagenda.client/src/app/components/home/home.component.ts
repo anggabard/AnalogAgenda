@@ -40,6 +40,8 @@ export class HomeComponent implements OnInit {
                 this.userSettings = settings;
                 if (settings.currentFilmId) {
                     this.loadCurrentFilm(settings.currentFilmId);
+                } else {
+                    this.currentFilm = null;
                 }
             },
             error: (error) => {
@@ -65,7 +67,7 @@ export class HomeComponent implements OnInit {
         this.selectedFilmId = null;
         this.changeCurrentFilmModalSearch = '';
 
-        this.filmService.getNotDevelopedFilms().subscribe({
+        this.filmService.getMyNotDevelopedFilmsAll().subscribe({
             next: (films) => {
                 this.availableFilms = films;
             },

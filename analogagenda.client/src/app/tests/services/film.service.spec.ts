@@ -334,6 +334,7 @@ describe('FilmService', () => {
       type: FilmType.ColorNegative,
       numberOfExposures: 36,
       cost: 12.50,
+      costCurrency: 'RON',
       purchasedBy,
       purchasedOn,
       description: 'Test film description',

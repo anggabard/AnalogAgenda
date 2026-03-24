@@ -7,4 +7,6 @@ public class IdeaDto
     public string Title { get; set; } = string.Empty;
 
     public string Description { get; set; } = string.Empty;
+
+    public string Outcome { get; set; } = string.Empty;
 }

@@ -40,9 +40,14 @@
                 <input type="number" formControlName="numberOfExposures" placeholder="Number of Exposures" class="input" />
             </div>
 
-            <div>
+            <div class="cost-field">
                 <label for="cost">Cost</label>
-                <input type="number" formControlName="cost" placeholder="Cost" step="0.01" class="input" />
+                <div class="cost-input-row">
+                    <input id="cost" type="number" formControlName="cost" placeholder="Cost" step="0.01" class="input cost-input" />
+                    <button type="button" class="currency-toggle" (click)="toggleCostCurrency()" [attr.aria-label]="'Currency: ' + costCurrencyLabel">
+                        {{ costCurrencyLabel }}
+                    </button>
+                </div>
             </div>
 
             <div>

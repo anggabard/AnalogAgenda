@@ -8,6 +8,7 @@ export interface FilmDto {
   type: FilmType;
   numberOfExposures: number;
   cost: number;
+  costCurrency?: string;
   purchasedBy: UsernameType;
   purchasedOn: string;
   imageUrl: string;

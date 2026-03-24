@@ -54,6 +54,7 @@ public class DtoConvertor(Configuration.Sections.System systemCfg, Storage stora
             Type = entity.Type.ToDisplayString(),
             NumberOfExposures = entity.NumberOfExposures,
             Cost = entity.Cost,
+            CostCurrency = entity.CostCurrency.ToString(),
             PurchasedBy = entity.PurchasedBy.ToString(),
             PurchasedOn = DateOnly.FromDateTime(entity.PurchasedOn),
             ImageUrl = BuildImageUrl(ContainerName.films, entity.ImageId),
@@ -185,7 +186,8 @@ public class DtoConvertor(Configuration.Sections.System systemCfg, Storage stora
     {
         Id = entity.Id,
         Title = entity.Title,
-        Description = entity.Description
+        Description = entity.Description,
+        Outcome = entity.Outcome
     };
 }
 

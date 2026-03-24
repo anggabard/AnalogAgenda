@@ -16,6 +16,8 @@ public class FilmDto
 
     public double Cost { get; set; }
 
+    public string CostCurrency { get; set; } = "RON";
+
     public required string PurchasedBy { get; set; }
 
     public DateOnly PurchasedOn { get; set; }

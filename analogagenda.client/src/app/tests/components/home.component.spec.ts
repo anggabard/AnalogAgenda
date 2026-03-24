@@ -24,7 +24,7 @@ describe('HomeComponent', () => {
 
   beforeEach(async () => {
     const filmServiceSpy = jasmine.createSpyObj('FilmService', [
-      'getById', 'getNotDevelopedFilms', 'getExposureDates'
+      'getById', 'getMyNotDevelopedFilmsAll', 'getExposureDates'
     ]);
     const userSettingsServiceSpy = jasmine.createSpyObj('UserSettingsService', [
       'getUserSettings', 'getSubscribedUsers', 'updateUserSettings'
@@ -42,7 +42,7 @@ describe('HomeComponent', () => {
     } as UserSettingsDto));
     userSettingsServiceSpy.getSubscribedUsers.and.returnValue(of([]));
     userSettingsServiceSpy.updateUserSettings.and.returnValue(of({} as UserSettingsDto));
-    filmServiceSpy.getNotDevelopedFilms.and.returnValue(of([]));
+    filmServiceSpy.getMyNotDevelopedFilmsAll.and.returnValue(of([]));
     filmServiceSpy.getExposureDates.and.returnValue(of([]));
     ideaServiceSpy.getAll.and.returnValue(of([]));
 

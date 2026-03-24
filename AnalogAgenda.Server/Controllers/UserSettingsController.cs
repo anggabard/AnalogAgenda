@@ -1,3 +1,4 @@
+using AnalogAgenda.Server.Helpers;
 using AnalogAgenda.Server.Identity;
 using Database.DTOs;
 using Database.Entities;
@@ -52,6 +53,15 @@ public class UserSettingsController(
 
         if (existingSettings == null)
             return NotFound("UserSettings not found for current user.");
+
+        if (!string.IsNullOrEmpty(dto.CurrentFilmId))
+        {
+            var film = await databaseService.GetByIdAsync<FilmEntity>(dto.CurrentFilmId);
+            if (film == null)
+                return BadRequest("Current film not found.");
+            if (!FilmOwnerHelper.IsCurrentUserFilmOwner(User, film))
+                return Forbid();
+        }
 
         // Update existing settings
         existingSettings.IsSubscribed = dto.IsSubscribed;

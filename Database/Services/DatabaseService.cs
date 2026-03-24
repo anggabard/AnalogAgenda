@@ -174,5 +174,73 @@ public class DatabaseService(AnalogAgendaDbContext context) : IDatabaseService
     {
         return await _context.SaveChangesAsync();
     }
+
+    public async Task ExecuteInTransactionAsync(Func<Task> action)
+    {
+        // In-memory provider does not support transactions; still run the action (tests use this provider).
+        if (string.Equals(
+                _context.Database.ProviderName,
+                "Microsoft.EntityFrameworkCore.InMemory",
+                StringComparison.Ordinal))
+        {
+            await action();
+            return;
+        }
+
+        await using var transaction = await _context.Database.BeginTransactionAsync();
+        try
+        {
+            await action();
+            await transaction.CommitAsync();
+        }
+        catch
+        {
+            await transaction.RollbackAsync();
+            throw;
+        }
+    }
+
+    public async Task<List<T>> GetEntitiesAsync<T>(Expression<Func<T, bool>> predicate) where T : class =>
+        await _context.Set<T>().Where(predicate).ToListAsync();
+
+    public async Task ReplaceEntitiesAsync<T>(Expression<Func<T, bool>> removePredicate, IEnumerable<T> newEntities)
+        where T : class
+    {
+        var old = await _context.Set<T>().Where(removePredicate).ToListAsync();
+        if (old.Count > 0)
+            _context.Set<T>().RemoveRange(old);
+        var list = newEntities.ToList();
+        if (list.Count > 0)
+            await _context.Set<T>().AddRangeAsync(list);
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task AddEntitiesAsync<T>(IEnumerable<T> entities) where T : class
+    {
+        var list = entities.ToList();
+        if (list.Count == 0)
+            return;
+        await _context.Set<T>().AddRangeAsync(list);
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task DeleteEntitiesAsync<T>(Expression<Func<T, bool>> predicate) where T : class
+    {
+        var rows = await _context.Set<T>().Where(predicate).ToListAsync();
+        if (rows.Count == 0)
+            return;
+        _context.Set<T>().RemoveRange(rows);
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task<List<T>> GetAllWhereWithIncludesAsync<T>(
+        Expression<Func<T, bool>> predicate,
+        params Expression<Func<T, object>>[] includes) where T : BaseEntity
+    {
+        IQueryable<T> query = _context.Set<T>().Where(predicate);
+        foreach (var include in includes)
+            query = query.Include(include);
+        return await query.ToListAsync();
+    }
 }
 
