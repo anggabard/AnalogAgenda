@@ -24,8 +24,8 @@
                 *ngIf="myFilmCardTemplate"
                 [items]="myNotDevelopedFilms"
                 [cardTemplate]="myFilmCardTemplate"
-                [rowTemplate]="myFilmRowTemplate"
-                [columnHeaders]="myFilmTableHeaders"
+                [rowTemplate]="myNotDevelopedFilmRowTemplate"
+                [columnHeaders]="myNotDevelopedFilmTableHeaders"
                 [hasMore]="hasMoreMyNotDeveloped"
                 [loading]="loadingMyNotDeveloped"
                 (loadMore)="loadMoreMyNotDevelopedFilms()"
@@ -63,8 +63,8 @@
                 *ngIf="allFilmCardTemplate"
                 [items]="allNotDevelopedFilms"
                 [cardTemplate]="allFilmCardTemplate"
-                [rowTemplate]="allFilmRowTemplate"
-                [columnHeaders]="allFilmTableHeaders"
+                [rowTemplate]="allNotDevelopedFilmRowTemplate"
+                [columnHeaders]="allNotDevelopedFilmTableHeaders"
                 [hasMore]="hasMoreAllNotDeveloped"
                 [loading]="loadingAllNotDeveloped"
                 (loadMore)="loadMoreAllNotDevelopedFilms()"
@@ -92,6 +92,7 @@
 <!-- Templates for different card types -->
 <ng-template #myFilmCardTemplate let-film>
     <div class="card">
+        <span class="exp-badge exp-badge-my" *ngIf="!film.developed && film.formattedExposureDate">exp</span>
         <div class="image"><img *ngIf="film.imageUrl" [src]="film.imageUrl" [alt]="film.name || film.brand" /></div>
         <span class="title">{{ film.name || film.brand }}</span>
         <span class="info type">{{film.type}}</span>
@@ -102,6 +103,7 @@
 
 <ng-template #allFilmCardTemplate let-film>
     <div class="card">
+        <span class="exp-badge exp-badge-all" *ngIf="!film.developed && film.formattedExposureDate">exp</span>
         <div class="image"><img *ngIf="film.imageUrl" [src]="film.imageUrl" [alt]="film.name || film.brand" /></div>
         <span class="title">{{ film.name || film.brand }}</span>
         <span class="info type">{{film.type}}</span>
@@ -111,11 +113,28 @@
     </div>
 </ng-template>
 
+<ng-template #myNotDevelopedFilmRowTemplate let-film>
+    <td>{{ film.name || film.brand }}</td>
+    <td>{{ film.type }}</td>
+    <td>{{ film.iso }}</td>
+    <td>{{ isFilmExposed(film) ? 'true' : 'false' }}</td>
+    <td class="film-cell-image"><app-image-preview [imageUrl]="film.imageUrl" [alt]="film.name || film.brand" popoverPosition="left"></app-image-preview></td>
+</ng-template>
+
 <ng-template #myFilmRowTemplate let-film>
     <td>{{ film.name || film.brand }}</td>
     <td>{{ film.type }}</td>
     <td>{{ film.iso }}</td>
     <td>{{ film.photoCount ?? 0 }}</td>
+    <td class="film-cell-image"><app-image-preview [imageUrl]="film.imageUrl" [alt]="film.name || film.brand" popoverPosition="left"></app-image-preview></td>
+</ng-template>
+
+<ng-template #allNotDevelopedFilmRowTemplate let-film>
+    <td>{{ film.name || film.brand }}</td>
+    <td>{{ film.type }}</td>
+    <td>{{ film.iso }}</td>
+    <td>{{ film.purchasedBy }}</td>
+    <td>{{ isFilmExposed(film) ? 'true' : 'false' }}</td>
     <td class="film-cell-image"><app-image-preview [imageUrl]="film.imageUrl" [alt]="film.name || film.brand" popoverPosition="left"></app-image-preview></td>
 </ng-template>
 

@@ -164,9 +164,13 @@
                 
                 <!-- Bulk count controls - only show in insert mode -->
                 <div class="bulk-controls" *ngIf="isInsert">
-                    <button type="button" class="bulk-btn bulk-decrement" (click)="decrementBulkCount()" [disabled]="bulkCount <= 1">-1</button>
-                    <span class="bulk-count">{{ bulkCount }}</span>
-                    <button type="button" class="bulk-btn bulk-increment" (click)="incrementBulkCount()" [disabled]="bulkCount >= 10">+1</button>
+                    <app-quantity-stepper
+                        theme="glass"
+                        [value]="bulkCount"
+                        [min]="1"
+                        [max]="10"
+                        (valueChange)="bulkCount = $event">
+                    </app-quantity-stepper>
                 </div>
             </div>
         </form>
@@ -192,15 +196,21 @@
                 <button class="modal-close" (click)="closeSessionModal()">✕</button>
             </div>
             <div class="modal-body">
+                <input
+                    type="search"
+                    class="modal-list-search"
+                    [(ngModel)]="sessionAssignModalSearch"
+                    placeholder="Search sessions..."
+                    aria-label="Search sessions" />
                 <div class="items-grid">
-                    <div *ngFor="let session of availableSessions" class="item-card"
+                    <div *ngFor="let session of sessionsForAssignModal" class="item-card"
                          [class.selected]="selectedSessionId === session.id"
                          (click)="selectSession(session.id)">
                         <div class="item-content">
                             <div class="item-info">
                                 <div class="item-details">
                                     <span class="item-name">{{session.location}}</span>
-                                    <span class="item-type">{{session.sessionDate | date:'short'}}</span>
+                                    <span class="item-type">{{ formatSessionDateDisplay(session.sessionDate) }}</span>
                                     <span class="item-owner">{{session.participantsList && session.participantsList.length > 0 ? session.participantsList.join(', ') : 'No participants'}}</span>
                                 </div>
                             </div>
@@ -244,8 +254,14 @@
                         <span>Show expired dev kits</span>
                     </label>
                 </div>
-                <div class="items-grid" *ngIf="filteredAvailableDevKits.length > 0">
-                    <div *ngFor="let devKit of filteredAvailableDevKits" class="item-card"
+                <input
+                    type="search"
+                    class="modal-list-search"
+                    [(ngModel)]="devKitAssignModalSearch"
+                    placeholder="Search dev kits..."
+                    aria-label="Search dev kits" />
+                <div class="items-grid" *ngIf="devKitsForAssignModal.length > 0">
+                    <div *ngFor="let devKit of devKitsForAssignModal" class="item-card"
                          [class.expired]="devKit.expired"
                          [class.selected]="selectedDevKitId === devKit.id"
                          (click)="selectDevKit(devKit.id)">
@@ -266,7 +282,7 @@
                         </div>
                     </div>
                 </div>
-                <div *ngIf="filteredAvailableDevKits.length === 0" class="no-items-message">
+                <div *ngIf="devKitsForAssignModal.length === 0" class="no-items-message">
                     <p *ngIf="form.get('developedInSessionRowKey')?.value">No DevKits available for the selected session. The session may not have any DevKits assigned to it yet.</p>
                     <p *ngIf="!form.get('developedInSessionRowKey')?.value">No DevKits available. Try assigning a session first.</p>
                 </div>

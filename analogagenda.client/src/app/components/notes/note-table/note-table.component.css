@@ -8,8 +8,10 @@
 }
 
 .note-header {
-  text-align: center;
-  margin-bottom: 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
 }
 
 .note-title {
@@ -1008,64 +1010,21 @@ button {
   font-size: 0.875rem;
 }
 
-/* Film Counter Styling (similar to bulk controls) */
-.note-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
-}
-
 .title-section {
   flex: 1;
-}
-
-.film-counter {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  background-color: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 6px;
-  padding: 0.5rem;
-}
-
-.film-btn {
-  width: 32px;
-  height: 32px;
-  padding: 0;
-  border: 1px solid rgba(255, 255, 255, 0.4);
-  border-radius: 4px;
-  background-color: rgba(255, 255, 255, 0.1);
-  color: #6b7280;
-  font-size: 0.9rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.film-btn:hover:not(:disabled) {
-  background-color: rgba(255, 255, 255, 0.2);
-  border-color: rgba(255, 255, 255, 0.6);
-  transform: translateY(-1px);
-}
-
-.film-btn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-  transform: none;
-}
-
-.film-count {
-  min-width: 24px;
   text-align: center;
-  font-weight: 600;
-  color: #6b7280;
-  font-size: 0.9rem;
+}
+
+@media (max-width: 640px) {
+  .note-header {
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .title-section {
+    width: 100%;
+  }
 }
 
 /* Override Toggle Button */

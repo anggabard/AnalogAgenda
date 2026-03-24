@@ -179,7 +179,7 @@ describe('NoteTableComponent', () => {
     // Assert
     expect(component.note.name).toBe('Untitled Note'); // Should set default name
     expect(mockNotesService.addNewNote).toHaveBeenCalledWith(component.note);
-    expect(mockRouter.navigate).toHaveBeenCalledWith(['/notes/' + newId]);
+    expect(mockRouter.navigate).toHaveBeenCalledWith(['/notes']);
   });
 
   it('should update existing note', () => {
@@ -201,8 +201,7 @@ describe('NoteTableComponent', () => {
 
     // Assert
     expect(mockNotesService.update).toHaveBeenCalledWith('existing-id', component.note);
-    expect(component.originalNote).toEqual(component.note);
-    expect(component.isEditMode).toBeFalse();
+    expect(mockRouter.navigate).toHaveBeenCalledWith(['/notes']);
   });
 
   it('should handle save error', () => {

@@ -121,8 +121,8 @@ export class NoteTableComponent implements OnInit {
 
     if (this.isNewNote) {
       this.notesService.addNewNote(this.note).subscribe({
-        next: (noteId: string) => {
-          this.router.navigate(['/notes/' + noteId]);
+        next: () => {
+          this.router.navigate(['/notes']);
         },
         error: (err: any) => {
           console.error(err);
@@ -131,8 +131,7 @@ export class NoteTableComponent implements OnInit {
     } else {
       this.notesService.update(this.noteId!, this.note).subscribe({
         next: () => {
-          this.originalNote = JSON.parse(JSON.stringify(this.note));
-          this.isEditMode = false;
+          this.router.navigate(['/notes']);
         },
         error: (err: any) => {
           console.error(err);

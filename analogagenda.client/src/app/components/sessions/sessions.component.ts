@@ -2,6 +2,7 @@ import { Component, inject, OnInit, ViewChild, TemplateRef } from "@angular/core
 import { Router } from "@angular/router";
 import { SessionService, AccountService, UserSettingsService } from "../../services";
 import { SessionDto, IdentityDto, PagedResponseDto } from "../../DTOs";
+import { DateHelper } from "../../helpers/date.helper";
 
 @Component({
     selector: 'app-sessions',
@@ -96,6 +97,6 @@ export class SessionsComponent implements OnInit {
   }
 
   formatDate(dateString: string): string {
-    return new Date(dateString).toLocaleDateString();
+    return DateHelper.formatDdMmYyyy(dateString);
   }
 }

@@ -6,11 +6,14 @@
             <h1 *ngIf="!isEditMode" class="note-title">{{ note.name || 'Untitled Note' }}</h1>
         </div>
         
-        <div *ngIf="!isEditMode" class="film-counter">
-            <button type="button" class="film-btn film-decrement" (click)="decrementFilmCount()" [disabled]="filmCount <= 1">-1</button>
-            <span class="film-count">{{ filmCount }}</span>
-            <button type="button" class="film-btn film-increment" (click)="incrementFilmCount()" [disabled]="filmCount >= 100">+1</button>
-        </div>
+        <app-quantity-stepper
+            *ngIf="!isEditMode"
+            theme="solid"
+            [value]="filmCount"
+            [min]="1"
+            [max]="100"
+            (valueChange)="filmCount = $event">
+        </app-quantity-stepper>
     </div>
 
     <!-- Table Wrapper -->
