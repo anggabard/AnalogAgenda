@@ -207,7 +207,21 @@ describe('PhotosContentComponent', () => {
 
     it('getEligibleBulkPhotos should filter by allowedBulkPhotoIds', () => {
       component.allowedBulkPhotoIds = ['p2'];
+      fixture.detectChanges();
       expect(component.getEligibleBulkPhotos().map((p) => p.id)).toEqual(['p2']);
+    });
+
+    it('getEligibleBulkPhotos should return no photos when allowlist is empty array', () => {
+      component.allowedBulkPhotoIds = [];
+      fixture.detectChanges();
+      expect(component.getEligibleBulkPhotos()).toEqual([]);
+    });
+
+    it('canToggleBulkForPhoto should be false for all photos when allowlist is empty array', () => {
+      component.allowedBulkPhotoIds = [];
+      fixture.detectChanges();
+      expect(component.canToggleBulkForPhoto(mockPhotos[0])).toBeFalse();
+      expect(component.canToggleBulkForPhoto(mockPhotos[1])).toBeFalse();
     });
 
     it('selectAllPhotos should select every eligible photo', () => {

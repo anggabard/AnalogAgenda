@@ -202,30 +202,35 @@ public class DevKitController(IDatabaseService databaseService, IBlobService blo
         var newSet = body.Ids.Distinct().ToHashSet();
         var oldLinks = await databaseService.GetEntitiesAsync<DevKitSessionEntity>(x => x.DevKitId == id);
         var oldSet = oldLinks.Select(l => l.SessionId).ToHashSet();
+        var affectedSessionIds = oldSet.Union(newSet).ToHashSet();
 
-        foreach (var sid in oldSet.Union(newSet))
+        await databaseService.ExecuteInTransactionAsync(async () =>
         {
-            var session = await databaseService.GetByIdWithIncludesAsync<SessionEntity>(sid, s => s.UsedDevKits);
-            if (session == null)
-                continue;
+            var sessions = await databaseService.GetAllWhereWithIncludesAsync<SessionEntity>(
+                s => affectedSessionIds.Contains(s.Id),
+                s => s.UsedDevKits);
 
-            var shouldHave = newSet.Contains(sid);
-            var has = session.UsedDevKits.Any(d => d.Id == id);
-            if (shouldHave && !has)
-                session.UsedDevKits.Add(devKit);
-            else if (!shouldHave && has)
+            foreach (var session in sessions)
             {
-                var link = session.UsedDevKits.FirstOrDefault(d => d.Id == id);
-                if (link != null)
-                    session.UsedDevKits.Remove(link);
+                var sid = session.Id;
+                var shouldHave = newSet.Contains(sid);
+                var has = session.UsedDevKits.Any(d => d.Id == id);
+                if (shouldHave && !has)
+                    session.UsedDevKits.Add(devKit);
+                else if (!shouldHave && has)
+                {
+                    var link = session.UsedDevKits.FirstOrDefault(d => d.Id == id);
+                    if (link != null)
+                        session.UsedDevKits.Remove(link);
+                }
             }
 
-            await databaseService.UpdateAsync(session);
-        }
+            await databaseService.SaveChangesAsync();
 
-        await databaseService.ReplaceEntitiesAsync<DevKitSessionEntity>(
-            x => x.DevKitId == id,
-            newSet.Select(sid => new DevKitSessionEntity { DevKitId = id, SessionId = sid }));
+            await databaseService.ReplaceEntitiesAsync<DevKitSessionEntity>(
+                x => x.DevKitId == id,
+                newSet.Select(sid => new DevKitSessionEntity { DevKitId = id, SessionId = sid }));
+        });
 
         return await GetSessionAssignment(id, showAll: true);
     }
@@ -288,32 +293,28 @@ public class DevKitController(IDatabaseService databaseService, IBlobService blo
 
         var devKitId = id;
         var newFilmIds = body.Ids.Distinct().ToHashSet();
-        var oldRows = await databaseService.GetEntitiesAsync<DevKitFilmEntity>(x => x.DevKitId == devKitId);
-        var oldFilmIds = oldRows.Select(x => x.FilmId).ToHashSet();
 
-        foreach (var fid in oldFilmIds.Except(newFilmIds))
+        await databaseService.ExecuteInTransactionAsync(async () =>
         {
-            var film = await databaseService.GetByIdAsync<FilmEntity>(fid);
-            if (film != null && film.DevelopedWithDevKitId == devKitId)
-            {
-                film.DevelopedWithDevKitId = null;
-                await databaseService.UpdateAsync(film);
-            }
-        }
+            var oldRows = await databaseService.GetEntitiesAsync<DevKitFilmEntity>(x => x.DevKitId == devKitId);
+            var oldFilmIds = oldRows.Select(x => x.FilmId).ToHashSet();
+            var filmIdSet = oldFilmIds.Union(newFilmIds).ToHashSet();
+            var films = await databaseService.GetAllAsync<FilmEntity>(f => filmIdSet.Contains(f.Id));
 
-        await databaseService.ReplaceEntitiesAsync<DevKitFilmEntity>(
-            x => x.DevKitId == devKitId,
-            newFilmIds.Select(fid => new DevKitFilmEntity { DevKitId = devKitId, FilmId = fid }));
-
-        foreach (var fid in newFilmIds)
-        {
-            var film = await databaseService.GetByIdAsync<FilmEntity>(fid);
-            if (film != null)
+            foreach (var f in films)
             {
-                film.DevelopedWithDevKitId = devKitId;
-                await databaseService.UpdateAsync(film);
+                if (newFilmIds.Contains(f.Id))
+                    f.DevelopedWithDevKitId = devKitId;
+                else if (oldFilmIds.Contains(f.Id) && f.DevelopedWithDevKitId == devKitId)
+                    f.DevelopedWithDevKitId = null;
             }
-        }
+
+            await databaseService.SaveChangesAsync();
+
+            await databaseService.ReplaceEntitiesAsync<DevKitFilmEntity>(
+                x => x.DevKitId == devKitId,
+                newFilmIds.Select(fid => new DevKitFilmEntity { DevKitId = devKitId, FilmId = fid }));
+        });
 
         return await GetFilmAssignment(id, showAll: true);
     }

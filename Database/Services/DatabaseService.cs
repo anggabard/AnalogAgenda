@@ -175,6 +175,31 @@ public class DatabaseService(AnalogAgendaDbContext context) : IDatabaseService
         return await _context.SaveChangesAsync();
     }
 
+    public async Task ExecuteInTransactionAsync(Func<Task> action)
+    {
+        // In-memory provider does not support transactions; still run the action (tests use this provider).
+        if (string.Equals(
+                _context.Database.ProviderName,
+                "Microsoft.EntityFrameworkCore.InMemory",
+                StringComparison.Ordinal))
+        {
+            await action();
+            return;
+        }
+
+        await using var transaction = await _context.Database.BeginTransactionAsync();
+        try
+        {
+            await action();
+            await transaction.CommitAsync();
+        }
+        catch
+        {
+            await transaction.RollbackAsync();
+            throw;
+        }
+    }
+
     public async Task<List<T>> GetEntitiesAsync<T>(Expression<Func<T, bool>> predicate) where T : class =>
         await _context.Set<T>().Where(predicate).ToListAsync();
 

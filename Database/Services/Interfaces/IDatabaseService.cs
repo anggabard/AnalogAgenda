@@ -24,6 +24,9 @@ public interface IDatabaseService
     Task DeleteRangeAsync<T>(Expression<Func<T, bool>> predicate) where T : BaseEntity;
     Task<int> SaveChangesAsync();
 
+    /// <summary>Runs <paramref name="action"/> inside a single database transaction (all <see cref="SaveChangesAsync"/> calls share it).</summary>
+    Task ExecuteInTransactionAsync(Func<Task> action);
+
     /// <summary>Query any mapped EF entity type (including junction rows that are not <see cref="BaseEntity"/>).</summary>
     Task<List<T>> GetEntitiesAsync<T>(Expression<Func<T, bool>> predicate) where T : class;
 

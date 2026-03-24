@@ -7,6 +7,7 @@ import {
   ElementRef,
   Output,
   OnChanges,
+  OnInit,
   SimpleChanges,
 } from '@angular/core';
 import { Router } from '@angular/router';
@@ -19,7 +20,7 @@ import { PhotoDto, FilmDto } from '../../../DTOs';
   styleUrl: './photos-content.component.css',
   standalone: false,
 })
-export class PhotosContentComponent implements OnChanges {
+export class PhotosContentComponent implements OnInit, OnChanges {
   private router = inject(Router);
   private elementRef = inject(ElementRef);
   public photoService = inject(PhotoService);
@@ -34,6 +35,10 @@ export class PhotosContentComponent implements OnChanges {
   @Input() showOwner = false;
   /** Owner-only: bulk select, delete, attach to wacky idea */
   @Input() bulkSelectionEnabled = false;
+
+  ngOnInit(): void {
+    this.rebuildAllowedBulkIdSet();
+  }
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['photos'] && this.currentPreviewPhoto && this.photos.length > 0) {
@@ -60,8 +65,21 @@ export class PhotosContentComponent implements OnChanges {
   @Output() wackyResultRequest = new EventEmitter<PhotoDto[]>();
   /** Idea results page: remove link only (not blob delete) */
   @Output() removeLinkedPhotosRequest = new EventEmitter<PhotoDto[]>();
-  /** When set (idea results), only these photos can be selected for bulk actions */
-  @Input() allowedBulkPhotoIds: string[] | null = null;
+  private _allowedBulkPhotoIds: string[] | null = null;
+
+  /**
+   * When null/undefined: no allowlist — all photos are bulk-eligible.
+   * When [] or non-empty: only IDs in the set are eligible ([] means none).
+   */
+  @Input()
+  set allowedBulkPhotoIds(value: string[] | null) {
+    this._allowedBulkPhotoIds = value;
+    this.rebuildAllowedBulkIdSet();
+  }
+
+  get allowedBulkPhotoIds(): string[] | null {
+    return this._allowedBulkPhotoIds;
+  }
 
   isPreviewModalOpen = false;
   currentPreviewPhoto: PhotoDto | null = null;
@@ -71,8 +89,18 @@ export class PhotosContentComponent implements OnChanges {
   optionsDropdownOpen = false;
   bulkSelectionMode = false;
   selectedPhotoIds = new Set<string>();
+  /** null = no allowlist; otherwise membership set (may be empty). */
+  private allowedBulkIdSet: Set<string> | null = null;
   private touchStartX = 0;
   private touchStartY = 0;
+
+  private rebuildAllowedBulkIdSet(): void {
+    if (this._allowedBulkPhotoIds == null) {
+      this.allowedBulkIdSet = null;
+    } else {
+      this.allowedBulkIdSet = new Set(this._allowedBulkPhotoIds);
+    }
+  }
 
   get selectedBulkCount(): number {
     return this.selectedPhotoIds.size;
@@ -90,10 +118,10 @@ export class PhotosContentComponent implements OnChanges {
 
   /** Photos that can be toggled in bulk mode (respects idea-results allowlist). */
   getEligibleBulkPhotos(): PhotoDto[] {
-    if (this.allowedBulkPhotoIds?.length) {
-      return this.photos.filter((p) => this.allowedBulkPhotoIds!.includes(p.id));
+    if (this.allowedBulkIdSet === null) {
+      return this.photos;
     }
-    return this.photos;
+    return this.photos.filter((p) => this.allowedBulkIdSet!.has(p.id));
   }
 
   selectAllPhotos(): void {
@@ -161,10 +189,10 @@ export class PhotosContentComponent implements OnChanges {
   }
 
   canToggleBulkForPhoto(photo: PhotoDto): boolean {
-    if (!this.allowedBulkPhotoIds?.length) {
+    if (this.allowedBulkIdSet === null) {
       return true;
     }
-    return this.allowedBulkPhotoIds.includes(photo.id);
+    return this.allowedBulkIdSet.has(photo.id);
   }
 
   onPhotoItemClick(photo: PhotoDto): void {

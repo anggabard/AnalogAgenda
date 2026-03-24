@@ -1,8 +1,7 @@
-using System.Security.Claims;
-using Microsoft.AspNetCore.Authentication;
 using Database.DBObjects.Enums;
 using Database.Entities;
 using Database.Helpers;
+using System.Security.Claims;
 
 namespace AnalogAgenda.Server.Helpers;
 
