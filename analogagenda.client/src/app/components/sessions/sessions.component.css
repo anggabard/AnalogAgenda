@@ -37,8 +37,11 @@
   color: #222;
 }
 
-/* Fixed card column width — child is inside app-card-list (encapsulated) */
-:host ::ng-deep .sessions-card-list > div {
+/*
+ * Scope to .card-list only — listClass is also applied to table-list-outer in table mode,
+ * which must not get fixed 220px column rules.
+ */
+:host ::ng-deep .card-list.sessions-card-list > div {
   flex: 0 0 220px;
   width: 220px;
   max-width: 220px;
@@ -47,13 +50,13 @@
 }
 
 /* Desktop: horizontal scroll; phone: wrap to next row */
-:host ::ng-deep .sessions-card-list {
+:host ::ng-deep .card-list.sessions-card-list {
   flex-wrap: nowrap;
   overflow-x: auto;
 }
 
 @media (max-width: 767px) {
-  :host ::ng-deep .sessions-card-list {
+  :host ::ng-deep .card-list.sessions-card-list {
     flex-wrap: wrap;
     overflow-x: visible;
     scroll-snap-type: none;
