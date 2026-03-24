@@ -23,5 +23,19 @@ public interface IDatabaseService
     Task DeleteRangeAsync<T>(IEnumerable<T> entities) where T : BaseEntity;
     Task DeleteRangeAsync<T>(Expression<Func<T, bool>> predicate) where T : BaseEntity;
     Task<int> SaveChangesAsync();
+
+    /// <summary>Query any mapped EF entity type (including junction rows that are not <see cref="BaseEntity"/>).</summary>
+    Task<List<T>> GetEntitiesAsync<T>(Expression<Func<T, bool>> predicate) where T : class;
+
+    /// <summary>Remove rows matching <paramref name="removePredicate"/> and insert <paramref name="newEntities"/> in one save.</summary>
+    Task ReplaceEntitiesAsync<T>(Expression<Func<T, bool>> removePredicate, IEnumerable<T> newEntities) where T : class;
+
+    Task AddEntitiesAsync<T>(IEnumerable<T> entities) where T : class;
+
+    Task DeleteEntitiesAsync<T>(Expression<Func<T, bool>> predicate) where T : class;
+
+    /// <summary>Filtered query with includes for <see cref="BaseEntity"/> types.</summary>
+    Task<List<T>> GetAllWhereWithIncludesAsync<T>(Expression<Func<T, bool>> predicate, params Expression<Func<T, object>>[] includes)
+        where T : BaseEntity;
 }
 

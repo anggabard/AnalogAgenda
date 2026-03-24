@@ -186,4 +186,71 @@ describe('PhotosContentComponent', () => {
       expect(mockRouter.navigate).toHaveBeenCalledWith(['/films', 'film-1', 'photos']);
     });
   });
+
+  describe('bulk selection', () => {
+    beforeEach(() => {
+      component.mode = 'edit';
+      component.bulkSelectionEnabled = true;
+      component.allowedBulkPhotoIds = null;
+      fixture.detectChanges();
+    });
+
+    it('startBulkSelection should enable bulk mode with empty selection', () => {
+      component.startBulkSelection();
+      expect(component.bulkSelectionMode).toBeTrue();
+      expect(component.selectedBulkCount).toBe(0);
+    });
+
+    it('getEligibleBulkPhotos should return all photos when allowlist is null', () => {
+      expect(component.getEligibleBulkPhotos().map((p) => p.id)).toEqual(['p1', 'p2']);
+    });
+
+    it('getEligibleBulkPhotos should filter by allowedBulkPhotoIds', () => {
+      component.allowedBulkPhotoIds = ['p2'];
+      expect(component.getEligibleBulkPhotos().map((p) => p.id)).toEqual(['p2']);
+    });
+
+    it('selectAllPhotos should select every eligible photo', () => {
+      component.startBulkSelection();
+      component.selectAllPhotos();
+      expect(component.allEligibleBulkSelected).toBeTrue();
+      expect(component.selectedBulkCount).toBe(2);
+    });
+
+    it('toggleSelectAllOrDeselectAll should clear when all eligible are selected', () => {
+      component.startBulkSelection();
+      component.selectAllPhotos();
+      expect(component.allEligibleBulkSelected).toBeTrue();
+      component.toggleSelectAllOrDeselectAll();
+      expect(component.selectedBulkCount).toBe(0);
+      expect(component.allEligibleBulkSelected).toBeFalse();
+    });
+
+    it('toggleSelectAllOrDeselectAll should select all when not fully selected', () => {
+      component.startBulkSelection();
+      component.togglePhotoBulkSelected(mockPhotos[0]);
+      expect(component.allEligibleBulkSelected).toBeFalse();
+      component.toggleSelectAllOrDeselectAll();
+      expect(component.allEligibleBulkSelected).toBeTrue();
+    });
+
+    it('allEligibleBulkSelected should be false when there are no photos', () => {
+      component.photos = [];
+      component.startBulkSelection();
+      expect(component.allEligibleBulkSelected).toBeFalse();
+    });
+
+    it('bulk toolbar should label Cancel as Cancel Selection and toggle Select All label', () => {
+      component.startBulkSelection();
+      fixture.detectChanges();
+      const el = fixture.nativeElement as HTMLElement;
+      const texts = Array.from(el.querySelectorAll('button .button-content')).map((n) => n.textContent?.trim());
+      expect(texts).toContain('Cancel Selection');
+      expect(texts).toContain('Select All');
+      component.selectAllPhotos();
+      fixture.detectChanges();
+      const textsAfter = Array.from(el.querySelectorAll('button .button-content')).map((n) => n.textContent?.trim());
+      expect(textsAfter).toContain('Deselect All');
+    });
+  });
 });

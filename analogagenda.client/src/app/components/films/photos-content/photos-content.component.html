@@ -20,14 +20,67 @@
             <path class="spinner-path" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
           </svg>
         </button>
+        <ng-container *ngIf="bulkSelectionEnabled && mode === 'edit'">
+          <button
+            type="button"
+            class="download-all-btn select-plain-btn"
+            *ngIf="!bulkSelectionMode"
+            (click)="startBulkSelection()">
+            <span class="button-content">Select</span>
+          </button>
+          <ng-container *ngIf="bulkSelectionMode">
+            <div class="options-dropdown-container" *ngIf="selectedBulkCount > 0">
+              <button type="button" class="download-all-btn select-plain-btn" (click)="toggleOptionsDropdown()">
+                <span class="button-content">Options</span>
+                <span class="dropdown-arrow">▼</span>
+              </button>
+              <div class="download-dropdown-menu" *ngIf="optionsDropdownOpen">
+                <button type="button" class="dropdown-item" (click)="onWackyResultFromMenu()">Wacky Result</button>
+                <button type="button" class="dropdown-item" (click)="onBulkDeleteFromMenu()">Delete</button>
+              </div>
+            </div>
+            <button type="button" class="download-all-btn select-plain-btn" (click)="toggleSelectAllOrDeselectAll()">
+              <span class="button-content">{{ allEligibleBulkSelected ? 'Deselect All' : 'Select All' }}</span>
+            </button>
+            <button type="button" class="download-all-btn select-plain-btn" (click)="cancelBulkSelection()">
+              <span class="button-content">Cancel Selection</span>
+            </button>
+          </ng-container>
+        </ng-container>
+      </ng-container>
+      <ng-container *ngIf="mode === 'ideaResults' && bulkSelectionEnabled">
+        <button
+          type="button"
+          class="download-all-btn select-plain-btn"
+          *ngIf="!bulkSelectionMode"
+          (click)="startBulkSelection()">
+          <span class="button-content">Select</span>
+        </button>
+        <ng-container *ngIf="bulkSelectionMode">
+          <div class="options-dropdown-container" *ngIf="selectedBulkCount > 0">
+            <button type="button" class="download-all-btn select-plain-btn" (click)="toggleOptionsDropdown()">
+              <span class="button-content">Options</span>
+              <span class="dropdown-arrow">▼</span>
+            </button>
+            <div class="download-dropdown-menu" *ngIf="optionsDropdownOpen">
+              <button type="button" class="dropdown-item" (click)="onRemoveFromIdeaMenu()">Remove from idea</button>
+            </div>
+          </div>
+          <button type="button" class="download-all-btn select-plain-btn" (click)="toggleSelectAllOrDeselectAll()">
+            <span class="button-content">{{ allEligibleBulkSelected ? 'Deselect All' : 'Select All' }}</span>
+          </button>
+          <button type="button" class="download-all-btn select-plain-btn" (click)="cancelBulkSelection()">
+            <span class="button-content">Cancel Selection</span>
+          </button>
+        </ng-container>
       </ng-container>
       <!-- View mode: Edit film + Edit photos when owner -->
       <ng-container *ngIf="mode === 'view' && isOwner">
         <button class="edit-film-btn" (click)="navigateToEditFilm()">✏️ Edit film</button>
         <button class="edit-photos-btn" (click)="navigateToEditPhotos()">📷 Edit photos</button>
       </ng-container>
-      <!-- Download dropdown (both modes when there are photos) -->
-      <div class="download-dropdown-container">
+      <!-- Download dropdown (film photos only) -->
+      <div class="download-dropdown-container" *ngIf="mode !== 'ideaResults'">
         <button class="download-all-btn" [disabled]="downloadAllLoading" (click)="toggleDownloadDropdown()">
           <span class="button-content" [class.loading]="downloadAllLoading">
             📦 Download
@@ -50,7 +103,8 @@
     <div
       *ngFor="let photo of photos"
       class="photo-item"
-      (click)="openPreview(photo)"
+      [class.bulk-selected]="bulkSelectionMode && isPhotoBulkSelected(photo)"
+      (click)="onPhotoItemClick(photo)"
     >
       <div class="photo-thumbnail">
         <img [src]="photoService.getPreviewUrl(photo)" [alt]="'Photo ' + photo.index" />

@@ -1,4 +1,4 @@
-﻿using Azure.Storage.Blobs;
+using Azure.Storage.Blobs;
 using Database.DBObjects;
 using Database.DBObjects.Enums;
 using Database.DTOs;
@@ -9,6 +9,7 @@ using Database.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Linq.Expressions;
+using System.Text.Json;
 
 namespace AnalogAgenda.Server.Controllers;
 
@@ -152,6 +153,186 @@ public class DevKitController(IDatabaseService databaseService, IBlobService blo
         
         await databaseService.DeleteAsync(entity);
         return NoContent();
+    }
+
+    [HttpGet("{id}/assignment/sessions")]
+    public async Task<IActionResult> GetSessionAssignment(string id, [FromQuery] bool showAll = false)
+    {
+        if (!await databaseService.ExistsAsync<DevKitEntity>(id))
+            return NotFound($"No DevKit found with Id: {id}");
+
+        // Source of truth for assignment UI: DevKitSessions only (not SessionDevKit navigation).
+        var selectedIds = (await databaseService.GetEntitiesAsync<DevKitSessionEntity>(x => x.DevKitId == id))
+            .Select(x => x.SessionId)
+            .ToHashSet();
+
+        var allSessions = (await databaseService.GetAllAsync<SessionEntity>())
+            .ApplyStandardSorting()
+            .ToList();
+
+        IEnumerable<SessionEntity> rows = showAll
+            ? allSessions
+            : allSessions.Where(s => selectedIds.Contains(s.Id));
+
+        var result = rows.Select(s => new DevKitSessionAssignmentRowDto
+        {
+            Id = s.Id,
+            SessionDate = DateOnly.FromDateTime(s.SessionDate),
+            Location = s.Location,
+            ParticipantsPreview = PreviewParticipants(s.Participants),
+            IsSelected = selectedIds.Contains(s.Id)
+        });
+
+        return Ok(result);
+    }
+
+    [HttpPut("{id}/assignment/sessions")]
+    public async Task<IActionResult> PutSessionAssignment(string id, [FromBody] IdListDto? body)
+    {
+        if (body?.Ids == null)
+            return BadRequest("Invalid data.");
+
+        if (!await databaseService.ExistsAsync<DevKitEntity>(id))
+            return NotFound($"No DevKit found with Id: {id}");
+
+        var devKit = await databaseService.GetByIdAsync<DevKitEntity>(id);
+        if (devKit == null)
+            return NotFound();
+
+        var newSet = body.Ids.Distinct().ToHashSet();
+        var oldLinks = await databaseService.GetEntitiesAsync<DevKitSessionEntity>(x => x.DevKitId == id);
+        var oldSet = oldLinks.Select(l => l.SessionId).ToHashSet();
+
+        foreach (var sid in oldSet.Union(newSet))
+        {
+            var session = await databaseService.GetByIdWithIncludesAsync<SessionEntity>(sid, s => s.UsedDevKits);
+            if (session == null)
+                continue;
+
+            var shouldHave = newSet.Contains(sid);
+            var has = session.UsedDevKits.Any(d => d.Id == id);
+            if (shouldHave && !has)
+                session.UsedDevKits.Add(devKit);
+            else if (!shouldHave && has)
+            {
+                var link = session.UsedDevKits.FirstOrDefault(d => d.Id == id);
+                if (link != null)
+                    session.UsedDevKits.Remove(link);
+            }
+
+            await databaseService.UpdateAsync(session);
+        }
+
+        await databaseService.ReplaceEntitiesAsync<DevKitSessionEntity>(
+            x => x.DevKitId == id,
+            newSet.Select(sid => new DevKitSessionEntity { DevKitId = id, SessionId = sid }));
+
+        return await GetSessionAssignment(id, showAll: true);
+    }
+
+    [HttpGet("{id}/assignment/films")]
+    public async Task<IActionResult> GetFilmAssignment(string id, [FromQuery] bool showAll = false)
+    {
+        if (!await databaseService.ExistsAsync<DevKitEntity>(id))
+            return NotFound($"No DevKit found with Id: {id}");
+
+        // Source of truth for assignment UI: DevKitFilms only (not Film.DevelopedWithDevKitId).
+        var selectedIds = (await databaseService.GetEntitiesAsync<DevKitFilmEntity>(x => x.DevKitId == id))
+            .Select(x => x.FilmId)
+            .ToHashSet();
+
+        var allDeveloped = (await databaseService.GetAllWithIncludesAsync<FilmEntity>(f => f.ExposureDates))
+            .Where(f => f.Developed)
+            .ApplyExposureDateSorting()
+            .ToList();
+
+        IEnumerable<FilmEntity> rows = showAll
+            ? allDeveloped
+            : allDeveloped.Where(f => selectedIds.Contains(f.Id));
+
+        var result = rows.Select(f =>
+        {
+            var filmDto = dtoConvertor.ToDTO(f);
+            return new DevKitFilmAssignmentRowDto
+            {
+                Id = filmDto.Id,
+                Name = filmDto.Name,
+                Brand = filmDto.Brand,
+                Iso = filmDto.Iso,
+                Type = filmDto.Type,
+                FormattedExposureDate = filmDto.FormattedExposureDate,
+                IsSelected = selectedIds.Contains(f.Id)
+            };
+        });
+
+        return Ok(result);
+    }
+
+    [HttpPut("{id}/assignment/films")]
+    public async Task<IActionResult> PutFilmAssignment(string id, [FromBody] IdListDto? body)
+    {
+        if (body?.Ids == null)
+            return BadRequest("Invalid data.");
+
+        if (!await databaseService.ExistsAsync<DevKitEntity>(id))
+            return NotFound($"No DevKit found with Id: {id}");
+
+        foreach (var filmId in body.Ids.Distinct())
+        {
+            var film = await databaseService.GetByIdAsync<FilmEntity>(filmId);
+            if (film == null)
+                return BadRequest($"Film not found: {filmId}");
+            if (!film.Developed)
+                return BadRequest($"Film {filmId} is not developed.");
+        }
+
+        var devKitId = id;
+        var newFilmIds = body.Ids.Distinct().ToHashSet();
+        var oldRows = await databaseService.GetEntitiesAsync<DevKitFilmEntity>(x => x.DevKitId == devKitId);
+        var oldFilmIds = oldRows.Select(x => x.FilmId).ToHashSet();
+
+        foreach (var fid in oldFilmIds.Except(newFilmIds))
+        {
+            var film = await databaseService.GetByIdAsync<FilmEntity>(fid);
+            if (film != null && film.DevelopedWithDevKitId == devKitId)
+            {
+                film.DevelopedWithDevKitId = null;
+                await databaseService.UpdateAsync(film);
+            }
+        }
+
+        await databaseService.ReplaceEntitiesAsync<DevKitFilmEntity>(
+            x => x.DevKitId == devKitId,
+            newFilmIds.Select(fid => new DevKitFilmEntity { DevKitId = devKitId, FilmId = fid }));
+
+        foreach (var fid in newFilmIds)
+        {
+            var film = await databaseService.GetByIdAsync<FilmEntity>(fid);
+            if (film != null)
+            {
+                film.DevelopedWithDevKitId = devKitId;
+                await databaseService.UpdateAsync(film);
+            }
+        }
+
+        return await GetFilmAssignment(id, showAll: true);
+    }
+
+    private static string PreviewParticipants(string participantsJson)
+    {
+        if (string.IsNullOrWhiteSpace(participantsJson))
+            return string.Empty;
+        try
+        {
+            var list = JsonSerializer.Deserialize<List<string>>(participantsJson);
+            if (list == null || list.Count == 0)
+                return string.Empty;
+            return string.Join(", ", list.Take(4));
+        }
+        catch
+        {
+            return participantsJson.Length > 80 ? participantsJson[..80] + "…" : participantsJson;
+        }
     }
 
 }

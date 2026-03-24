@@ -33,10 +33,12 @@
 
   <app-photos-content
     *ngIf="!loading && photos.length > 0"
+    #photosContent
     [photos]="photos"
     [film]="film"
     mode="edit"
     [isOwner]="isOwner"
+    [bulkSelectionEnabled]="isOwner"
     [uploadLoading]="uploadLoading"
     [uploadProgress]="uploadProgress"
     [downloadAllLoading]="downloadAllLoading"
@@ -45,5 +47,45 @@
     (downloadAll)="onDownloadAllPhotos($event)"
     (deletePhoto)="onDeletePhoto($event)"
     (restrictToggle)="onRestrictToggle($event)"
+    (bulkDeleteRequest)="onBulkDeleteRequest($event)"
+    (wackyResultRequest)="onWackyResultRequest($event)"
   ></app-photos-content>
+
+  <app-confirm-delete-modal
+    [open]="isBulkDeleteModalOpen"
+    title="Delete photos"
+    [message]="bulkDeleteMessage"
+    (confirm)="confirmBulkDelete()"
+    (cancel)="closeBulkDeleteModal()">
+  </app-confirm-delete-modal>
+
+  <div class="modal-overlay" *ngIf="isWackyModalOpen" (click)="closeWackyModal()">
+    <div class="modal-content wacky-picker-modal" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div></div>
+        <h3>Choose Wacky Idea</h3>
+        <button type="button" class="modal-close" (click)="closeWackyModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <input
+          type="search"
+          class="modal-list-search"
+          [(ngModel)]="wackyModalSearch"
+          placeholder="Search ideas..."
+          aria-label="Search ideas" />
+        <div class="wacky-idea-picker-list">
+          <div
+            *ngFor="let idea of ideasForWackyModal"
+            class="wacky-idea-picker-row"
+            (click)="attachPhotosToIdea(idea)">
+            <span class="wacky-idea-picker-title">{{ idea.title }}</span>
+          </div>
+          <div *ngIf="ideasForPicker.length === 0" class="no-ideas-msg">No ideas yet.</div>
+          <div *ngIf="ideasForPicker.length > 0 && ideasForWackyModal.length === 0" class="no-ideas-msg">
+            No matches.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>

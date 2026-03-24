@@ -14,7 +14,22 @@
 
 .action-buttons {
   display: flex;
+  flex-wrap: wrap;
   gap: 1rem;
+  align-items: center;
+}
+
+.options-dropdown-container {
+  position: relative;
+}
+
+.select-plain-btn .button-content {
+  font-weight: 600;
+}
+
+.photo-item.bulk-selected .photo-thumbnail {
+  box-shadow: 0 0 0 3px #3b82f6;
+  border-radius: 8px;
 }
 
 .photos-count {

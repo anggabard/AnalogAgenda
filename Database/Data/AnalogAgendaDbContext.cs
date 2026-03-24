@@ -20,6 +20,9 @@ public class AnalogAgendaDbContext(DbContextOptions<AnalogAgendaDbContext> optio
     public DbSet<ExposureDateEntity> ExposureDates { get; set; }
     public DbSet<UserSettingsEntity> UserSettings { get; set; }
     public DbSet<IdeaEntity> Ideas { get; set; }
+    public DbSet<IdeaPhotoEntity> IdeaPhotos { get; set; }
+    public DbSet<DevKitSessionEntity> DevKitSessions { get; set; }
+    public DbSet<DevKitFilmEntity> DevKitFilms { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -100,6 +103,9 @@ public class AnalogAgendaDbContext(DbContextOptions<AnalogAgendaDbContext> optio
             entity.Property(e => e.Brand).IsRequired().HasMaxLength(200);
             entity.Property(e => e.Iso).IsRequired().HasMaxLength(50);
             entity.Property(e => e.Description).HasMaxLength(1000);
+            entity.Property(e => e.CostCurrency)
+                .HasConversion<string>()
+                .HasMaxLength(10);
             entity.Property(e => e.DevelopedInSessionId).HasMaxLength(50);
             entity.Property(e => e.DevelopedWithDevKitId).HasMaxLength(50);
 
@@ -234,6 +240,49 @@ public class AnalogAgendaDbContext(DbContextOptions<AnalogAgendaDbContext> optio
             entity.Property(e => e.Id).HasMaxLength(50);
             entity.Property(e => e.Title).IsRequired().HasMaxLength(500);
             entity.Property(e => e.Description).HasMaxLength(2000);
+            entity.Property(e => e.Outcome).HasMaxLength(2000);
+        });
+
+        modelBuilder.Entity<IdeaPhotoEntity>(entity =>
+        {
+            entity.ToTable("IdeaPhotos");
+            entity.HasKey(e => new { e.IdeaId, e.PhotoId });
+            entity.HasOne(e => e.Idea)
+                .WithMany()
+                .HasForeignKey(e => e.IdeaId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.Photo)
+                .WithMany()
+                .HasForeignKey(e => e.PhotoId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<DevKitSessionEntity>(entity =>
+        {
+            entity.ToTable("DevKitSessions");
+            entity.HasKey(e => new { e.DevKitId, e.SessionId });
+            entity.HasOne(e => e.DevKit)
+                .WithMany()
+                .HasForeignKey(e => e.DevKitId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.Session)
+                .WithMany()
+                .HasForeignKey(e => e.SessionId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<DevKitFilmEntity>(entity =>
+        {
+            entity.ToTable("DevKitFilms");
+            entity.HasKey(e => new { e.DevKitId, e.FilmId });
+            entity.HasOne(e => e.DevKit)
+                .WithMany()
+                .HasForeignKey(e => e.DevKitId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.Film)
+                .WithMany()
+                .HasForeignKey(e => e.FilmId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
     }
 }

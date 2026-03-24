@@ -83,4 +83,32 @@ describe('IdeaService', () => {
     expect(req.request.method).toBe('DELETE');
     req.flush(null);
   });
+
+  it('should call getPhotosForIdea with correct URL', () => {
+    const mockPhotos = [{ id: 'p1', filmId: 'f1', index: 1, imageUrl: '', imageBase64: '' }];
+    service.getPhotosForIdea('idea1').subscribe((res) => expect(res).toEqual(mockPhotos));
+
+    const req = httpMock.expectOne(`${baseUrl}/idea1/photos`);
+    expect(req.request.method).toBe('GET');
+    req.flush(mockPhotos);
+  });
+
+  it('should call addPhotosToIdea with photo ids in body', () => {
+    const body = { ids: ['p1', 'p2'] };
+    const mockPhotos = [{ id: 'p1', filmId: 'f1', index: 1, imageUrl: '', imageBase64: '' }];
+    service.addPhotosToIdea('idea1', body.ids).subscribe((res) => expect(res).toEqual(mockPhotos));
+
+    const req = httpMock.expectOne(`${baseUrl}/idea1/photos`);
+    expect(req.request.method).toBe('POST');
+    expect(req.request.body).toEqual(body);
+    req.flush(mockPhotos);
+  });
+
+  it('should call removePhotoFromIdea with correct URL', () => {
+    service.removePhotoFromIdea('idea1', 'p9').subscribe();
+
+    const req = httpMock.expectOne(`${baseUrl}/idea1/photos/p9`);
+    expect(req.request.method).toBe('DELETE');
+    req.flush(null);
+  });
 });

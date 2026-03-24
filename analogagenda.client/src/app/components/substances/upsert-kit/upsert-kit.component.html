@@ -127,6 +127,15 @@
                 <span style="justify-self: start;">Available</span>
             </div>
 
+            <div *ngIf="!isInsert" class="kit-assignment-actions">
+                <button type="button" class="photo-btn" (click)="openSessionsAssignmentModal()">
+                    Used on sessions
+                </button>
+                <button type="button" class="photo-btn" (click)="openFilmsAssignmentModal()">
+                    Developed films
+                </button>
+            </div>
+
             <button type="submit" [disabled]="form.invalid || loading" class="submit-btn">
                 <span *ngIf="!loading">Save</span>
                 <svg *ngIf="loading" class="spinner" viewBox="0 0 24 24">
@@ -209,6 +218,112 @@
         <div class="image-preview-content" (click)="$event.stopPropagation()">
             <img [src]="form.get('imageUrl')?.value" alt="Thumbnail Preview" />
             <button class="close-btn" (click)="closeThumbnailPreview()">✖</button>
+        </div>
+    </div>
+
+    <!-- Sessions assignment modal -->
+    <div class="assignment-modal-overlay" *ngIf="showSessionsAssignmentModal" (click)="closeSessionsAssignmentModal()">
+        <div class="assignment-modal-content" (click)="$event.stopPropagation()">
+            <div class="assignment-modal-header">
+                <div></div>
+                <h3>Sessions using this kit</h3>
+                <button type="button" class="assignment-modal-close" (click)="closeSessionsAssignmentModal()">✕</button>
+            </div>
+            <div class="assignment-modal-body">
+                <div class="modal-options">
+                    <label class="checkbox-option">
+                        <input type="checkbox" [(ngModel)]="showAllSessionsAssignment" (ngModelChange)="onShowAllSessionsAssignmentChange()" />
+                        <span>Show all</span>
+                    </label>
+                </div>
+                <input
+                    type="search"
+                    class="modal-list-search"
+                    [(ngModel)]="sessionAssignmentSearch"
+                    placeholder="Search sessions..."
+                    aria-label="Search sessions" />
+                <div class="items-grid">
+                    <div
+                        *ngFor="let row of sessionsForAssignmentModal"
+                        class="item-card"
+                        [class.selected]="isSessionAssignmentSelected(row.id)"
+                        (click)="toggleSessionAssignment(row.id)">
+                        <div class="item-content">
+                            <div class="item-details">
+                                <span class="item-name">{{ row.location }}</span>
+                                <span class="item-type">{{ formatSessionAssignmentDate(row.sessionDate) }}</span>
+                                <span class="item-owner">{{ row.participantsPreview || '—' }}</span>
+                            </div>
+                        </div>
+                        <div class="item-check">
+                            <input
+                                type="checkbox"
+                                [checked]="isSessionAssignmentSelected(row.id)"
+                                (click)="$event.stopPropagation()"
+                                (change)="toggleSessionAssignment(row.id)" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="assignment-modal-footer">
+                <button type="button" class="btn btn-primary" (click)="saveSessionAssignment()" [disabled]="assignmentSaveLoading">
+                    Save
+                </button>
+                <button type="button" class="btn btn-secondary" (click)="closeSessionsAssignmentModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Films assignment modal -->
+    <div class="assignment-modal-overlay" *ngIf="showFilmsAssignmentModal" (click)="closeFilmsAssignmentModal()">
+        <div class="assignment-modal-content" (click)="$event.stopPropagation()">
+            <div class="assignment-modal-header">
+                <div></div>
+                <h3>Films developed with this kit</h3>
+                <button type="button" class="assignment-modal-close" (click)="closeFilmsAssignmentModal()">✕</button>
+            </div>
+            <div class="assignment-modal-body">
+                <div class="modal-options">
+                    <label class="checkbox-option">
+                        <input type="checkbox" [(ngModel)]="showAllFilmsAssignment" (ngModelChange)="onShowAllFilmsAssignmentChange()" />
+                        <span>Show all</span>
+                    </label>
+                </div>
+                <input
+                    type="search"
+                    class="modal-list-search"
+                    [(ngModel)]="filmAssignmentSearch"
+                    placeholder="Search films..."
+                    aria-label="Search films" />
+                <div class="items-grid">
+                    <div
+                        *ngFor="let row of filmsForAssignmentModal"
+                        class="item-card"
+                        [class.selected]="isFilmAssignmentSelected(row.id)"
+                        (click)="toggleFilmAssignment(row.id)">
+                        <div class="item-content">
+                            <div class="item-details">
+                                <span class="item-name">{{ row.name || row.brand }}</span>
+                                <span class="item-type">{{ row.iso }} · {{ row.type }}</span>
+                                <span class="item-owner">{{ row.formattedExposureDate || '—' }}</span>
+                            </div>
+                        </div>
+                        <div class="item-check">
+                            <input
+                                type="checkbox"
+                                [checked]="isFilmAssignmentSelected(row.id)"
+                                (click)="$event.stopPropagation()"
+                                (change)="toggleFilmAssignment(row.id)" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="assignment-modal-footer">
+                <button type="button" class="btn btn-primary" (click)="saveFilmAssignment()" [disabled]="assignmentSaveLoading">
+                    Save
+                </button>
+                <button type="button" class="btn btn-secondary" (click)="closeFilmsAssignmentModal()">Cancel</button>
+            </div>
         </div>
     </div>
 </div>

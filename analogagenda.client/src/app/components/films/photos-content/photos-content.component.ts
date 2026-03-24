@@ -26,18 +26,27 @@ export class PhotosContentComponent implements OnChanges {
 
   @Input() photos: PhotoDto[] = [];
   @Input() film: FilmDto | null = null;
-  @Input() mode: 'edit' | 'view' = 'view';
+  @Input() mode: 'edit' | 'view' | 'ideaResults' = 'view';
   @Input() isOwner = false;
   @Input() uploadLoading = false;
   @Input() uploadProgress: { current: number; total: number } = { current: 0, total: 0 };
   @Input() downloadAllLoading = false;
   @Input() showOwner = false;
+  /** Owner-only: bulk select, delete, attach to wacky idea */
+  @Input() bulkSelectionEnabled = false;
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['photos'] && this.currentPreviewPhoto && this.photos.length > 0) {
       const stillPresent = this.photos.some((p) => p.id === this.currentPreviewPhoto!.id);
       if (!stillPresent) {
         this.closePreview();
+      }
+    }
+    if (changes['photos'] && this.selectedPhotoIds.size > 0) {
+      const valid = new Set(this.photos.map((p) => p.id));
+      const next = new Set([...this.selectedPhotoIds].filter((id) => valid.has(id)));
+      if (next.size !== this.selectedPhotoIds.size) {
+        this.selectedPhotoIds = next;
       }
     }
   }
@@ -47,14 +56,136 @@ export class PhotosContentComponent implements OnChanges {
   @Output() downloadAll = new EventEmitter<boolean>();
   @Output() deletePhoto = new EventEmitter<PhotoDto>();
   @Output() restrictToggle = new EventEmitter<PhotoDto>();
+  @Output() bulkDeleteRequest = new EventEmitter<PhotoDto[]>();
+  @Output() wackyResultRequest = new EventEmitter<PhotoDto[]>();
+  /** Idea results page: remove link only (not blob delete) */
+  @Output() removeLinkedPhotosRequest = new EventEmitter<PhotoDto[]>();
+  /** When set (idea results), only these photos can be selected for bulk actions */
+  @Input() allowedBulkPhotoIds: string[] | null = null;
 
   isPreviewModalOpen = false;
   currentPreviewPhoto: PhotoDto | null = null;
   currentPhotoIndex = 0;
   isDeleteModalOpen = false;
   downloadDropdownOpen = false;
+  optionsDropdownOpen = false;
+  bulkSelectionMode = false;
+  selectedPhotoIds = new Set<string>();
   private touchStartX = 0;
   private touchStartY = 0;
+
+  get selectedBulkCount(): number {
+    return this.selectedPhotoIds.size;
+  }
+
+  getSelectedPhotos(): PhotoDto[] {
+    return this.photos.filter((p) => this.selectedPhotoIds.has(p.id));
+  }
+
+  startBulkSelection(): void {
+    this.bulkSelectionMode = true;
+    this.selectedPhotoIds = new Set();
+    this.optionsDropdownOpen = false;
+  }
+
+  /** Photos that can be toggled in bulk mode (respects idea-results allowlist). */
+  getEligibleBulkPhotos(): PhotoDto[] {
+    if (this.allowedBulkPhotoIds?.length) {
+      return this.photos.filter((p) => this.allowedBulkPhotoIds!.includes(p.id));
+    }
+    return this.photos;
+  }
+
+  selectAllPhotos(): void {
+    const eligible = this.getEligibleBulkPhotos();
+    this.selectedPhotoIds = new Set(eligible.map((p) => p.id));
+  }
+
+  /** Select every eligible photo, or clear selection when all are already selected. */
+  toggleSelectAllOrDeselectAll(): void {
+    if (this.allEligibleBulkSelected) {
+      this.selectedPhotoIds = new Set();
+    } else {
+      this.selectAllPhotos();
+    }
+  }
+
+  get allEligibleBulkSelected(): boolean {
+    const eligible = this.getEligibleBulkPhotos();
+    if (eligible.length === 0) {
+      return false;
+    }
+    return eligible.every((p) => this.selectedPhotoIds.has(p.id));
+  }
+
+  cancelBulkSelection(): void {
+    this.bulkSelectionMode = false;
+    this.selectedPhotoIds = new Set();
+    this.optionsDropdownOpen = false;
+  }
+
+  exitBulkSelectionMode(): void {
+    this.cancelBulkSelection();
+  }
+
+  toggleOptionsDropdown(): void {
+    this.optionsDropdownOpen = !this.optionsDropdownOpen;
+  }
+
+  onBulkDeleteFromMenu(): void {
+    this.optionsDropdownOpen = false;
+    const selected = this.getSelectedPhotos();
+    if (selected.length === 0) return;
+    this.bulkDeleteRequest.emit(selected);
+  }
+
+  onWackyResultFromMenu(): void {
+    this.optionsDropdownOpen = false;
+    const selected = this.getSelectedPhotos();
+    if (selected.length === 0) return;
+    this.wackyResultRequest.emit(selected);
+  }
+
+  isPhotoBulkSelected(photo: PhotoDto): boolean {
+    return this.selectedPhotoIds.has(photo.id);
+  }
+
+  togglePhotoBulkSelected(photo: PhotoDto): void {
+    const next = new Set(this.selectedPhotoIds);
+    if (next.has(photo.id)) {
+      next.delete(photo.id);
+    } else {
+      next.add(photo.id);
+    }
+    this.selectedPhotoIds = next;
+  }
+
+  canToggleBulkForPhoto(photo: PhotoDto): boolean {
+    if (!this.allowedBulkPhotoIds?.length) {
+      return true;
+    }
+    return this.allowedBulkPhotoIds.includes(photo.id);
+  }
+
+  onPhotoItemClick(photo: PhotoDto): void {
+    if (this.bulkSelectionMode && this.bulkSelectionEnabled) {
+      if (!this.canToggleBulkForPhoto(photo)) {
+        return;
+      }
+      this.togglePhotoBulkSelected(photo);
+      return;
+    }
+    this.openPreview(photo);
+  }
+
+  onRemoveFromIdeaMenu(): void {
+    this.optionsDropdownOpen = false;
+    const selected = this.getSelectedPhotos();
+    if (selected.length === 0) {
+      return;
+    }
+    this.removeLinkedPhotosRequest.emit(selected);
+  }
 
   openPreview(photo: PhotoDto) {
     this.currentPreviewPhoto = photo;
@@ -177,6 +308,10 @@ export class PhotosContentComponent implements OnChanges {
     const dropdownContainer = this.elementRef.nativeElement.querySelector('.download-dropdown-container');
     if (dropdownContainer && !dropdownContainer.contains(target)) {
       this.downloadDropdownOpen = false;
+    }
+    const optionsContainer = this.elementRef.nativeElement.querySelector('.options-dropdown-container');
+    if (optionsContainer && !optionsContainer.contains(target)) {
+      this.optionsDropdownOpen = false;
     }
   }
 }

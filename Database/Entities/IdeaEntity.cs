@@ -6,5 +6,7 @@ public class IdeaEntity : BaseEntity
 
     public string Description { get; set; } = string.Empty;
 
+    public string Outcome { get; set; } = string.Empty;
+
     protected override int IdLength() => 3;
 }

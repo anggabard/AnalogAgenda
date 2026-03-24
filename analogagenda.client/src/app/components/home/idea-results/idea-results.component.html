@@ -1,0 +1,45 @@
+<div class="idea-results-page">
+  <div class="top-bar">
+    <button type="button" class="back-btn" (click)="goBack()">← Back</button>
+  </div>
+
+  <app-error-message [message]="errorMessage"></app-error-message>
+
+  <div *ngIf="loading" class="loading-state">Loading…</div>
+
+  <ng-container *ngIf="!loading && idea">
+    <header class="idea-header">
+      <h1>{{ idea.title }}</h1>
+      <p class="idea-description" *ngIf="idea.description">{{ idea.description }}</p>
+      <div class="outcome-block" *ngIf="idea.outcome?.trim()">
+        <h2>Outcome</h2>
+        <p class="idea-outcome">{{ idea.outcome }}</p>
+      </div>
+    </header>
+
+    <app-photos-content
+      *ngIf="photos.length > 0"
+      #photosContent
+      [photos]="photos"
+      [film]="null"
+      mode="ideaResults"
+      [isOwner]="false"
+      [bulkSelectionEnabled]="true"
+      [allowedBulkPhotoIds]="allowedBulkPhotoIds"
+      [uploadLoading]="false"
+      [uploadProgress]="{ current: 0, total: 0 }"
+      [downloadAllLoading]="false"
+      (removeLinkedPhotosRequest)="onRemoveLinkedRequest($event)"
+    ></app-photos-content>
+
+    <p *ngIf="photos.length === 0" class="no-photos">No photos linked to this idea yet.</p>
+  </ng-container>
+
+  <app-confirm-delete-modal
+    [open]="isRemoveConfirmOpen"
+    title="Remove from idea"
+    [message]="removeConfirmMessage"
+    (confirm)="confirmRemoveLinked()"
+    (cancel)="closeRemoveConfirm()">
+  </app-confirm-delete-modal>
+</div>

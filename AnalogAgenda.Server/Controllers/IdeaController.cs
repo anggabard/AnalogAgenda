@@ -1,9 +1,11 @@
+using AnalogAgenda.Server.Helpers;
 using Database.DTOs;
 using Database.Entities;
 using Database.Services;
 using Database.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Linq;
 
 namespace AnalogAgenda.Server.Controllers;
 
@@ -60,9 +62,87 @@ public class IdeaController(
 
         existingEntity.Title = dto.Title;
         existingEntity.Description = dto.Description ?? string.Empty;
+        existingEntity.Outcome = dto.Outcome ?? string.Empty;
         existingEntity.UpdatedDate = DateTime.UtcNow;
 
         await databaseService.UpdateAsync(existingEntity);
+        return NoContent();
+    }
+
+    [HttpGet("{ideaId}/photos")]
+    public async Task<IActionResult> GetIdeaPhotos(string ideaId)
+    {
+        if (!await databaseService.ExistsAsync<IdeaEntity>(ideaId))
+            return NotFound($"No Idea found with Id: {ideaId}");
+
+        var links = await databaseService.GetEntitiesAsync<IdeaPhotoEntity>(x => x.IdeaId == ideaId);
+        var photoIds = links.Select(l => l.PhotoId).Distinct().ToList();
+        List<PhotoEntity> photos = [];
+        if (photoIds.Count > 0)
+        {
+            photos = await databaseService.GetAllWhereWithIncludesAsync<PhotoEntity>(
+                p => photoIds.Contains(p.Id),
+                p => p.Film);
+            photos = photos.OrderBy(p => p.FilmId).ThenBy(p => p.Index).ToList();
+        }
+
+        var visible = photos
+            .Where(p => p.Film != null && (!p.Restricted || FilmOwnerHelper.IsCurrentUserFilmOwner(User, p.Film)))
+            .Select(dtoConvertor.ToDTO)
+            .ToList();
+
+        return Ok(visible);
+    }
+
+    [HttpPost("{ideaId}/photos")]
+    public async Task<IActionResult> AddPhotosToIdea(string ideaId, [FromBody] IdListDto? body)
+    {
+        if (body?.Ids == null || body.Ids.Count == 0)
+            return BadRequest("Photo ids are required.");
+
+        if (!await databaseService.ExistsAsync<IdeaEntity>(ideaId))
+            return NotFound($"No Idea found with Id: {ideaId}");
+
+        foreach (var photoId in body.Ids.Distinct())
+        {
+            var photo = await databaseService.GetByIdAsync<PhotoEntity>(photoId);
+            if (photo == null)
+                return BadRequest($"Photo not found: {photoId}");
+
+            var film = await databaseService.GetByIdAsync<FilmEntity>(photo.FilmId);
+            if (film == null || !FilmOwnerHelper.IsCurrentUserFilmOwner(User, film))
+                return Forbid();
+        }
+
+        var distinctIds = body.Ids.Distinct().ToList();
+        var existing = await databaseService.GetEntitiesAsync<IdeaPhotoEntity>(
+            x => x.IdeaId == ideaId && distinctIds.Contains(x.PhotoId));
+        var have = existing.Select(x => x.PhotoId).ToHashSet();
+        var toAdd = distinctIds
+            .Where(pid => !have.Contains(pid))
+            .Select(pid => new IdeaPhotoEntity { IdeaId = ideaId, PhotoId = pid })
+            .ToList();
+        if (toAdd.Count > 0)
+            await databaseService.AddEntitiesAsync(toAdd);
+
+        return await GetIdeaPhotos(ideaId);
+    }
+
+    [HttpDelete("{ideaId}/photos/{photoId}")]
+    public async Task<IActionResult> RemovePhotoFromIdea(string ideaId, string photoId)
+    {
+        if (!await databaseService.ExistsAsync<IdeaEntity>(ideaId))
+            return NotFound($"No Idea found with Id: {ideaId}");
+
+        var photo = await databaseService.GetByIdAsync<PhotoEntity>(photoId);
+        if (photo == null)
+            return NotFound("Photo not found.");
+
+        var film = await databaseService.GetByIdAsync<FilmEntity>(photo.FilmId);
+        if (film == null || !FilmOwnerHelper.IsCurrentUserFilmOwner(User, film))
+            return Forbid();
+
+        await databaseService.DeleteEntitiesAsync<IdeaPhotoEntity>(x => x.IdeaId == ideaId && x.PhotoId == photoId);
         return NoContent();
     }
 

@@ -1,0 +1,75 @@
+.idea-results-page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem;
+  color: #fff;
+}
+
+.top-bar {
+  margin-bottom: 1.5rem;
+}
+
+.back-btn {
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  color: #fff;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.95rem;
+}
+
+.back-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.loading-state {
+  text-align: center;
+  padding: 3rem;
+  opacity: 0.85;
+}
+
+.idea-header {
+  margin-bottom: 2rem;
+}
+
+.idea-header h1 {
+  margin: 0 0 0.75rem 0;
+  font-size: 2rem;
+  font-weight: 600;
+}
+
+.idea-description {
+  margin: 0 0 1rem 0;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.88);
+  white-space: pre-wrap;
+}
+
+.outcome-block {
+  margin-top: 1.5rem;
+}
+
+.outcome-block h2 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.idea-outcome {
+  margin: 0;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  color: rgba(255, 255, 255, 0.9);
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.no-photos {
+  text-align: center;
+  opacity: 0.8;
+  padding: 2rem;
+}

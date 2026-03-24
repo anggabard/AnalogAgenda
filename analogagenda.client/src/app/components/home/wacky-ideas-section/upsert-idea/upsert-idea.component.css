@@ -37,15 +37,32 @@
 
 .form-actions {
     display: flex;
-    gap: 0.5rem;
-    flex-wrap: wrap;
     margin-top: 0.5rem;
-    justify-content: space-between;
+    align-items: center;
+    gap: 0.5rem;
+    justify-content: flex-start;
+}
+
+.form-actions.form-actions-three .form-actions-slot {
+    flex: 1;
+    min-width: 0;
+}
+
+.form-actions-slot {
+    display: flex;
     align-items: center;
 }
 
-.form-actions .btn-right {
-    margin-left: auto;
+.form-actions-start {
+    justify-content: flex-start;
+}
+
+.form-actions-middle {
+    justify-content: center;
+}
+
+.form-actions-end {
+    justify-content: flex-end;
 }
 
 .btn-danger {

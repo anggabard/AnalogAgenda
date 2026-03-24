@@ -11,17 +11,34 @@
         <textarea id="ideaDescription" formControlName="description" placeholder="Description" class="input textarea" rows="4"></textarea>
     </div>
 
-    <div class="form-actions">
-        <button type="submit" class="btn btn-primary" [disabled]="!form.valid || isSubmitting">
-            {{ isEditMode ? 'Save' : 'Add' }}
-        </button>
-        <button
-            *ngIf="isEditMode"
-            type="button"
-            class="btn btn-danger btn-right"
-            (click)="onDelete()"
-            [disabled]="isSubmitting">
-            Delete
-        </button>
+    <div>
+        <label for="ideaOutcome">Outcome</label>
+        <textarea id="ideaOutcome" formControlName="outcome" placeholder="Outcome" class="input textarea" rows="4"></textarea>
+    </div>
+
+    <div class="form-actions" [class.form-actions-three]="isEditMode">
+        <div class="form-actions-slot form-actions-start">
+            <button type="submit" class="btn btn-primary" [disabled]="!form.valid || isSubmitting">
+                {{ isEditMode ? 'Save' : 'Add' }}
+            </button>
+        </div>
+        <div class="form-actions-slot form-actions-middle" *ngIf="isEditMode">
+            <button type="button" class="btn btn-secondary" (click)="onViewResults()" [disabled]="isSubmitting">
+                View Results
+            </button>
+        </div>
+        <div class="form-actions-slot form-actions-end" *ngIf="isEditMode">
+            <button type="button" class="btn btn-danger" (click)="isDeleteModalOpen = true" [disabled]="isSubmitting">
+                Delete
+            </button>
+        </div>
     </div>
 </form>
+
+<app-confirm-delete-modal
+    [open]="isDeleteModalOpen"
+    title="Delete idea"
+    [message]="deleteConfirmMessage"
+    (confirm)="confirmDelete()"
+    (cancel)="isDeleteModalOpen = false">
+</app-confirm-delete-modal>

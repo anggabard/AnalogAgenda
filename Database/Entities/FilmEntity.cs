@@ -18,6 +18,8 @@ public class FilmEntity : BaseEntity, IImageEntity
 
     public double Cost { get; set; }
 
+    public ECurrency CostCurrency { get; set; } = ECurrency.RON;
+
     public EUsernameType PurchasedBy { get; set; }
 
     public DateTime PurchasedOn { get; set; }
@@ -48,6 +50,9 @@ public class FilmEntity : BaseEntity, IImageEntity
         Type = dto.Type.ToEnum<EFilmType>();
         NumberOfExposures = dto.NumberOfExposures;
         Cost = dto.Cost;
+        CostCurrency = string.IsNullOrWhiteSpace(dto.CostCurrency)
+            ? ECurrency.RON
+            : dto.CostCurrency.ToEnum<ECurrency>();
         PurchasedBy = dto.PurchasedBy.ToEnum<EUsernameType>();
         PurchasedOn = dto.PurchasedOn.ToDateTime(TimeOnly.MinValue);
         Description = dto.Description;

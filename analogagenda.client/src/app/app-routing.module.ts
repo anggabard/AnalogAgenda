@@ -1,6 +1,6 @@
 import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
-import { LoginComponent, HomeComponent, NotesComponent, SubstancesComponent, UpsertKitComponent, NoteTableComponent, FilmsComponent, UpsertFilmComponent, FilmPhotosComponent, PhotosComponent, SessionsComponent, UpsertSessionComponent, ChangePasswordComponent, NotesMergeComponent } from './components';
+import { LoginComponent, HomeComponent, IdeaResultsComponent, NotesComponent, SubstancesComponent, UpsertKitComponent, NoteTableComponent, FilmsComponent, UpsertFilmComponent, FilmPhotosComponent, PhotosComponent, SessionsComponent, UpsertSessionComponent, ChangePasswordComponent, NotesMergeComponent } from './components';
 import { sessionGuard, loginGuard } from './guards';
 import { MainLayoutComponent, AuthLayoutComponent } from './layouts';
 
@@ -12,6 +12,7 @@ const routes: Routes = [
     children: [
       { path: '', redirectTo: '/home', pathMatch: 'full' },
       { path: 'home', component: HomeComponent, canActivate: [sessionGuard] },
+      { path: 'idea/:id', component: IdeaResultsComponent, canActivate: [sessionGuard] },
       { path: 'notes', component: NotesComponent, canActivate: [sessionGuard] },
       { path: 'substances', component: SubstancesComponent, canActivate: [sessionGuard] },
       { path: 'substances/new', component: UpsertKitComponent, canActivate: [sessionGuard] },
