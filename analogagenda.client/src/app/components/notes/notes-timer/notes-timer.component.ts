@@ -336,6 +336,10 @@ export class NotesTimerComponent implements OnChanges, OnDestroy, OnInit {
   }
 
   private applyDomHighlights(): void {
+    if (!isPlatformBrowser(this.platformId) || !this.doc) {
+      return;
+    }
+    const doc = this.doc;
     const t = Math.min(this.totalSec, Math.max(0, this.elapsedSec));
     const ids = getActiveRowIdsAtElapsed(this.segments, t);
     const blink = shouldBlinkActiveStep(this.segments, t);
@@ -346,13 +350,13 @@ export class NotesTimerComponent implements OnChanges, OnDestroy, OnInit {
     this.lastHighlightKey = key;
 
     for (const id of this.lastActiveIds) {
-      const el = document.getElementById(id);
+      const el = doc.getElementById(id);
       el?.classList.remove('notes-timer-row-active', 'notes-timer-row-blink');
     }
     this.lastActiveIds = ids;
 
     for (const id of ids) {
-      const el = document.getElementById(id);
+      const el = doc.getElementById(id);
       if (el) {
         el.classList.add('notes-timer-row-active');
         if (blink) {
@@ -365,7 +369,7 @@ export class NotesTimerComponent implements OnChanges, OnDestroy, OnInit {
       const primary = ids[0];
       if (primary !== this.lastScrollPrimaryId) {
         this.lastScrollPrimaryId = primary;
-        document.getElementById(primary)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        doc.getElementById(primary)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
       }
     } else {
       this.lastScrollPrimaryId = '';
@@ -373,11 +377,17 @@ export class NotesTimerComponent implements OnChanges, OnDestroy, OnInit {
   }
 
   private clearDomHighlights(): void {
+    if (!isPlatformBrowser(this.platformId) || !this.doc) {
+      this.lastActiveIds = [];
+      this.lastHighlightKey = '';
+      return;
+    }
+    const doc = this.doc;
     for (const id of this.lastActiveIds) {
-      document.getElementById(id)?.classList.remove('notes-timer-row-active', 'notes-timer-row-blink');
+      doc.getElementById(id)?.classList.remove('notes-timer-row-active', 'notes-timer-row-blink');
     }
     for (const s of this.segments) {
-      document.getElementById(s.rowId)?.classList.remove('notes-timer-row-active', 'notes-timer-row-blink');
+      doc.getElementById(s.rowId)?.classList.remove('notes-timer-row-active', 'notes-timer-row-blink');
     }
     this.lastActiveIds = [];
     this.lastHighlightKey = '';
