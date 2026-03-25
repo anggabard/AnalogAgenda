@@ -4,6 +4,7 @@ import { BrowserModule } from '@angular/platform-browser';
 import { SharedModule } from '../shared.module';
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent, LoginComponent, NavbarComponent, HomeComponent, IdeaResultsComponent, NotesComponent, SubstancesComponent, UpsertKitComponent, NoteTableComponent, FilmsComponent, UpsertFilmComponent, FilmPhotosComponent, PhotosContentComponent, PhotosComponent, SessionsComponent, UpsertSessionComponent, ChangePasswordComponent, NotesMergeComponent } from './components';
+import { NotesTimerComponent } from './components/notes/notes-timer/notes-timer.component';
 import { FilmSearchComponent } from './components/films/film-search/film-search.component';
 import {
   CardListComponent,
@@ -60,7 +61,8 @@ import { MainLayoutComponent, AuthLayoutComponent} from './layouts';
     ModalComponent,
     ErrorMessageComponent,
     QuantityStepperComponent,
-    NotesMergeComponent
+    NotesMergeComponent,
+    NotesTimerComponent
   ],
   imports: [
     BrowserModule,

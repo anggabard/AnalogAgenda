@@ -1,4 +1,4 @@
-<div>
+<div [class.notes-page-with-timer]="!isEditMode">
     <!-- Title -->
     <div class="note-header">
         <div class="title-section">
@@ -12,7 +12,8 @@
             [value]="filmCount"
             [min]="1"
             [max]="100"
-            (valueChange)="filmCount = $event">
+            [disabled]="timerSessionLocked"
+            (valueChange)="onViewFilmCountChange($event)">
         </app-quantity-stepper>
     </div>
 
@@ -22,16 +23,18 @@
             <thead>
                 <tr>
                     <th *ngIf="isEditMode">Duration (min)</th>
-                    <th *ngIf="!isEditMode">Start Time (min)</th>
+                    <th *ngIf="!isEditMode">Start Time</th>
                     <th>Step</th>
-                    <th>Temperature (°C)</th>
+                    <th>Temp</th>
                     <th>Details</th>
                     <th *ngIf="isEditMode">Actions</th>
                 </tr>
             </thead>
             <tbody>
                 <ng-container *ngFor="let entry of note.entries; let i = index">
-                    <tr>
+                    <tr
+                        [attr.id]="!isEditMode ? 'note-timer-row-' + getEntryIdentifier(entry, i) : null"
+                        [style.--note-accent]="!isEditMode ? singleNoteTimerAccent : null">
                         <td *ngIf="isEditMode" data-label="Duration (min)">
                             <app-time-input 
                                 [(ngModel)]="entry.time" 
@@ -40,14 +43,14 @@
                                 placeholder="0:00">
                             </app-time-input>
                         </td>
-                        <td *ngIf="!isEditMode" data-label="Start Time (min)">
+                        <td *ngIf="!isEditMode" data-label="Start Time">
                             <span>{{ formatTimeForDisplay(getAccumulatedStartTime(i)) }}</span>
                         </td>
                         <td data-label="Step">
                             <input *ngIf="isEditMode" [(ngModel)]="entry.step" class="input" />
                             <span *ngIf="!isEditMode">{{ getEffectiveStep(entry) }}</span>
                         </td>
-                        <td data-label="Temperature (°C)">
+                        <td data-label="Temp">
                             <div *ngIf="isEditMode" class="temperature-inputs">
                                 <input type="number" [(ngModel)]="entry.temperatureMin" step="0.1" placeholder="Min" />
                                 <span>-</span>
@@ -152,14 +155,14 @@
                 </ng-container>
 
                 <!-- OUT/DONE visual step row (view mode only) -->
-                <tr *ngIf="!isEditMode" class="out-done-row">
-                    <td data-label="Start Time (min)">
+                <tr *ngIf="!isEditMode" id="note-timer-row-out-done" class="out-done-row" [style.--note-accent]="singleNoteTimerAccent">
+                    <td data-label="Start Time">
                         <span>{{ formatTimeForDisplay(getTotalTime()) }}</span>
                     </td>
                     <td data-label="Step">
                         <span>OUT/DONE</span>
                     </td>
-                    <td data-label="Temperature (°C)">
+                    <td data-label="Temp">
                         <span></span>
                     </td>
                     <td data-label="Details">
@@ -348,4 +351,10 @@
         (confirm)="onDelete()"
         (cancel)="isDeleteModalOpen = false">
     </app-confirm-delete-modal>
+
+    <app-notes-timer
+        *ngIf="!isEditMode"
+        [segments]="timerSegments"
+        (sessionLockedChange)="onTimerSessionLocked($event)">
+    </app-notes-timer>
 </div>

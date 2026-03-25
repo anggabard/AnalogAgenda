@@ -3,6 +3,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { NotesService } from '../../../services';
 import { MergedNoteEntryDto, NoteDto, NoteEntryDto, NoteEntryOverrideDto } from '../../../DTOs';
 import { TimeHelper } from '../../../helpers/time.helper';
+import { buildMergedTimerSegments, NotesTimerSegment } from '../notes-timer/notes-timer-schedule';
 
 @Component({
     selector: 'app-notes-merge',
@@ -22,6 +23,11 @@ export class NotesMergeComponent implements OnInit {
   mergedName: string = '';
   mergedSideNote: string = '';
   mergedImageUrl: string = '';
+
+  timerSegments: NotesTimerSegment[] = [];
+  timerSessionLocked = false;
+  /** Per merged note: visual alias + row highlight color (merged notes only, length > 1). */
+  mergeNoteUi: { noteId: string; alias: string; color: string }[] = [];
 
   constructor(private route: ActivatedRoute) { }
 
@@ -46,6 +52,7 @@ export class NotesMergeComponent implements OnInit {
         this.mergedName = notes.map(n => n.name).join(' + ');
         this.mergedSideNote = notes.map(n => n.sideNote).filter(s => s).join('\n\n');
         this.mergedImageUrl = notes[0]?.imageUrl || '';
+        this.initMergeNoteUi();
         this.recalculateAndSortEntries();
         this.loading = false;
       },
@@ -59,7 +66,11 @@ export class NotesMergeComponent implements OnInit {
 
   /** Recalculate entries as if all processes start at the same time, then sort by start time */
   recalculateAndSortEntries(): void {
-    if (this.notes.length === 0) return;
+    if (this.notes.length === 0) {
+      this.sortedEntries = [];
+      this.rebuildMergeTimer();
+      return;
+    }
 
     // Ensure entries are sorted by index for each note before processing
     this.notes.forEach(note => this.sortEntriesByIndex(note));
@@ -112,6 +123,44 @@ export class NotesMergeComponent implements OnInit {
     allEntries.sort((a, b) => a.startTime - b.startTime);
 
     this.sortedEntries = allEntries;
+    this.rebuildMergeTimer();
+  }
+
+  private initMergeNoteUi(): void {
+    const palette = ['#22c55e', '#ef4444', '#3b82f6', '#a855f7', '#f97316', '#14b8a6', '#eab308'];
+    this.mergeNoteUi = this.notes.map((n, i) => ({
+      noteId: n.id,
+      alias: n.name,
+      color: palette[i % palette.length]
+    }));
+  }
+
+  private rebuildMergeTimer(): void {
+    this.timerSegments = buildMergedTimerSegments(this.sortedEntries);
+  }
+
+  onTimerSessionLocked(locked: boolean): void {
+    this.timerSessionLocked = locked;
+  }
+
+  getNoteName(noteId: string): string {
+    return this.notes.find((n) => n.id === noteId)?.name ?? noteId;
+  }
+
+  getSubstanceDisplay(entry: MergedNoteEntryDto): string {
+    if (this.notes.length <= 1) {
+      return entry.substance;
+    }
+    const row = this.mergeNoteUi.find((u) => u.noteId === entry.noteRowKey);
+    const a = row?.alias?.trim();
+    return a || entry.substance;
+  }
+
+  getNoteAccent(entry: MergedNoteEntryDto): string {
+    if (this.notes.length <= 1) {
+      return '#22c55e';
+    }
+    return this.mergeNoteUi.find((u) => u.noteId === entry.noteRowKey)?.color ?? '#22c55e';
   }
 
   /** Get applicable override for current film count */
@@ -236,5 +285,9 @@ export class NotesMergeComponent implements OnInit {
   /** Format time for display using TimeHelper */
   formatTimeForDisplay(decimalMinutes: number): string {
     return TimeHelper.formatTimeForDisplay(decimalMinutes);
+  }
+
+  trackMergeNoteUi(_index: number, row: { noteId: string }): string {
+    return row.noteId;
   }
 }

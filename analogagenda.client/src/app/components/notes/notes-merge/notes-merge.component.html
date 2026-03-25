@@ -6,7 +6,7 @@
     <p>{{ error }}</p>
 </div>
 
-<div *ngIf="notes.length > 0 && !loading" class="merged-note-container">
+<div *ngIf="notes.length > 0 && !loading" class="merged-note-container notes-page-with-timer">
     <!-- Title (full-width centered; wraps only when line runs out of space) -->
     <div class="note-header">
         <h1 class="note-title">{{ mergedName }}</h1>
@@ -16,6 +16,7 @@
                 [value]="filmCount"
                 [min]="1"
                 [max]="100"
+                [disabled]="timerSessionLocked"
                 (valueChange)="onFilmCountStepperChange($event)">
             </app-quantity-stepper>
         </div>
@@ -26,25 +27,29 @@
         <table>
             <thead>
                 <tr>
-                    <th>Start Time (min)</th>
+                    <th>Start Time</th>
                     <th>Step</th>
                     <th>Substance</th>
-                    <th>Temperature (°C)</th>
+                    <th>Temp</th>
                     <th>Details</th>
                 </tr>
             </thead>
             <tbody>
-                <tr *ngFor="let entry of sortedEntries; let i = index" [class.out-done-row]="isOutDoneRow(entry)">
-                    <td data-label="Start Time (min)">
+                <tr
+                    *ngFor="let entry of sortedEntries; let i = index"
+                    [attr.id]="'merged-timer-row-' + entry.rowKey"
+                    [style.--note-accent]="getNoteAccent(entry)"
+                    [class.out-done-row]="isOutDoneRow(entry)">
+                    <td data-label="Start Time">
                         <span>{{ formatTimeForDisplay(entry.startTime) }}</span>
                     </td>
                     <td data-label="Step">
                         <span>{{ entry.step }}</span>
                     </td>
                     <td data-label="Substance">
-                        <span class="substance-name">{{ entry.substance }}</span>
+                        <span class="substance-name">{{ getSubstanceDisplay(entry) }}</span>
                     </td>
-                    <td data-label="Temperature (°C)">
+                    <td data-label="Temp">
                         <span *ngIf="!isOutDoneRow(entry)">
                             {{ entry.temperatureMin | number:'1.1-1' }}°C
                             <span *ngIf="entry.temperatureMax">- {{ entry.temperatureMax | number:'1.1-1' }}°C</span>
@@ -68,4 +73,27 @@
             </div>
         </div>
     </div>
+
+    <div class="merge-alias-panel" *ngIf="notes.length > 1">
+        <h3 class="merge-alias-heading">Substance labels & colors</h3>
+        <div class="merge-alias-row" *ngFor="let u of mergeNoteUi; trackBy: trackMergeNoteUi">
+            <span class="merge-alias-note-name">{{ getNoteName(u.noteId) }}</span>
+            <div class="merge-alias-field-row">
+                <input
+                    type="text"
+                    class="input merge-alias-input"
+                    [(ngModel)]="u.alias"
+                    [disabled]="timerSessionLocked"
+                    [attr.aria-label]="'Alias for ' + getNoteName(u.noteId)" />
+                <input
+                    type="color"
+                    class="merge-alias-color"
+                    [(ngModel)]="u.color"
+                    [disabled]="timerSessionLocked"
+                    [attr.aria-label]="'Highlight color for ' + getNoteName(u.noteId)" />
+            </div>
+        </div>
+    </div>
+
+    <app-notes-timer [segments]="timerSegments" (sessionLockedChange)="onTimerSessionLocked($event)"></app-notes-timer>
 </div>

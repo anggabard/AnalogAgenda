@@ -78,6 +78,7 @@ describe('QuantityStepperComponent', () => {
     const btns = fixture.nativeElement.querySelectorAll('.stepper-btn');
     expect(btns[0].disabled).toBeTrue();
     expect(btns[1].disabled).toBeTrue();
+    expect(fixture.nativeElement.className).toContain('quantity-stepper-root--disabled');
 
     const spy = jasmine.createSpy('valueChange');
     component.valueChange.subscribe(spy);

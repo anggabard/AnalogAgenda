@@ -102,6 +102,10 @@
   transform: none;
 }
 
+.quantity-stepper-root--disabled .stepper-value {
+  opacity: 0.5;
+}
+
 @media (max-width: 640px) {
   .quantity-stepper-root--solid .stepper-btn {
     min-width: 2.5rem;

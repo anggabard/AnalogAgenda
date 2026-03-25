@@ -4,6 +4,156 @@
     padding: 20px;
 }
 
+.merged-note-container.notes-page-with-timer {
+    padding-bottom: calc(20px + var(--notes-timer-bar-height, 132px) + env(safe-area-inset-bottom, 0px));
+}
+
+/* Glass card aligned with upsert-film .box */
+.merge-alias-panel {
+    width: fit-content;
+    max-width: 100%;
+    margin: 20px auto 12px;
+    padding: 1.5rem;
+    box-sizing: border-box;
+    background-color: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    /* Phone: stacked blocks; desktop overridden to grid */
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.merge-alias-heading {
+    margin: 0;
+    text-align: center;
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #fff;
+}
+
+.merge-alias-row {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+}
+
+.merge-alias-note-name {
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 0.9rem;
+    text-align: center;
+    width: 100%;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+/* Alias + color on one row; input grows, swatch fixed */
+.merge-alias-field-row {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+}
+
+.merge-alias-input {
+    flex: 1;
+    min-width: 0;
+    width: auto;
+    max-width: none;
+}
+
+.merge-alias-panel .input {
+    flex: 1;
+    min-width: 0;
+    width: auto;
+    max-width: none;
+    padding: 0.75rem 1rem;
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    border-radius: 6px;
+    font-size: 1rem;
+    transition: border 0.2s ease;
+    box-sizing: border-box;
+    background-color: rgba(0, 0, 0, 0.1);
+    color: #fff;
+}
+
+.merge-alias-panel .input:focus {
+    outline: none;
+    border-color: rgba(255, 255, 255, 0.7);
+}
+
+.merge-alias-panel .input:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+}
+
+.merge-alias-color {
+    width: 35px;
+    height: 35px;
+    padding: 0;
+    border: 1px solid rgba(255, 255, 255, 0.45);
+    border-radius: 4px;
+    cursor: pointer;
+    background: rgba(0, 0, 0, 0.1);
+    flex-shrink: 0;
+    box-sizing: border-box;
+}
+
+.merge-alias-color:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Desktop: shared grid so label column = width of longest name; inputs align */
+@media (min-width: 768px) {
+    .merge-alias-panel {
+        display: grid;
+        grid-template-columns: max-content minmax(0, 27ch) 35px;
+        column-gap: 14px;
+        row-gap: 12px;
+        align-items: center;
+    }
+
+    .merge-alias-heading {
+        grid-column: 1 / -1;
+        margin-bottom: 0;
+    }
+
+    .merge-alias-row {
+        display: contents;
+    }
+
+    .merge-alias-field-row {
+        display: contents;
+    }
+
+    .merge-alias-note-name {
+        text-align: left;
+        width: auto;
+        justify-self: start;
+        align-self: center;
+        max-width: min(55ch, 100%);
+    }
+
+    .merge-alias-panel .input,
+    .merge-alias-input {
+        width: 100%;
+        max-width: 27ch;
+        justify-self: stretch;
+    }
+
+    .merge-alias-color {
+        justify-self: end;
+    }
+}
+
 .note-header {
     display: flex;
     flex-direction: column;

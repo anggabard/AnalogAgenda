@@ -1,7 +1,11 @@
+@import url('./app/components/notes/notes-timer/notes-timer-row-highlight.css');
+
 :root {
   --bg-menu-panel: #7c92a4  ;
   --bg-menu-highlight: #e0e0e0a6;
   --text-light: #ffffffb2;
+  /* Space reserved for fixed notes timer bar + safe area */
+  --notes-timer-bar-height: 132px;
 }
 
 html, body {
@@ -308,4 +312,3 @@ html:has(app-login) {
   max-height: 100vh !important;
   width: 100vw !important;
 }
-

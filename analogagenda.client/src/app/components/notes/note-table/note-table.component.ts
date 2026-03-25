@@ -3,6 +3,10 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { NoteDto, NoteEntryDto, NoteEntryRuleDto, NoteEntryOverrideDto } from '../../../DTOs';
 import { NotesService } from '../../../services';
 import { TimeHelper } from '../../../helpers/time.helper';
+import {
+  decimalMinutesToScheduleSeconds,
+  NotesTimerSegment
+} from '../notes-timer/notes-timer-schedule';
 
 @Component({
     selector: 'app-note-table',
@@ -27,6 +31,10 @@ export class NoteTableComponent implements OnInit {
 
   // Film counter for view mode
   filmCount: number = 1;
+
+  timerSegments: NotesTimerSegment[] = [];
+  timerSessionLocked = false;
+  readonly singleNoteTimerAccent = '#22c55e';
   
   // UI state for expandable overrides
   expandedEntries: Set<string> = new Set();
@@ -66,6 +74,7 @@ export class NoteTableComponent implements OnInit {
         this.note = note;
         this.sortEntriesByIndex();
         this.originalNote = JSON.parse(JSON.stringify(this.note));
+        this.rebuildTimerSegments();
       },
       error: (err: any) => {
         console.error(err);
@@ -90,6 +99,7 @@ export class NoteTableComponent implements OnInit {
       this.sortEntriesByIndex();
     }
     this.isEditMode = false;
+    this.rebuildTimerSegments();
   }
 
   getEmptyNote() {
@@ -201,6 +211,40 @@ export class NoteTableComponent implements OnInit {
       totalTime += this.getEffectiveTime(this.note.entries[i]);
     }
     return totalTime;
+  }
+
+  rebuildTimerSegments(): void {
+    if (this.isEditMode) {
+      this.timerSegments = [];
+      return;
+    }
+    const segs: NotesTimerSegment[] = [];
+    for (let i = 0; i < this.note.entries.length; i++) {
+      const entry = this.note.entries[i];
+      segs.push({
+        rowId: `note-timer-row-${this.getEntryIdentifier(entry, i)}`,
+        startSec: decimalMinutesToScheduleSeconds(this.getAccumulatedStartTime(i)),
+        durationSec: decimalMinutesToScheduleSeconds(this.getEffectiveTime(entry)),
+        kind: 'step'
+      });
+    }
+    const totalSec = decimalMinutesToScheduleSeconds(this.getTotalTime());
+    segs.push({
+      rowId: 'note-timer-row-out-done',
+      startSec: totalSec,
+      durationSec: 0,
+      kind: 'outDone'
+    });
+    this.timerSegments = segs;
+  }
+
+  onTimerSessionLocked(locked: boolean): void {
+    this.timerSessionLocked = locked;
+  }
+
+  onViewFilmCountChange(next: number): void {
+    this.filmCount = next;
+    this.rebuildTimerSegments();
   }
 
   /** Get applicable override for current film count - returns last override that ended before current film count if outside all ranges */
@@ -595,12 +639,14 @@ export class NoteTableComponent implements OnInit {
   incrementFilmCount() {
     if (this.filmCount < 100) {
       this.filmCount++;
+      if (!this.isEditMode) this.rebuildTimerSegments();
     }
   }
 
   decrementFilmCount() {
     if (this.filmCount > 1) {
       this.filmCount--;
+      if (!this.isEditMode) this.rebuildTimerSegments();
     }
   }
 
