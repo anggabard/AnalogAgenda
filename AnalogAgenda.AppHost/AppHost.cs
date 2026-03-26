@@ -41,18 +41,11 @@ backend.WithReference(blobStorage)
     .WaitFor(blobStorage);
 
 // Add the frontend Angular app - wait for backend to be ready
-var frontend = builder.AddNpmApp("analogagenda-client", "../analogagenda.client")
+var frontend = builder.AddJavaScriptApp("analogagenda-client", "../analogagenda.client")
     .PublishAsDockerFile()
     .WithReference(backend)
     .WaitFor(backend)
-    .WithHttpEndpoint(name: "frontend-http");
-
-frontend.WithEnvironment((context) =>
-{
-    var endpoint = frontend.GetEndpoint("frontend-http");
-    var targetPort = endpoint.Property(EndpointProperty.TargetPort);
-    context.EnvironmentVariables.Add("PORT", ReferenceExpression.Create($"{targetPort}"));
-});
+    .WithHttpEndpoint(name: "frontend-http", env: "PORT");
 
 frontend.WithExternalHttpEndpoints();
 
