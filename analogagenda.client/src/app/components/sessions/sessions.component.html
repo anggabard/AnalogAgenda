@@ -25,17 +25,19 @@
 <!-- Template for session cards -->
 <ng-template #sessionCardTemplate let-session>
     <div class="card">
-        <div class="image"><img *ngIf="session.imageUrl" [src]="session.imageUrl" [alt]="session.location" /></div>
-        <span class="title">{{session.location}}</span>
+        <div class="image"><img *ngIf="session.imageUrl" [src]="session.imageUrl" [alt]="sessionDisplayLabel(session)" /></div>
+        <span class="title">{{ sessionDisplayLabel(session) }}</span>
+        <span class="info location-line">{{ session.location }}</span>
         <span class="info date">{{formatDate(session.sessionDate)}}</span>
         <span class="info participants">{{parseParticipants(session.participants).join(', ')}}</span>
     </div>
 </ng-template>
 
 <ng-template #sessionRowTemplate let-session>
+    <td>{{ sessionDisplayLabel(session) }}</td>
     <td>{{ session.location }}</td>
     <td>{{ formatDate(session.sessionDate) }}</td>
     <td>{{ parseParticipants(session.participants).join(', ') }}</td>
     <td>{{ session.description || '' }}</td>
-    <td class="session-cell-image"><app-image-preview [imageUrl]="session.imageUrl" [alt]="session.location" popoverPosition="left"></app-image-preview></td>
+    <td class="session-cell-image"><app-image-preview [imageUrl]="session.imageUrl" [alt]="sessionDisplayLabel(session)" popoverPosition="left"></app-image-preview></td>
 </ng-template>

@@ -1,7 +1,7 @@
 import { Component, Input, Output, EventEmitter, OnInit, OnChanges, SimpleChanges, inject } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
-import { IdeaDto } from '../../../../DTOs';
+import { IdeaDto, IdeaSessionSummaryDto } from '../../../../DTOs';
 import { IdeaService } from '../../../../services';
 
 @Component({
@@ -63,6 +63,15 @@ export class UpsertIdeaComponent implements OnInit, OnChanges {
         }
     }
 
+    ideaTriedSessionsIntro(sessionCount: number): string {
+        return sessionCount > 0 ? 'Tried in ' : '';
+    }
+
+    sessionLinkText(s: IdeaSessionSummaryDto): string {
+        const t = s.displayLabel?.trim();
+        return t || 'Session';
+    }
+
     onViewResults(): void {
         if (this.idea?.id) {
             this.router.navigate(['/idea', this.idea.id]);
@@ -75,7 +84,7 @@ export class UpsertIdeaComponent implements OnInit, OnChanges {
         this.errorMessage = null;
         this.isSubmitting = true;
 
-        const dto: IdeaDto = {
+        const base: IdeaDto = {
             id: this.idea?.id ?? '',
             title: this.form.value.title,
             description: this.form.value.description ?? '',
@@ -83,13 +92,13 @@ export class UpsertIdeaComponent implements OnInit, OnChanges {
         };
 
         const request = this.isEditMode
-            ? this.ideaService.update(dto.id, dto)
-            : this.ideaService.add(dto);
+            ? this.ideaService.update(base.id, base)
+            : this.ideaService.add({ ...base, connectedSessionIds: [] });
 
         request.subscribe({
             next: (result) => {
                 this.isSubmitting = false;
-                const savedDto: IdeaDto = this.isEditMode ? { ...dto } : (result as IdeaDto);
+                const savedDto: IdeaDto = this.isEditMode ? { ...base } : (result as IdeaDto);
                 this.saved.emit(savedDto);
             },
             error: (err) => {

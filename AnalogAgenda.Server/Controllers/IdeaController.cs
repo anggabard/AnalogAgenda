@@ -23,7 +23,7 @@ public class IdeaController(
     [HttpGet]
     public async Task<IActionResult> GetAll()
     {
-        var entities = await databaseService.GetAllAsync<IdeaEntity>();
+        var entities = await databaseService.GetAllIdeasWithSessionLinksAsync();
         var results = entities.Select(dtoConvertor.ToDTO);
         return Ok(results);
     }
@@ -31,7 +31,7 @@ public class IdeaController(
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(string id)
     {
-        var entity = await databaseService.GetByIdAsync<IdeaEntity>(id);
+        var entity = await databaseService.GetIdeaByIdWithSessionLinksAsync(id);
         if (entity == null)
             return NotFound($"No Idea found with Id: {id}");
 
@@ -46,6 +46,8 @@ public class IdeaController(
 
         var entity = entityConvertor.ToEntity(dto);
         await databaseService.AddAsync(entity);
+        await ReplaceIdeaSessionsAsync(entity.Id, dto.ConnectedSessionIds);
+        entity = await databaseService.GetIdeaByIdWithSessionLinksAsync(entity.Id) ?? entity;
         var createdDto = dtoConvertor.ToDTO(entity);
         return Created(string.Empty, createdDto);
     }
@@ -66,7 +68,25 @@ public class IdeaController(
         existingEntity.UpdatedDate = DateTime.UtcNow;
 
         await databaseService.UpdateAsync(existingEntity);
+        // Omit ConnectedSessionIds from the JSON body to leave links unchanged (links are edited on the session page).
+        if (dto.ConnectedSessionIds != null)
+            await ReplaceIdeaSessionsAsync(id, dto.ConnectedSessionIds);
         return NoContent();
+    }
+
+    private async Task ReplaceIdeaSessionsAsync(string ideaId, List<string>? connectedSessionIds)
+    {
+        var distinct = (connectedSessionIds ?? []).Distinct().ToList();
+        var validIds = new List<string>();
+        foreach (var sessionId in distinct)
+        {
+            if (await databaseService.ExistsAsync<SessionEntity>(sessionId))
+                validIds.Add(sessionId);
+        }
+
+        await databaseService.ReplaceEntitiesAsync<IdeaSessionEntity>(
+            x => x.IdeaId == ideaId,
+            validIds.Select(sid => new IdeaSessionEntity { IdeaId = ideaId, SessionId = sid }));
     }
 
     [HttpGet("{ideaId}/photos")]

@@ -11,6 +11,27 @@
     <header class="idea-header">
       <h1>{{ idea.title }}</h1>
       <p class="idea-description" *ngIf="idea.description">{{ idea.description }}</p>
+
+      <p class="tried-sessions" *ngIf="idea.connectedSessions?.length">
+        <ng-container [ngSwitch]="idea.connectedSessions!.length">
+          <ng-container *ngSwitchCase="1">
+            {{ ideaTriedSessionsIntro(idea.connectedSessions!.length) }}<a [routerLink]="['/sessions', idea.connectedSessions![0].id]" class="session-link">{{ sessionLinkText(idea.connectedSessions![0]) }}</a><span class="tried-sessions-end">.</span>
+          </ng-container>
+          <ng-container *ngSwitchCase="2">
+            {{ ideaTriedSessionsIntro(idea.connectedSessions!.length) }}<a [routerLink]="['/sessions', idea.connectedSessions![0].id]" class="session-link">{{ sessionLinkText(idea.connectedSessions![0]) }}</a><span> and </span><a [routerLink]="['/sessions', idea.connectedSessions![1].id]" class="session-link">{{ sessionLinkText(idea.connectedSessions![1]) }}</a><span class="tried-sessions-end">.</span>
+          </ng-container>
+          <ng-container *ngSwitchDefault>
+            {{ ideaTriedSessionsIntro(idea.connectedSessions!.length) }}
+            <ng-container *ngFor="let s of idea.connectedSessions!; let i = index; let last = last">
+              <ng-container *ngIf="i > 0 && !last">, </ng-container>
+              <ng-container *ngIf="i > 0 && last"> and </ng-container>
+              <a [routerLink]="['/sessions', s.id]" class="session-link">{{ sessionLinkText(s) }}</a>
+            </ng-container>
+            <span class="tried-sessions-end">.</span>
+          </ng-container>
+        </ng-container>
+      </p>
+
       <div class="outcome-block" *ngIf="idea.outcome?.trim()">
         <h2>Outcome</h2>
         <p class="idea-outcome">{{ idea.outcome }}</p>

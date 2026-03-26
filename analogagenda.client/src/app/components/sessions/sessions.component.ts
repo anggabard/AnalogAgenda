@@ -19,7 +19,7 @@ export class SessionsComponent implements OnInit {
   @ViewChild('sessionCardTemplate') sessionCardTemplate!: TemplateRef<any>;
   @ViewChild('sessionRowTemplate') sessionRowTemplate!: TemplateRef<any>;
 
-  sessionTableHeaders = ['Location', 'Date', 'Participants', 'Description', 'Preview'];
+  sessionTableHeaders = ['Session', 'Location', 'Date', 'Participants', 'Description', 'Preview'];
 
   sessions: SessionDto[] = [];
   currentUsername: string = '';
@@ -98,5 +98,16 @@ export class SessionsComponent implements OnInit {
 
   formatDate(dateString: string): string {
     return DateHelper.formatDdMmYyyy(dateString);
+  }
+
+  sessionDisplayLabel(session: SessionDto): string {
+    const label = session.displayLabel?.trim();
+    if (label) {
+      return label;
+    }
+    if (session.index != null && session.index >= 1) {
+      return `Session ${session.index}`;
+    }
+    return session.location;
   }
 }

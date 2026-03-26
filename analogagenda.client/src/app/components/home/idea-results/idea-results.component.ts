@@ -3,7 +3,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { AccountService, FilmService, IdeaService } from '../../../services';
-import { FilmDto, IdeaDto, PhotoDto } from '../../../DTOs';
+import { FilmDto, IdeaDto, IdeaSessionSummaryDto, PhotoDto } from '../../../DTOs';
 import { PhotosContentComponent } from '../../films/photos-content/photos-content.component';
 
 @Component({
@@ -131,5 +131,15 @@ export class IdeaResultsComponent implements OnInit {
 
   goBack(): void {
     this.router.navigate(['/home']);
+  }
+
+  ideaTriedSessionsIntro(sessionCount: number): string {
+    return sessionCount > 0 ? 'Tried in ' : '';
+  }
+
+  /** Full label for the link; [routerLink] uses session id — Index is display-only in the label text. */
+  sessionLinkText(s: IdeaSessionSummaryDto): string {
+    const t = s.displayLabel?.trim();
+    return t || 'Session';
   }
 }

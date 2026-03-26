@@ -75,7 +75,9 @@ describe('UpsertIdeaComponent', () => {
 
     component.submit();
 
-    expect(mockIdeaService.add).toHaveBeenCalled();
+    expect(mockIdeaService.add).toHaveBeenCalledWith(
+      jasmine.objectContaining({ connectedSessionIds: [] })
+    );
     expect(component.saved.emit).toHaveBeenCalled();
   });
 

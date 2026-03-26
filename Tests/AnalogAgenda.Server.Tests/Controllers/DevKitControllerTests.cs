@@ -345,6 +345,7 @@ public class DevKitControllerTests : IDisposable
         var sessionLegacyOnly = new SessionEntity
         {
             Id = "sesslegacy",
+            Index = 1,
             Location = "A",
             Participants = "[]",
             SessionDate = DateTime.UtcNow.AddDays(-5),
@@ -354,6 +355,7 @@ public class DevKitControllerTests : IDisposable
         var sessionInJunction = new SessionEntity
         {
             Id = "sessjunct1",
+            Index = 2,
             Location = "B",
             Participants = "[]",
             SessionDate = DateTime.UtcNow.AddDays(-1),
@@ -394,6 +396,7 @@ public class DevKitControllerTests : IDisposable
         var sessionLegacyOnly = new SessionEntity
         {
             Id = "sesslegacy",
+            Index = 1,
             Location = "A",
             Participants = "[]",
             SessionDate = DateTime.UtcNow.AddDays(-5),
@@ -403,6 +406,7 @@ public class DevKitControllerTests : IDisposable
         var sessionInJunction = new SessionEntity
         {
             Id = "sessjunct1",
+            Index = 2,
             Location = "B",
             Participants = "[]",
             SessionDate = DateTime.UtcNow.AddDays(-1),
@@ -554,6 +558,7 @@ public class DevKitControllerTests : IDisposable
         var sNew = new SessionEntity
         {
             Id = "sOrdNew",
+            Index = 1,
             Location = "N",
             Participants = "[]",
             SessionDate = baseDate.AddDays(-1),
@@ -562,6 +567,7 @@ public class DevKitControllerTests : IDisposable
         var sMid = new SessionEntity
         {
             Id = "sOrdMid",
+            Index = 2,
             Location = "M",
             Participants = "[]",
             SessionDate = baseDate.AddDays(-10),
@@ -570,6 +576,7 @@ public class DevKitControllerTests : IDisposable
         var sOld = new SessionEntity
         {
             Id = "sOrdOld",
+            Index = 3,
             Location = "O",
             Participants = "[]",
             SessionDate = baseDate.AddDays(-30),
@@ -606,6 +613,7 @@ public class DevKitControllerTests : IDisposable
         var sNew = new SessionEntity
         {
             Id = "s2New",
+            Index = 1,
             Location = "N",
             Participants = "[]",
             SessionDate = baseDate.AddDays(-2),
@@ -614,6 +622,7 @@ public class DevKitControllerTests : IDisposable
         var sMid = new SessionEntity
         {
             Id = "s2Mid",
+            Index = 2,
             Location = "M",
             Participants = "[]",
             SessionDate = baseDate.AddDays(-15),
@@ -622,6 +631,7 @@ public class DevKitControllerTests : IDisposable
         var sOld = new SessionEntity
         {
             Id = "s2Old",
+            Index = 3,
             Location = "O",
             Participants = "[]",
             SessionDate = baseDate.AddDays(-40),

@@ -46,6 +46,23 @@
   white-space: pre-wrap;
 }
 
+.tried-sessions {
+  margin: 0 0 1.25rem 0;
+  text-align: center;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.88);
+}
+
+.session-link {
+  color: #7ec8ff;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.session-link:hover {
+  color: #b8e0ff;
+}
+
 .outcome-block {
   margin-top: 1.5rem;
 }
