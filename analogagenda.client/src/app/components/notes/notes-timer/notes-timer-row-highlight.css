@@ -1,7 +1,6 @@
 /* Row highlight for notes timer (applied to tr in note-table / notes-merge via document.getElementById). */
 
 tr.notes-timer-row-active {
-  --note-accent: #22c55e;
   box-shadow: inset 0 0 0 2px var(--note-accent, #22c55e);
   background-color: color-mix(in srgb, var(--note-accent, #22c55e) 22%, transparent);
 }
