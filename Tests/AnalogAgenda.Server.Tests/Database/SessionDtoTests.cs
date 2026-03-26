@@ -103,6 +103,8 @@ public class SessionDtoTests
         var sessionDto = new SessionDto
         {
             Id = "test-session",
+            Index = 99,
+            Name = "  Lab night  ",
             SessionDate = new DateOnly(2025, 10, 2),
             Location = "Angel's Home",
             Participants = "[\"Angel\", \"Tudor\"]",
@@ -119,11 +121,65 @@ public class SessionDtoTests
 
         // Assert
         Assert.Equal("test-session", entity.Id);
+        Assert.Equal("Lab night", entity.Name);
         Assert.Equal(new DateTime(2025, 10, 2, 0, 0, 0, DateTimeKind.Utc), entity.SessionDate);
         Assert.Equal("Angel's Home", entity.Location);
         Assert.Equal("[\"Angel\", \"Tudor\"]", entity.Participants);
         Assert.Equal("Test session description", entity.Description);
         Assert.Equal(Guid.Empty, entity.ImageId);
+    }
+
+    [Theory]
+    [InlineData(1, null, "Session 1")]
+    [InlineData(3, "", "Session 3")]
+    [InlineData(2, "  My name  ", "My name")]
+    public void DisplayLabel_UsesNameOrSessionIndex_WhenIndexValid(int index, string? name, string expected)
+    {
+        var dto = new SessionDto
+        {
+            Id = "x",
+            Index = index,
+            Name = name,
+            SessionDate = new DateOnly(2025, 1, 1),
+            Location = "L",
+            Participants = "[]"
+        };
+
+        Assert.Equal(expected, dto.DisplayLabel);
+    }
+
+    [Theory]
+    [InlineData(0, null)]
+    [InlineData(-1, "   ")]
+    public void DisplayLabel_IsEmpty_WhenIndexInvalidAndNoName(int index, string? name)
+    {
+        var dto = new SessionDto
+        {
+            Id = "x",
+            Index = index,
+            Name = name,
+            SessionDate = new DateOnly(2025, 1, 1),
+            Location = "L",
+            Participants = "[]"
+        };
+
+        Assert.Equal(string.Empty, dto.DisplayLabel);
+    }
+
+    [Fact]
+    public void DisplayLabel_UsesName_WhenIndexInvalidButNamePresent()
+    {
+        var dto = new SessionDto
+        {
+            Id = "x",
+            Index = 0,
+            Name = "Ad-hoc",
+            SessionDate = new DateOnly(2025, 1, 1),
+            Location = "L",
+            Participants = "[]"
+        };
+
+        Assert.Equal("Ad-hoc", dto.DisplayLabel);
     }
 }
 
@@ -141,6 +197,8 @@ public class SessionEntityTests
         var entity = new SessionEntity
         {
             Id = "test-session",
+            Index = 4,
+            Name = null,
             SessionDate = new DateTime(2025, 10, 2, 0, 0, 0, DateTimeKind.Utc),
             Location = "Angel's Home",
             Participants = "[\"Angel\", \"Tudor\"]",
@@ -159,6 +217,8 @@ public class SessionEntityTests
 
         // Assert
         Assert.Equal("test-session", dto.Id);
+        Assert.Equal(4, dto.Index);
+        Assert.Equal("Session 4", dto.DisplayLabel);
         Assert.Equal(new DateOnly(2025, 10, 2), dto.SessionDate);
         Assert.Equal("Angel's Home", dto.Location);
         Assert.Equal("[\"Angel\", \"Tudor\"]", dto.Participants);

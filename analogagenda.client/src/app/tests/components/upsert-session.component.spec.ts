@@ -4,7 +4,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { of } from 'rxjs';
 import { CdkDragDrop } from '@angular/cdk/drag-drop';
 import { UpsertSessionComponent } from '../../components/sessions/upsert-session/upsert-session.component';
-import { SessionService, DevKitService, FilmService } from '../../services';
+import { SessionService, DevKitService, FilmService, IdeaService } from '../../services';
 import { DevKitDto, FilmDto, SessionDto } from '../../DTOs';
 import { DevKitType, UsernameType, FilmType } from '../../enums';
 import { TestConfig } from '../test.config';
@@ -19,14 +19,23 @@ describe('UpsertSessionComponent', () => {
   let mockActivatedRoute: any;
 
   beforeEach(async () => {
-    const sessionServiceSpy = jasmine.createSpyObj('SessionService', ['getById', 'add', 'update', 'deleteById']);
+    const sessionServiceSpy = jasmine.createSpyObj('SessionService', [
+      'getById',
+      'add',
+      'update',
+      'deleteById',
+      'getNextSessionIndex',
+    ]);
     const devKitServiceSpy = jasmine.createSpyObj('DevKitService', ['getAll']);
     const filmServiceSpy = jasmine.createSpyObj('FilmService', ['getAll']);
+    const ideaServiceSpy = jasmine.createSpyObj('IdeaService', ['getAll']);
     const routerSpy = TestConfig.createRouterSpy();
 
     sessionServiceSpy.getById.and.returnValue(of({}));
+    sessionServiceSpy.getNextSessionIndex.and.returnValue(of({ nextIndex: 1 }));
     devKitServiceSpy.getAll.and.returnValue(of([]));
     filmServiceSpy.getAll.and.returnValue(of([]));
+    ideaServiceSpy.getAll.and.returnValue(of([]));
 
     mockActivatedRoute = {
       snapshot: {
@@ -44,6 +53,7 @@ describe('UpsertSessionComponent', () => {
         { provide: SessionService, useValue: sessionServiceSpy },
         { provide: DevKitService, useValue: devKitServiceSpy },
         { provide: FilmService, useValue: filmServiceSpy },
+        { provide: IdeaService, useValue: ideaServiceSpy },
         { provide: Router, useValue: routerSpy },
         { provide: ActivatedRoute, useValue: mockActivatedRoute }
       ]

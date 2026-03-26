@@ -57,6 +57,7 @@ public class EntityConvertor()
     public SessionEntity ToEntity(SessionDto dto) => new()
     {
         Id = dto.Id,
+        Name = string.IsNullOrWhiteSpace(dto.Name) ? null : dto.Name.Trim(),
         SessionDate = dto.SessionDate.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc),
         Location = dto.Location,
         Participants = dto.Participants,

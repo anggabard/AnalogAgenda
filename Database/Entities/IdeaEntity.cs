@@ -8,5 +8,7 @@ public class IdeaEntity : BaseEntity
 
     public string Outcome { get; set; } = string.Empty;
 
+    public ICollection<IdeaSessionEntity> IdeaSessions { get; set; } = [];
+
     protected override int IdLength() => 3;
 }

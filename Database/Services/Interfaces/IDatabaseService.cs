@@ -16,6 +16,10 @@ public interface IDatabaseService
     Task<T?> GetByIdWithIncludesAsync<T>(string id, params Expression<Func<T, object>>[] includes) where T : BaseEntity;
     Task<bool> ExistsAsync<T>(string id) where T : BaseEntity;
     Task<bool> ExistsAsync<T>(Expression<Func<T, bool>> predicate) where T : BaseEntity;
+
+    /// <summary>Next session index hint for UI (1 when none; MAX(Index)+1 otherwise). DB assigns Index on insert.</summary>
+    Task<int> GetNextSessionIndexAsync();
+
     Task<T> AddAsync<T>(T entity) where T : BaseEntity;
     Task UpdateAsync<T>(T entity) where T : BaseEntity;
     Task DeleteAsync<T>(string id) where T : BaseEntity;
@@ -40,5 +44,12 @@ public interface IDatabaseService
     /// <summary>Filtered query with includes for <see cref="BaseEntity"/> types.</summary>
     Task<List<T>> GetAllWhereWithIncludesAsync<T>(Expression<Func<T, bool>> predicate, params Expression<Func<T, object>>[] includes)
         where T : BaseEntity;
+
+    Task<List<IdeaEntity>> GetAllIdeasWithSessionLinksAsync();
+
+    Task<IdeaEntity?> GetIdeaByIdWithSessionLinksAsync(string id);
+
+    /// <summary>Session with dev kits, films, and idea junction + idea titles (for session DTO).</summary>
+    Task<SessionEntity?> GetSessionByIdWithFullIncludesAsync(string id);
 }
 

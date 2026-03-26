@@ -2,8 +2,8 @@ import { Component, OnInit } from '@angular/core';
 import { FormGroup, Validators } from '@angular/forms';
 import { Observable, forkJoin } from 'rxjs';
 import { BaseUpsertComponent } from '../../common';
-import { SessionService, DevKitService, FilmService } from '../../../services';
-import { SessionDto, DevKitDto, FilmDto } from '../../../DTOs';
+import { SessionService, DevKitService, FilmService, IdeaService } from '../../../services';
+import { SessionDto, DevKitDto, FilmDto, IdeaDto } from '../../../DTOs';
 import { DateHelper } from '../../../helpers/date.helper';
 import { modalListMatches } from '../../../helpers/modal-list-search.helper';
 import { CdkDragDrop, moveItemInArray, transferArrayItem } from '@angular/cdk/drag-drop';
@@ -22,9 +22,10 @@ interface DevKitWithFilms {
 export class UpsertSessionComponent extends BaseUpsertComponent<SessionDto> implements OnInit {
 
   constructor(
-    private sessionService: SessionService, 
+    private sessionService: SessionService,
     private devKitService: DevKitService,
-    private filmService: FilmService
+    private filmService: FilmService,
+    private ideaService: IdeaService
   ) {
     super();
   }
@@ -53,16 +54,63 @@ export class UpsertSessionComponent extends BaseUpsertComponent<SessionDto> impl
   participants: string[] = [];
   newParticipant: string = '';
 
+  /** Wacky ideas linked to this session (ids + titles for tags). */
+  allIdeas: IdeaDto[] = [];
+  linkedIdeaIds: string[] = [];
+  selectedIdeaIdToAdd = '';
+
+  nextSessionIndexForPlaceholder = 1;
+
   // Expose item from base class for template
   get currentItem(): SessionDto {
     return this.form.value as SessionDto;
+  }
+
+  get ideasAvailableToAdd(): IdeaDto[] {
+    const set = new Set(this.linkedIdeaIds);
+    return this.allIdeas.filter((i) => !set.has(i.id));
+  }
+
+  private loadAllIdeas(): void {
+    this.ideaService.getAll().subscribe({
+      next: (ideas: IdeaDto[]) => {
+        this.allIdeas = [...ideas].sort((a, b) =>
+          (a.title ?? '').localeCompare(b.title ?? '', undefined, { sensitivity: 'base' })
+        );
+      },
+      error: () => {
+        this.allIdeas = [];
+      },
+    });
+  }
+
+  linkedIdeaTitle(id: string): string {
+    const fromApi = this.allIdeas.find((i) => i.id === id);
+    return fromApi?.title?.trim() || id;
+  }
+
+  addLinkedIdea(): void {
+    const id = this.selectedIdeaIdToAdd?.trim();
+    if (!id || this.linkedIdeaIds.includes(id)) {
+      return;
+    }
+    this.linkedIdeaIds = [...this.linkedIdeaIds, id];
+    this.selectedIdeaIdToAdd = '';
+    this.form.markAsDirty();
+  }
+
+  removeLinkedIdea(ideaId: string): void {
+    this.linkedIdeaIds = this.linkedIdeaIds.filter((x) => x !== ideaId);
+    this.form.markAsDirty();
   }
 
   override ngOnInit(): void {
     // Determine view/edit mode
     this.isEditMode = !this.isInsert && this.route.snapshot.queryParams['edit'] === 'true';
     this.isViewMode = !this.isInsert && !this.isEditMode;
-    
+
+    this.loadAllIdeas();
+
     // Call parent ngOnInit which loads the item (and our getItemObservable handles devkits/films)
     super.ngOnInit();
     
@@ -70,11 +118,20 @@ export class UpsertSessionComponent extends BaseUpsertComponent<SessionDto> impl
     if (this.isInsert) {
       this.initializeEmptySession();
       this.loadAvailableItems();
+      this.sessionService.getNextSessionIndex().subscribe({
+        next: (res) => {
+          this.nextSessionIndexForPlaceholder = Math.max(1, res.nextIndex);
+        },
+        error: () => {
+          /* keep default 1 */
+        },
+      });
     }
   }
 
   protected createForm(): FormGroup {
     return this.fb.group({
+      name: [''],
       sessionDate: [DateHelper.getTodayForInput(), Validators.required],
       location: ['', Validators.required],
       participants: [[]],
@@ -153,7 +210,12 @@ export class UpsertSessionComponent extends BaseUpsertComponent<SessionDto> impl
               
               // Load participants
               this.participants = session.participantsList || [];
-              
+
+              this.linkedIdeaIds =
+                session.connectedIdeaIds?.length
+                  ? [...session.connectedIdeaIds]
+                  : (session.connectedIdeas?.map((x) => x.id) ?? []);
+
               this.loading = false;
               observer.next(session);
               observer.complete();
@@ -180,6 +242,15 @@ export class UpsertSessionComponent extends BaseUpsertComponent<SessionDto> impl
     return 'Session';
   }
 
+  protected override afterPatchValueForEdit(_item: SessionDto): void {
+    this.sessionService.getNextSessionIndex().subscribe({
+      next: (res) => {
+        this.nextSessionIndexForPlaceholder = Math.max(1, res.nextIndex);
+      },
+      error: () => { /* keep default */ }
+    });
+  }
+
   // Process form data before submission
   private processFormData(): SessionDto {
     const formValue = this.form.value;
@@ -193,6 +264,7 @@ export class UpsertSessionComponent extends BaseUpsertComponent<SessionDto> impl
     // Build the DTO with only the properties the backend expects
     const dto: any = {
       id: this.id || '',
+      name: (formValue.name as string)?.trim() || null,
       sessionDate: formValue.sessionDate,
       location: formValue.location,
       participants: JSON.stringify(this.participants),
@@ -204,7 +276,8 @@ export class UpsertSessionComponent extends BaseUpsertComponent<SessionDto> impl
       ].join(','),
       imageUrl: formValue.imageUrl || '',
       imageBase64: formValue.imageBase64 || '',
-      filmToDevKitMapping: filmToDevKitMapping
+      filmToDevKitMapping: filmToDevKitMapping,
+      connectedIdeaIds: [...this.linkedIdeaIds]
     };
     
     return dto as SessionDto;
@@ -212,7 +285,11 @@ export class UpsertSessionComponent extends BaseUpsertComponent<SessionDto> impl
 
   // Override submit to handle custom flow
   override submit(): void {
-    if (this.form.invalid) return;
+    if (this.form.invalid) {
+      this.form.markAllAsTouched();
+      this.errorMessage = 'Please set a location and a date before saving.';
+      return;
+    }
 
     this.loading = true;
     this.errorMessage = null;
@@ -248,6 +325,8 @@ export class UpsertSessionComponent extends BaseUpsertComponent<SessionDto> impl
   private initializeEmptySession(): void {
     this.sessionDevKits = [];
     this.unassignedFilms = [];
+    this.linkedIdeaIds = [];
+    this.selectedIdeaIdToAdd = '';
   }
 
   private updateAvailableItems(allDevKits: DevKitDto[], allFilms: FilmDto[]): void {
@@ -557,5 +636,12 @@ export class UpsertSessionComponent extends BaseUpsertComponent<SessionDto> impl
 
   formatDisplaySessionDate(value: string | null | undefined): string {
     return DateHelper.formatDdMmYyyy(value ?? '');
+  }
+
+  get sessionNamePlaceholder(): string {
+    const raw = this.isInsert ? this.nextSessionIndexForPlaceholder : this.currentItem.index;
+    const n =
+      typeof raw === 'number' && raw >= 1 ? raw : this.nextSessionIndexForPlaceholder;
+    return `Session ${Math.max(1, n)}`;
   }
 }

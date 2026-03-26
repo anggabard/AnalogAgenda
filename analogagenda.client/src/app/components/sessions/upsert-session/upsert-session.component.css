@@ -199,6 +199,19 @@ textarea.form-input {
   font-weight: 500;
 }
 
+.participant-tag.idea-tag {
+  background-color: #f3e5f5;
+  color: #7b1fa2;
+}
+
+.participant-tag.idea-tag .remove-participant-btn {
+  color: #7b1fa2;
+}
+
+.participant-tag.idea-tag .remove-participant-btn:hover {
+  background-color: rgba(123, 31, 162, 0.1);
+}
+
 .remove-participant-btn {
   background: none;
   border: none;

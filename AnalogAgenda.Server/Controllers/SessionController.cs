@@ -43,14 +43,17 @@ public class SessionController(IDatabaseService databaseService, IBlobService bl
             await databaseService.ReplaceEntitiesAsync<DevKitSessionEntity>(
                 x => x.SessionId == entity.Id,
                 entity.UsedDevKits.Select(d => new DevKitSessionEntity { DevKitId = d.Id, SessionId = entity.Id }));
-            
-            // Return the created entity as DTO
-            var createdDto = dtoConvertor.ToDTO(entity);
-            
+
+            await ReplaceSessionIdeaJunctionAsync(entity.Id, dto.ConnectedIdeaIds);
+
+            var reloaded = await databaseService.GetSessionByIdWithFullIncludesAsync(entity.Id)
+                ?? throw new InvalidOperationException("Session not found after create.");
+            var createdDto = dtoConvertor.ToDTO(reloaded);
+
             // Copy the filmToDevKitMapping from the original DTO
             createdDto.FilmToDevKitMapping = dto.FilmToDevKitMapping;
             await ProcessSessionBusinessLogic(createdDto, null);
-            
+
             return Created(string.Empty, createdDto);
         }
         catch (Exception ex)
@@ -60,6 +63,13 @@ public class SessionController(IDatabaseService databaseService, IBlobService bl
 
             return UnprocessableEntity(ex.Message);
         }
+    }
+
+    [HttpGet("next-index")]
+    public async Task<IActionResult> GetNextSessionIndex()
+    {
+        var next = await databaseService.GetNextSessionIndexAsync();
+        return Ok(new { nextIndex = next });
     }
 
     [HttpGet]
@@ -94,12 +104,8 @@ public class SessionController(IDatabaseService databaseService, IBlobService bl
     [HttpGet("{id}")]
     public async Task<IActionResult> GetSessionById(string id)
     {
-        // Load session with navigation properties
-        var sessionEntity = await databaseService.GetByIdWithIncludesAsync<SessionEntity>(
-            id, 
-            s => s.UsedDevKits, 
-            s => s.DevelopedFilms);
-            
+        var sessionEntity = await databaseService.GetSessionByIdWithFullIncludesAsync(id);
+
         if (sessionEntity == null)
             return NotFound($"No Session found with Id: {id}");
 
@@ -144,6 +150,21 @@ public class SessionController(IDatabaseService databaseService, IBlobService bl
         }
     }
     
+    private async Task ReplaceSessionIdeaJunctionAsync(string sessionId, List<string>? ideaIds)
+    {
+        var distinct = (ideaIds ?? []).Distinct().ToList();
+        var validIds = new List<string>();
+        foreach (var ideaId in distinct)
+        {
+            if (await databaseService.ExistsAsync<IdeaEntity>(ideaId))
+                validIds.Add(ideaId);
+        }
+
+        await databaseService.ReplaceEntitiesAsync<IdeaSessionEntity>(
+            x => x.SessionId == sessionId,
+            validIds.Select(iid => new IdeaSessionEntity { IdeaId = iid, SessionId = sessionId }));
+    }
+
     private async Task PopulateFilmToDevKitMapping(SessionDto sessionDto, SessionEntity? sessionEntity = null)
     {
         sessionDto.FilmToDevKitMapping = new Dictionary<string, List<string>>();
@@ -190,11 +211,7 @@ public class SessionController(IDatabaseService databaseService, IBlobService bl
         if (updateDto == null)
             return BadRequest("Invalid data.");
 
-        // Get the original session first with navigation properties
-        var originalSession = await databaseService.GetByIdWithIncludesAsync<SessionEntity>(
-            id, 
-            s => s.UsedDevKits, 
-            s => s.DevelopedFilms);
+        var originalSession = await databaseService.GetSessionByIdWithFullIncludesAsync(id);
         if (originalSession == null)
             return NotFound();
         
@@ -226,7 +243,9 @@ public class SessionController(IDatabaseService databaseService, IBlobService bl
         await databaseService.ReplaceEntitiesAsync<DevKitSessionEntity>(
             x => x.SessionId == originalSession.Id,
             originalSession.UsedDevKits.Select(d => new DevKitSessionEntity { DevKitId = d.Id, SessionId = originalSession.Id }));
-        
+
+        await ReplaceSessionIdeaJunctionAsync(originalSession.Id, updateDto.ConnectedIdeaIds);
+
         // Process the business logic
         await ProcessSessionBusinessLogic(updateDto, originalDto);
         

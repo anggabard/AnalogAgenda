@@ -9,6 +9,10 @@ import { BasePaginatedService } from '../base-paginated.service';
 export class SessionService extends BasePaginatedService<SessionDto> {
   constructor() { super('Session'); }
 
+  getNextSessionIndex(): Observable<{ nextIndex: number }> {
+    return this.get<{ nextIndex: number }>('/next-index');
+  }
+
   // Note: Basic CRUD methods are inherited from BasePaginatedService
   // Use add(), getAll(), getPaged(), getById(), update(), deleteById() directly
 }

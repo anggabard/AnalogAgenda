@@ -1,5 +1,6 @@
 using Database.Entities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata;
 
 namespace Database.Data;
 
@@ -21,6 +22,7 @@ public class AnalogAgendaDbContext(DbContextOptions<AnalogAgendaDbContext> optio
     public DbSet<UserSettingsEntity> UserSettings { get; set; }
     public DbSet<IdeaEntity> Ideas { get; set; }
     public DbSet<IdeaPhotoEntity> IdeaPhotos { get; set; }
+    public DbSet<IdeaSessionEntity> IdeaSessions { get; set; }
     public DbSet<DevKitSessionEntity> DevKitSessions { get; set; }
     public DbSet<DevKitFilmEntity> DevKitFilms { get; set; }
 
@@ -166,7 +168,13 @@ public class AnalogAgendaDbContext(DbContextOptions<AnalogAgendaDbContext> optio
             entity.Property(e => e.Location).IsRequired().HasMaxLength(200);
             entity.Property(e => e.Participants).IsRequired().HasMaxLength(2000);
             entity.Property(e => e.Description).HasMaxLength(1000);
+            entity.Property(e => e.Name).HasMaxLength(200);
+            entity.Property(e => e.Index)
+                .ValueGeneratedOnAdd()
+                .UseIdentityColumn(1, 1)
+                .Metadata.SetAfterSaveBehavior(PropertySaveBehavior.Ignore);
             entity.HasIndex(e => e.SessionDate);
+            entity.HasIndex(e => e.Index).IsUnique();
 
             // Many-to-many relationship with DevKitEntity (multiple devkits can be used in multiple sessions)
             entity.HasMany(e => e.UsedDevKits)
@@ -254,6 +262,23 @@ public class AnalogAgendaDbContext(DbContextOptions<AnalogAgendaDbContext> optio
             entity.HasOne(e => e.Photo)
                 .WithMany()
                 .HasForeignKey(e => e.PhotoId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<IdeaSessionEntity>(entity =>
+        {
+            entity.ToTable("IdeaSessions");
+            entity.HasKey(e => new { e.IdeaId, e.SessionId });
+            entity.Property(e => e.IdeaId).HasMaxLength(50);
+            entity.Property(e => e.SessionId).HasMaxLength(50);
+            entity.HasIndex(e => e.SessionId);
+            entity.HasOne(e => e.Idea)
+                .WithMany(i => i.IdeaSessions)
+                .HasForeignKey(e => e.IdeaId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.Session)
+                .WithMany(s => s.IdeaSessions)
+                .HasForeignKey(e => e.SessionId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
 

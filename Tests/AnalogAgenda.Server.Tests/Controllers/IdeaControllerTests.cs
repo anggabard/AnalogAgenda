@@ -1,3 +1,4 @@
+using System.Linq.Expressions;
 using AnalogAgenda.Server.Controllers;
 using Configuration.Sections;
 using Database.DTOs;
@@ -41,7 +42,7 @@ public class IdeaControllerTests
     [Fact]
     public async Task GetAll_ReturnsEmptyList_WhenNoIdeas()
     {
-        _mockDatabaseService.Setup(x => x.GetAllAsync<IdeaEntity>()).ReturnsAsync(new List<IdeaEntity>());
+        _mockDatabaseService.Setup(x => x.GetAllIdeasWithSessionLinksAsync()).ReturnsAsync(new List<IdeaEntity>());
 
         var result = await _controller.GetAll();
 
@@ -58,7 +59,7 @@ public class IdeaControllerTests
             new() { Id = "abc", Title = "Idea 1", Description = "Desc 1", CreatedDate = DateTime.UtcNow, UpdatedDate = DateTime.UtcNow },
             new() { Id = "def", Title = "Idea 2", Description = "Desc 2", CreatedDate = DateTime.UtcNow, UpdatedDate = DateTime.UtcNow }
         };
-        _mockDatabaseService.Setup(x => x.GetAllAsync<IdeaEntity>()).ReturnsAsync(ideas);
+        _mockDatabaseService.Setup(x => x.GetAllIdeasWithSessionLinksAsync()).ReturnsAsync(ideas);
 
         var result = await _controller.GetAll();
 
@@ -86,7 +87,7 @@ public class IdeaControllerTests
     {
         var id = "abc";
         var entity = new IdeaEntity { Id = id, Title = "My Idea", Description = "My desc", CreatedDate = DateTime.UtcNow, UpdatedDate = DateTime.UtcNow };
-        _mockDatabaseService.Setup(x => x.GetByIdAsync<IdeaEntity>(id)).ReturnsAsync(entity);
+        _mockDatabaseService.Setup(x => x.GetIdeaByIdWithSessionLinksAsync(id)).ReturnsAsync(entity);
 
         var result = await _controller.GetById(id);
 
@@ -105,6 +106,22 @@ public class IdeaControllerTests
             .Setup(x => x.AddAsync(It.IsAny<IdeaEntity>()))
             .Callback<IdeaEntity>(e => e.Id = "xyz")
             .ReturnsAsync((IdeaEntity e) => e);
+
+        var reloaded = new IdeaEntity
+        {
+            Id = "xyz",
+            Title = "New Idea",
+            Description = "New desc",
+            CreatedDate = DateTime.UtcNow,
+            UpdatedDate = DateTime.UtcNow
+        };
+        _mockDatabaseService.Setup(x => x.GetIdeaByIdWithSessionLinksAsync("xyz")).ReturnsAsync(reloaded);
+
+        _mockDatabaseService
+            .Setup(x => x.ReplaceEntitiesAsync(
+                It.IsAny<Expression<Func<IdeaSessionEntity, bool>>>(),
+                It.IsAny<IEnumerable<IdeaSessionEntity>>()))
+            .Returns(Task.CompletedTask);
 
         var result = await _controller.Create(dto);
 
@@ -144,6 +161,11 @@ public class IdeaControllerTests
         var dto = new IdeaDto { Id = id, Title = "Updated", Description = "Updated desc" };
         _mockDatabaseService.Setup(x => x.GetByIdAsync<IdeaEntity>(id)).ReturnsAsync(existingEntity);
         _mockDatabaseService.Setup(x => x.UpdateAsync(It.IsAny<IdeaEntity>())).Returns(Task.CompletedTask);
+        _mockDatabaseService
+            .Setup(x => x.ReplaceEntitiesAsync(
+                It.IsAny<Expression<Func<IdeaSessionEntity, bool>>>(),
+                It.IsAny<IEnumerable<IdeaSessionEntity>>()))
+            .Returns(Task.CompletedTask);
 
         var result = await _controller.Update(id, dto);
 

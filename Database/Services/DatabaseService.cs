@@ -124,6 +124,13 @@ public class DatabaseService(AnalogAgendaDbContext context) : IDatabaseService
         return await _context.Set<T>().AnyAsync(predicate);
     }
 
+    public async Task<int> GetNextSessionIndexAsync()
+    {
+        if (!await _context.Set<SessionEntity>().AnyAsync())
+            return 1;
+        return await _context.Set<SessionEntity>().MaxAsync(s => s.Index) + 1;
+    }
+
     public async Task<T> AddAsync<T>(T entity) where T : BaseEntity
     {
         if (string.IsNullOrEmpty(entity.Id))
@@ -242,5 +249,26 @@ public class DatabaseService(AnalogAgendaDbContext context) : IDatabaseService
             query = query.Include(include);
         return await query.ToListAsync();
     }
+
+    public async Task<List<IdeaEntity>> GetAllIdeasWithSessionLinksAsync() =>
+        await _context.Set<IdeaEntity>()
+            .Include(i => i.IdeaSessions)
+            .ThenInclude(j => j.Session)
+            .ToListAsync();
+
+    public async Task<IdeaEntity?> GetIdeaByIdWithSessionLinksAsync(string id) =>
+        await _context.Set<IdeaEntity>()
+            .Include(i => i.IdeaSessions)
+            .ThenInclude(j => j.Session)
+            .FirstOrDefaultAsync(e => e.Id == id);
+
+    public async Task<SessionEntity?> GetSessionByIdWithFullIncludesAsync(string id) =>
+        await _context.Set<SessionEntity>()
+            .AsSplitQuery()
+            .Include(s => s.UsedDevKits)
+            .Include(s => s.DevelopedFilms)
+            .Include(s => s.IdeaSessions)
+            .ThenInclude(j => j.Idea)
+            .FirstOrDefaultAsync(s => s.Id == id);
 }
 

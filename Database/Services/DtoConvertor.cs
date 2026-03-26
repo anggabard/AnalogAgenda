@@ -84,17 +84,35 @@ public class DtoConvertor(Configuration.Sections.System systemCfg, Storage stora
         Expired = entity.Expired
     };
 
-    public SessionDto ToDTO(SessionEntity entity) => new()
+    public SessionDto ToDTO(SessionEntity entity)
     {
-        Id = entity.Id,
-        SessionDate = DateOnly.FromDateTime(entity.SessionDate),
-        Location = entity.Location,
-        Participants = entity.Participants,
-        ImageUrl = BuildImageUrl(ContainerName.sessions, entity.ImageId),
-        Description = entity.Description,
-        UsedSubstances = string.Join(",", entity.UsedDevKits.Select(d => d.Id)),
-        DevelopedFilms = string.Join(",", entity.DevelopedFilms.Select(f => f.Id))
-    };
+        var dto = new SessionDto
+        {
+            Id = entity.Id,
+            Index = entity.Index,
+            Name = entity.Name,
+            SessionDate = DateOnly.FromDateTime(entity.SessionDate),
+            Location = entity.Location,
+            Participants = entity.Participants,
+            ImageUrl = BuildImageUrl(ContainerName.sessions, entity.ImageId),
+            Description = entity.Description,
+            UsedSubstances = string.Join(",", entity.UsedDevKits.Select(d => d.Id)),
+            DevelopedFilms = string.Join(",", entity.DevelopedFilms.Select(f => f.Id))
+        };
+
+        if (entity.IdeaSessions is { Count: > 0 })
+        {
+            var summaries = entity.IdeaSessions
+                .Where(x => x.Idea != null)
+                .OrderBy(x => x.Idea!.Title)
+                .Select(x => new SessionLinkedIdeaSummaryDto { Id = x.IdeaId, Title = x.Idea!.Title })
+                .ToList();
+            dto.ConnectedIdeas = summaries;
+            dto.ConnectedIdeaIds = summaries.Select(x => x.Id).ToList();
+        }
+
+        return dto;
+    }
 
     public NoteDto ToDTO(NoteEntity entity) => new()
     {
@@ -182,12 +200,39 @@ public class DtoConvertor(Configuration.Sections.System systemCfg, Storage stora
         EntitiesPerPage = entity.EntitiesPerPage
     };
 
-    public IdeaDto ToDTO(IdeaEntity entity) => new()
+    public IdeaDto ToDTO(IdeaEntity entity)
     {
-        Id = entity.Id,
-        Title = entity.Title,
-        Description = entity.Description,
-        Outcome = entity.Outcome
-    };
+        var linked = BuildIdeaConnectedSessions(entity);
+        return new()
+        {
+            Id = entity.Id,
+            Title = entity.Title,
+            Description = entity.Description,
+            Outcome = entity.Outcome,
+            ConnectedSessionIds = linked.Select(x => x.Id).ToList(),
+            ConnectedSessions = linked
+        };
+    }
+
+    private static List<IdeaSessionSummaryDto> BuildIdeaConnectedSessions(IdeaEntity entity)
+    {
+        if (entity.IdeaSessions == null || entity.IdeaSessions.Count == 0)
+        {
+            return [];
+        }
+
+        return entity.IdeaSessions
+            .Where(x => x.Session != null)
+            .OrderBy(x => x.Session!.Index < 1 ? int.MaxValue : x.Session.Index)
+            .ThenBy(x => x.SessionId)
+            .Select(x => new IdeaSessionSummaryDto
+            {
+                Id = x.SessionId,
+                DisplayLabel = string.IsNullOrWhiteSpace(x.Session!.Name)
+                    ? (x.Session.Index >= 1 ? $"Session {x.Session.Index}" : string.Empty)
+                    : x.Session.Name.Trim()
+            })
+            .ToList();
+    }
 }
 

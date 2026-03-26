@@ -194,6 +194,18 @@
 
   <!-- Session Details Form -->
   <form [formGroup]="form" class="session-form" *ngIf="isEditMode || isInsert">
+    <div class="form-group">
+      <label for="sessionName">Session name (optional)</label>
+      <input
+        type="text"
+        id="sessionName"
+        formControlName="name"
+        class="form-input"
+        [attr.placeholder]="sessionNamePlaceholder"
+        [readonly]="isViewMode" />
+      <small class="form-help">Leave empty to use the default label shown in the placeholder.</small>
+    </div>
+
     <div class="form-row">
       <div class="form-group">
         <label for="location">Location *</label>
@@ -246,6 +258,43 @@
             class="btn btn-secondary add-participant-btn" 
             (click)="addParticipant()"
             [disabled]="!newParticipant.trim()">
+            Add
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label for="linkedIdeas">Ideas</label>
+      <div class="participants-container">
+        <div class="participants-list" *ngIf="linkedIdeaIds.length > 0">
+          <span *ngFor="let ideaId of linkedIdeaIds" class="participant-tag idea-tag">
+            {{ linkedIdeaTitle(ideaId) }}
+            <button
+              *ngIf="isEditMode || isInsert"
+              type="button"
+              class="remove-participant-btn"
+              (click)="removeLinkedIdea(ideaId)"
+              title="Remove idea">
+              ✕
+            </button>
+          </span>
+        </div>
+        <div class="add-participant-section" *ngIf="isEditMode || isInsert">
+          <select
+            id="linkedIdeas"
+            class="form-input participant-input"
+            [(ngModel)]="selectedIdeaIdToAdd"
+            [ngModelOptions]="{standalone: true}"
+            aria-label="Add wacky idea">
+            <option value="">Select a wacky idea to link…</option>
+            <option *ngFor="let idea of ideasAvailableToAdd" [value]="idea.id">{{ idea.title }}</option>
+          </select>
+          <button
+            type="button"
+            class="btn btn-secondary add-participant-btn"
+            (click)="addLinkedIdea()"
+            [disabled]="!selectedIdeaIdToAdd">
             Add
           </button>
         </div>

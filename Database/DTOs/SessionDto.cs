@@ -7,6 +7,18 @@ public class SessionDto : HasImage
 {
     public string Id { get; set; } = string.Empty;
 
+    /// <summary>Database-generated; not set from client on create.</summary>
+    public int Index { get; set; }
+
+    /// <summary>Optional; empty or whitespace => default label uses Index.</summary>
+    public string? Name { get; set; }
+
+    /// <summary>Derived for API; never exposes "Session 0" (requires Index &gt;= 1).</summary>
+    public string DisplayLabel =>
+        string.IsNullOrWhiteSpace(Name)
+            ? (Index >= 1 ? $"Session {Index}" : string.Empty)
+            : Name.Trim();
+
     public DateOnly SessionDate { get; set; }
 
     public required string Location { get; set; }
@@ -40,4 +52,10 @@ public class SessionDto : HasImage
 
     // Dictionary mapping DevKit Id to list of Film Ids developed with that DevKit
     public Dictionary<string, List<string>> FilmToDevKitMapping { get; set; } = [];
+
+    /// <summary>Wacky ideas linked to this session (read model when IdeaSessions are loaded).</summary>
+    public List<SessionLinkedIdeaSummaryDto> ConnectedIdeas { get; set; } = [];
+
+    /// <summary>Idea ids to sync on create/update (junction IdeaSessions). Invalid ids are ignored.</summary>
+    public List<string> ConnectedIdeaIds { get; set; } = [];
 }
