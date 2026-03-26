@@ -18,7 +18,8 @@ export class QuantityStepperComponent {
 
   @HostBinding('class')
   get hostClasses(): string {
-    return `quantity-stepper-root quantity-stepper-root--${this.theme}`;
+    const base = `quantity-stepper-root quantity-stepper-root--${this.theme}`;
+    return this.disabled ? `${base} quantity-stepper-root--disabled` : base;
   }
 
   decrement(): void {

@@ -1,0 +1,73 @@
+<ng-container *ngIf="totalSec > 0">
+  <div class="notes-timer-expanded-wrap" *ngIf="!isMinimized">
+    <div class="notes-timer-bar" role="region" aria-label="Process timer">
+      <div class="notes-timer-head">
+        <div class="notes-timer-head-spacer" aria-hidden="true"></div>
+        <div class="notes-timer-time">
+          <span class="notes-timer-elapsed">{{ formatTwo(displayElapsed.m) }}:{{ formatTwo(displayElapsed.s) }}</span>
+          <span class="notes-timer-sep">/</span>
+          <span class="notes-timer-total">{{ formatTwo(displayTotal.m) }}:{{ formatTwo(displayTotal.s) }}</span>
+        </div>
+        <button
+          type="button"
+          class="notes-timer-fab notes-timer-fab-collapse"
+          (click)="setMinimized(true)"
+          aria-label="Minimize timer">
+          <svg class="notes-timer-fab-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path fill="currentColor" d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z" />
+          </svg>
+        </button>
+      </div>
+
+      <div class="notes-timer-controls">
+        <div class="notes-timer-nudge notes-timer-nudge-left">
+          <button type="button" class="notes-timer-btn notes-timer-nudge-btn" (click)="nudgeSeconds(-30)" aria-label="Subtract 30 seconds">
+            −30s
+          </button>
+          <button type="button" class="notes-timer-btn notes-timer-nudge-btn" (click)="nudgeSeconds(-5)" aria-label="Subtract 5 seconds">
+            −5s
+          </button>
+        </div>
+
+        <div class="notes-timer-transport">
+          <button
+            type="button"
+            class="notes-timer-btn notes-timer-transport-btn"
+            (click)="isPlaying ? pause() : play()"
+            [attr.aria-label]="isPlaying ? 'Pause' : 'Play'">
+            <svg *ngIf="!isPlaying" class="notes-timer-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <polygon points="8,5 19,12 8,19" fill="currentColor" />
+            </svg>
+            <svg *ngIf="isPlaying" class="notes-timer-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <rect x="6" y="5" width="4" height="14" fill="currentColor" />
+              <rect x="14" y="5" width="4" height="14" fill="currentColor" />
+            </svg>
+          </button>
+          <button type="button" class="notes-timer-btn notes-timer-transport-btn" (click)="stop()" aria-label="Stop and reset">
+            <svg class="notes-timer-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <rect x="6" y="6" width="12" height="12" fill="currentColor" />
+            </svg>
+          </button>
+        </div>
+
+        <div class="notes-timer-nudge notes-timer-nudge-right">
+          <button type="button" class="notes-timer-btn notes-timer-nudge-btn" (click)="nudgeSeconds(5)" aria-label="Add 5 seconds">
+            +5s
+          </button>
+          <button type="button" class="notes-timer-btn notes-timer-nudge-btn" (click)="nudgeSeconds(30)" aria-label="Add 30 seconds">
+            +30s
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="isMinimized" class="notes-timer-minimized" role="status" aria-live="polite">
+    <span class="notes-timer-minimized-time">{{ formatTwo(displayElapsed.m) }}:{{ formatTwo(displayElapsed.s) }}</span>
+    <button type="button" class="notes-timer-fab notes-timer-fab-expand" (click)="setMinimized(false)" aria-label="Expand timer">
+      <svg class="notes-timer-fab-icon" viewBox="0 0 24 24" aria-hidden="true">
+        <path fill="currentColor" d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6 1.41 1.41z" />
+      </svg>
+    </button>
+  </div>
+</ng-container>

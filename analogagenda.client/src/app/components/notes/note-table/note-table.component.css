@@ -7,6 +7,10 @@
   color: #111827;
 }
 
+.notes-page-with-timer {
+  padding-bottom: calc(var(--notes-timer-bar-height, 132px) + env(safe-area-inset-bottom, 0px));
+}
+
 .note-header {
   display: flex;
   justify-content: space-between;
