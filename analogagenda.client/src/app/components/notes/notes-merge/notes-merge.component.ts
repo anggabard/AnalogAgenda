@@ -127,7 +127,7 @@ export class NotesMergeComponent implements OnInit {
   }
 
   private initMergeNoteUi(): void {
-    const palette = ['#22c55e', '#ef4444', '#3b82f6', '#a855f7', '#f97316', '#14b8a6', '#eab308'];
+    const palette = [ '#135dd6', '#f97316', '#22c55e', '#ef4444', '#14b8a6', '#eab308', '#a855f7'];
     this.mergeNoteUi = this.notes.map((n, i) => ({
       noteId: n.id,
       alias: n.name,
