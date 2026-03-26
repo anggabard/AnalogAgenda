@@ -123,7 +123,12 @@ export class NotesTimerComponent implements OnChanges, OnDestroy, OnInit {
       this.doc.documentElement.style.setProperty('--notes-timer-bar-height', '0px');
       return;
     }
-    const h = this.isMinimized ? '58px' : '132px';
+    const rootStyle = this.doc.defaultView?.getComputedStyle(this.doc.documentElement);
+    const minimizedHeight =
+      rootStyle?.getPropertyValue('--notes-timer-bar-height-minimized')?.trim() || '58px';
+    const expandedHeight =
+      rootStyle?.getPropertyValue('--notes-timer-bar-height-expanded')?.trim() || '132px';
+    const h = this.isMinimized ? minimizedHeight : expandedHeight;
     this.doc.documentElement.style.setProperty('--notes-timer-bar-height', h);
   }
 

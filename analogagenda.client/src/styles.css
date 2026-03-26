@@ -4,7 +4,7 @@
   --bg-menu-panel: #7c92a4  ;
   --bg-menu-highlight: #e0e0e0a6;
   --text-light: #ffffffb2;
-  /* Space reserved for fixed notes timer bar + safe area */
+  /* Space reserved for fixed notes timer bar; safe-area inset is applied separately */
   --notes-timer-bar-height: 132px;
 }
 
