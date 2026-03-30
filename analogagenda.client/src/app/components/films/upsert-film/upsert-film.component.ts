@@ -403,9 +403,18 @@ export class UpsertFilmComponent extends BaseUpsertComponent<FilmDto> implements
         }
 
         if (extras.length > 0) {
+          const afterFilm: Observable<unknown>[] = [
+            this.patchSessionForFilmAssignment(
+              item.developedInSessionId!,
+              id,
+              item.developedWithDevKitId,
+              session
+            ),
+            ...extras,
+          ];
           return film$.pipe(
             switchMap(() =>
-              extras.length > 1 ? forkJoin(extras) : extras[0]
+              afterFilm.length > 1 ? forkJoin(afterFilm) : afterFilm[0]
             )
           );
         }
@@ -440,6 +449,14 @@ export class UpsertFilmComponent extends BaseUpsertComponent<FilmDto> implements
             )
           );
         } else if (prevKit !== nextKit) {
+          afterFilm.push(
+            this.patchSessionForFilmAssignment(
+              item.developedInSessionId!,
+              id,
+              nextKit,
+              session
+            )
+          );
           if (prevKit) {
             afterFilm.push(
               this.devKitService.getById(prevKit).pipe(

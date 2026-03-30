@@ -938,6 +938,13 @@ describe('UpsertFilmComponent', () => {
       component.submit();
       tick();
 
+      expect(mockSessionService.update).toHaveBeenCalledWith(
+        'sess-1',
+        jasmine.objectContaining({
+          developedFilmsList: ['film-1'],
+          filmToDevKitMapping: {},
+        })
+      );
       expect(mockDevKitService.update).toHaveBeenCalledWith(
         'kit-1',
         jasmine.objectContaining({ filmsDeveloped: 2 })
@@ -998,7 +1005,7 @@ describe('UpsertFilmComponent', () => {
       });
       mockFilmService.getById.and.returnValue(of(originalFilm));
       mockSessionService.getById.and.returnValue(
-        of(minimalSession('sess-1', ['film-1']))
+        of(minimalSession('sess-1', ['film-1'], { 'kit-a': ['film-1'] }))
       );
       mockDevKitService.getById.and.callFake((kid: string) =>
         of(minimalDevKit(kid, kid === 'kit-a' ? 5 : 1))
@@ -1018,7 +1025,13 @@ describe('UpsertFilmComponent', () => {
       component.submit();
       tick();
 
-      expect(mockSessionService.update).not.toHaveBeenCalled();
+      expect(mockSessionService.update).toHaveBeenCalledWith(
+        'sess-1',
+        jasmine.objectContaining({
+          developedFilmsList: ['film-1'],
+          filmToDevKitMapping: { 'kit-b': ['film-1'] },
+        })
+      );
       expect(mockFilmService.update).toHaveBeenCalled();
       expect(mockDevKitService.update).toHaveBeenCalledTimes(2);
       const kitA = mockDevKitService.update.calls.all().find((c) => c.args[0] === 'kit-a')!.args[1] as { filmsDeveloped: number };
