@@ -302,7 +302,9 @@ export class UpsertFilmComponent extends BaseUpsertComponent<FilmDto> implements
       );
     }
 
-    return extra.length ? forkJoin([film$, ...extra]) : film$;
+    return film$.pipe(
+      switchMap(() => (extra.length > 1 ? forkJoin(extra) : extra[0]))
+    );
   }
 
   /**
@@ -355,6 +357,7 @@ export class UpsertFilmComponent extends BaseUpsertComponent<FilmDto> implements
     return this.sessionService.update(sessionId, {
       ...session,
       developedFilmsList: nextList,
+      developedFilms: nextList.join(','),
       filmToDevKitMapping,
     });
   }
@@ -448,6 +451,19 @@ export class UpsertFilmComponent extends BaseUpsertComponent<FilmDto> implements
               session
             )
           );
+          // Server "added film" always increments nextKit when mapped; offset prior kit count if the film was already counted there.
+          if (prevKit) {
+            afterFilm.push(
+              this.devKitService.getById(prevKit).pipe(
+                switchMap((dk) =>
+                  this.devKitService.update(prevKit, {
+                    ...dk,
+                    filmsDeveloped: Math.max(0, (dk.filmsDeveloped || 0) - 1),
+                  })
+                )
+              )
+            );
+          }
         } else if (prevKit !== nextKit) {
           afterFilm.push(
             this.patchSessionForFilmAssignment(
@@ -505,13 +521,10 @@ export class UpsertFilmComponent extends BaseUpsertComponent<FilmDto> implements
                     switchMap((session) => {
                       const list = session.developedFilmsList || [];
                       const nextList = list.filter((fid) => fid !== id);
-                      if (nextList.length === list.length) {
-                        return of(void 0);
-                      }
+                      const raw = session.filmToDevKitMapping || {};
                       const filmToDevKitMapping: {
                         [devKitId: string]: string[];
                       } = {};
-                      const raw = session.filmToDevKitMapping || {};
                       for (const [kitId, films] of Object.entries(raw)) {
                         const filtered = (films || []).filter(
                           (fid) => fid !== id
@@ -520,11 +533,19 @@ export class UpsertFilmComponent extends BaseUpsertComponent<FilmDto> implements
                           filmToDevKitMapping[kitId] = filtered;
                         }
                       }
+                      const hadFilmInList = list.includes(id);
+                      const hadFilmInMapping = Object.values(raw).some(
+                        (films) => (films || []).includes(id)
+                      );
+                      if (!hadFilmInList && !hadFilmInMapping) {
+                        return of(void 0);
+                      }
                       return this.sessionService.update(
                         originalFilm.developedInSessionId!,
                         {
                           ...session,
                           developedFilmsList: nextList,
+                          developedFilms: nextList.join(','),
                           filmToDevKitMapping,
                         }
                       );

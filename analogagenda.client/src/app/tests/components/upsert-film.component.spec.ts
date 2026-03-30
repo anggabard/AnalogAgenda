@@ -942,6 +942,7 @@ describe('UpsertFilmComponent', () => {
         'sess-1',
         jasmine.objectContaining({
           developedFilmsList: ['film-1'],
+          developedFilms: 'film-1',
           filmToDevKitMapping: {},
         })
       );
@@ -991,6 +992,7 @@ describe('UpsertFilmComponent', () => {
         'sess-new',
         jasmine.objectContaining({
           developedFilmsList: ['film-1'],
+          developedFilms: 'film-1',
           filmToDevKitMapping: {},
         })
       );
@@ -1029,6 +1031,7 @@ describe('UpsertFilmComponent', () => {
         'sess-1',
         jasmine.objectContaining({
           developedFilmsList: ['film-1'],
+          developedFilms: 'film-1',
           filmToDevKitMapping: { 'kit-b': ['film-1'] },
         })
       );
@@ -1077,7 +1080,50 @@ describe('UpsertFilmComponent', () => {
         'sess-new',
         jasmine.objectContaining({
           developedFilmsList: ['film-1'],
+          developedFilms: 'film-1',
           filmToDevKitMapping: { 'kit-1': ['film-1'] },
+        })
+      );
+      // Offset server "added film" +1 when the film was already counted on this kit.
+      expect(mockDevKitService.update).toHaveBeenCalledWith(
+        'kit-1',
+        jasmine.objectContaining({ filmsDeveloped: 1 })
+      );
+    }));
+
+    it('should patch session when marking not developed if film is absent from developedFilmsList but still in filmToDevKitMapping', fakeAsync(() => {
+      mockActivatedRoute.snapshot.paramMap.get.and.returnValue('film-1');
+      const originalFilm = baseDevelopedFilm({
+        developed: true,
+        developedInSessionId: 'sess-1',
+        developedWithDevKitId: 'kit-1',
+      });
+      mockFilmService.getById.and.returnValue(of(originalFilm));
+      mockSessionService.getById.and.returnValue(
+        of(
+          minimalSession('sess-1', ['other'], {
+            'kit-1': ['film-1', 'other'],
+          })
+        )
+      );
+      mockDevKitService.getById.and.returnValue(of(minimalDevKit('kit-1', 2)));
+
+      component.id = 'film-1';
+      component.isInsert = false;
+      fixture.detectChanges();
+      component.ngOnInit();
+      tick();
+
+      component.form.patchValue({ developed: false });
+      component.submit();
+      tick();
+
+      expect(mockSessionService.update).toHaveBeenCalledWith(
+        'sess-1',
+        jasmine.objectContaining({
+          developedFilmsList: ['other'],
+          developedFilms: 'other',
+          filmToDevKitMapping: { 'kit-1': ['other'] },
         })
       );
     }));
