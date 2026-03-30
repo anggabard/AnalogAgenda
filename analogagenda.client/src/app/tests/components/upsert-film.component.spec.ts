@@ -5,7 +5,7 @@ import { of, throwError } from 'rxjs';
 import { UpsertFilmComponent } from '../../components/films/upsert-film/upsert-film.component';
 import { FilmService, SessionService, DevKitService, PhotoService, UsedFilmThumbnailService } from '../../services';
 import { DevKitType, UsernameType, FilmType, CurrencyType } from '../../enums';
-import { FilmDto } from '../../DTOs';
+import { FilmDto, SessionDto } from '../../DTOs';
 import { TestConfig } from '../test.config';
 import { sortUsedFilmThumbnailsByBrandIsoSimilarity } from '../../helpers/used-film-thumbnail-rank.helper';
 
@@ -748,6 +748,282 @@ describe('UpsertFilmComponent', () => {
 
       expect(mockFilmService.update).toHaveBeenCalledWith('film-1', jasmine.any(Object));
       expect(mockDevKitService.update).not.toHaveBeenCalled();
+    }));
+  });
+
+  describe('getUpdateObservable association reconciliation', () => {
+    const minimalSession = (id: string, developedFilmsList: string[]): SessionDto =>
+      ({
+        id,
+        sessionDate: '2020-01-01',
+        location: 'Loc',
+        participants: '[]',
+        description: '',
+        usedSubstances: '',
+        developedFilms: developedFilmsList.join(','),
+        imageUrl: '',
+        imageBase64: '',
+        participantsList: [],
+        usedSubstancesList: [],
+        developedFilmsList,
+      }) as SessionDto;
+
+    const minimalDevKit = (id: string, filmsDeveloped: number) =>
+      ({
+        id,
+        name: 'Kit',
+        url: '',
+        type: DevKitType.C41,
+        purchasedBy: UsernameType.Angel,
+        purchasedOn: '2020-01-01',
+        mixedOn: null,
+        validForWeeks: 4,
+        validForFilms: 10,
+        filmsDeveloped,
+        imageUrl: '',
+        description: '',
+        expired: false,
+      });
+
+    const baseDevelopedFilm = (overrides: Partial<FilmDto> = {}): FilmDto =>
+      ({
+        id: 'film-1',
+        name: '',
+        brand: 'Brand',
+        iso: '400',
+        type: FilmType.ColorNegative,
+        numberOfExposures: 36,
+        cost: 10,
+        costCurrency: CurrencyType.RON,
+        purchasedBy: UsernameType.Angel,
+        purchasedOn: '2023-01-01',
+        imageUrl: '',
+        description: 'Note',
+        developed: true,
+        developedWithDevKitId: null,
+        developedInSessionId: null,
+        formattedExposureDate: '',
+        ...overrides,
+      });
+
+    beforeEach(() => {
+      mockFilmService.update.and.returnValue(of(undefined));
+      mockSessionService.update.and.returnValue(of(undefined));
+      mockDevKitService.update.and.returnValue(of(undefined));
+    });
+
+    it('should not call getById on submit when developed with no session or devkit', fakeAsync(() => {
+      mockActivatedRoute.snapshot.paramMap.get.and.returnValue('film-1');
+      const originalFilm = baseDevelopedFilm();
+      mockFilmService.getById.and.returnValue(of(originalFilm));
+
+      component.id = 'film-1';
+      component.isInsert = false;
+      fixture.detectChanges();
+      component.ngOnInit();
+      tick();
+
+      mockFilmService.getById.calls.reset();
+      component.form.patchValue({
+        description: 'Only metadata',
+        developed: true,
+        developedInSessionId: null,
+        developedWithDevKitId: null,
+      });
+      expect(component.form.valid).toBeTrue();
+
+      component.submit();
+      tick();
+
+      expect(mockFilmService.getById).not.toHaveBeenCalled();
+      expect(mockFilmService.update).toHaveBeenCalledWith('film-1', jasmine.any(Object));
+    }));
+
+    it('should decrement old DevKit and increment new when switching DevKit only', fakeAsync(() => {
+      mockActivatedRoute.snapshot.paramMap.get.and.returnValue('film-1');
+      const originalFilm = baseDevelopedFilm({
+        developedWithDevKitId: 'kit-a',
+        developedInSessionId: null,
+      });
+      mockFilmService.getById.and.returnValue(of(originalFilm));
+      mockDevKitService.getById.and.callFake((kid: string) =>
+        of(minimalDevKit(kid, kid === 'kit-a' ? 4 : 1))
+      );
+
+      component.id = 'film-1';
+      component.isInsert = false;
+      fixture.detectChanges();
+      component.ngOnInit();
+      tick();
+
+      component.form.patchValue({
+        developedWithDevKitId: 'kit-b',
+        developed: true,
+        developedInSessionId: null,
+      });
+      component.submit();
+      tick();
+
+      expect(mockFilmService.update).toHaveBeenCalled();
+      expect(mockDevKitService.update).toHaveBeenCalledTimes(2);
+      const updatedIds = mockDevKitService.update.calls.all().map((c) => c.args[0] as string);
+      expect(updatedIds).toContain('kit-a');
+      expect(updatedIds).toContain('kit-b');
+      const kitAUpdate = mockDevKitService.update.calls.all().find((c) => c.args[0] === 'kit-a')!.args[1] as { filmsDeveloped: number };
+      const kitBUpdate = mockDevKitService.update.calls.all().find((c) => c.args[0] === 'kit-b')!.args[1] as { filmsDeveloped: number };
+      expect(kitAUpdate.filmsDeveloped).toBe(3);
+      expect(kitBUpdate.filmsDeveloped).toBe(2);
+    }));
+
+    it('should decrement DevKit when clearing devkit on session-only path', fakeAsync(() => {
+      mockActivatedRoute.snapshot.paramMap.get.and.returnValue('film-1');
+      const originalFilm = baseDevelopedFilm({
+        developedInSessionId: 'sess-1',
+        developedWithDevKitId: 'kit-1',
+      });
+      mockFilmService.getById.and.returnValue(of(originalFilm));
+      mockSessionService.getById.and.returnValue(
+        of(minimalSession('sess-1', ['film-1']))
+      );
+      mockDevKitService.getById.and.returnValue(of(minimalDevKit('kit-1', 3)));
+
+      component.id = 'film-1';
+      component.isInsert = false;
+      fixture.detectChanges();
+      component.ngOnInit();
+      tick();
+
+      component.form.patchValue({
+        developed: true,
+        developedInSessionId: 'sess-1',
+        developedWithDevKitId: null,
+      });
+      component.submit();
+      tick();
+
+      expect(mockDevKitService.update).toHaveBeenCalledWith(
+        'kit-1',
+        jasmine.objectContaining({ filmsDeveloped: 2 })
+      );
+      expect(mockFilmService.update).toHaveBeenCalled();
+    }));
+
+    it('should remove film from old session and add to new when session changes', fakeAsync(() => {
+      mockActivatedRoute.snapshot.paramMap.get.and.returnValue('film-1');
+      const originalFilm = baseDevelopedFilm({
+        developedInSessionId: 'sess-old',
+        developedWithDevKitId: null,
+      });
+      mockFilmService.getById.and.returnValue(of(originalFilm));
+      mockSessionService.getById.and.callFake((sid: string) => {
+        if (sid === 'sess-old') {
+          return of(minimalSession('sess-old', ['film-1', 'other']));
+        }
+        if (sid === 'sess-new') {
+          return of(minimalSession('sess-new', []));
+        }
+        return of(minimalSession(sid, []));
+      });
+
+      component.id = 'film-1';
+      component.isInsert = false;
+      fixture.detectChanges();
+      component.ngOnInit();
+      tick();
+
+      component.form.patchValue({
+        developed: true,
+        developedInSessionId: 'sess-new',
+        developedWithDevKitId: null,
+      });
+      component.submit();
+      tick();
+
+      expect(mockSessionService.update).toHaveBeenCalledWith(
+        'sess-old',
+        jasmine.objectContaining({ developedFilmsList: ['other'] })
+      );
+      expect(mockSessionService.update).toHaveBeenCalledWith(
+        'sess-new',
+        jasmine.objectContaining({ developedFilmsList: ['film-1'] })
+      );
+      expect(mockFilmService.update).toHaveBeenCalled();
+    }));
+
+    it('should adjust both DevKits when session+devkit and kit changes', fakeAsync(() => {
+      mockActivatedRoute.snapshot.paramMap.get.and.returnValue('film-1');
+      const originalFilm = baseDevelopedFilm({
+        developedInSessionId: 'sess-1',
+        developedWithDevKitId: 'kit-a',
+      });
+      mockFilmService.getById.and.returnValue(of(originalFilm));
+      mockSessionService.getById.and.returnValue(
+        of(minimalSession('sess-1', ['film-1']))
+      );
+      mockDevKitService.getById.and.callFake((kid: string) =>
+        of(minimalDevKit(kid, kid === 'kit-a' ? 5 : 1))
+      );
+
+      component.id = 'film-1';
+      component.isInsert = false;
+      fixture.detectChanges();
+      component.ngOnInit();
+      tick();
+
+      component.form.patchValue({
+        developed: true,
+        developedInSessionId: 'sess-1',
+        developedWithDevKitId: 'kit-b',
+      });
+      component.submit();
+      tick();
+
+      expect(mockSessionService.update).not.toHaveBeenCalled();
+      expect(mockFilmService.update).toHaveBeenCalled();
+      expect(mockDevKitService.update).toHaveBeenCalledTimes(2);
+      const kitA = mockDevKitService.update.calls.all().find((c) => c.args[0] === 'kit-a')!.args[1] as { filmsDeveloped: number };
+      const kitB = mockDevKitService.update.calls.all().find((c) => c.args[0] === 'kit-b')!.args[1] as { filmsDeveloped: number };
+      expect(kitA.filmsDeveloped).toBe(4);
+      expect(kitB.filmsDeveloped).toBe(2);
+    }));
+
+    it('should remove film from old session when switching session on session+devkit path', fakeAsync(() => {
+      mockActivatedRoute.snapshot.paramMap.get.and.returnValue('film-1');
+      const originalFilm = baseDevelopedFilm({
+        developedInSessionId: 'sess-old',
+        developedWithDevKitId: 'kit-1',
+      });
+      mockFilmService.getById.and.returnValue(of(originalFilm));
+      mockSessionService.getById.and.callFake((sid: string) => {
+        if (sid === 'sess-old') {
+          return of(minimalSession('sess-old', ['film-1']));
+        }
+        return of(minimalSession('sess-new', []));
+      });
+      mockDevKitService.getById.and.returnValue(of(minimalDevKit('kit-1', 2)));
+
+      component.id = 'film-1';
+      component.isInsert = false;
+      fixture.detectChanges();
+      component.ngOnInit();
+      tick();
+
+      component.form.patchValue({
+        developed: true,
+        developedInSessionId: 'sess-new',
+        developedWithDevKitId: 'kit-1',
+      });
+      component.submit();
+      tick();
+
+      expect(mockSessionService.update).toHaveBeenCalledWith(
+        'sess-old',
+        jasmine.objectContaining({ developedFilmsList: [] })
+      );
+      expect(mockSessionService.update).toHaveBeenCalledWith(
+        'sess-new',
+        jasmine.objectContaining({ developedFilmsList: ['film-1'] })
+      );
     }));
   });
 

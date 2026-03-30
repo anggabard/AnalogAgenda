@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { FormGroup, Validators, AbstractControl, ValidationErrors } from '@angular/forms';
-import { Observable, forkJoin, Subject } from 'rxjs';
+import { Observable, forkJoin, of, Subject } from 'rxjs';
 import { switchMap, debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { BaseUpsertComponent } from '../../common';
 import { FilmService, SessionService, DevKitService, UsedFilmThumbnailService } from '../../../services';
@@ -224,6 +224,14 @@ export class UpsertFilmComponent extends BaseUpsertComponent<FilmDto> implements
       return this.handleFilmNotDeveloped(id, item);
     }
 
+    if (
+      item.developed &&
+      !item.developedInSessionId &&
+      !item.developedWithDevKitId
+    ) {
+      return this.filmService.update(id, item);
+    }
+
     return this.filmService.getById(id).pipe(
       switchMap((originalFilm) => {
         if (item.developedWithDevKitId && item.developedInSessionId) {
@@ -288,6 +296,26 @@ export class UpsertFilmComponent extends BaseUpsertComponent<FilmDto> implements
     return extra.length ? forkJoin([film$, ...extra]) : film$;
   }
 
+  /** Removes filmId from a session's developedFilmsList (no-op PUT if already absent). */
+  private removeFilmFromSessionDevelopedList(
+    sessionId: string,
+    filmId: string
+  ): Observable<unknown> {
+    return this.sessionService.getById(sessionId).pipe(
+      switchMap((session) => {
+        const currentDevelopedFilms = session.developedFilmsList || [];
+        const nextList = currentDevelopedFilms.filter((fid) => fid !== filmId);
+        if (nextList.length === currentDevelopedFilms.length) {
+          return of(void 0);
+        }
+        return this.sessionService.update(sessionId, {
+          ...session,
+          developedFilmsList: nextList,
+        });
+      })
+    );
+  }
+
   private updateFilmWithSessionUpdate(
     id: string,
     item: FilmDto,
@@ -297,10 +325,22 @@ export class UpsertFilmComponent extends BaseUpsertComponent<FilmDto> implements
       switchMap((session) => {
         const currentDevelopedFilms = session.developedFilmsList || [];
 
-        const devKitDecUpdates: Observable<unknown>[] = [];
+        const extras: Observable<unknown>[] = [];
+        if (
+          original.developedInSessionId &&
+          original.developedInSessionId !== item.developedInSessionId
+        ) {
+          extras.push(
+            this.removeFilmFromSessionDevelopedList(
+              original.developedInSessionId,
+              id
+            )
+          );
+        }
+
         if (original.developedWithDevKitId && !item.developedWithDevKitId) {
           const prevId = original.developedWithDevKitId;
-          devKitDecUpdates.push(
+          extras.push(
             this.devKitService.getById(prevId).pipe(
               switchMap((dk) =>
                 this.devKitService.update(prevId, {
@@ -312,23 +352,25 @@ export class UpsertFilmComponent extends BaseUpsertComponent<FilmDto> implements
           );
         }
 
+        const film$ = this.filmService.update(id, item);
+
         if (!currentDevelopedFilms.includes(id)) {
           const updatedSession = {
             ...session,
             developedFilmsList: [...currentDevelopedFilms, id],
           };
           return forkJoin([
-            this.filmService.update(id, item),
+            film$,
             this.sessionService.update(item.developedInSessionId!, updatedSession),
-            ...devKitDecUpdates,
+            ...extras,
           ]);
         }
 
-        if (devKitDecUpdates.length > 0) {
-          return forkJoin([this.filmService.update(id, item), ...devKitDecUpdates]);
+        if (extras.length > 0) {
+          return forkJoin([film$, ...extras]);
         }
 
-        return this.filmService.update(id, item);
+        return film$;
       })
     );
   }
@@ -351,7 +393,21 @@ export class UpsertFilmComponent extends BaseUpsertComponent<FilmDto> implements
         const prevKit = original.developedWithDevKitId ?? null;
         const nextKit = item.developedWithDevKitId!;
 
-        const updates: Observable<unknown>[] = [this.filmService.update(id, item)];
+        const updates: Observable<unknown>[] = [];
+
+        if (
+          original.developedInSessionId &&
+          original.developedInSessionId !== item.developedInSessionId
+        ) {
+          updates.push(
+            this.removeFilmFromSessionDevelopedList(
+              original.developedInSessionId,
+              id
+            )
+          );
+        }
+
+        updates.push(this.filmService.update(id, item));
 
         if (updatedSession !== session) {
           updates.push(
