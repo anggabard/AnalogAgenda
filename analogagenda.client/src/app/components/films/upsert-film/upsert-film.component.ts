@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { FormGroup, Validators, AbstractControl, ValidationErrors } from '@angular/forms';
-import { Observable, forkJoin, Subject } from 'rxjs';
+import { Observable, forkJoin, of, Subject } from 'rxjs';
 import { switchMap, debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { BaseUpsertComponent } from '../../common';
 import { FilmService, SessionService, DevKitService, UsedFilmThumbnailService } from '../../../services';
@@ -220,150 +220,357 @@ export class UpsertFilmComponent extends BaseUpsertComponent<FilmDto> implements
   }
 
   protected getUpdateObservable(id: string, item: FilmDto): Observable<any> {
-    // Check if film is being marked as not developed
     if (!item.developed) {
       return this.handleFilmNotDeveloped(id, item);
     }
-    
-    // If both session and DevKit are assigned, handle both updates
-    if (item.developedWithDevKitId && item.developedInSessionId) {
-      return this.updateFilmWithBothSessionAndDevKit(id, item);
-    }
-    
-    // If a DevKit is assigned, we need to increment its filmsDeveloped count
-    if (item.developedWithDevKitId) {
-      return this.updateFilmWithDevKitIncrement(id, item);
-    }
-    
-    // If a session is assigned, we need to update the session's developedFilmsList
-    if (item.developedInSessionId) {
-      return this.updateFilmWithSessionUpdate(id, item);
-    }
-    
-    return this.filmService.update(id, item);
-  }
 
-  private updateFilmWithDevKitIncrement(id: string, item: FilmDto): Observable<any> {
-    // First get the current DevKit to increment its filmsDeveloped
-    return this.devKitService.getById(item.developedWithDevKitId!).pipe(
-      switchMap(devKit => {
-        const updatedDevKit = {
-          ...devKit,
-          filmsDeveloped: (devKit.filmsDeveloped || 0) + 1
-        };
-        
-        // Update both the film and the DevKit
-        return forkJoin({
-          filmUpdate: this.filmService.update(id, item),
-          devKitUpdate: this.devKitService.update(item.developedWithDevKitId!, updatedDevKit)
-        });
+    return this.filmService.getById(id).pipe(
+      switchMap((originalFilm) => {
+        if (item.developedWithDevKitId && item.developedInSessionId) {
+          return this.updateFilmWithBothSessionAndDevKit(id, item, originalFilm);
+        }
+        if (item.developedWithDevKitId) {
+          return this.updateFilmWithDevKitIncrement(id, item, originalFilm);
+        }
+        if (item.developedInSessionId) {
+          return this.updateFilmWithSessionUpdate(id, item, originalFilm);
+        }
+        const film$ = this.filmService.update(id, item);
+        const extras: Observable<unknown>[] = [];
+        if (originalFilm.developedWithDevKitId) {
+          const prevId = originalFilm.developedWithDevKitId;
+          extras.push(
+            this.devKitService.getById(prevId).pipe(
+              switchMap((dk) =>
+                this.devKitService.update(prevId, {
+                  ...dk,
+                  filmsDeveloped: Math.max(0, (dk.filmsDeveloped || 0) - 1),
+                })
+              )
+            )
+          );
+        }
+        return extras.length
+          ? film$.pipe(switchMap(() => forkJoin(extras)))
+          : film$;
       })
     );
   }
 
-  private updateFilmWithSessionUpdate(id: string, item: FilmDto): Observable<any> {
-    // Get the current session to update its developedFilmsList
+  /**
+   * Adjusts DevKit filmsDeveloped only when developedWithDevKitId actually changes vs `original`.
+   * Session save already updates counts when mapping changes; saving the film again must not +1 again.
+   */
+  private updateFilmWithDevKitIncrement(
+    id: string,
+    item: FilmDto,
+    original: FilmDto
+  ): Observable<any> {
+    const prevKit = original.developedWithDevKitId ?? null;
+    const nextKit = item.developedWithDevKitId!;
+
+    if (prevKit === nextKit) {
+      return this.filmService.update(id, item);
+    }
+
+    const film$ = this.filmService.update(id, item);
+    const extra: Observable<unknown>[] = [];
+
+    if (prevKit) {
+      extra.push(
+        this.devKitService.getById(prevKit).pipe(
+          switchMap((dk) =>
+            this.devKitService.update(prevKit, {
+              ...dk,
+              filmsDeveloped: Math.max(0, (dk.filmsDeveloped || 0) - 1),
+            })
+          )
+        )
+      );
+    }
+
+    if (nextKit) {
+      extra.push(
+        this.devKitService.getById(nextKit).pipe(
+          switchMap((dk) =>
+            this.devKitService.update(nextKit, {
+              ...dk,
+              filmsDeveloped: (dk.filmsDeveloped || 0) + 1,
+            })
+          )
+        )
+      );
+    }
+
+    return film$.pipe(
+      switchMap(() => (extra.length > 1 ? forkJoin(extra) : extra[0]))
+    );
+  }
+
+  /**
+   * Server FilmToDevKitMapping: devKitId -> film ids. Aligns mapping with this film’s kit (or removes it).
+   */
+  private buildSessionFilmDevKitMapping(
+    session: SessionDto,
+    filmId: string,
+    developedWithDevKitId: string | null | undefined
+  ): { [devKitId: string]: string[] } {
+    const mapping: { [devKitId: string]: string[] } = {};
+    const raw = session.filmToDevKitMapping || {};
+    for (const [kitId, films] of Object.entries(raw)) {
+      const filtered = (films || []).filter((fid) => fid !== filmId);
+      if (filtered.length > 0) {
+        mapping[kitId] = filtered;
+      }
+    }
+    if (developedWithDevKitId) {
+      const next = mapping[developedWithDevKitId]
+        ? [...mapping[developedWithDevKitId]]
+        : [];
+      if (!next.includes(filmId)) {
+        next.push(filmId);
+      }
+      mapping[developedWithDevKitId] = next;
+    }
+    return mapping;
+  }
+
+  /**
+   * Adds film to session list and updates filmToDevKitMapping. Does not remove the film from other sessions
+   * (film FKs are authoritative; avoids server “removed film” logic racing film update).
+   */
+  private patchSessionForFilmAssignment(
+    sessionId: string,
+    filmId: string,
+    developedWithDevKitId: string | null | undefined,
+    session: SessionDto
+  ): Observable<unknown> {
+    const currentDevelopedFilms = session.developedFilmsList || [];
+    const nextList = currentDevelopedFilms.includes(filmId)
+      ? currentDevelopedFilms
+      : [...currentDevelopedFilms, filmId];
+    const filmToDevKitMapping = this.buildSessionFilmDevKitMapping(
+      session,
+      filmId,
+      developedWithDevKitId
+    );
+    return this.sessionService.update(sessionId, {
+      ...session,
+      developedFilmsList: nextList,
+      developedFilms: nextList.join(','),
+      filmToDevKitMapping,
+    });
+  }
+
+  private updateFilmWithSessionUpdate(
+    id: string,
+    item: FilmDto,
+    original: FilmDto
+  ): Observable<any> {
     return this.sessionService.getById(item.developedInSessionId!).pipe(
-      switchMap(session => {
+      switchMap((session) => {
         const currentDevelopedFilms = session.developedFilmsList || [];
-        
-        // Add this film to the session's developedFilmsList if not already present
-        if (!currentDevelopedFilms.includes(id)) {
-          const updatedSession = {
-            ...session,
-            developedFilmsList: [...currentDevelopedFilms, id]
-          };
-          
-          // Update both the film and the session
-          return forkJoin({
-            filmUpdate: this.filmService.update(id, item),
-            sessionUpdate: this.sessionService.update(item.developedInSessionId!, updatedSession)
-          });
-        } else {
-          // Film is already in the session, just update the film
-          return this.filmService.update(id, item);
+
+        const extras: Observable<unknown>[] = [];
+        if (original.developedWithDevKitId && !item.developedWithDevKitId) {
+          const prevId = original.developedWithDevKitId;
+          extras.push(
+            this.devKitService.getById(prevId).pipe(
+              switchMap((dk) =>
+                this.devKitService.update(prevId, {
+                  ...dk,
+                  filmsDeveloped: Math.max(0, (dk.filmsDeveloped || 0) - 1),
+                })
+              )
+            )
+          );
         }
+
+        const film$ = this.filmService.update(id, item);
+
+        if (!currentDevelopedFilms.includes(id)) {
+          const afterFilm: Observable<unknown>[] = [
+            this.patchSessionForFilmAssignment(
+              item.developedInSessionId!,
+              id,
+              item.developedWithDevKitId,
+              session
+            ),
+            ...extras,
+          ];
+          return film$.pipe(
+            switchMap(() =>
+              afterFilm.length > 1 ? forkJoin(afterFilm) : afterFilm[0]
+            )
+          );
+        }
+
+        if (extras.length > 0) {
+          const afterFilm: Observable<unknown>[] = [
+            this.patchSessionForFilmAssignment(
+              item.developedInSessionId!,
+              id,
+              item.developedWithDevKitId,
+              session
+            ),
+            ...extras,
+          ];
+          return film$.pipe(
+            switchMap(() =>
+              afterFilm.length > 1 ? forkJoin(afterFilm) : afterFilm[0]
+            )
+          );
+        }
+
+        return film$;
       })
     );
   }
 
-  private updateFilmWithBothSessionAndDevKit(id: string, item: FilmDto): Observable<any> {
-    // Get both the session and DevKit to update both
-    return forkJoin({
-      session: this.sessionService.getById(item.developedInSessionId!),
-      devKit: this.devKitService.getById(item.developedWithDevKitId!)
-    }).pipe(
-      switchMap(({ session, devKit }) => {
+  private updateFilmWithBothSessionAndDevKit(
+    id: string,
+    item: FilmDto,
+    original: FilmDto
+  ): Observable<any> {
+    return this.sessionService.getById(item.developedInSessionId!).pipe(
+      switchMap((session) => {
         const currentDevelopedFilms = session.developedFilmsList || [];
-        const updatedDevKit = {
-          ...devKit,
-          filmsDeveloped: (devKit.filmsDeveloped || 0) + 1
-        };
-        
-        // Add this film to the session's developedFilmsList if not already present
-        const updatedSession = !currentDevelopedFilms.includes(id) ? {
-          ...session,
-          developedFilmsList: [...currentDevelopedFilms, id]
-        } : session;
-        
-        // Update film, session, and DevKit
-        const updates = [
-          this.filmService.update(id, item),
-          this.devKitService.update(item.developedWithDevKitId!, updatedDevKit)
-        ];
-        
-        if (updatedSession !== session) {
-          updates.push(this.sessionService.update(item.developedInSessionId!, updatedSession));
+        const alreadyOnSession = currentDevelopedFilms.includes(id);
+        const prevKit = original.developedWithDevKitId ?? null;
+        const nextKit = item.developedWithDevKitId!;
+
+        const film$ = this.filmService.update(id, item);
+        const patch$ = this.patchSessionForFilmAssignment(
+          item.developedInSessionId!,
+          id,
+          nextKit,
+          session
+        );
+
+        const decPrevKit$ = (kitId: string) =>
+          this.devKitService.getById(kitId).pipe(
+            switchMap((dk) =>
+              this.devKitService.update(kitId, {
+                ...dk,
+                filmsDeveloped: Math.max(0, (dk.filmsDeveloped || 0) - 1),
+              })
+            )
+          );
+
+        const incNextKit$ = (kitId: string) =>
+          this.devKitService.getById(kitId).pipe(
+            switchMap((dk) =>
+              this.devKitService.update(kitId, {
+                ...dk,
+                filmsDeveloped: (dk.filmsDeveloped || 0) + 1,
+              })
+            )
+          );
+
+        // Session PUT runs server business logic that mutates DevKit counts; finish it before client RMW on kits to avoid lost updates.
+        if (!alreadyOnSession) {
+          if (prevKit) {
+            return film$.pipe(
+              switchMap(() => patch$),
+              switchMap(() => decPrevKit$(prevKit))
+            );
+          }
+          return film$.pipe(switchMap(() => patch$));
         }
-        
-        return forkJoin(updates);
+
+        if (prevKit !== nextKit) {
+          const afterSession: Observable<unknown>[] = [];
+          if (prevKit) {
+            afterSession.push(decPrevKit$(prevKit));
+          }
+          if (nextKit) {
+            afterSession.push(incNextKit$(nextKit));
+          }
+          if (afterSession.length === 0) {
+            return film$.pipe(switchMap(() => patch$));
+          }
+          return film$.pipe(
+            switchMap(() => patch$),
+            switchMap(() =>
+              afterSession.length > 1 ? forkJoin(afterSession) : afterSession[0]
+            )
+          );
+        }
+
+        return film$;
       })
     );
   }
 
   private handleFilmNotDeveloped(id: string, item: FilmDto): Observable<any> {
-    // Get the original film to check what associations need to be cleaned up
     return this.filmService.getById(id).pipe(
-      switchMap(originalFilm => {
-        const updates = [this.filmService.update(id, item)];
-        
-        // If the film was previously assigned to a session, remove it from the session's developedFilmsList
-        if (originalFilm.developedInSessionId) {
-          updates.push(
-            this.sessionService.getById(originalFilm.developedInSessionId).pipe(
-              switchMap(session => {
-                const currentDevelopedFilms = session.developedFilmsList || [];
-                const updatedDevelopedFilms = currentDevelopedFilms.filter(filmId => filmId !== id);
-                
-                const updatedSession = {
-                  ...session,
-                  developedFilmsList: updatedDevelopedFilms
-                };
-                
-                return this.sessionService.update(originalFilm.developedInSessionId!, updatedSession);
-              })
-            )
-          );
-        }
-        
-        // If the film was previously assigned to a DevKit, decrement the DevKit's filmsDeveloped count
-        if (originalFilm.developedWithDevKitId) {
-          updates.push(
-            this.devKitService.getById(originalFilm.developedWithDevKitId).pipe(
-              switchMap(devKit => {
-                const updatedDevKit = {
-                  ...devKit,
-                  filmsDeveloped: Math.max(0, (devKit.filmsDeveloped || 0) - 1)
-                };
-                
-                return this.devKitService.update(originalFilm.developedWithDevKitId!, updatedDevKit);
-              })
-            )
-          );
-        }
-        
-        return forkJoin(updates);
-      })
+      switchMap((originalFilm) =>
+        this.filmService.update(id, item).pipe(
+          switchMap(() => {
+            const extras: Observable<unknown>[] = [];
+
+            if (originalFilm.developedInSessionId) {
+              extras.push(
+                this.sessionService
+                  .getById(originalFilm.developedInSessionId)
+                  .pipe(
+                    switchMap((session) => {
+                      const list = session.developedFilmsList || [];
+                      const nextList = list.filter((fid) => fid !== id);
+                      const raw = session.filmToDevKitMapping || {};
+                      const filmToDevKitMapping: {
+                        [devKitId: string]: string[];
+                      } = {};
+                      for (const [kitId, films] of Object.entries(raw)) {
+                        const filtered = (films || []).filter(
+                          (fid) => fid !== id
+                        );
+                        if (filtered.length > 0) {
+                          filmToDevKitMapping[kitId] = filtered;
+                        }
+                      }
+                      const hadFilmInList = list.includes(id);
+                      const hadFilmInMapping = Object.values(raw).some(
+                        (films) => (films || []).includes(id)
+                      );
+                      if (!hadFilmInList && !hadFilmInMapping) {
+                        return of(void 0);
+                      }
+                      return this.sessionService.update(
+                        originalFilm.developedInSessionId!,
+                        {
+                          ...session,
+                          developedFilmsList: nextList,
+                          developedFilms: nextList.join(','),
+                          filmToDevKitMapping,
+                        }
+                      );
+                    })
+                  )
+              );
+            }
+
+            if (originalFilm.developedWithDevKitId) {
+              const prevId = originalFilm.developedWithDevKitId;
+              extras.push(
+                this.devKitService.getById(prevId).pipe(
+                  switchMap((devKit) =>
+                    this.devKitService.update(prevId, {
+                      ...devKit,
+                      filmsDeveloped: Math.max(
+                        0,
+                        (devKit.filmsDeveloped || 0) - 1
+                      ),
+                    })
+                  )
+                )
+              );
+            }
+
+            return extras.length ? forkJoin(extras) : of(void 0);
+          })
+        )
+      )
     );
   }
 

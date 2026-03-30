@@ -910,6 +910,10 @@ label {
     margin: 1rem;
   }
 
+  .exposure-dates-overlay {
+    touch-action: manipulation;
+  }
+
   .exposure-date-entry {
     border: 2px solid rgba(156, 163, 175, 0.3);
     border-radius: 8px;
@@ -987,6 +991,12 @@ label {
 /* Exposure Dates Modal */
 .exposure-dates-modal {
   max-width: 700px;
+  touch-action: manipulation;
+}
+
+.exposure-dates-modal .date-input,
+.exposure-dates-modal .description-input {
+  font-size: 16px;
 }
 
 .exposure-date-entry {

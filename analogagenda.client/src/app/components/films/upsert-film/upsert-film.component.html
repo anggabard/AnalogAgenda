@@ -363,8 +363,8 @@
         </div>
     </div>
 
-    <!-- Exposure Dates Modal -->
-    <div class="modal-overlay" *ngIf="isExposureDatesModalOpen" (click)="closeExposureDatesModal()">
+    <!-- Exposure Dates Modal: no backdrop click-to-close (avoids accidental close after pinch-zoom on mobile). -->
+    <div class="modal-overlay exposure-dates-overlay" *ngIf="isExposureDatesModalOpen">
         <div class="modal-content exposure-dates-modal" (click)="$event.stopPropagation()">
             <div class="modal-header">
                 <div></div>
