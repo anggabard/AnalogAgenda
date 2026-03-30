@@ -4,7 +4,8 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { UpsertFilmComponent } from '../../components/films/upsert-film/upsert-film.component';
 import { FilmService, SessionService, DevKitService, PhotoService, UsedFilmThumbnailService } from '../../services';
-import { DevKitType, UsernameType, FilmType } from '../../enums';
+import { DevKitType, UsernameType, FilmType, CurrencyType } from '../../enums';
+import { FilmDto } from '../../DTOs';
 import { TestConfig } from '../test.config';
 import { sortUsedFilmThumbnailsByBrandIsoSimilarity } from '../../helpers/used-film-thumbnail-rank.helper';
 
@@ -703,6 +704,51 @@ describe('UpsertFilmComponent', () => {
       component.ngOnInit();
       expect(component.bulkCount).toBe(7);
     });
+  });
+
+  describe('update developed film DevKit count (no duplicate increment)', () => {
+    it('should not call devKitService.update when developedWithDevKitId is unchanged', fakeAsync(() => {
+      mockActivatedRoute.snapshot.paramMap.get.and.returnValue('film-1');
+
+      const originalFilm: FilmDto = {
+        id: 'film-1',
+        name: '',
+        brand: 'Brand',
+        iso: '400',
+        type: FilmType.ColorNegative,
+        numberOfExposures: 36,
+        cost: 10,
+        costCurrency: CurrencyType.RON,
+        purchasedBy: UsernameType.Angel,
+        purchasedOn: '2023-01-01',
+        imageUrl: '',
+        description: 'Note',
+        developed: true,
+        developedWithDevKitId: 'kit-1',
+        developedInSessionId: null,
+        formattedExposureDate: '',
+      };
+
+      mockFilmService.getById.and.returnValue(of(originalFilm));
+      mockFilmService.update.and.returnValue(of(undefined));
+
+      component.id = 'film-1';
+      component.isInsert = false;
+      fixture.detectChanges();
+      component.ngOnInit();
+      tick();
+
+      mockDevKitService.update.calls.reset();
+
+      component.form.patchValue({ description: 'Updated note' });
+      expect(component.form.valid).toBeTrue();
+
+      component.submit();
+      tick();
+
+      expect(mockFilmService.update).toHaveBeenCalledWith('film-1', jasmine.any(Object));
+      expect(mockDevKitService.update).not.toHaveBeenCalled();
+    }));
   });
 
   describe('Exposure Dates Functionality', () => {

@@ -146,11 +146,24 @@
     >
       &#8250;
     </button>
-    <img
-      *ngIf="currentPreviewPhoto"
-      [src]="photoService.getPreviewUrl(currentPreviewPhoto!)"
-      [alt]="'Photo ' + currentPreviewPhoto.index"
-    />
+    <div class="preview-image-wrap">
+      <div class="preview-image-frame">
+        <img
+          *ngIf="currentPreviewPhoto"
+          [src]="photoService.getPreviewUrl(currentPreviewPhoto!)"
+          [alt]="'Photo ' + currentPreviewPhoto.index"
+        />
+        <button
+          type="button"
+          class="preview-close-btn"
+          (click)="closePreview(); $event.stopPropagation()"
+          title="Close"
+          aria-label="Close photo preview"
+        >
+          ✕
+        </button>
+      </div>
+    </div>
     <div class="preview-actions">
       <button
         class="preview-action-btn download-preview-btn"
