@@ -440,68 +440,64 @@ export class UpsertFilmComponent extends BaseUpsertComponent<FilmDto> implements
         const nextKit = item.developedWithDevKitId!;
 
         const film$ = this.filmService.update(id, item);
-        const afterFilm: Observable<unknown>[] = [];
+        const patch$ = this.patchSessionForFilmAssignment(
+          item.developedInSessionId!,
+          id,
+          nextKit,
+          session
+        );
 
+        const decPrevKit$ = (kitId: string) =>
+          this.devKitService.getById(kitId).pipe(
+            switchMap((dk) =>
+              this.devKitService.update(kitId, {
+                ...dk,
+                filmsDeveloped: Math.max(0, (dk.filmsDeveloped || 0) - 1),
+              })
+            )
+          );
+
+        const incNextKit$ = (kitId: string) =>
+          this.devKitService.getById(kitId).pipe(
+            switchMap((dk) =>
+              this.devKitService.update(kitId, {
+                ...dk,
+                filmsDeveloped: (dk.filmsDeveloped || 0) + 1,
+              })
+            )
+          );
+
+        // Session PUT runs server business logic that mutates DevKit counts; finish it before client RMW on kits to avoid lost updates.
         if (!alreadyOnSession) {
-          afterFilm.push(
-            this.patchSessionForFilmAssignment(
-              item.developedInSessionId!,
-              id,
-              nextKit,
-              session
-            )
-          );
-          // Server "added film" always increments nextKit when mapped; offset prior kit count if the film was already counted there.
           if (prevKit) {
-            afterFilm.push(
-              this.devKitService.getById(prevKit).pipe(
-                switchMap((dk) =>
-                  this.devKitService.update(prevKit, {
-                    ...dk,
-                    filmsDeveloped: Math.max(0, (dk.filmsDeveloped || 0) - 1),
-                  })
-                )
-              )
+            return film$.pipe(
+              switchMap(() => patch$),
+              switchMap(() => decPrevKit$(prevKit))
             );
           }
-        } else if (prevKit !== nextKit) {
-          afterFilm.push(
-            this.patchSessionForFilmAssignment(
-              item.developedInSessionId!,
-              id,
-              nextKit,
-              session
-            )
-          );
-          if (prevKit) {
-            afterFilm.push(
-              this.devKitService.getById(prevKit).pipe(
-                switchMap((dk) =>
-                  this.devKitService.update(prevKit, {
-                    ...dk,
-                    filmsDeveloped: Math.max(0, (dk.filmsDeveloped || 0) - 1),
-                  })
-                )
-              )
-            );
-          }
-          if (nextKit) {
-            afterFilm.push(
-              this.devKitService.getById(nextKit).pipe(
-                switchMap((dk) =>
-                  this.devKitService.update(nextKit, {
-                    ...dk,
-                    filmsDeveloped: (dk.filmsDeveloped || 0) + 1,
-                  })
-                )
-              )
-            );
-          }
+          return film$.pipe(switchMap(() => patch$));
         }
 
-        return afterFilm.length
-          ? film$.pipe(switchMap(() => forkJoin(afterFilm)))
-          : film$;
+        if (prevKit !== nextKit) {
+          const afterSession: Observable<unknown>[] = [];
+          if (prevKit) {
+            afterSession.push(decPrevKit$(prevKit));
+          }
+          if (nextKit) {
+            afterSession.push(incNextKit$(nextKit));
+          }
+          if (afterSession.length === 0) {
+            return film$.pipe(switchMap(() => patch$));
+          }
+          return film$.pipe(
+            switchMap(() => patch$),
+            switchMap(() =>
+              afterSession.length > 1 ? forkJoin(afterSession) : afterSession[0]
+            )
+          );
+        }
+
+        return film$;
       })
     );
   }
