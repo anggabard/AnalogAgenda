@@ -91,7 +91,7 @@ builder.Services.AddSingleton<IBlobService, BlobService>();
 builder.Services.AddScoped<DtoConvertor>();
 builder.Services.AddScoped<EntityConvertor>();
 
-// Ceiling for the largest per-action limit (photo upload). Other actions use RequestSizeLimit (see AddControllers).
+// Ceiling must be >= max(Default, PhotoUpload) so UploadPhoto can use 200 MB.
 builder.Services.Configure<Microsoft.AspNetCore.Server.Kestrel.Core.KestrelServerOptions>(options =>
 {
     options.Limits.MaxRequestBodySize = RequestBodySizeLimits.PhotoUpload;
