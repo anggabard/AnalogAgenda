@@ -103,6 +103,14 @@
   background: #4b5563;
 }
 
+.download-dropdown-menu.options-dropdown-menu {
+  min-width: max(11rem, max-content);
+}
+
+.options-dropdown-menu .dropdown-item {
+  white-space: nowrap;
+}
+
 .add-photos-btn {
   background: #10b981;
 }
@@ -309,6 +317,11 @@
   }
 }
 
+/* Phone-only row; hidden on desktop (side arrows + keyboard). */
+.preview-nav-mobile-row {
+  display: none;
+}
+
 .preview-actions {
   display: flex;
   gap: 1rem;
@@ -440,9 +453,87 @@
 
   .preview-actions {
     flex-direction: column;
-    width: fit-content;
+    width: 100%;
+    max-width: 100%;
+    align-self: stretch;
+    align-items: center;
+    touch-action: manipulation;
+    gap: 0.65rem;
+    flex-shrink: 0;
+    margin-top: 0.75rem;
+  }
+
+  /* Intrinsic width for main actions; Prev/Next match each other */
+  .preview-actions > .preview-action-btn:not(.preview-nav-action-btn) {
+    width: auto;
+    max-width: calc(100% - 1rem);
+    padding: 0.5rem 1rem;
+    align-self: center;
+  }
+
+  .preview-nav-mobile-row {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    gap: 0.5rem;
+    justify-content: center;
+    align-items: center;
+    width: auto;
+    max-width: 100%;
+    flex-shrink: 0;
+    order: -1;
+  }
+
+  .preview-nav-mobile-row .preview-nav-action-btn {
+    flex: 0 0 auto;
+    width: 7rem;
+    min-width: 7rem;
+    max-width: 7rem;
+    padding: 0.5rem 0.65rem;
+    box-sizing: border-box;
+    text-align: center;
+  }
+
+  /*
+   * Do not set overflow-x: hidden on .preview-content — it forces overflow-y to clip and cuts off
+   * the close button (center on image corner extends above the frame by 22px).
+   */
+  .preview-content {
+    overflow: visible;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    padding-left: max(0.5rem, env(safe-area-inset-left));
+    padding-right: max(0.75rem, calc(env(safe-area-inset-right) + 22px));
+    /* Half of 44px close btn above image corner + breathing room below status bar */
+    padding-top: max(0.75rem, calc(env(safe-area-inset-top) + 26px));
+    touch-action: pan-y;
+    /* Let the sheet grow with content; overlay scrolls */
+    max-height: none;
+    min-height: 0;
+  }
+
+  /* Portrait photos: don’t let this flex child grow — it was filling 92vh and stacking actions on the image */
+  .preview-image-wrap {
+    flex: 0 1 auto;
+    flex-grow: 0;
+    min-height: 0;
+    overflow: visible;
+    touch-action: pan-y;
     max-width: 100%;
     align-self: center;
+  }
+
+  /* Vertical scroll only on the overlay; block horizontal pan/rubber-band on the photo strip */
+  .image-preview-overlay {
+    overflow-x: hidden;
+    overscroll-behavior-x: none;
+  }
+
+  .preview-image-frame img {
+    touch-action: pan-y;
+    -webkit-user-drag: none;
+    user-select: none;
   }
 
   .nav-arrow {

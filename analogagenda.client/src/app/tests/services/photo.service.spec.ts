@@ -212,6 +212,24 @@ describe('PhotoService', () => {
     });
   });
 
+  describe('downloadSelectedPhotos', () => {
+    it('should POST download-selected with film id, ids, and small flag', () => {
+      const filmId = 'test-film-id';
+      const ids = ['p1', 'p2'];
+      const mockZipBlob = new Blob(['fake-zip'], { type: 'application/zip' });
+
+      service.downloadSelectedPhotos(filmId, ids, true).subscribe((response) => {
+        expect(response).toEqual(mockZipBlob);
+      });
+
+      const req = httpMock.expectOne(`${baseUrl}/download-selected`);
+      expect(req.request.method).toBe('POST');
+      expect(req.request.body).toEqual({ filmId, ids, small: true });
+      expect(req.request.responseType).toBe('blob');
+      req.flush(mockZipBlob);
+    });
+  });
+
   describe('deletePhoto', () => {
     it('should delete a photo', () => {
       // Arrange

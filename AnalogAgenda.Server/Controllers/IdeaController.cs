@@ -5,7 +5,7 @@ using Database.Services;
 using Database.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System.Linq;
+using Microsoft.EntityFrameworkCore;
 
 namespace AnalogAgenda.Server.Controllers;
 
@@ -23,7 +23,7 @@ public class IdeaController(
     [HttpGet]
     public async Task<IActionResult> GetAll()
     {
-        var entities = await databaseService.GetAllIdeasWithSessionLinksAsync();
+        var entities = await databaseService.GetAllWithQueryAsync<IdeaEntity>(WithIdeaSessionLinks);
         var results = entities.Select(dtoConvertor.ToDTO);
         return Ok(results);
     }
@@ -31,7 +31,7 @@ public class IdeaController(
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(string id)
     {
-        var entity = await databaseService.GetIdeaByIdWithSessionLinksAsync(id);
+        var entity = await databaseService.GetByIdWithQueryAsync<IdeaEntity>(id, WithIdeaSessionLinks);
         if (entity == null)
             return NotFound($"No Idea found with Id: {id}");
 
@@ -47,7 +47,7 @@ public class IdeaController(
         var entity = entityConvertor.ToEntity(dto);
         await databaseService.AddAsync(entity);
         await ReplaceIdeaSessionsAsync(entity.Id, dto.ConnectedSessionIds);
-        entity = await databaseService.GetIdeaByIdWithSessionLinksAsync(entity.Id) ?? entity;
+        entity = await databaseService.GetByIdWithQueryAsync<IdeaEntity>(entity.Id, WithIdeaSessionLinks) ?? entity;
         var createdDto = dtoConvertor.ToDTO(entity);
         return Created(string.Empty, createdDto);
     }
@@ -73,6 +73,9 @@ public class IdeaController(
             await ReplaceIdeaSessionsAsync(id, dto.ConnectedSessionIds);
         return NoContent();
     }
+
+    private static IQueryable<IdeaEntity> WithIdeaSessionLinks(IQueryable<IdeaEntity> query) =>
+        query.Include(i => i.IdeaSessions).ThenInclude(j => j.Session);
 
     private async Task ReplaceIdeaSessionsAsync(string ideaId, List<string>? connectedSessionIds)
     {

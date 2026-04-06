@@ -40,7 +40,14 @@ describe('FilmPhotosComponent', () => {
   beforeEach(async () => {
     const filmServiceSpy = jasmine.createSpyObj('FilmService', ['getById']);
     const photoServiceSpy = jasmine.createSpyObj('PhotoService', [
-      'getPhotosByFilmId', 'downloadPhoto', 'downloadAllPhotos', 'deletePhoto', 'uploadMultiplePhotos', 'setRestricted', 'getPreviewUrl'
+      'getPhotosByFilmId',
+      'downloadPhoto',
+      'downloadAllPhotos',
+      'downloadSelectedPhotos',
+      'deletePhoto',
+      'uploadMultiplePhotos',
+      'setRestricted',
+      'getPreviewUrl',
     ]);
     photoServiceSpy.getPreviewUrl.and.callFake((photo: PhotoDto) => `preview-${photo.id}`);
     const accountServiceSpy = jasmine.createSpyObj('AccountService', ['whoAmI']);
@@ -194,6 +201,34 @@ describe('FilmPhotosComponent', () => {
       component.onDownloadAllPhotos(false);
 
       expect(component.errorMessage).toBe('Error downloading photos archive.');
+    });
+
+    it('should download selected photos via onDownloadSelectedPhotos', () => {
+      const mockZipBlob = new Blob(['fake-zip-data'], { type: 'application/zip' });
+      mockPhotoService.downloadSelectedPhotos.and.returnValue(of(mockZipBlob));
+
+      spyOn(window.URL, 'createObjectURL').and.returnValue('blob-url');
+      spyOn(window.URL, 'revokeObjectURL');
+      spyOn(document, 'createElement').and.returnValue({
+        href: '',
+        download: '',
+        click: jasmine.createSpy('click'),
+        remove: jasmine.createSpy('remove'),
+      } as any);
+      spyOn(document.body, 'appendChild');
+      spyOn(document.body, 'removeChild');
+
+      component.onDownloadSelectedPhotos({ small: false, photos: [mockPhotos[0]] });
+
+      expect(mockPhotoService.downloadSelectedPhotos).toHaveBeenCalledWith('test-film-id', ['photo1'], false);
+    });
+
+    it('should set errorMessage when download selected fails', () => {
+      mockPhotoService.downloadSelectedPhotos.and.returnValue(throwError(() => new Error('Download failed')));
+
+      component.onDownloadSelectedPhotos({ small: true, photos: [mockPhotos[0]] });
+
+      expect(component.errorMessage).toBe('Error downloading selected photos archive.');
     });
   });
 

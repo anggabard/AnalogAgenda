@@ -45,11 +45,10 @@ public interface IDatabaseService
     Task<List<T>> GetAllWhereWithIncludesAsync<T>(Expression<Func<T, bool>> predicate, params Expression<Func<T, object>>[] includes)
         where T : BaseEntity;
 
-    Task<List<IdeaEntity>> GetAllIdeasWithSessionLinksAsync();
+    /// <summary>Materialize after applying arbitrary <see cref="IQueryable{T}"/> configuration (e.g. <c>Include</c>/<c>ThenInclude</c>).</summary>
+    Task<List<T>> GetAllWithQueryAsync<T>(Func<IQueryable<T>, IQueryable<T>> configure) where T : BaseEntity;
 
-    Task<IdeaEntity?> GetIdeaByIdWithSessionLinksAsync(string id);
-
-    /// <summary>Session with dev kits, films, and idea junction + idea titles (for session DTO).</summary>
-    Task<SessionEntity?> GetSessionByIdWithFullIncludesAsync(string id);
+    /// <summary>Load by id after applying arbitrary <see cref="IQueryable{T}"/> configuration.</summary>
+    Task<T?> GetByIdWithQueryAsync<T>(string id, Func<IQueryable<T>, IQueryable<T>> configure) where T : BaseEntity;
 }
 

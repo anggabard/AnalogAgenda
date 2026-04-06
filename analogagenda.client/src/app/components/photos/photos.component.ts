@@ -136,16 +136,7 @@ export class PhotosComponent implements OnInit {
     this.downloadAllLoadingSectionId = section.film.id;
     this.photoService.downloadAllPhotos(section.film.id, small).subscribe({
       next: (blob) => {
-        const name = section.film.name?.trim();
-        const brand = section.film.brand ? DownloadHelper.sanitizePathUnsafeChars(section.film.brand) : '';
-        const titlePart = name ? `${DownloadHelper.sanitizePathUnsafeChars(name)} - ${brand}` : brand;
-        const isoPart = section.film.iso ? ` - ISO ${DownloadHelper.sanitizeForFileName(section.film.iso)}` : '';
-        const datePart = section.film.formattedExposureDate
-          ? ` - ${DownloadHelper.sanitizePathUnsafeChars(section.film.formattedExposureDate)}`
-          : '';
-        const sizeSuffix = small ? '-small' : '';
-        const baseName = [titlePart || 'photos', isoPart, datePart].filter(Boolean).join('');
-        DownloadHelper.triggerBlobDownload(blob, `${baseName}${sizeSuffix}.zip`);
+        DownloadHelper.triggerBlobDownload(blob, this.zipFileNameForSection(section, small, false));
         this.downloadAllLoadingSectionId = null;
       },
       error: () => {
@@ -153,6 +144,39 @@ export class PhotosComponent implements OnInit {
         this.errorMessage = 'Failed to download photos archive.';
       },
     });
+  }
+
+  onDownloadSelected(section: FilmWithPhotos, payload: { small: boolean; photos: PhotoDto[] }) {
+    if (payload.photos.length === 0) {
+      return;
+    }
+    this.errorMessage = null;
+    this.downloadAllLoadingSectionId = section.film.id;
+    const ids = payload.photos.map((p) => p.id);
+    this.photoService.downloadSelectedPhotos(section.film.id, ids, payload.small).subscribe({
+      next: (blob) => {
+        DownloadHelper.triggerBlobDownload(blob, this.zipFileNameForSection(section, payload.small, true));
+        this.downloadAllLoadingSectionId = null;
+      },
+      error: () => {
+        this.downloadAllLoadingSectionId = null;
+        this.errorMessage = 'Failed to download selected photos archive.';
+      },
+    });
+  }
+
+  private zipFileNameForSection(section: FilmWithPhotos, small: boolean, selected: boolean): string {
+    const name = section.film.name?.trim();
+    const brand = section.film.brand ? DownloadHelper.sanitizePathUnsafeChars(section.film.brand) : '';
+    const titlePart = name ? `${DownloadHelper.sanitizePathUnsafeChars(name)} - ${brand}` : brand;
+    const isoPart = section.film.iso ? ` - ISO ${DownloadHelper.sanitizeForFileName(section.film.iso)}` : '';
+    const datePart = section.film.formattedExposureDate
+      ? ` - ${DownloadHelper.sanitizePathUnsafeChars(section.film.formattedExposureDate)}`
+      : '';
+    const sizeSuffix = small ? '-small' : '';
+    const selectedPart = selected ? '-selected' : '';
+    const baseName = [titlePart || 'photos', isoPart, datePart].filter(Boolean).join('');
+    return `${baseName}${selectedPart}${sizeSuffix}.zip`;
   }
 
   onRestrictToggle(section: FilmWithPhotos, photo: PhotoDto) {

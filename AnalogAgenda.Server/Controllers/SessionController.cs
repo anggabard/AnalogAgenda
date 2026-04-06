@@ -8,6 +8,7 @@ using Database.Services;
 using Database.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace AnalogAgenda.Server.Controllers;
 
@@ -46,7 +47,7 @@ public class SessionController(IDatabaseService databaseService, IBlobService bl
 
             await ReplaceSessionIdeaJunctionAsync(entity.Id, dto.ConnectedIdeaIds);
 
-            var reloaded = await databaseService.GetSessionByIdWithFullIncludesAsync(entity.Id)
+            var reloaded = await databaseService.GetByIdWithQueryAsync<SessionEntity>(entity.Id, WithSessionFullIncludes)
                 ?? throw new InvalidOperationException("Session not found after create.");
             var createdDto = dtoConvertor.ToDTO(reloaded);
 
@@ -104,7 +105,7 @@ public class SessionController(IDatabaseService databaseService, IBlobService bl
     [HttpGet("{id}")]
     public async Task<IActionResult> GetSessionById(string id)
     {
-        var sessionEntity = await databaseService.GetSessionByIdWithFullIncludesAsync(id);
+        var sessionEntity = await databaseService.GetByIdWithQueryAsync<SessionEntity>(id, WithSessionFullIncludes);
 
         if (sessionEntity == null)
             return NotFound($"No Session found with Id: {id}");
@@ -116,6 +117,13 @@ public class SessionController(IDatabaseService databaseService, IBlobService bl
         
         return Ok(sessionDto);
     }
+
+    private static IQueryable<SessionEntity> WithSessionFullIncludes(IQueryable<SessionEntity> query) =>
+        query.AsSplitQuery()
+            .Include(s => s.UsedDevKits)
+            .Include(s => s.DevelopedFilms)
+            .Include(s => s.IdeaSessions)
+            .ThenInclude(j => j.Idea);
     
     /// <summary>
     /// Syncs navigation properties on SessionEntity from SessionDto.
@@ -211,7 +219,7 @@ public class SessionController(IDatabaseService databaseService, IBlobService bl
         if (updateDto == null)
             return BadRequest("Invalid data.");
 
-        var originalSession = await databaseService.GetSessionByIdWithFullIncludesAsync(id);
+        var originalSession = await databaseService.GetByIdWithQueryAsync<SessionEntity>(id, WithSessionFullIncludes);
         if (originalSession == null)
             return NotFound();
         

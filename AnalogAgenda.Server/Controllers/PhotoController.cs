@@ -1,5 +1,4 @@
 using AnalogAgenda.Server.Helpers;
-using AnalogAgenda.Server.Identity;
 using Azure.Storage.Blobs;
 using Database.DBObjects.Enums;
 using Database.DTOs;
@@ -36,14 +35,11 @@ public class PhotoController(
 
         try
         {
-            // Validate film exists and current user is owner
             var filmEntity = await databaseService.GetByIdAsync<FilmEntity>(photoDto.FilmId);
             if (filmEntity == null)
             {
                 return NotFound("Film not found.");
             }
-            if (!FilmOwnerHelper.IsCurrentUserFilmOwner(User, filmEntity))
-                return Forbid();
 
             // Get existing photos to calculate index
             var existingPhotos = await databaseService.GetAllAsync<PhotoEntity>(
@@ -266,73 +262,103 @@ public class PhotoController(
         var allPhotos = await databaseService.GetAllAsync<PhotoEntity>(p => p.FilmId == filmId);
         var isOwner = FilmOwnerHelper.IsCurrentUserFilmOwner(User, filmEntity);
         var photos = isOwner ? allPhotos : allPhotos.Where(p => !p.Restricted).ToList();
-        if (photos.Count == 0)
+        var ordered = photos.OrderBy(p => p.Index).ToList();
+        return await BuildPhotosZipResponseAsync(filmEntity, ordered, small, archiveLabelSuffix: string.Empty);
+    }
+
+    [HttpPost("download-selected")]
+    public async Task<IActionResult> DownloadSelectedPhotos([FromBody] PhotoDownloadSelectionDto? body)
+    {
+        if (body == null || body.Ids == null || body.Ids.Count == 0)
+            return BadRequest("Photo ids are required.");
+        if (string.IsNullOrWhiteSpace(body.FilmId))
+            return BadRequest("Film id is required.");
+
+        var filmEntity = await databaseService.GetByIdWithIncludesAsync<FilmEntity>(
+            body.FilmId,
+            f => f.ExposureDates
+        );
+        if (filmEntity == null)
+            return NotFound();
+
+        var distinctIds = body.Ids.Where(id => !string.IsNullOrWhiteSpace(id)).Distinct().ToList();
+        if (distinctIds.Count == 0)
+            return BadRequest("Photo ids are required.");
+
+        var loaded = (await databaseService.GetAllAsync<PhotoEntity>(photo => distinctIds.Contains(photo.Id))).ToList();
+
+        var loadedIds = loaded.Select(photo => photo.Id).ToHashSet();
+        if (distinctIds.Any(photoId => !loadedIds.Contains(photoId)))
+            return NotFound();
+
+        if (loaded.Any(photo => photo.FilmId != body.FilmId))
+            return NotFound();
+        var isOwner = FilmOwnerHelper.IsCurrentUserFilmOwner(User, filmEntity);
+        if (loaded.Any(p => p.Restricted && !isOwner))
+            return NotFound();
+
+        var ordered = loaded.OrderBy(p => p.Index).ToList();
+        return await BuildPhotosZipResponseAsync(filmEntity, ordered, body.Small, archiveLabelSuffix: "-selected");
+    }
+
+    private async Task<IActionResult> BuildPhotosZipResponseAsync(
+        FilmEntity filmEntity,
+        IReadOnlyList<PhotoEntity> photosOrdered,
+        bool small,
+        string archiveLabelSuffix)
+    {
+        if (photosOrdered.Count == 0)
             return NotFound("No photos found for this film.");
 
         try
         {
-            // Get formatted exposure date from DTO
             var filmDto = dtoConvertor.ToDTO(filmEntity);
             var formattedDate = string.IsNullOrEmpty(filmDto.FormattedExposureDate)
                 ? string.Empty
                 : $"-{SanitizeFileName(filmDto.FormattedExposureDate)}";
-            
-            var archiveName = small
-                ? $"{SanitizeFileName(filmEntity.Name)}{formattedDate}-small.zip"
-                : $"{SanitizeFileName(filmEntity.Name)}{formattedDate}.zip";
 
-            // Use a temporary file instead of memory stream to prevent OutOfMemoryException
-            // This writes the zip to disk (which has much more space than memory)
+            var archiveName = small
+                ? $"{SanitizeFileName(filmEntity.Name)}{formattedDate}{archiveLabelSuffix}-small.zip"
+                : $"{SanitizeFileName(filmEntity.Name)}{formattedDate}{archiveLabelSuffix}.zip";
+
             var tempFilePath = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid()}.zip");
             FileStream? tempFileStream = null;
 
             try
             {
-                tempFileStream = new FileStream(tempFilePath, FileMode.Create, FileAccess.ReadWrite, FileShare.None, 4096, FileOptions.DeleteOnClose);
+                tempFileStream = new FileStream(
+                    tempFilePath,
+                    FileMode.Create,
+                    FileAccess.ReadWrite,
+                    FileShare.None,
+                    4096,
+                    FileOptions.DeleteOnClose);
 
                 using (var archive = new ZipArchive(tempFileStream, ZipArchiveMode.Create, leaveOpen: true))
                 {
-                    foreach (var photo in photos.OrderBy(p => p.Index).ToList())
+                    foreach (var photo in photosOrdered)
                     {
-                        // Determine which blob path to use based on small parameter
-                        string blobPath = small
+                        var blobPath = small
                             ? $"preview/{photo.ImageId}"
                             : photo.ImageId.ToString();
 
-                        // Download image as bytes directly (no base64 conversion - saves ~50% memory)
-                        var (imageBytes, contentType) = await BlobImageHelper.DownloadImageAsBytesAsync(
-                            photosContainer,
-                            blobPath
-                        );
-
-                        // Get file extension from content type
+                        var contentType = await BlobImageHelper.GetBlobContentTypeAsync(photosContainer, blobPath);
                         var fileExtension = BlobImageHelper.GetFileExtensionFromContentType(contentType);
                         var fileName = $"{photo.Index:D3}.{fileExtension}";
 
-                        // Create zip entry with optimal compression
                         var zipEntry = archive.CreateEntry(fileName, CompressionLevel.Optimal);
-                        using (var zipStream = zipEntry.Open())
+                        await using (var zipStream = zipEntry.Open())
                         {
-                            await zipStream.WriteAsync(imageBytes);
+                            await BlobImageHelper.CopyBlobToAsync(photosContainer, blobPath, zipStream);
                         }
-
-                        // Clear image bytes immediately to free memory
-                        imageBytes = null;
-
-                        // Force GC after each photo to prevent memory accumulation
-                        GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced, blocking: true);
-                        GC.WaitForPendingFinalizers();
                     }
                 }
 
-                // Reset stream position and return as file stream
-                // FileOptions.DeleteOnClose ensures the temp file is deleted when the stream is disposed
                 tempFileStream.Position = 0;
                 return File(tempFileStream, "application/zip", archiveName);
             }
             catch
             {
-                // Ensure temp file stream is disposed on error
                 tempFileStream?.Dispose();
                 throw;
             }

@@ -59,6 +59,7 @@ export class PhotosContentComponent implements OnInit, OnChanges {
   @Output() addPhotos = new EventEmitter<void>();
   @Output() download = new EventEmitter<PhotoDto>();
   @Output() downloadAll = new EventEmitter<boolean>();
+  @Output() downloadSelected = new EventEmitter<{ small: boolean; photos: PhotoDto[] }>();
   @Output() deletePhoto = new EventEmitter<PhotoDto>();
   @Output() restrictToggle = new EventEmitter<PhotoDto>();
   @Output() bulkDeleteRequest = new EventEmitter<PhotoDto[]>();
@@ -91,8 +92,6 @@ export class PhotosContentComponent implements OnInit, OnChanges {
   selectedPhotoIds = new Set<string>();
   /** null = no allowlist; otherwise membership set (may be empty). */
   private allowedBulkIdSet: Set<string> | null = null;
-  private touchStartX = 0;
-  private touchStartY = 0;
 
   private rebuildAllowedBulkIdSet(): void {
     if (this._allowedBulkPhotoIds == null) {
@@ -272,23 +271,6 @@ export class PhotosContentComponent implements OnInit, OnChanges {
     }
   }
 
-  onTouchStart(event: TouchEvent) {
-    this.touchStartX = event.touches[0].clientX;
-    this.touchStartY = event.touches[0].clientY;
-  }
-
-  onTouchEnd(event: TouchEvent) {
-    if (!event.changedTouches.length) return;
-    const touchEndX = event.changedTouches[0].clientX;
-    const touchEndY = event.changedTouches[0].clientY;
-    const deltaX = touchEndX - this.touchStartX;
-    const deltaY = touchEndY - this.touchStartY;
-    if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 50) {
-      if (deltaX > 0) this.previousPhoto();
-      else this.nextPhoto();
-    }
-  }
-
   openDeleteModal() {
     this.isDeleteModalOpen = true;
   }
@@ -329,6 +311,16 @@ export class PhotosContentComponent implements OnInit, OnChanges {
   onDownloadAll(small: boolean) {
     this.downloadDropdownOpen = false;
     this.downloadAll.emit(small);
+  }
+
+  onDownloadSelected(small: boolean): void {
+    const photos = this.getSelectedPhotos();
+    if (photos.length === 0) {
+      return;
+    }
+    this.downloadDropdownOpen = false;
+    this.optionsDropdownOpen = false;
+    this.downloadSelected.emit({ small, photos });
   }
 
   navigateToEditFilm() {

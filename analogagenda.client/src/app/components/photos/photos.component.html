@@ -21,10 +21,12 @@
           [film]="section.film"
           mode="view"
           [isOwner]="isOwner(section.film)"
+          [bulkSelectionEnabled]="true"
           [showOwner]="activeTab === 'all'"
           [downloadAllLoading]="downloadAllLoadingSectionId === section.film.id"
           (download)="onDownloadPhoto(section, $event)"
           (downloadAll)="onDownloadAll(section, $event)"
+          (downloadSelected)="onDownloadSelected(section, $event)"
           (deletePhoto)="onDeletePhoto(section, $event)"
           (restrictToggle)="onRestrictToggle(section, $event)"
         ></app-photos-content>
