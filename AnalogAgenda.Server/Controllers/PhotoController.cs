@@ -279,7 +279,7 @@ public class PhotoController(
             f => f.ExposureDates
         );
         if (filmEntity == null)
-            return NotFound("Film not found.");
+            return NotFound();
 
         var distinctIds = body.Ids.Where(id => !string.IsNullOrWhiteSpace(id)).Distinct().ToList();
         if (distinctIds.Count == 0)
@@ -289,16 +289,14 @@ public class PhotoController(
         foreach (var photoId in distinctIds)
         {
             var photo = await databaseService.GetByIdAsync<PhotoEntity>(photoId);
-            if (photo == null)
-                return BadRequest($"Photo not found: {photoId}");
-            if (photo.FilmId != body.FilmId)
-                return BadRequest("All photos must belong to the specified film.");
+            if (photo == null || photo.FilmId != body.FilmId)
+                return NotFound();
             loaded.Add(photo);
         }
 
         var isOwner = FilmOwnerHelper.IsCurrentUserFilmOwner(User, filmEntity);
         if (loaded.Any(p => p.Restricted && !isOwner))
-            return Forbid();
+            return NotFound();
 
         var ordered = loaded.OrderBy(p => p.Index).ToList();
         return await BuildPhotosZipResponseAsync(filmEntity, ordered, body.Small, archiveLabelSuffix: "-selected");
@@ -341,28 +339,19 @@ public class PhotoController(
                 {
                     foreach (var photo in photosOrdered)
                     {
-                        string blobPath = small
+                        var blobPath = small
                             ? $"preview/{photo.ImageId}"
                             : photo.ImageId.ToString();
 
-                        var (imageBytes, contentType) = await BlobImageHelper.DownloadImageAsBytesAsync(
-                            photosContainer,
-                            blobPath
-                        );
-
+                        var contentType = await BlobImageHelper.GetBlobContentTypeAsync(photosContainer, blobPath);
                         var fileExtension = BlobImageHelper.GetFileExtensionFromContentType(contentType);
                         var fileName = $"{photo.Index:D3}.{fileExtension}";
 
                         var zipEntry = archive.CreateEntry(fileName, CompressionLevel.Optimal);
-                        using (var zipStream = zipEntry.Open())
+                        await using (var zipStream = zipEntry.Open())
                         {
-                            await zipStream.WriteAsync(imageBytes);
+                            await BlobImageHelper.CopyBlobToAsync(photosContainer, blobPath, zipStream);
                         }
-
-                        imageBytes = null;
-
-                        GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced, blocking: true);
-                        GC.WaitForPendingFinalizers();
                     }
                 }
 

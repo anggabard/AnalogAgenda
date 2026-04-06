@@ -1,8 +1,9 @@
+using Azure;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Formats.Jpeg;
+using SixLabors.ImageSharp.Processing;
 using System.Text.RegularExpressions;
 
 namespace Database.Helpers;
@@ -171,6 +172,45 @@ public static class BlobImageHelper
         string contentType = response.Value.Details.ContentType ?? "application/octet-stream";
 
         return (imageBytes, contentType);
+    }
+
+    /// <summary>Content type from blob HTTP headers, or a default.</summary>
+    /// <exception cref="FileNotFoundException">Blob does not exist.</exception>
+    public static async Task<string> GetBlobContentTypeAsync(
+        BlobContainerClient blobContainerClient,
+        string blobPath,
+        CancellationToken cancellationToken = default)
+    {
+        var blobClient = blobContainerClient.GetBlobClient(blobPath);
+        try
+        {
+            var props = await blobClient.GetPropertiesAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
+            return props.Value.ContentType ?? "application/octet-stream";
+        }
+        catch (RequestFailedException ex) when (ex.Status == 404)
+        {
+            throw new FileNotFoundException("Blob not found.", ex);
+        }
+    }
+
+    /// <summary>Streams blob bytes into <paramref name="destination"/> without loading the full object into memory.</summary>
+    /// <exception cref="FileNotFoundException">Blob does not exist.</exception>
+    public static async Task CopyBlobToAsync(
+        BlobContainerClient blobContainerClient,
+        string blobPath,
+        Stream destination,
+        CancellationToken cancellationToken = default)
+    {
+        var blobClient = blobContainerClient.GetBlobClient(blobPath);
+        try
+        {
+            await using var read = await blobClient.OpenReadAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
+            await read.CopyToAsync(destination, cancellationToken).ConfigureAwait(false);
+        }
+        catch (RequestFailedException ex) when (ex.Status == 404)
+        {
+            throw new FileNotFoundException("Blob not found.", ex);
+        }
     }
 
     public static string GetContentTypeFromBase64(string base64WithType)

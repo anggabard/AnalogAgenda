@@ -319,7 +319,7 @@ public class PhotoControllerTests : IDisposable
     }
 
     [Fact]
-    public async Task DownloadSelectedPhotos_PhotoNotFound_ReturnsBadRequest()
+    public async Task DownloadSelectedPhotos_PhotoNotFound_ReturnsNotFound()
     {
         var filmId = "film-dl";
         var film = new FilmEntity { Id = filmId, Brand = "B", Iso = "400", PurchasedBy = EUsernameType.Angel };
@@ -332,11 +332,37 @@ public class PhotoControllerTests : IDisposable
             Small = false
         });
 
-        Assert.IsType<BadRequestObjectResult>(result);
+        Assert.IsType<NotFoundResult>(result);
     }
 
     [Fact]
-    public async Task DownloadSelectedPhotos_NonOwnerWithRestrictedPhoto_ReturnsForbid()
+    public async Task DownloadSelectedPhotos_PhotoOnDifferentFilm_ReturnsNotFound()
+    {
+        var filmId = "film-dl-a";
+        var otherFilmId = "film-dl-b";
+        await _databaseService.AddAsync(new FilmEntity { Id = filmId, Brand = "A", Iso = "400", PurchasedBy = EUsernameType.Angel });
+        await _databaseService.AddAsync(new FilmEntity { Id = otherFilmId, Brand = "B", Iso = "400", PurchasedBy = EUsernameType.Angel });
+        var photoId = "photo-other-film";
+        await _databaseService.AddAsync(new PhotoEntity
+        {
+            Id = photoId,
+            FilmId = otherFilmId,
+            Index = 1,
+            ImageId = Guid.NewGuid()
+        });
+
+        var result = await _controller.DownloadSelectedPhotos(new PhotoDownloadSelectionDto
+        {
+            FilmId = filmId,
+            Ids = [photoId],
+            Small = false
+        });
+
+        Assert.IsType<NotFoundResult>(result);
+    }
+
+    [Fact]
+    public async Task DownloadSelectedPhotos_NonOwnerWithRestrictedPhoto_ReturnsNotFound()
     {
         var filmId = "film-dl2";
         var film = new FilmEntity { Id = filmId, Brand = "B", Iso = "400", PurchasedBy = EUsernameType.Cristiana };
@@ -359,7 +385,7 @@ public class PhotoControllerTests : IDisposable
             Small = false
         });
 
-        Assert.IsType<ForbidResult>(result);
+        Assert.IsType<NotFoundResult>(result);
     }
 
     [Fact]
