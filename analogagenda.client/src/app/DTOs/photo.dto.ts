@@ -10,5 +10,5 @@ export interface PhotoDto extends HasImageDto {
 export interface PhotoCreateDto {
   filmId: string;
   imageBase64: string;
-  index?: number; // Optional index (0-999). If not provided, next available index is used
+  index?: number; // 0–999; client sets from upload order modal (API may assign if omitted)
 }
