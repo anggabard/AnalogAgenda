@@ -256,8 +256,9 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 1rem 1.25rem;
+  padding: 1.5rem;
   border-bottom: 1px solid #e5e7eb;
+  background: #f9fafb;
   flex-shrink: 0;
 }
 
@@ -267,14 +268,6 @@
   text-align: center;
   font-size: 1.2rem;
   color: #111827;
-}
-
-.upload-order-modal .modal-close {
-  background: none;
-  border: none;
-  font-size: 1.5rem;
-  cursor: pointer;
-  color: #6b7280;
 }
 
 .upload-order-body {
@@ -304,6 +297,25 @@
 
 .upload-order-toolbar {
   margin-bottom: 0.75rem;
+}
+
+/* Matches app secondary buttons (e.g. upsert-session / forms) */
+.upload-order-modal .upload-order-sort-btn.btn-secondary {
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  background-color: #f8f9fa;
+  color: #495057;
+  border: 1px solid #dee2e6;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.upload-order-modal .upload-order-sort-btn.btn-secondary:hover {
+  background-color: #e9ecef;
+  border-color: #adb5bd;
 }
 
 .upload-order-list {
@@ -365,41 +377,36 @@
 
 .upload-order-footer {
   display: flex;
-  justify-content: flex-end;
-  gap: 0.75rem;
-  padding: 1rem 1.25rem;
+  justify-content: center;
+  width: 100%;
+  padding: 1.5rem;
   border-top: 1px solid #e5e7eb;
+  background: #f9fafb;
   flex-shrink: 0;
+  box-sizing: border-box;
 }
 
-.upload-order-footer .btn {
-  padding: 0.5rem 1.1rem;
-  border-radius: 8px;
-  font-weight: 600;
-  cursor: pointer;
+/* Matches notes modal / app primary (green) */
+.upload-order-modal .upload-order-upload-btn.btn-primary {
+  padding: 10px 24px;
+  min-width: 140px;
   border: none;
-  font-size: 0.95rem;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  background-color: #4caf50;
+  color: white;
+  transition: background-color 0.2s ease;
 }
 
-.upload-order-footer .btn-secondary {
-  background: #f3f4f6;
-  color: #374151;
+.upload-order-modal .upload-order-upload-btn.btn-primary:hover:not(:disabled) {
+  background-color: #45a049;
 }
 
-.upload-order-footer .btn-secondary:hover {
-  background: #e5e7eb;
-}
-
-.upload-order-footer .btn-primary {
-  background: #10b981;
-  color: #fff;
-}
-
-.upload-order-footer .btn-primary:hover:not(:disabled) {
-  background: #059669;
-}
-
-.upload-order-footer .btn-primary:disabled {
-  opacity: 0.5;
+.upload-order-modal .upload-order-upload-btn.btn-primary:disabled {
+  background-color: #cccccc;
   cursor: not-allowed;
+  opacity: 0.6;
 }

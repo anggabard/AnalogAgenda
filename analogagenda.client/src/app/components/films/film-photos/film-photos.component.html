@@ -77,8 +77,12 @@
           Remove some files or delete existing photos first.
         </div>
         <div class="upload-order-toolbar">
-          <button type="button" class="btn btn-secondary" (click)="toggleFilenameSort()">
-            {{ uploadOrderSortButtonLabel }}
+          <button
+            type="button"
+            class="btn btn-secondary upload-order-sort-btn"
+            (click)="toggleFilenameSort()"
+            [attr.title]="uploadOrderSortTooltip">
+            Sort filenames (ASCII)
           </button>
         </div>
         <div
@@ -96,10 +100,9 @@
         </div>
       </div>
       <div class="modal-footer upload-order-footer">
-        <button type="button" class="btn btn-secondary" (click)="closeUploadOrderModal()">Cancel</button>
         <button
           type="button"
-          class="btn btn-primary"
+          class="btn btn-primary upload-order-upload-btn"
           [disabled]="uploadOrderWouldExceedCapacity || pendingUploadFiles.length === 0"
           (click)="confirmUploadOrder()">
           Upload

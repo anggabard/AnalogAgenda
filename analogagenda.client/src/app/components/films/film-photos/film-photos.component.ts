@@ -198,10 +198,11 @@ export class FilmPhotosComponent implements OnInit {
     return `${start}–${end}`;
   }
 
-  get uploadOrderSortButtonLabel(): string {
+  /** Tooltip: next click applies this direction (toggles after each sort). */
+  get uploadOrderSortTooltip(): string {
     return this.filenameSortNextAscending
-      ? 'Sort filenames A–Z (ASCII)'
-      : 'Sort filenames Z–A (ASCII)';
+      ? 'Re-sort list A–Z by filename (ASCII). Click again for Z–A.'
+      : 'Re-sort list Z–A by filename (ASCII). Click again for A–Z.';
   }
 
   trackUploadFile(_index: number, file: File): string {
