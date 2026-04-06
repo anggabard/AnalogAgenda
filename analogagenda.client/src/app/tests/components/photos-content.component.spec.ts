@@ -166,6 +166,20 @@ describe('PhotosContentComponent', () => {
       expect(emitted).toBeFalse();
     });
 
+    it('onDownloadSelected should emit downloadSelected with photos and small flag', () => {
+      component.mode = 'edit';
+      component.bulkSelectionEnabled = true;
+      component.startBulkSelection();
+      component.togglePhotoBulkSelected(mockPhotos[0]);
+      component.optionsDropdownOpen = true;
+      let payload: { small: boolean; photos: PhotoDto[] } | undefined;
+      component.downloadSelected.subscribe((p) => (payload = p));
+      component.onDownloadSelected(false);
+      expect(payload!.small).toBeFalse();
+      expect(payload!.photos.map((p) => p.id)).toEqual(['p1']);
+      expect(component.optionsDropdownOpen).toBeFalse();
+    });
+
     it('onRestrictToggle should emit restrictToggle when preview photo set', () => {
       component.openPreview(component.photos[1]);
       let emitted: PhotoDto | undefined;
@@ -199,6 +213,14 @@ describe('PhotosContentComponent', () => {
       component.startBulkSelection();
       expect(component.bulkSelectionMode).toBeTrue();
       expect(component.selectedBulkCount).toBe(0);
+    });
+
+    it('bulk selection works in view mode when user is not film owner', () => {
+      component.mode = 'view';
+      component.isOwner = false;
+      component.startBulkSelection();
+      component.onPhotoItemClick(mockPhotos[0]);
+      expect(component.selectedBulkCount).toBe(1);
     });
 
     it('getEligibleBulkPhotos should return all photos when allowlist is null', () => {

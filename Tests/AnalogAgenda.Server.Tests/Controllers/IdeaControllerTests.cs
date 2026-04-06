@@ -1,4 +1,3 @@
-using System.Linq.Expressions;
 using AnalogAgenda.Server.Controllers;
 using Configuration.Sections;
 using Database.DTOs;
@@ -7,6 +6,7 @@ using Database.Services;
 using Database.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
+using System.Linq.Expressions;
 
 namespace AnalogAgenda.Server.Tests.Controllers;
 
@@ -42,7 +42,9 @@ public class IdeaControllerTests
     [Fact]
     public async Task GetAll_ReturnsEmptyList_WhenNoIdeas()
     {
-        _mockDatabaseService.Setup(x => x.GetAllIdeasWithSessionLinksAsync()).ReturnsAsync(new List<IdeaEntity>());
+        _mockDatabaseService
+            .Setup(x => x.GetAllWithQueryAsync(It.IsAny<Func<IQueryable<IdeaEntity>, IQueryable<IdeaEntity>>>()))
+            .ReturnsAsync(new List<IdeaEntity>());
 
         var result = await _controller.GetAll();
 
@@ -59,7 +61,9 @@ public class IdeaControllerTests
             new() { Id = "abc", Title = "Idea 1", Description = "Desc 1", CreatedDate = DateTime.UtcNow, UpdatedDate = DateTime.UtcNow },
             new() { Id = "def", Title = "Idea 2", Description = "Desc 2", CreatedDate = DateTime.UtcNow, UpdatedDate = DateTime.UtcNow }
         };
-        _mockDatabaseService.Setup(x => x.GetAllIdeasWithSessionLinksAsync()).ReturnsAsync(ideas);
+        _mockDatabaseService
+            .Setup(x => x.GetAllWithQueryAsync(It.IsAny<Func<IQueryable<IdeaEntity>, IQueryable<IdeaEntity>>>()))
+            .ReturnsAsync(ideas);
 
         var result = await _controller.GetAll();
 
@@ -74,7 +78,9 @@ public class IdeaControllerTests
     public async Task GetById_WithInvalidId_ReturnsNotFound()
     {
         var id = "nonexistent";
-        _mockDatabaseService.Setup(x => x.GetByIdAsync<IdeaEntity>(id)).ReturnsAsync((IdeaEntity?)null);
+        _mockDatabaseService
+            .Setup(x => x.GetByIdWithQueryAsync(id, It.IsAny<Func<IQueryable<IdeaEntity>, IQueryable<IdeaEntity>>>()))
+            .ReturnsAsync((IdeaEntity?)null);
 
         var result = await _controller.GetById(id);
 
@@ -87,7 +93,9 @@ public class IdeaControllerTests
     {
         var id = "abc";
         var entity = new IdeaEntity { Id = id, Title = "My Idea", Description = "My desc", CreatedDate = DateTime.UtcNow, UpdatedDate = DateTime.UtcNow };
-        _mockDatabaseService.Setup(x => x.GetIdeaByIdWithSessionLinksAsync(id)).ReturnsAsync(entity);
+        _mockDatabaseService
+            .Setup(x => x.GetByIdWithQueryAsync(id, It.IsAny<Func<IQueryable<IdeaEntity>, IQueryable<IdeaEntity>>>()))
+            .ReturnsAsync(entity);
 
         var result = await _controller.GetById(id);
 
@@ -115,7 +123,9 @@ public class IdeaControllerTests
             CreatedDate = DateTime.UtcNow,
             UpdatedDate = DateTime.UtcNow
         };
-        _mockDatabaseService.Setup(x => x.GetIdeaByIdWithSessionLinksAsync("xyz")).ReturnsAsync(reloaded);
+        _mockDatabaseService
+            .Setup(x => x.GetByIdWithQueryAsync("xyz", It.IsAny<Func<IQueryable<IdeaEntity>, IQueryable<IdeaEntity>>>()))
+            .ReturnsAsync(reloaded);
 
         _mockDatabaseService
             .Setup(x => x.ReplaceEntitiesAsync(

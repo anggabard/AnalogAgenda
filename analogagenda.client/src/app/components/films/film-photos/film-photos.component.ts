@@ -94,19 +94,7 @@ export class FilmPhotosComponent implements OnInit {
     this.downloadAllLoading = true;
     this.photoService.downloadAllPhotos(this.filmId, small).subscribe({
       next: (blob) => {
-        const hasName = this.film?.name?.trim();
-        const brand = this.film?.brand ? DownloadHelper.sanitizePathUnsafeChars(this.film.brand) : '';
-        const titlePart = hasName
-          ? `${DownloadHelper.sanitizePathUnsafeChars(this.film!.name!.trim())} - ${brand}`
-          : brand;
-        const isoPart = this.film?.iso ? ` - ISO ${DownloadHelper.sanitizeForFileName(this.film.iso)}` : '';
-        const formattedDate = this.film?.formattedExposureDate
-          ? DownloadHelper.sanitizePathUnsafeChars(this.film.formattedExposureDate)
-          : '';
-        const datePart = formattedDate ? ` - ${formattedDate}` : '';
-        const sizeSuffix = small ? '-small' : '';
-        const baseName = [titlePart || 'photos', isoPart, datePart].filter(Boolean).join('');
-        DownloadHelper.triggerBlobDownload(blob, `${baseName}${sizeSuffix}.zip`);
+        DownloadHelper.triggerBlobDownload(blob, this.zipDownloadFileName(small, false));
         this.downloadAllLoading = false;
       },
       error: () => {
@@ -114,6 +102,41 @@ export class FilmPhotosComponent implements OnInit {
         this.downloadAllLoading = false;
       },
     });
+  }
+
+  onDownloadSelectedPhotos(payload: { small: boolean; photos: PhotoDto[] }) {
+    if (payload.photos.length === 0) {
+      return;
+    }
+    this.downloadAllLoading = true;
+    const ids = payload.photos.map((p) => p.id);
+    this.photoService.downloadSelectedPhotos(this.filmId, ids, payload.small).subscribe({
+      next: (blob) => {
+        DownloadHelper.triggerBlobDownload(blob, this.zipDownloadFileName(payload.small, true));
+        this.downloadAllLoading = false;
+      },
+      error: () => {
+        this.errorMessage = 'Error downloading selected photos archive.';
+        this.downloadAllLoading = false;
+      },
+    });
+  }
+
+  private zipDownloadFileName(small: boolean, selected: boolean): string {
+    const hasName = this.film?.name?.trim();
+    const brand = this.film?.brand ? DownloadHelper.sanitizePathUnsafeChars(this.film.brand) : '';
+    const titlePart = hasName
+      ? `${DownloadHelper.sanitizePathUnsafeChars(this.film!.name!.trim())} - ${brand}`
+      : brand;
+    const isoPart = this.film?.iso ? ` - ISO ${DownloadHelper.sanitizeForFileName(this.film.iso)}` : '';
+    const formattedDate = this.film?.formattedExposureDate
+      ? DownloadHelper.sanitizePathUnsafeChars(this.film.formattedExposureDate)
+      : '';
+    const datePart = formattedDate ? ` - ${formattedDate}` : '';
+    const sizeSuffix = small ? '-small' : '';
+    const baseName = [titlePart || 'photos', isoPart, datePart].filter(Boolean).join('');
+    const selectedPart = selected ? '-selected' : '';
+    return `${baseName}${selectedPart}${sizeSuffix}.zip`;
   }
 
   onDeletePhoto(photo: PhotoDto) {

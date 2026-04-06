@@ -1,7 +1,8 @@
-using System.Security.Claims;
 using AnalogAgenda.Server.Controllers;
 using AnalogAgenda.Server.Tests.Helpers;
+using Azure;
 using Azure.Storage.Blobs;
+using Azure.Storage.Blobs.Models;
 using Configuration.Sections;
 using Database.Data;
 using Database.DBObjects.Enums;
@@ -12,6 +13,9 @@ using Database.Services.Interfaces;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.PixelFormats;
+using System.Security.Claims;
 
 namespace AnalogAgenda.Server.Tests.Controllers;
 
@@ -296,6 +300,108 @@ public class PhotoControllerTests : IDisposable
         var result = await _controller.SetPhotoRestricted(photoId, new SetRestrictedDto { Restricted = true });
 
         Assert.IsType<ForbidResult>(result);
+    }
+
+    [Fact]
+    public async Task DownloadSelectedPhotos_NullBody_ReturnsBadRequest()
+    {
+        var result = await _controller.DownloadSelectedPhotos(null);
+
+        Assert.IsType<BadRequestObjectResult>(result);
+    }
+
+    [Fact]
+    public async Task DownloadSelectedPhotos_EmptyIds_ReturnsBadRequest()
+    {
+        var result = await _controller.DownloadSelectedPhotos(new PhotoDownloadSelectionDto { FilmId = "f1", Ids = [] });
+
+        Assert.IsType<BadRequestObjectResult>(result);
+    }
+
+    [Fact]
+    public async Task DownloadSelectedPhotos_PhotoNotFound_ReturnsBadRequest()
+    {
+        var filmId = "film-dl";
+        var film = new FilmEntity { Id = filmId, Brand = "B", Iso = "400", PurchasedBy = EUsernameType.Angel };
+        await _databaseService.AddAsync(film);
+
+        var result = await _controller.DownloadSelectedPhotos(new PhotoDownloadSelectionDto
+        {
+            FilmId = filmId,
+            Ids = ["missing-photo"],
+            Small = false
+        });
+
+        Assert.IsType<BadRequestObjectResult>(result);
+    }
+
+    [Fact]
+    public async Task DownloadSelectedPhotos_NonOwnerWithRestrictedPhoto_ReturnsForbid()
+    {
+        var filmId = "film-dl2";
+        var film = new FilmEntity { Id = filmId, Brand = "B", Iso = "400", PurchasedBy = EUsernameType.Cristiana };
+        await _databaseService.AddAsync(film);
+        var photoId = "photo-restricted";
+        var photo = new PhotoEntity
+        {
+            Id = photoId,
+            FilmId = filmId,
+            Index = 1,
+            ImageId = Guid.NewGuid(),
+            Restricted = true
+        };
+        await _databaseService.AddAsync(photo);
+
+        var result = await _controller.DownloadSelectedPhotos(new PhotoDownloadSelectionDto
+        {
+            FilmId = filmId,
+            Ids = [photoId],
+            Small = false
+        });
+
+        Assert.IsType<ForbidResult>(result);
+    }
+
+    [Fact]
+    public async Task UploadPhoto_WhenFilmPurchasedByAnotherUser_ReturnsOk()
+    {
+        var filmId = "film-upload-other";
+        var film = new FilmEntity
+        {
+            Id = filmId,
+            Brand = "B",
+            Iso = "400",
+            PurchasedBy = EUsernameType.Tudor,
+            Developed = false,
+            Name = "Shared"
+        };
+        await _databaseService.AddAsync(film);
+
+        _mockBlobClient
+            .Setup(x => x.UploadAsync(It.IsAny<Stream>(), It.IsAny<BlobUploadOptions>(), default))
+            .ReturnsAsync(Response.FromValue(default(BlobContentInfo), Mock.Of<Response>()));
+
+        await using var jpegStream = new MemoryStream();
+        using (var img = new Image<Rgb24>(1, 1, Color.Black))
+        {
+            await img.SaveAsJpegAsync(jpegStream);
+        }
+
+        var dto = new PhotoCreateDto
+        {
+            FilmId = filmId,
+            ImageBase64 = "data:image/jpeg;base64," + Convert.ToBase64String(jpegStream.ToArray()),
+            Index = 1
+        };
+
+        var result = await _controller.UploadPhoto(dto);
+
+        Assert.IsType<OkObjectResult>(result);
+        var photos = await _databaseService.GetAllAsync<PhotoEntity>(p => p.FilmId == filmId);
+        Assert.Single(photos);
+        var updatedFilm = await _databaseService.GetByIdAsync<FilmEntity>(filmId);
+        Assert.NotNull(updatedFilm);
+        Assert.True(updatedFilm!.Developed);
     }
 }
 

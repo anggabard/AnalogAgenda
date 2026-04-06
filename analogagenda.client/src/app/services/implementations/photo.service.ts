@@ -29,6 +29,15 @@ export class PhotoService extends BaseService {
     return this.get<Blob>(`download-all/${filmId}`, { responseType: 'blob', ...params });
   }
 
+  /** ZIP of a subset of photos on a film (same visibility rules as single download). */
+  downloadSelectedPhotos(filmId: string, photoIds: string[], small: boolean = false): Observable<Blob> {
+    return this.post<Blob>(
+      'download-selected',
+      { filmId, ids: photoIds, small },
+      { responseType: 'blob' }
+    );
+  }
+
   // Delete a photo
   deletePhoto(id: string): Observable<any> {
     return this.delete(id);

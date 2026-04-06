@@ -250,25 +250,16 @@ public class DatabaseService(AnalogAgendaDbContext context) : IDatabaseService
         return await query.ToListAsync();
     }
 
-    public async Task<List<IdeaEntity>> GetAllIdeasWithSessionLinksAsync() =>
-        await _context.Set<IdeaEntity>()
-            .Include(i => i.IdeaSessions)
-            .ThenInclude(j => j.Session)
-            .ToListAsync();
+    public async Task<List<T>> GetAllWithQueryAsync<T>(Func<IQueryable<T>, IQueryable<T>> configure) where T : BaseEntity
+    {
+        var query = configure(_context.Set<T>());
+        return await query.ToListAsync();
+    }
 
-    public async Task<IdeaEntity?> GetIdeaByIdWithSessionLinksAsync(string id) =>
-        await _context.Set<IdeaEntity>()
-            .Include(i => i.IdeaSessions)
-            .ThenInclude(j => j.Session)
-            .FirstOrDefaultAsync(e => e.Id == id);
-
-    public async Task<SessionEntity?> GetSessionByIdWithFullIncludesAsync(string id) =>
-        await _context.Set<SessionEntity>()
-            .AsSplitQuery()
-            .Include(s => s.UsedDevKits)
-            .Include(s => s.DevelopedFilms)
-            .Include(s => s.IdeaSessions)
-            .ThenInclude(j => j.Idea)
-            .FirstOrDefaultAsync(s => s.Id == id);
+    public async Task<T?> GetByIdWithQueryAsync<T>(string id, Func<IQueryable<T>, IQueryable<T>> configure) where T : BaseEntity
+    {
+        var query = configure(_context.Set<T>());
+        return await query.FirstOrDefaultAsync(e => e.Id == id);
+    }
 }
 

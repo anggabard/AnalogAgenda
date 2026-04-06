@@ -19,7 +19,7 @@
     <div *ngIf="uploadLoading && uploadProgress.total > 0" class="upload-progress">
       Uploading photo {{ uploadProgress.current }} of {{ uploadProgress.total }}
     </div>
-    <button class="add-photos-btn" [disabled]="uploadLoading" (click)="onUploadPhotos()" *ngIf="isOwner">
+    <button class="add-photos-btn" [disabled]="uploadLoading" (click)="onUploadPhotos()">
       <span class="button-content" [class.loading]="uploadLoading">
         📸 Add Photos
       </span>
@@ -38,13 +38,14 @@
     [film]="film"
     mode="edit"
     [isOwner]="isOwner"
-    [bulkSelectionEnabled]="isOwner"
+    [bulkSelectionEnabled]="true"
     [uploadLoading]="uploadLoading"
     [uploadProgress]="uploadProgress"
     [downloadAllLoading]="downloadAllLoading"
     (addPhotos)="onUploadPhotos()"
     (download)="onDownloadPhoto($event)"
     (downloadAll)="onDownloadAllPhotos($event)"
+    (downloadSelected)="onDownloadSelectedPhotos($event)"
     (deletePhoto)="onDeletePhoto($event)"
     (restrictToggle)="onRestrictToggle($event)"
     (bulkDeleteRequest)="onBulkDeleteRequest($event)"
