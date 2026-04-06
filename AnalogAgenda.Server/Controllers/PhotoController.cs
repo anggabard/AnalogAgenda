@@ -296,7 +296,7 @@ public class PhotoController(
             return BadRequest("All photos must belong to the specified film.");
         var isOwner = FilmOwnerHelper.IsCurrentUserFilmOwner(User, filmEntity);
         if (loaded.Any(p => p.Restricted && !isOwner))
-            return Forbid();
+            return NotFound();
 
         var ordered = loaded.OrderBy(p => p.Index).ToList();
         return await BuildPhotosZipResponseAsync(filmEntity, ordered, body.Small, archiveLabelSuffix: "-selected");
