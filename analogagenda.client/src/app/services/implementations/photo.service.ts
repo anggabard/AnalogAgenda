@@ -54,13 +54,8 @@ export class PhotoService extends BaseService {
   }
 
   /**
-   * Upload multiple photos in parallel to the backend API
-   * @param filmId The ID of the film
-   * @param files The files to upload
-   * @param existingPhotos Existing photos for the film (to calculate next available index)
-   * @param onPhotoUploaded Optional callback called after each photo uploads successfully
-   * @param concurrency Number of parallel uploads (default: 5, matches scaling rule)
-   * @returns Promise that resolves with array of upload results
+   * Upload multiple photos in parallel to the backend API.
+   * Indices are assigned in array order: first file gets max(existing.index)+1, then +2, etc.
    */
   async uploadMultiplePhotos(
     filmId: string,
@@ -70,54 +65,27 @@ export class PhotoService extends BaseService {
     concurrency: number = 5
   ): Promise<Array<{ success: boolean; photo?: PhotoDto; error?: string }>> {
     const fileArray = Array.from(files);
+    const maxExistingIndex =
+      existingPhotos.length > 0 ? Math.max(...existingPhotos.map((p) => p.index)) : 0;
 
-    // Extract indices from filenames
-    const filesWithIndices = fileArray.map(file => ({
+    const filesWithIndices = fileArray.map((file, i) => ({
       file,
-      index: FileUploadHelper.extractIndexFromFilename(file.name)
+      index: maxExistingIndex + i + 1,
     }));
 
-    // Sort by index (nulls go to end)
-    filesWithIndices.sort((a, b) => {
-      if (a.index === null && b.index === null) return 0;
-      if (a.index === null) return 1;
-      if (b.index === null) return -1;
-      return a.index - b.index;
-    });
-
-    // Calculate next available index for files without indices
-    const maxExistingIndex = existingPhotos.length > 0 
-      ? Math.max(...existingPhotos.map(p => p.index))
-      : 0;
-    let nextAvailableIndex = maxExistingIndex + 1;
-    let nextAvailableIndexLock = 0; // Simple lock for index assignment
-
     const results: Array<{ success: boolean; photo?: PhotoDto; error?: string }> = [];
-    
-    // Helper function to upload a single photo
-    const uploadPhoto = async (file: File, index: number | null): Promise<{ success: boolean; photo?: PhotoDto; error?: string }> => {
+
+    const uploadPhoto = async (
+      file: File,
+      assignedIndex: number
+    ): Promise<{ success: boolean; photo?: PhotoDto; error?: string }> => {
       try {
-        // Convert file to base64
         const base64 = await FileUploadHelper.fileToBase64(file);
-        
-        // If index is null, assign next available index (thread-safe)
-        let assignedIndex: number;
-        if (index !== null) {
-          assignedIndex = index;
-        } else {
-          // Simple lock mechanism for index assignment
-          while (nextAvailableIndexLock !== 0) {
-            await new Promise(resolve => setTimeout(resolve, 10));
-          }
-          nextAvailableIndexLock = 1;
-          assignedIndex = nextAvailableIndex++;
-          nextAvailableIndexLock = 0;
-        }
 
         const photoDto: PhotoCreateDto = {
           filmId: filmId,
           imageBase64: base64,
-          index: assignedIndex
+          index: assignedIndex,
         };
 
         // Send request to backend API with retry logic for 5xx server errors
@@ -206,7 +174,7 @@ export class PhotoService extends BaseService {
 
     // Process all files with concurrency control
     const uploadPromises = filesWithIndices.map(({ file, index }) =>
-      runWithSemaphore(() => uploadPhoto(file, index))
+      runWithSemaphore(() => uploadPhoto(file, index)),
     );
 
     // Wait for all uploads to complete

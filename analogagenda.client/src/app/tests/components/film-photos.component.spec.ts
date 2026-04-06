@@ -312,6 +312,73 @@ describe('FilmPhotosComponent', () => {
     });
   });
 
+  describe('Upload order modal', () => {
+    beforeEach(async () => {
+      await initializeComponent();
+    });
+
+    it('openUploadOrderModal preserves picker order and opens', () => {
+      const dt = new DataTransfer();
+      dt.items.add(new File(['x'], 'z.jpg', { type: 'image/jpeg' }));
+      dt.items.add(new File(['y'], 'a.jpg', { type: 'image/jpeg' }));
+      (component as any).openUploadOrderModal(dt.files);
+
+      expect(component.isUploadOrderModalOpen).toBeTrue();
+      expect(component.pendingUploadFiles.map((f) => f.name)).toEqual(['z.jpg', 'a.jpg']);
+    });
+
+    it('toggleFilenameSort applies A–Z then Z–A on second click', () => {
+      const dt = new DataTransfer();
+      dt.items.add(new File(['x'], 'b.jpg', { type: 'image/jpeg' }));
+      dt.items.add(new File(['y'], 'a.jpg', { type: 'image/jpeg' }));
+      (component as any).openUploadOrderModal(dt.files);
+
+      component.toggleFilenameSort();
+      expect(component.pendingUploadFiles.map((f) => f.name)).toEqual(['a.jpg', 'b.jpg']);
+
+      component.toggleFilenameSort();
+      expect(component.pendingUploadFiles.map((f) => f.name)).toEqual(['b.jpg', 'a.jpg']);
+    });
+
+    it('confirmUploadOrder invokes processPhotoUploads and closes modal', async () => {
+      spyOn(component as any, 'processPhotoUploads').and.returnValue(Promise.resolve());
+      const dt = new DataTransfer();
+      dt.items.add(new File(['x'], 'only.jpg', { type: 'image/jpeg' }));
+      (component as any).openUploadOrderModal(dt.files);
+
+      component.confirmUploadOrder();
+
+      expect((component as any).processPhotoUploads).toHaveBeenCalled();
+      const arg = (component as any).processPhotoUploads.calls.mostRecent().args[0] as File[];
+      expect(arg.length).toBe(1);
+      expect(arg[0].name).toBe('only.jpg');
+      expect(component.isUploadOrderModalOpen).toBeFalse();
+      expect(component.pendingUploadFiles.length).toBe(0);
+    });
+
+    it('uploadOrderWouldExceedCapacity when new indices would pass 999', () => {
+      component.photos = [
+        { id: 'x', filmId: 'test-film-id', index: 998, imageUrl: '', imageBase64: '' },
+      ];
+      const dt = new DataTransfer();
+      dt.items.add(new File(['a'], '1.jpg', { type: 'image/jpeg' }));
+      dt.items.add(new File(['b'], '2.jpg', { type: 'image/jpeg' }));
+      (component as any).openUploadOrderModal(dt.files);
+
+      expect(component.uploadOrderWouldExceedCapacity).toBeTrue();
+    });
+
+    it('closeUploadOrderModal clears state', () => {
+      const dt = new DataTransfer();
+      dt.items.add(new File(['a'], '1.jpg', { type: 'image/jpeg' }));
+      (component as any).openUploadOrderModal(dt.files);
+      component.closeUploadOrderModal();
+
+      expect(component.isUploadOrderModalOpen).toBeFalse();
+      expect(component.pendingUploadFiles.length).toBe(0);
+    });
+  });
+
   describe('Sanitization', () => {
     it('should use DownloadHelper for sanitizing file names', () => {
       expect(DownloadHelper.sanitizeForFileName('Test@Film#Name$With%Special&Chars!')).toBe('TestFilmNameWithSpecialChars');

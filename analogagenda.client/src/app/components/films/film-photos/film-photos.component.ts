@@ -6,6 +6,7 @@ import { PhotoService, FilmService, AccountService, IdeaService } from '../../..
 import { PhotoDto, FilmDto, IdeaDto } from '../../../DTOs';
 import { DownloadHelper } from '../../../helpers/download.helper';
 import { modalListMatches } from '../../../helpers/modal-list-search.helper';
+import { CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
 import { PhotosContentComponent } from '../photos-content/photos-content.component';
 
 @Component({
@@ -41,6 +42,11 @@ export class FilmPhotosComponent implements OnInit {
   wackyModalSearch = '';
   ideasForPicker: IdeaDto[] = [];
   photosForWacky: PhotoDto[] = [];
+
+  isUploadOrderModalOpen = false;
+  pendingUploadFiles: File[] = [];
+  /** Next sort click applies this direction (A→Z when true), then flips. Reset when opening the modal. */
+  filenameSortNextAscending = true;
 
   ngOnInit() {
     this.filmId = this.route.snapshot.paramMap.get('id') || '';
@@ -170,19 +176,80 @@ export class FilmPhotosComponent implements OnInit {
     fileInput.accept = 'image/*';
     fileInput.onchange = (event: Event) => {
       const files = (event.target as HTMLInputElement).files;
-      if (files && files.length > 0) this.processPhotoUploads(files);
+      if (files && files.length > 0) {
+        this.openUploadOrderModal(files);
+      }
     };
     fileInput.click();
   }
 
-  private async processPhotoUploads(files: FileList) {
+  private maxPhotoIndexOnFilm(): number {
+    return this.photos.length === 0 ? 0 : Math.max(...this.photos.map((p) => p.index));
+  }
+
+  get uploadOrderWouldExceedCapacity(): boolean {
+    return this.maxPhotoIndexOnFilm() + this.pendingUploadFiles.length > 999;
+  }
+
+  get uploadOrderIndexRangeLabel(): string {
+    const maxIdx = this.maxPhotoIndexOnFilm();
+    const start = maxIdx + 1;
+    const end = maxIdx + this.pendingUploadFiles.length;
+    return `${start}–${end}`;
+  }
+
+  get uploadOrderSortButtonLabel(): string {
+    return this.filenameSortNextAscending
+      ? 'Sort filenames A–Z (ASCII)'
+      : 'Sort filenames Z–A (ASCII)';
+  }
+
+  trackUploadFile(_index: number, file: File): string {
+    return `${file.name}-${file.size}-${file.lastModified}`;
+  }
+
+  private openUploadOrderModal(files: FileList) {
+    this.pendingUploadFiles = Array.from(files);
+    this.filenameSortNextAscending = true;
+    this.isUploadOrderModalOpen = true;
+  }
+
+  closeUploadOrderModal(): void {
+    this.isUploadOrderModalOpen = false;
+    this.pendingUploadFiles = [];
+    this.filenameSortNextAscending = true;
+  }
+
+  onUploadOrderDrop(event: CdkDragDrop<File[]>): void {
+    moveItemInArray(this.pendingUploadFiles, event.previousIndex, event.currentIndex);
+  }
+
+  toggleFilenameSort(): void {
+    const cmp = (a: File, b: File) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0);
+    this.pendingUploadFiles.sort((a, b) =>
+      this.filenameSortNextAscending ? cmp(a, b) : -cmp(a, b),
+    );
+    this.filenameSortNextAscending = !this.filenameSortNextAscending;
+  }
+
+  confirmUploadOrder(): void {
+    if (this.pendingUploadFiles.length === 0 || this.uploadOrderWouldExceedCapacity) {
+      return;
+    }
+    const ordered = [...this.pendingUploadFiles];
+    this.closeUploadOrderModal();
+    void this.processPhotoUploads(ordered);
+  }
+
+  private async processPhotoUploads(files: FileList | File[]) {
+    const fileArray = Array.from(files);
     this.uploadLoading = true;
     this.errorMessage = null;
-    this.uploadProgress = { current: 0, total: files.length };
+    this.uploadProgress = { current: 0, total: fileArray.length };
     try {
       const results = await this.photoService.uploadMultiplePhotos(
         this.filmId,
-        files,
+        fileArray,
         this.photos,
         (uploadedPhoto) => {
           this.uploadProgress.current++;
