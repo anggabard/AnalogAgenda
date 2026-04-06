@@ -288,12 +288,11 @@ public class PhotoController(
         var loaded = (await databaseService.GetAllAsync<PhotoEntity>(photo => distinctIds.Contains(photo.Id))).ToList();
 
         var loadedIds = loaded.Select(photo => photo.Id).ToHashSet();
-        var missingPhotoId = distinctIds.FirstOrDefault(photoId => !loadedIds.Contains(photoId));
-        if (missingPhotoId != null)
-            return BadRequest($"Photo not found: {missingPhotoId}");
+        if (distinctIds.Any(photoId => !loadedIds.Contains(photoId)))
+            return NotFound();
 
         if (loaded.Any(photo => photo.FilmId != body.FilmId))
-            return BadRequest("All photos must belong to the specified film.");
+            return NotFound();
         var isOwner = FilmOwnerHelper.IsCurrentUserFilmOwner(User, filmEntity);
         if (loaded.Any(p => p.Restricted && !isOwner))
             return NotFound();
