@@ -1,3 +1,4 @@
+using AnalogAgenda.Server;
 using AnalogAgenda.Server.Middleware;
 using AnalogAgenda.Server.Validators;
 using Configuration;
@@ -9,6 +10,7 @@ using FluentValidation;
 using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -59,7 +61,10 @@ catch (Exception)
 // Add SQL Server DbContext via Aspire
 builder.AddSqlServerDbContext<AnalogAgendaDbContext>("analogagendadb");
 
-builder.Services.AddControllers();
+builder.Services.AddControllers(options =>
+{
+    options.Filters.Add(new RequestSizeLimitAttribute(RequestBodySizeLimits.Default));
+});
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
@@ -86,10 +91,10 @@ builder.Services.AddSingleton<IBlobService, BlobService>();
 builder.Services.AddScoped<DtoConvertor>();
 builder.Services.AddScoped<EntityConvertor>();
 
-// Configure Kestrel to accept larger request bodies (for single photo uploads: base64 JSON payloads)
+// Ceiling for the largest per-action limit (photo upload). Other actions use RequestSizeLimit (see AddControllers).
 builder.Services.Configure<Microsoft.AspNetCore.Server.Kestrel.Core.KestrelServerOptions>(options =>
 {
-    options.Limits.MaxRequestBodySize = 200_000_000; // 200MB
+    options.Limits.MaxRequestBodySize = RequestBodySizeLimits.PhotoUpload;
 });
 
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
