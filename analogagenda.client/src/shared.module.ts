@@ -5,11 +5,17 @@ import { DragDropModule } from '@angular/cdk/drag-drop';
 import { CommonModule } from '@angular/common';
 
 @NgModule({
-  exports: [
-    ReactiveFormsModule, 
-    FormsModule, 
+  imports: [
+    CommonModule,
+    FormsModule,
+    ReactiveFormsModule,
     DragDropModule,
-    CommonModule
-  ]
+  ],
+  exports: [
+    ReactiveFormsModule,
+    FormsModule,
+    DragDropModule,
+    CommonModule,
+  ],
 })
 export class SharedModule {}

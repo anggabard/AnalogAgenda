@@ -60,6 +60,57 @@
     (cancel)="closeBulkDeleteModal()">
   </app-confirm-delete-modal>
 
+  <div class="modal-overlay" *ngIf="isUploadOrderModalOpen" (click)="closeUploadOrderModal()">
+    <div class="modal-content upload-order-modal" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div></div>
+        <h3>Photo upload order</h3>
+        <button type="button" class="modal-close" (click)="closeUploadOrderModal()" aria-label="Close">✕</button>
+      </div>
+      <div class="modal-body upload-order-body">
+        <p class="upload-order-intro">
+          Drag to reorder. Top = first frame. New photos will be indexed
+          <strong>{{ uploadOrderIndexRangeLabel }}</strong> (after existing frames on this film).
+        </p>
+        <div *ngIf="uploadOrderWouldExceedCapacity" class="upload-order-capacity-warn" role="alert">
+          This film cannot accept {{ pendingUploadFiles.length }} more photo(s): the last index would exceed 999.
+          Remove some files or delete existing photos first.
+        </div>
+        <div class="upload-order-toolbar">
+          <button
+            type="button"
+            class="btn btn-secondary upload-order-sort-btn"
+            (click)="toggleFilenameSort()"
+            [attr.title]="uploadOrderSortTooltip">
+            Sort filenames (ASCII)
+          </button>
+        </div>
+        <div
+          class="upload-order-list"
+          cdkDropList
+          [cdkDropListData]="pendingUploadFiles"
+          (cdkDropListDropped)="onUploadOrderDrop($event)">
+          <div
+            *ngFor="let f of pendingUploadFiles; trackBy: trackUploadFile"
+            class="upload-order-row"
+            cdkDrag>
+            <span class="upload-order-handle" cdkDragHandle aria-label="Drag to reorder">⋮⋮</span>
+            <span class="upload-order-name" [title]="f.name">{{ f.name }}</span>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer upload-order-footer">
+        <button
+          type="button"
+          class="btn btn-primary upload-order-upload-btn"
+          [disabled]="uploadOrderWouldExceedCapacity || pendingUploadFiles.length === 0"
+          (click)="confirmUploadOrder()">
+          Upload
+        </button>
+      </div>
+    </div>
+  </div>
+
   <div class="modal-overlay" *ngIf="isWackyModalOpen" (click)="closeWackyModal()">
     <div class="modal-content wacky-picker-modal" (click)="$event.stopPropagation()">
       <div class="modal-header">

@@ -26,6 +26,7 @@ public class PhotoController(
     private readonly BlobContainerClient photosContainer = blobsService.GetBlobContainer(ContainerName.photos);
 
     [HttpPost]
+    [RequestSizeLimit(RequestBodySizeLimits.PhotoUpload)]
     public async Task<IActionResult> UploadPhoto([FromBody] PhotoCreateDto photoDto)
     {
         if (photoDto == null || string.IsNullOrWhiteSpace(photoDto.ImageBase64))

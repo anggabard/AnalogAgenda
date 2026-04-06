@@ -1,3 +1,4 @@
+using AnalogAgenda.Server;
 using AnalogAgenda.Server.Middleware;
 using AnalogAgenda.Server.Validators;
 using Configuration;
@@ -9,6 +10,7 @@ using FluentValidation;
 using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -59,7 +61,10 @@ catch (Exception)
 // Add SQL Server DbContext via Aspire
 builder.AddSqlServerDbContext<AnalogAgendaDbContext>("analogagendadb");
 
-builder.Services.AddControllers();
+builder.Services.AddControllers(options =>
+{
+    options.Filters.Add(new RequestSizeLimitAttribute(RequestBodySizeLimits.Default));
+});
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
@@ -86,16 +91,10 @@ builder.Services.AddSingleton<IBlobService, BlobService>();
 builder.Services.AddScoped<DtoConvertor>();
 builder.Services.AddScoped<EntityConvertor>();
 
-// Configure Kestrel to accept larger request bodies (for single photo uploads: 30MB file + base64 overhead = ~40MB, rounded to 60MB)
+// Ceiling must be >= max(Default, PhotoUpload) so UploadPhoto can use 200 MB.
 builder.Services.Configure<Microsoft.AspNetCore.Server.Kestrel.Core.KestrelServerOptions>(options =>
 {
-    options.Limits.MaxRequestBodySize = 100_000_000; // 100MB to accommodate base64-encoded 30MB images
-});
-
-// Configure form options for multipart form data
-builder.Services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(options =>
-{
-    options.MultipartBodyLengthLimit = 100_000_000; // 100MB
+    options.Limits.MaxRequestBodySize = RequestBodySizeLimits.PhotoUpload;
 });
 
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
