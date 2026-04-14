@@ -37,8 +37,9 @@ public class CollectionController(
             return Unauthorized();
         var currentUserEnum = currentUser.ToEnum<EUsernameType>();
 
-        var all = await databaseService.GetAllWithIncludesAsync<CollectionEntity>(c => c.Photos);
-        var mine = all.Where(c => c.Owner == currentUserEnum)
+        var mine = (await databaseService.GetAllWhereWithIncludesAsync<CollectionEntity>(
+                c => c.Owner == currentUserEnum,
+                c => c.Photos))
             .OrderBy(c => c.FromDate == null && c.ToDate == null ? 1 : 0)
             .ThenByDescending(c => c.CreatedDate)
             .ThenBy(c => c.Name, StringComparer.OrdinalIgnoreCase)
