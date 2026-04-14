@@ -225,18 +225,22 @@ public class CollectionController(
 
         var existing = collection.Photos.Select(p => p.Id).ToHashSet();
         var distinctIncoming = ids.Where(x => !string.IsNullOrWhiteSpace(x)).Distinct().ToList();
+        var missingIncoming = distinctIncoming.Where(photoId => !existing.Contains(photoId)).ToList();
 
-        foreach (var photoId in distinctIncoming)
+        if (missingIncoming.Count > 0)
         {
-            if (existing.Contains(photoId))
-                continue;
+            var candidatePhotos = await databaseService.GetWhereWithIncludesAsync<PhotoEntity>(
+                p => missingIncoming.Contains(p.Id),
+                p => p.Film);
 
-            var photo = await databaseService.GetByIdWithIncludesAsync<PhotoEntity>(photoId, p => p.Film);
-            if (photo?.Film == null || photo.Film.PurchasedBy != owner)
-                continue;
+            foreach (var photo in candidatePhotos.Where(p => p.Film != null && p.Film.PurchasedBy == owner))
+            {
+                if (existing.Contains(photo.Id))
+                    continue;
 
-            collection.Photos.Add(photo);
-            existing.Add(photoId);
+                collection.Photos.Add(photo);
+                existing.Add(photo.Id);
+            }
         }
 
         await databaseService.UpdateAsync(collection);
