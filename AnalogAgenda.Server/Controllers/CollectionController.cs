@@ -434,13 +434,16 @@ public class CollectionController(
 
         collection.Photos.Clear();
 
-        foreach (var photoId in distinctIds)
+        if (distinctIds.Count > 0)
         {
-            var photo = await databaseService.GetByIdWithIncludesAsync<PhotoEntity>(photoId, p => p.Film);
-            if (photo?.Film == null || photo.Film.PurchasedBy != owner)
-                continue;
+            var photos = await databaseService.GetWithIncludesAsync<PhotoEntity>(
+                p => distinctIds.Contains(p.Id),
+                p => p.Film);
 
-            collection.Photos.Add(photo);
+            foreach (var photo in photos.Where(p => p.Film != null && p.Film.PurchasedBy == owner))
+            {
+                collection.Photos.Add(photo);
+            }
         }
 
         await databaseService.UpdateAsync(collection);
