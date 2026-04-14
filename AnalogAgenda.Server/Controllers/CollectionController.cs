@@ -70,9 +70,9 @@ public class CollectionController(
             return Unauthorized();
         var currentUserEnum = currentUser.ToEnum<EUsernameType>();
 
-        var all = await databaseService.GetAllWithIncludesAsync<CollectionEntity>();
-        var open = all
-            .Where(c => c.Owner == currentUserEnum && c.IsOpen)
+        var openCollections = await databaseService.GetAllAsync<CollectionEntity>(
+            c => c.Owner == currentUserEnum && c.IsOpen);
+        var open = openCollections
             .OrderBy(c => c.Name)
             .Select(dtoConvertor.ToOptionDto)
             .ToList();
