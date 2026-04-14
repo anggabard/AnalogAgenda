@@ -3,7 +3,7 @@ import { NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 import { SharedModule } from '../shared.module';
 import { AppRoutingModule } from './app-routing.module';
-import { AppComponent, LoginComponent, NavbarComponent, HomeComponent, IdeaResultsComponent, NotesComponent, SubstancesComponent, UpsertKitComponent, NoteTableComponent, FilmsComponent, UpsertFilmComponent, FilmPhotosComponent, PhotosContentComponent, PhotosComponent, SessionsComponent, UpsertSessionComponent, ChangePasswordComponent, NotesMergeComponent } from './components';
+import { AppComponent, LoginComponent, NavbarComponent, HomeComponent, IdeaResultsComponent, NotesComponent, SubstancesComponent, UpsertKitComponent, NoteTableComponent, FilmsComponent, UpsertFilmComponent, FilmPhotosComponent, PhotosContentComponent, PhotosComponent, SessionsComponent, UpsertSessionComponent, ChangePasswordComponent, NotesMergeComponent, CollectionsComponent, UpsertCollectionComponent } from './components';
 import { NotesTimerComponent } from './components/notes/notes-timer/notes-timer.component';
 import { FilmSearchComponent } from './components/films/film-search/film-search.component';
 import {
@@ -62,7 +62,9 @@ import { MainLayoutComponent, AuthLayoutComponent} from './layouts';
     ErrorMessageComponent,
     QuantityStepperComponent,
     NotesMergeComponent,
-    NotesTimerComponent
+    NotesTimerComponent,
+    CollectionsComponent,
+    UpsertCollectionComponent
   ],
   imports: [
     BrowserModule,

@@ -30,7 +30,7 @@ export class UpsertFilmComponent extends BaseUpsertComponent<FilmDto> implements
 
   override ngOnInit(): void {
     super.ngOnInit();
-    
+
     // Load available sessions and DevKits for modals
     this.loadAvailableSessions();
     this.loadAvailableDevKits();

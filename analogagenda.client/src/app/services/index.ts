@@ -1,6 +1,7 @@
 export { AccountService } from './implementations/account.service'
 export { DevKitService } from './implementations/dev-kit.service'
 export { FilmService } from './implementations/film.service'
+export { CollectionService } from './implementations/collection.service'
 export { NotesService } from './implementations/notes.service'
 export { PhotoService } from './implementations/photo.service'
 export { SessionService } from './implementations/session.service'

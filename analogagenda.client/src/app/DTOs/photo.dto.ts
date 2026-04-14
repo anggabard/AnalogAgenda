@@ -2,6 +2,8 @@ import { HasImageDto } from ".";
 
 export interface PhotoDto extends HasImageDto {
   id: string;
+  /** Blob id in the photos container (for collection card image). */
+  imageId?: string;
   filmId: string;
   index: number;
   restricted?: boolean;

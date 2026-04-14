@@ -1,0 +1,50 @@
+<div class="container">
+  <div class="header">
+    <button type="button" class="add-collection" (click)="onNewClick()">+ New Collection +</button>
+  </div>
+
+  <app-error-message [message]="errorMessage"></app-error-message>
+
+  <div class="collections-section" *ngIf="!errorMessage">
+    <app-list
+      *ngIf="collectionCardTemplate && collectionRowTemplate"
+      [items]="collections"
+      [cardTemplate]="collectionCardTemplate"
+      [rowTemplate]="collectionRowTemplate"
+      [columnHeaders]="collectionTableHeaders"
+      [hasMore]="hasMore"
+      [loading]="loading"
+      (loadMore)="loadMoreCollections()"
+      (itemClick)="onCollectionClick($event)">
+    </app-list>
+  </div>
+
+  <div *ngIf="!loading && collections.length === 0 && !errorMessage" class="empty-state">
+    <p>No collections yet. Create one with the button above.</p>
+  </div>
+</div>
+
+<ng-template #collectionCardTemplate let-c>
+  <div class="card collection-card-inner">
+    <span *ngIf="c.isOpen" class="status-badge status-open">Open</span>
+    <div class="image collection-thumb">
+      <img *ngIf="hasCardImage(c)" [src]="cardImageUrl(c)" alt="" />
+    </div>
+    <div class="collection-card-text">
+      <span class="title">{{ c.name }}</span>
+      <span class="info range" *ngIf="formatRange(c)">{{ formatRange(c) }}</span>
+      <span class="info location" *ngIf="c.location?.trim()">{{ c.location }}</span>
+    </div>
+  </div>
+</ng-template>
+
+<ng-template #collectionRowTemplate let-c>
+  <td>{{ c.name }}</td>
+  <td>{{ formatDateColumn(c.fromDate) }}</td>
+  <td>{{ formatDateColumn(c.toDate) }}</td>
+  <td>{{ c.location?.trim() || '' }}</td>
+  <td>{{ !c.isOpen }}</td>
+  <td class="collection-cell-image">
+    <app-image-preview [imageUrl]="cardImageUrl(c)" [alt]="c.name" popoverPosition="left"></app-image-preview>
+  </td>
+</ng-template>

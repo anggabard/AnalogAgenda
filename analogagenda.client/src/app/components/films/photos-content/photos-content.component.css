@@ -111,6 +111,28 @@
   white-space: nowrap;
 }
 
+.add-to-collection-block {
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.collection-pick-list {
+  max-height: 12rem;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.collection-pick-list::-webkit-scrollbar {
+  display: none;
+}
+
+.collection-pick-list .dropdown-item {
+  padding-left: 1.25rem;
+  font-size: 0.95rem;
+}
+
 .add-photos-btn {
   background: #10b981;
 }

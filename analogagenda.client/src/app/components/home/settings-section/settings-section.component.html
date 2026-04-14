@@ -5,7 +5,7 @@
             
             <!-- Subscribed Toggle -->
             <div class="form-row">
-                <label for="subscribedToggle">Subscribed</label>
+                <label class="settings-field-label" for="subscribedToggle">Subscribed</label>
                 <div class="toggle-border-small">
                     <input 
                         id="subscribedToggle" 
@@ -14,7 +14,7 @@
                         (change)="onSettingsChange()"
                         [ngModelOptions]="{standalone: true}"
                     />
-                    <label for="subscribedToggle">
+                    <label class="toggle-track" for="subscribedToggle">
                         <div class="handle-small"></div>
                     </label>
                 </div>
@@ -22,7 +22,7 @@
 
             <!-- Table View Toggle -->
             <div class="form-row">
-                <label for="tableViewToggle">Table View</label>
+                <label class="settings-field-label" for="tableViewToggle">Table View</label>
                 <div class="toggle-border-small">
                     <input 
                         id="tableViewToggle" 
@@ -31,15 +31,15 @@
                         (change)="onSettingsChange()"
                         [ngModelOptions]="{standalone: true}"
                     />
-                    <label for="tableViewToggle">
+                    <label class="toggle-track" for="tableViewToggle">
                         <div class="handle-small"></div>
                     </label>
                 </div>
             </div>
 
             <!-- Entities Per Page -->
-            <div class="form-row">
-                <label for="entitiesPerPage">Entities per Page</label>
+            <div class="form-row form-row-entities">
+                <label class="settings-field-label" for="entitiesPerPage">Entities per Page</label>
                 <input 
                     type="number" 
                     id="entitiesPerPage"
@@ -48,8 +48,12 @@
                     [ngModelOptions]="{standalone: true}"
                     min="1"
                     max="99"
-                    class="input input-small"
+                    class="input-entities"
                 />
+            </div>
+
+            <div class="settings-actions">
+                <button type="button" class="btn btn-primary" (click)="onChangePassword()">Change Password</button>
             </div>
         </form>
     </div>

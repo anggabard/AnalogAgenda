@@ -1,4 +1,5 @@
 import { Component, Input, Output, EventEmitter, inject } from '@angular/core';
+import { Router } from '@angular/router';
 import { UserSettingsDto } from '../../../DTOs';
 import { UserSettingsService } from '../../../services';
 
@@ -13,6 +14,11 @@ export class SettingsSectionComponent {
   @Output() settingsUpdated = new EventEmitter<void>();
 
   private userSettingsService = inject(UserSettingsService);
+  private router = inject(Router);
+
+  onChangePassword(): void {
+    this.router.navigate(['/change-password']);
+  }
 
   onSettingsChange(): void {
     if (!this.userSettings) return;

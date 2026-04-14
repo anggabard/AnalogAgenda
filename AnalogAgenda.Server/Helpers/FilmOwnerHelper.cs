@@ -22,4 +22,20 @@ public static class FilmOwnerHelper
             return false;
         }
     }
+
+    public static bool IsCurrentUserCollectionOwner(ClaimsPrincipal? user, CollectionEntity collection)
+    {
+        var name = user?.Identity?.IsAuthenticated == true ? user.FindFirstValue(ClaimTypes.Name) : null;
+        if (string.IsNullOrEmpty(name))
+            return false;
+        try
+        {
+            var currentUserEnum = name.ToEnum<EUsernameType>();
+            return collection.Owner == currentUserEnum;
+        }
+        catch
+        {
+            return false;
+        }
+    }
 }

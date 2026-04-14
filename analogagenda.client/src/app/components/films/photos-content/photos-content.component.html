@@ -46,6 +46,23 @@
               <button type="button" class="dropdown-item" *ngIf="mode === 'edit' && isOwner" (click)="onBulkDeleteFromMenu()">
                 Delete
               </button>
+              <ng-container *ngIf="isOwner && openCollectionOptions.length > 0">
+                <div class="add-to-collection-block">
+                  <button type="button" class="dropdown-item" (click)="toggleCollectionSubmenu($event)">
+                    Add to collection ▾
+                  </button>
+                  <div class="collection-pick-list" *ngIf="collectionSubmenuOpen">
+                    <button
+                      type="button"
+                      class="dropdown-item"
+                      *ngFor="let c of openCollectionOptions"
+                      [disabled]="addToCollectionBusy"
+                      (click)="onAddToCollectionPick(c.id)">
+                      {{ c.name }}
+                    </button>
+                  </div>
+                </div>
+              </ng-container>
             </div>
           </div>
           <button type="button" class="download-all-btn select-plain-btn" (click)="toggleSelectAllOrDeselectAll()">

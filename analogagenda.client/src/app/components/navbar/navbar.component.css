@@ -12,7 +12,8 @@
   flex-direction: column;
   z-index: 1000;
   overflow-x: hidden;
-  overflow-y: auto;
+  overflow-y: hidden;
+  min-height: 0;
 }
 
 /* Ensure navbar component takes full width and never causes horizontal scroll */
@@ -29,8 +30,8 @@
   box-sizing: border-box;
 }
 
-/* Mobile styles */
-@media (max-width: 767px) {
+/* Mobile / drawer nav — up to 1220px */
+@media (max-width: 1220px) {
   body {
     min-height: 100vh;
   }
@@ -53,11 +54,25 @@
     padding: 20px 25px 12px;
     display: block;
     text-align: center;
+    flex-shrink: 0;
+  }
+
+  .nav-items {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .bottom-elements {
+    flex-shrink: 0;
+    margin-top: 0;
   }
 }
 
 /* Desktop top navigation */
-@media (min-width: 768px) {
+@media (min-width: 1221px) {
   .nav {
     position: static;
     height: 60px;
@@ -86,8 +101,12 @@
     flex-direction: row;
     gap: 0;
     margin: 0 0 0 20px;
-    flex: 1;
+    flex: 1 1 auto;
+    min-width: 0;
     justify-content: flex-start;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
   }
   
   .bottom-elements {
@@ -159,7 +178,7 @@
 
 
 /* Mobile toggle - only show on mobile */
-@media (max-width: 767px) {
+@media (max-width: 1220px) {
   .mobile-toggle {
     position: fixed;
     bottom: 10px;
