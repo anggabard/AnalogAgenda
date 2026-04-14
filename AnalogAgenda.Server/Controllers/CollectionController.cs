@@ -26,8 +26,7 @@ public class CollectionController(
     private readonly DtoConvertor dtoConvertor = dtoConvertor;
 
     /// <summary>
-    /// Current user’s collections: rows with at least one of From/To date first (newest “latest in range” first),
-    /// then collections with both dates null last. Use page ≤ 0 to return the full list (legacy).
+    /// Current user’s collections: rows with the newest FromDate then nulls
     /// </summary>
     [HttpGet]
     public async Task<IActionResult> GetMine([FromQuery] int page = 1, [FromQuery] int pageSize = 20)
