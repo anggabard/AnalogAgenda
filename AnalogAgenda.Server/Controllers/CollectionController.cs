@@ -350,16 +350,21 @@ public class CollectionController(
     /// </summary>
     private async Task<List<PhotoEntity>> ResolveValidOwnedPhotosAsync(IEnumerable<string>? photoIds, EUsernameType owner)
     {
-        var list = new List<PhotoEntity>();
-        foreach (var photoId in photoIds?.Where(x => !string.IsNullOrWhiteSpace(x)).Distinct() ?? [])
-        {
-            var photo = await databaseService.GetByIdWithIncludesAsync<PhotoEntity>(photoId, p => p.Film);
-            if (photo?.Film == null || photo.Film.PurchasedBy != owner)
-                continue;
-            list.Add(photo);
-        }
+        var requestedPhotoIds = (photoIds ?? [])
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Distinct()
+            .ToHashSet();
 
-        return list;
+        if (requestedPhotoIds.Count == 0)
+            return [];
+
+        var photos = await databaseService.GetAllWithIncludesAsync<PhotoEntity>(p => p.Film);
+
+        return photos
+            .Where(photo => requestedPhotoIds.Contains(photo.Id)
+                && photo.Film != null
+                && photo.Film.PurchasedBy == owner)
+            .ToList();
     }
 
     /// <summary>
