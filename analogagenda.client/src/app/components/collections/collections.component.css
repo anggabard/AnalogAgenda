@@ -143,20 +143,6 @@
   line-height: 1.2;
 }
 
-.table-status-badge {
-  display: inline-block;
-  font-size: 0.8rem;
-  font-weight: 600;
-  padding: 0.2em 0.55em;
-  border-radius: 999px;
-  text-transform: uppercase;
-}
-
-.table-status-badge.status-open {
-  background: rgba(0, 172, 124, 0.2);
-  color: #047857;
-}
-
 .collection-cell-image {
   width: 4rem;
 }

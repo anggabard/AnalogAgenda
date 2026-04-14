@@ -189,6 +189,7 @@ export class UpsertCollectionComponent extends BaseUpsertComponent<CollectionDto
   onFinishedToggle(ev: Event): void {
     const checked = (ev.target as HTMLInputElement).checked;
     this.form.patchValue({ isOpen: !checked });
+    this.form.markAsDirty();
   }
 
   get finishedToggleChecked(): boolean {

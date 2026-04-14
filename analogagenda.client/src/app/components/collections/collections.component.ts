@@ -18,7 +18,7 @@ export class CollectionsComponent implements OnInit, OnDestroy {
   @ViewChild('collectionCardTemplate') collectionCardTemplate!: TemplateRef<any>;
   @ViewChild('collectionRowTemplate') collectionRowTemplate!: TemplateRef<any>;
 
-  collectionTableHeaders = ['Name', 'Date range', 'Location', 'Status', 'Preview'];
+  collectionTableHeaders = ['Name', 'Date From', 'Date To', 'Location', 'Finished', 'Preview'];
 
   collections: CollectionDto[] = [];
   loading = true;
@@ -133,5 +133,11 @@ export class CollectionsComponent implements OnInit, OnDestroy {
     if (!a && !b) return '';
     if (a && b) return `${a} – ${b}`;
     return a ?? b ?? '';
+  }
+
+  /** Table cells: ISO or date string, max yyyy-MM-dd */
+  formatDateColumn(value: string | null | undefined): string {
+    if (value == null || String(value).trim() === '') return '';
+    return String(value).slice(0, 10);
   }
 }

@@ -40,11 +40,10 @@
 
 <ng-template #collectionRowTemplate let-c>
   <td>{{ c.name }}</td>
-  <td>{{ formatRange(c) }}</td>
+  <td>{{ formatDateColumn(c.fromDate) }}</td>
+  <td>{{ formatDateColumn(c.toDate) }}</td>
   <td>{{ c.location?.trim() || '' }}</td>
-  <td>
-    <span *ngIf="c.isOpen" class="table-status-badge status-open">Open</span>
-  </td>
+  <td>{{ !c.isOpen }}</td>
   <td class="collection-cell-image">
     <app-image-preview [imageUrl]="cardImageUrl(c)" [alt]="c.name" popoverPosition="left"></app-image-preview>
   </td>
