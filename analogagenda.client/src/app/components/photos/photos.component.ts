@@ -2,6 +2,7 @@ import { Component, inject, OnInit } from '@angular/core';
 import { lastValueFrom } from 'rxjs';
 import { FilmService, PhotoService, AccountService, CollectionService } from '../../services';
 import { FilmDto, PhotoDto, IdentityDto, CollectionOptionDto } from '../../DTOs';
+import { PhotosContentComponent } from '../films/photos-content/photos-content.component';
 import { DownloadHelper } from '../../helpers/download.helper';
 
 interface FilmWithPhotos {
@@ -185,7 +186,11 @@ export class PhotosComponent implements OnInit {
     });
   }
 
-  onAddToCollection(_section: FilmWithPhotos, payload: { collectionId: string; photoIds: string[] }): void {
+  onAddToCollection(
+    _section: FilmWithPhotos,
+    content: PhotosContentComponent,
+    payload: { collectionId: string; photoIds: string[] }
+  ): void {
     if (payload.photoIds.length === 0) {
       return;
     }
@@ -194,6 +199,7 @@ export class PhotosComponent implements OnInit {
     this.collectionService.appendPhotos(payload.collectionId, payload.photoIds).subscribe({
       next: () => {
         this.addToCollectionLoading = false;
+        content.exitBulkSelectionMode();
       },
       error: () => {
         this.addToCollectionLoading = false;

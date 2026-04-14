@@ -26,7 +26,7 @@ public class CollectionController(
     private readonly DtoConvertor dtoConvertor = dtoConvertor;
 
     /// <summary>
-    /// Current user’s collections: rows with at least one of From/To date first (newest created first within that group),
+    /// Current user’s collections: rows with at least one of From/To date first (newest “latest in range” first),
     /// then collections with both dates null last. Use page ≤ 0 to return the full list (legacy).
     /// </summary>
     [HttpGet]
@@ -40,9 +40,8 @@ public class CollectionController(
         var mine = (await databaseService.GetAllWhereWithIncludesAsync<CollectionEntity>(
                 c => c.Owner == currentUserEnum,
                 c => c.Photos))
-            .OrderBy(c => c.FromDate == null && c.ToDate == null ? 1 : 0)
-            .ThenByDescending(c => c.CreatedDate)
-            .ThenBy(c => c.Name, StringComparer.OrdinalIgnoreCase)
+            .OrderBy(c => c.FromDate == null && c.ToDate == null)
+            .ThenByDescending(c => c.FromDate)
             .ToList();
 
         if (page <= 0)

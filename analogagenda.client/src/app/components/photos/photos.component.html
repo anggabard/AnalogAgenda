@@ -16,6 +16,7 @@
         <p class="film-details">{{ section.film.type }} • ISO {{ section.film.iso }}</p>
       </div>
       <app-photos-content
+        #sectionPhotosContent
         [photos]="section.photos"
         [film]="section.film"
         mode="view"
@@ -30,7 +31,7 @@
         (downloadSelected)="onDownloadSelected(section, $event)"
         (deletePhoto)="onDeletePhoto(section, $event)"
         (restrictToggle)="onRestrictToggle(section, $event)"
-        (addToCollectionRequest)="onAddToCollection(section, $event)"
+        (addToCollectionRequest)="onAddToCollection(section, sectionPhotosContent, $event)"
       ></app-photos-content>
     </div>
 

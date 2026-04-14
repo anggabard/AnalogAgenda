@@ -105,6 +105,15 @@ describe('NavbarComponent', () => {
     expect(component.isSidebarOpen).toBeFalse();
   });
 
+  it('should navigate to collections and close sidebar when onCollectionsClick is called', () => {
+    component.isSidebarOpen = true;
+
+    component.onCollectionsClick();
+
+    expect(mockRouter.navigate).toHaveBeenCalledWith(['/collections']);
+    expect(component.isSidebarOpen).toBeFalse();
+  });
+
   it('should logout and navigate to login on successful logout', () => {
     // Arrange
     mockAccountService.logout.and.returnValue(of({}));

@@ -346,6 +346,7 @@ export class FilmPhotosComponent implements OnInit {
     this.collectionService.appendPhotos(payload.collectionId, payload.photoIds).subscribe({
       next: () => {
         this.addToCollectionLoading = false;
+        this.photosContent?.exitBulkSelectionMode();
       },
       error: () => {
         this.addToCollectionLoading = false;
