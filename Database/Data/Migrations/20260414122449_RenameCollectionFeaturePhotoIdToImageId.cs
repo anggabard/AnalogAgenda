@@ -28,7 +28,7 @@ namespace Database.Data.Migrations
                 table: "Collections",
                 type: "uniqueidentifier",
                 nullable: false,
-                defaultValue: new Guid("00000000-0000-0000-0000-000000000000"));
+                defaultValue: Constants.DefaultCollectionImageId);
         }
 
         /// <inheritdoc />
