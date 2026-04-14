@@ -358,13 +358,11 @@ public class CollectionController(
         if (requestedPhotoIds.Count == 0)
             return [];
 
-        var photos = await databaseService.GetAllWithIncludesAsync<PhotoEntity>(p => p.Film);
-
-        return photos
-            .Where(photo => requestedPhotoIds.Contains(photo.Id)
+        return await databaseService.GetAllWhereWithIncludesAsync<PhotoEntity>(
+            photo => requestedPhotoIds.Contains(photo.Id)
                 && photo.Film != null
-                && photo.Film.PurchasedBy == owner)
-            .ToList();
+                && photo.Film.PurchasedBy == owner,
+            photo => photo.Film);
     }
 
     /// <summary>
