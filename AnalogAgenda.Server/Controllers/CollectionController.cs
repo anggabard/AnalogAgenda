@@ -229,7 +229,7 @@ public class CollectionController(
 
         if (missingIncoming.Count > 0)
         {
-            var candidatePhotos = await databaseService.GetWhereWithIncludesAsync<PhotoEntity>(
+            var candidatePhotos = await databaseService.GetAllWhereWithIncludesAsync<PhotoEntity>(
                 p => missingIncoming.Contains(p.Id),
                 p => p.Film);
 
@@ -445,7 +445,7 @@ public class CollectionController(
 
         if (distinctIds.Count > 0)
         {
-            var photos = await databaseService.GetWithIncludesAsync<PhotoEntity>(
+            var photos = await databaseService.GetAllWhereWithIncludesAsync<PhotoEntity>(
                 p => distinctIds.Contains(p.Id),
                 p => p.Film);
 
