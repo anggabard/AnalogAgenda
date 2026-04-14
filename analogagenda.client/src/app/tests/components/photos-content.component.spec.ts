@@ -2,7 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
 import { PhotosContentComponent } from '../../components/films/photos-content/photos-content.component';
 import { PhotoService } from '../../services';
-import { FilmDto, PhotoDto } from '../../DTOs';
+import { CollectionOptionDto, FilmDto, PhotoDto } from '../../DTOs';
 import { FilmType, UsernameType } from '../../enums';
 import { TestConfig } from '../test.config';
 
@@ -287,6 +287,90 @@ describe('PhotosContentComponent', () => {
       fixture.detectChanges();
       const textsAfter = Array.from(el.querySelectorAll('button .button-content')).map((n) => n.textContent?.trim());
       expect(textsAfter).toContain('Deselect All');
+    });
+  });
+
+  describe('Add to collection', () => {
+    const openCollections: CollectionOptionDto[] = [
+      { id: 'col-1', name: 'Summer 24', imageUrl: '' },
+      { id: 'col-2', name: 'Trips', imageUrl: '' },
+    ];
+
+    beforeEach(() => {
+      component.mode = 'view';
+      component.isOwner = true;
+      component.bulkSelectionEnabled = true;
+      component.openCollectionOptions = openCollections;
+      component.addToCollectionBusy = false;
+      component.startBulkSelection();
+      component.togglePhotoBulkSelected(mockPhotos[0]);
+      component.togglePhotoBulkSelected(mockPhotos[1]);
+      fixture.detectChanges();
+    });
+
+    it('toggleCollectionSubmenu should flip collectionSubmenuOpen and stop propagation', () => {
+      const ev = { stopPropagation: jasmine.createSpy('stopPropagation') } as unknown as Event;
+      expect(component.collectionSubmenuOpen).toBeFalse();
+      component.toggleCollectionSubmenu(ev);
+      expect(ev.stopPropagation).toHaveBeenCalled();
+      expect(component.collectionSubmenuOpen).toBeTrue();
+      component.toggleCollectionSubmenu(ev);
+      expect(component.collectionSubmenuOpen).toBeFalse();
+    });
+
+    it('toggleOptionsDropdown when opening should clear collectionSubmenuOpen', () => {
+      component.collectionSubmenuOpen = true;
+      component.optionsDropdownOpen = false;
+      component.toggleOptionsDropdown();
+      expect(component.optionsDropdownOpen).toBeTrue();
+      expect(component.collectionSubmenuOpen).toBeFalse();
+    });
+
+    it('onAddToCollectionPick should emit addToCollectionRequest with collectionId and selected photoIds', () => {
+      component.optionsDropdownOpen = true;
+      component.collectionSubmenuOpen = true;
+      let emitted: { collectionId: string; photoIds: string[] } | undefined;
+      component.addToCollectionRequest.subscribe((x) => (emitted = x));
+      component.onAddToCollectionPick('col-2');
+      expect(emitted).toEqual({ collectionId: 'col-2', photoIds: ['p1', 'p2'] });
+      expect(component.optionsDropdownOpen).toBeFalse();
+      expect(component.collectionSubmenuOpen).toBeFalse();
+    });
+
+    it('onAddToCollectionPick should not emit when no photos are selected', () => {
+      component.selectedPhotoIds = new Set();
+      let count = 0;
+      component.addToCollectionRequest.subscribe(() => count++);
+      component.onAddToCollectionPick('col-1');
+      expect(count).toBe(0);
+    });
+
+    it('collection pick buttons should be disabled when addToCollectionBusy is true', () => {
+      component.addToCollectionBusy = true;
+      component.optionsDropdownOpen = true;
+      component.collectionSubmenuOpen = true;
+      fixture.detectChanges();
+      const btns = (fixture.nativeElement as HTMLElement).querySelectorAll(
+        '.collection-pick-list .dropdown-item'
+      );
+      expect(btns.length).toBe(2);
+      btns.forEach((b) => {
+        expect((b as HTMLButtonElement).disabled).toBeTrue();
+      });
+    });
+
+    it('collection pick buttons should be enabled when addToCollectionBusy is false', () => {
+      component.addToCollectionBusy = false;
+      component.optionsDropdownOpen = true;
+      component.collectionSubmenuOpen = true;
+      fixture.detectChanges();
+      const btns = (fixture.nativeElement as HTMLElement).querySelectorAll(
+        '.collection-pick-list .dropdown-item'
+      );
+      expect(btns.length).toBe(2);
+      btns.forEach((b) => {
+        expect((b as HTMLButtonElement).disabled).toBeFalse();
+      });
     });
   });
 });

@@ -105,15 +105,6 @@ describe('NavbarComponent', () => {
     expect(component.isSidebarOpen).toBeFalse();
   });
 
-  it('should navigate to change password and close sidebar when onChangePasswordClick is called', () => {
-    component.isSidebarOpen = true;
-
-    component.onChangePasswordClick();
-
-    expect(mockRouter.navigate).toHaveBeenCalledWith(['/change-password']);
-    expect(component.isSidebarOpen).toBeFalse();
-  });
-
   it('should logout and navigate to login on successful logout', () => {
     // Arrange
     mockAccountService.logout.and.returnValue(of({}));
