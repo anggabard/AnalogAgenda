@@ -170,8 +170,7 @@ public class FilmController(
             var all = await databaseService.GetAllWithIncludesAsync<FilmEntity>(f => f.ExposureDates);
             return all.Where(predicate.Compile()).ToList();
         }
-        var allFilms = await databaseService.GetAllAsync<FilmEntity>();
-        return allFilms.Where(predicate.Compile()).ToList();
+        return await databaseService.GetAllAsync<FilmEntity>(predicate);
     }
 
     private async Task<IActionResult> GetFilteredFilms(
