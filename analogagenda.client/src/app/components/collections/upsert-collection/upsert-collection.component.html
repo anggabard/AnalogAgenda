@@ -1,0 +1,126 @@
+<div class="upsert-collection container">
+  <app-error-message [message]="errorMessage"></app-error-message>
+
+  <form [formGroup]="form" (ngSubmit)="submit()" class="form-box">
+    <h1 class="title">{{ isInsert ? 'New Collection' : 'Edit Collection' }}</h1>
+
+    <div class="field">
+      <label for="name">Name</label>
+      <input
+        id="name"
+        type="text"
+        class="input"
+        formControlName="name"
+        autocomplete="off"
+        (blur)="form.get('name')?.markAsTouched()" />
+      <p class="field-error" *ngIf="showNameRequiredError()">Name is required.</p>
+    </div>
+
+    <div class="field row-two">
+      <div>
+        <label for="fromDate">From</label>
+        <input
+          id="fromDate"
+          type="date"
+          class="input"
+          formControlName="fromDate"
+          (change)="form.get('fromDate')?.markAsTouched(); form.updateValueAndValidity()" />
+      </div>
+      <div>
+        <label for="toDate">To</label>
+        <input
+          id="toDate"
+          type="date"
+          class="input"
+          formControlName="toDate"
+          (change)="form.get('toDate')?.markAsTouched(); form.updateValueAndValidity()" />
+      </div>
+    </div>
+    <p class="field-error" *ngIf="showDateRangeError()">From date must be before To date.</p>
+
+    <div class="field">
+      <label for="location">Location</label>
+      <input id="location" type="text" class="input" formControlName="location" autocomplete="off" />
+    </div>
+
+    <div class="developed-toggle-container" *ngIf="!isInsert">
+      <span class="toggle-label">Open</span>
+      <div class="toggle-border">
+        <input
+          id="isOpenToggle"
+          type="checkbox"
+          [checked]="finishedToggleChecked"
+          (change)="onFinishedToggle($event)" />
+        <label for="isOpenToggle">
+          <div class="handle"></div>
+        </label>
+      </div>
+      <span class="toggle-label">Finished</span>
+    </div>
+
+    <div class="field" *ngIf="!isInsert">
+      <button type="button" class="btn-secondary" (click)="openFeaturedModal()" [disabled]="featuredModalLoading">
+        Select featured photo
+      </button>
+    </div>
+
+    <div class="actions">
+      <button
+        *ngIf="!isInsert"
+        type="button"
+        class="delete-btn"
+        (click)="isDeleteModalOpen = true">
+        Delete
+      </button>
+      <div class="actions-trailing">
+        <button
+          *ngIf="!isInsert"
+          type="button"
+          class="action-primary"
+          [disabled]="downloadLoading || !collectionHasPhotos"
+          (click)="onDownload(false)">
+          Download
+        </button>
+        <button
+          type="submit"
+          class="submit-btn"
+          [disabled]="loading || form.invalid || (!isInsert && form.pristine)">
+          <span *ngIf="!loading">{{ isInsert ? 'Save' : 'Update' }}</span>
+          <span *ngIf="loading">...</span>
+        </button>
+      </div>
+    </div>
+  </form>
+
+  <app-confirm-delete-modal
+    [open]="isDeleteModalOpen"
+    title="Confirm Delete"
+    [message]="'Are you sure you want to delete ' + (originalName || '') + ' Collection?'"
+    (confirm)="onDelete()"
+    (cancel)="isDeleteModalOpen = false">
+  </app-confirm-delete-modal>
+
+  <app-modal [open]="showFeaturedModal" (close)="closeFeaturedModal()">
+    <div class="modal-header">
+      <span class="modal-header-spacer" aria-hidden="true"></span>
+      <h3>Select featured photo</h3>
+      <button type="button" class="modal-close" (click)="closeFeaturedModal()" aria-label="Close">✕</button>
+    </div>
+    <div class="modal-body featured-modal-body-inner">
+      <p *ngIf="featuredModalLoading" class="muted">Loading…</p>
+      <div class="photo-pick-grid" *ngIf="!featuredModalLoading && featuredModalPhotos.length > 0">
+        <button
+          type="button"
+          *ngFor="let photo of featuredModalPhotos"
+          class="photo-pick-tile"
+          [class.selected]="isCardImageSelectedInModal(photo)"
+          (click)="selectCardImageFromPhoto(photo)">
+          <img [src]="previewUrl(photo)" alt="" />
+        </button>
+      </div>
+      <p *ngIf="!featuredModalLoading && featuredModalPhotos.length === 0" class="muted">
+        No photos in this collection yet. Add photos from Film Photos.
+      </p>
+    </div>
+  </app-modal>
+</div>

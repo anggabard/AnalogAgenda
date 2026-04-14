@@ -12,7 +12,7 @@ import {
 } from '@angular/core';
 import { Router } from '@angular/router';
 import { PhotoService } from '../../../services';
-import { PhotoDto, FilmDto } from '../../../DTOs';
+import { PhotoDto, FilmDto, CollectionOptionDto } from '../../../DTOs';
 
 @Component({
   selector: 'app-photos-content',
@@ -66,6 +66,11 @@ export class PhotosContentComponent implements OnInit, OnChanges {
   @Output() wackyResultRequest = new EventEmitter<PhotoDto[]>();
   /** Idea results page: remove link only (not blob delete) */
   @Output() removeLinkedPhotosRequest = new EventEmitter<PhotoDto[]>();
+  /** Owner-only: open collections for bulk “Add to collection”. */
+  @Input() openCollectionOptions: CollectionOptionDto[] = [];
+  @Input() addToCollectionBusy = false;
+  @Output() addToCollectionRequest = new EventEmitter<{ collectionId: string; photoIds: string[] }>();
+  collectionSubmenuOpen = false;
   private _allowedBulkPhotoIds: string[] | null = null;
 
   /**
@@ -160,8 +165,26 @@ export class PhotosContentComponent implements OnInit, OnChanges {
     const next = !this.optionsDropdownOpen;
     if (next) {
       this.downloadDropdownOpen = false;
+      this.collectionSubmenuOpen = false;
+    } else {
+      this.collectionSubmenuOpen = false;
     }
     this.optionsDropdownOpen = next;
+  }
+
+  toggleCollectionSubmenu(event: Event): void {
+    event.stopPropagation();
+    this.collectionSubmenuOpen = !this.collectionSubmenuOpen;
+  }
+
+  onAddToCollectionPick(collectionId: string): void {
+    const photoIds = [...this.selectedPhotoIds];
+    if (photoIds.length === 0) {
+      return;
+    }
+    this.addToCollectionRequest.emit({ collectionId, photoIds });
+    this.optionsDropdownOpen = false;
+    this.collectionSubmenuOpen = false;
   }
 
   onBulkDeleteFromMenu(): void {
@@ -341,6 +364,7 @@ export class PhotosContentComponent implements OnInit, OnChanges {
     const optionsContainer = this.elementRef.nativeElement.querySelector('.options-dropdown-container');
     if (optionsContainer && !optionsContainer.contains(target)) {
       this.optionsDropdownOpen = false;
+      this.collectionSubmenuOpen = false;
     }
   }
 }

@@ -1,0 +1,172 @@
+.container {
+  padding: 0 5% 40px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.header {
+  display: flex;
+  justify-content: center;
+  margin: 10px 0 20px;
+}
+
+.add-collection {
+  padding: 0.5rem 1rem;
+  background-color: rgba(37, 35, 35, 0.897);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.collections-section {
+  margin: 5px 0 30px;
+}
+
+/* Fixed size: image uses remaining height; text sits in flow below the photo (no overlap); bottom padding reserves Edit strip */
+.collections-section .card.collection-card-inner {
+  position: relative;
+  flex: 0 0 auto;
+  width: 11.875em;
+  height: 11.875em;
+  box-sizing: border-box;
+  box-shadow: 0px 1px 13px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  transition: all 120ms;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  background: #fff;
+  padding: 0.5em 0.5em 0.5em;
+  gap: 0.3em;
+}
+
+.collections-section .collection-card-inner::after {
+  content: 'Edit';
+  place-self: center;
+  padding-top: 1.25em;
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  background: #00ac7c;
+  color: #fff;
+  height: 2.5em;
+  width: 100%;
+  transition: all 80ms;
+  font-weight: 600;
+  text-transform: uppercase;
+  visibility: hidden;
+}
+
+.collections-section .collection-card-inner:hover::after {
+  transform: translateY(-60px);
+  visibility: visible;
+}
+
+.collections-section .collection-card-inner:active {
+  transform: scale(0.98);
+}
+
+.collections-section .collection-card-inner .status-badge {
+  position: absolute;
+  top: 0.45em;
+  right: 0.45em;
+  z-index: 2;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 0.68em;
+  font-weight: 600;
+  padding: 0.28em 0.5em;
+  border-radius: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+  outline: 1px solid rgba(255, 255, 255, 0.55);
+  outline-offset: 0;
+}
+
+.collections-section .collection-card-inner .status-badge.status-open {
+  background: rgba(0, 172, 124, 0.95);
+  color: #fff;
+}
+
+.collections-section .collection-card-inner .image.collection-thumb {
+  flex: 1 1 0;
+  min-height: 0;
+  width: 100%;
+  overflow: hidden;
+  border-radius: 4px;
+  background: rgb(241, 241, 241);
+  display: grid;
+  place-items: center;
+}
+
+.collections-section .collection-card-inner .image.collection-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.collections-section .collection-card-inner .collection-card-text {
+  flex: 0 0 auto;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.12em;
+  align-items: center;
+  pointer-events: none;
+}
+
+.collections-section .collection-card-inner .title {
+  font-family: Arial, Helvetica, sans-serif;
+  font-weight: 600;
+  text-align: center;
+  width: 100%;
+  font-size: 0.9em;
+  color: #000;
+  margin: 0;
+  line-height: 1.2;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.collections-section .collection-card-inner .info {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 0.68em;
+  color: #444;
+  text-align: center;
+  width: 100%;
+  line-height: 1.2;
+}
+
+.table-status-badge {
+  display: inline-block;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.2em 0.55em;
+  border-radius: 999px;
+  text-transform: uppercase;
+}
+
+.table-status-badge.status-open {
+  background: rgba(0, 172, 124, 0.2);
+  color: #047857;
+}
+
+.collection-cell-image {
+  width: 4rem;
+}
+
+.loading-row,
+.empty-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 2rem;
+  color: rgba(0, 0, 0, 0.65);
+}

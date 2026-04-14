@@ -2,8 +2,8 @@ import { Component, inject, OnInit, ViewChild } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
-import { PhotoService, FilmService, AccountService, IdeaService } from '../../../services';
-import { PhotoDto, FilmDto, IdeaDto } from '../../../DTOs';
+import { PhotoService, FilmService, AccountService, IdeaService, CollectionService } from '../../../services';
+import { PhotoDto, FilmDto, IdeaDto, CollectionOptionDto } from '../../../DTOs';
 import { DownloadHelper } from '../../../helpers/download.helper';
 import { modalListMatches } from '../../../helpers/modal-list-search.helper';
 import { CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
@@ -24,6 +24,10 @@ export class FilmPhotosComponent implements OnInit {
   private photoService = inject(PhotoService);
   private accountService = inject(AccountService);
   private ideaService = inject(IdeaService);
+  private collectionService = inject(CollectionService);
+
+  openCollectionOptions: CollectionOptionDto[] = [];
+  addToCollectionLoading = false;
 
   filmId: string = '';
   film: FilmDto | null = null;
@@ -75,6 +79,7 @@ export class FilmPhotosComponent implements OnInit {
         this.photos = photos || [];
         this.photos.sort((a, b) => a.index - b.index);
         this.isOwner = !!(this.film && this.currentUsername && this.film.purchasedBy === this.currentUsername);
+        this.loadOpenCollectionOptions();
         this.loading = false;
       })
       .catch(() => {
@@ -315,6 +320,38 @@ export class FilmPhotosComponent implements OnInit {
   get bulkDeleteMessage(): string {
     const n = this.photosPendingBulkDelete.length;
     return `Delete ${n} selected photo${n === 1 ? '' : 's'}? This cannot be undone.`;
+  }
+
+  private loadOpenCollectionOptions(): void {
+    if (!this.isOwner) {
+      this.openCollectionOptions = [];
+      return;
+    }
+    this.collectionService.getOpenOptions().subscribe({
+      next: (rows) => {
+        this.openCollectionOptions = rows ?? [];
+      },
+      error: () => {
+        this.openCollectionOptions = [];
+      },
+    });
+  }
+
+  onAddToCollectionRequest(payload: { collectionId: string; photoIds: string[] }): void {
+    if (payload.photoIds.length === 0) {
+      return;
+    }
+    this.errorMessage = null;
+    this.addToCollectionLoading = true;
+    this.collectionService.appendPhotos(payload.collectionId, payload.photoIds).subscribe({
+      next: () => {
+        this.addToCollectionLoading = false;
+      },
+      error: () => {
+        this.addToCollectionLoading = false;
+        this.errorMessage = 'Failed to add photos to collection.';
+      },
+    });
   }
 
   onWackyResultRequest(photos: PhotoDto[]): void {

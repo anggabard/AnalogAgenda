@@ -1,4 +1,4 @@
-<div class="card-list" [ngClass]="listClass">
+<div #scrollHost class="card-list" [ngClass]="listClass">
     <div *ngFor="let item of items" (click)="onItemClick(item)">
         <ng-container *ngTemplateOutlet="cardTemplate; context: { $implicit: item }"></ng-container>
     </div>

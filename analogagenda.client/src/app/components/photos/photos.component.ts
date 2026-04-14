@@ -1,7 +1,7 @@
 import { Component, inject, OnInit } from '@angular/core';
 import { lastValueFrom } from 'rxjs';
-import { FilmService, PhotoService, AccountService } from '../../services';
-import { FilmDto, PhotoDto, IdentityDto } from '../../DTOs';
+import { FilmService, PhotoService, AccountService, CollectionService } from '../../services';
+import { FilmDto, PhotoDto, IdentityDto, CollectionOptionDto } from '../../DTOs';
 import { DownloadHelper } from '../../helpers/download.helper';
 
 interface FilmWithPhotos {
@@ -19,6 +19,7 @@ export class PhotosComponent implements OnInit {
   private filmService = inject(FilmService);
   private photoService = inject(PhotoService);
   private accountService = inject(AccountService);
+  private collectionService = inject(CollectionService);
 
   activeTab: 'my' | 'all' = 'my';
   currentUsername = '';
@@ -35,14 +36,32 @@ export class PhotosComponent implements OnInit {
   loadingPhotos = false;
   /** User-visible error message (batch load, download, restrict, delete). */
   errorMessage: string | null = null;
+  /** Open collections for bulk “Add to collection”. */
+  openCollectionOptions: CollectionOptionDto[] = [];
+  addToCollectionLoading = false;
 
   ngOnInit() {
     this.accountService.whoAmI().subscribe({
       next: (identity: IdentityDto) => {
         this.currentUsername = identity.username;
+        this.loadOpenCollectionOptions();
         this.loadInitial();
       },
-      error: () => this.loadInitial(),
+      error: () => {
+        this.loadOpenCollectionOptions();
+        this.loadInitial();
+      },
+    });
+  }
+
+  private loadOpenCollectionOptions(): void {
+    this.collectionService.getOpenOptions().subscribe({
+      next: (rows) => {
+        this.openCollectionOptions = rows ?? [];
+      },
+      error: () => {
+        this.openCollectionOptions = [];
+      },
     });
   }
 
@@ -59,7 +78,8 @@ export class PhotosComponent implements OnInit {
         : this.filmService.getDevelopedFilmsAll();
     request$.subscribe({
       next: (films: FilmDto[]) => {
-        this.allFilms = films.filter((f) => (f.photoCount ?? 0) > 0);
+        const filtered = films.filter((f) => (f.photoCount ?? 0) > 0);
+        this.allFilms = filtered;
         this.loadingFilms = false;
         this.revealNextBatch();
       },
@@ -161,6 +181,23 @@ export class PhotosComponent implements OnInit {
       error: () => {
         this.downloadAllLoadingSectionId = null;
         this.errorMessage = 'Failed to download selected photos archive.';
+      },
+    });
+  }
+
+  onAddToCollection(_section: FilmWithPhotos, payload: { collectionId: string; photoIds: string[] }): void {
+    if (payload.photoIds.length === 0) {
+      return;
+    }
+    this.errorMessage = null;
+    this.addToCollectionLoading = true;
+    this.collectionService.appendPhotos(payload.collectionId, payload.photoIds).subscribe({
+      next: () => {
+        this.addToCollectionLoading = false;
+      },
+      error: () => {
+        this.addToCollectionLoading = false;
+        this.errorMessage = 'Failed to add photos to collection.';
       },
     });
   }

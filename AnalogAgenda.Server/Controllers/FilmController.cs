@@ -170,7 +170,8 @@ public class FilmController(
             var all = await databaseService.GetAllWithIncludesAsync<FilmEntity>(f => f.ExposureDates);
             return all.Where(predicate.Compile()).ToList();
         }
-        return await databaseService.GetAllAsync(predicate);
+        var allFilms = await databaseService.GetAllAsync<FilmEntity>();
+        return allFilms.Where(predicate.Compile()).ToList();
     }
 
     private async Task<IActionResult> GetFilteredFilms(
@@ -284,6 +285,9 @@ public class FilmController(
 
         if (existingEntity == null)
             return NotFound();
+
+        if (!FilmOwnerHelper.IsCurrentUserFilmOwner(User, existingEntity))
+            return Forbid();
 
         try
         {

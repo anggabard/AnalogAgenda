@@ -31,6 +31,7 @@ public class DtoConvertor(Configuration.Sections.System systemCfg, Storage stora
     public PhotoDto ToDTO(PhotoEntity entity) => new()
     {
         Id = entity.Id,
+        ImageId = entity.ImageId.ToString(),
         FilmId = entity.FilmId,
         Index = entity.Index,
         ImageUrl = BuildImageUrl(ContainerName.photos, entity.ImageId),
@@ -64,6 +65,42 @@ public class DtoConvertor(Configuration.Sections.System systemCfg, Storage stora
             DevelopedWithDevKitId = entity.DevelopedWithDevKitId,
             FormattedExposureDate = formattedDate,
             PhotoCount = entity.Photos?.Count ?? 0
+        };
+    }
+
+    public CollectionDto ToDTO(CollectionEntity entity)
+    {
+        var imageUrl = entity.ImageId != Guid.Empty
+            ? BuildImageUrl(ContainerName.photos, entity.ImageId)
+            : string.Empty;
+
+        return new CollectionDto
+        {
+            Id = entity.Id,
+            Name = entity.Name,
+            FromDate = entity.FromDate,
+            ToDate = entity.ToDate,
+            Location = entity.Location,
+            ImageId = entity.ImageId.ToString(),
+            IsOpen = entity.IsOpen,
+            Owner = entity.Owner.ToString(),
+            PhotoIds = entity.Photos?.Select(p => p.Id).ToList() ?? [],
+            PhotoCount = entity.Photos?.Count ?? 0,
+            ImageUrl = imageUrl
+        };
+    }
+
+    public CollectionOptionDto ToOptionDto(CollectionEntity entity)
+    {
+        var imageUrl = entity.ImageId != Guid.Empty
+            ? BuildImageUrl(ContainerName.photos, entity.ImageId)
+            : string.Empty;
+
+        return new CollectionOptionDto
+        {
+            Id = entity.Id,
+            Name = entity.Name,
+            ImageUrl = imageUrl
         };
     }
 

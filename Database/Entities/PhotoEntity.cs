@@ -15,5 +15,7 @@ public class PhotoEntity : BaseEntity, IImageEntity
     // Navigation property
     public FilmEntity Film { get; set; } = default!;
 
+    public ICollection<CollectionEntity> Collections { get; set; } = [];
+
     protected override int IdLength() => 16;
 }

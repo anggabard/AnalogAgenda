@@ -25,6 +25,7 @@ public class AnalogAgendaDbContext(DbContextOptions<AnalogAgendaDbContext> optio
     public DbSet<IdeaSessionEntity> IdeaSessions { get; set; }
     public DbSet<DevKitSessionEntity> DevKitSessions { get; set; }
     public DbSet<DevKitFilmEntity> DevKitFilms { get; set; }
+    public DbSet<CollectionEntity> Collections { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -136,6 +137,26 @@ public class AnalogAgendaDbContext(DbContextOptions<AnalogAgendaDbContext> optio
             entity.HasIndex(e => e.Developed);
             entity.HasIndex(e => e.DevelopedInSessionId);
             entity.HasIndex(e => e.DevelopedWithDevKitId);
+        });
+
+        // Configure CollectionEntity (photo collections)
+        modelBuilder.Entity<CollectionEntity>(entity =>
+        {
+            entity.ToTable("Collections");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).HasMaxLength(50);
+            entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
+            entity.Property(e => e.Location).HasMaxLength(500);
+            entity.Property(e => e.ImageId).IsRequired();
+            entity.Property(e => e.Owner)
+                .HasConversion<string>()
+                .HasMaxLength(50);
+            entity.HasIndex(e => e.Owner);
+            entity.HasIndex(e => e.IsOpen);
+
+            entity.HasMany(e => e.Photos)
+                .WithMany(p => p.Collections)
+                .UsingEntity(j => j.ToTable("CollectionPhotos"));
         });
 
         // Configure PhotoEntity

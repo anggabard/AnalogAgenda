@@ -96,6 +96,9 @@ export abstract class BaseUpsertComponent<TDto> implements OnInit {
         if (this.form.get('purchasedBy')) {
           this.form.patchValue({ purchasedBy: identity.username });
         }
+        if (this.form.get('owner')) {
+          this.form.patchValue({ owner: identity.username });
+        }
       }
     });
   }

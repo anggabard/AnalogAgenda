@@ -50,6 +50,9 @@
     (restrictToggle)="onRestrictToggle($event)"
     (bulkDeleteRequest)="onBulkDeleteRequest($event)"
     (wackyResultRequest)="onWackyResultRequest($event)"
+    [openCollectionOptions]="openCollectionOptions"
+    [addToCollectionBusy]="addToCollectionLoading"
+    (addToCollectionRequest)="onAddToCollectionRequest($event)"
   ></app-photos-content>
 
   <app-confirm-delete-modal

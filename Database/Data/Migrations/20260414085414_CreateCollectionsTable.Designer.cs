@@ -4,6 +4,7 @@ using Database.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Database.Data.Migrations
 {
     [DbContext(typeof(AnalogAgendaDbContext))]
-    partial class AnalogAgendaDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260414085414_CreateCollectionsTable")]
+    partial class CreateCollectionsTable
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -46,11 +49,12 @@ namespace Database.Data.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("FeaturedPhotoId")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
                     b.Property<DateOnly?>("FromDate")
                         .HasColumnType("date");
-
-                    b.Property<Guid>("ImageId")
-                        .HasColumnType("uniqueidentifier");
 
                     b.Property<bool>("IsOpen")
                         .HasColumnType("bit");
@@ -77,6 +81,8 @@ namespace Database.Data.Migrations
                         .HasColumnType("datetime2");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("FeaturedPhotoId");
 
                     b.HasIndex("IsOpen");
 
@@ -745,6 +751,16 @@ namespace Database.Data.Migrations
                         .HasForeignKey("PhotosId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("Database.Entities.CollectionEntity", b =>
+                {
+                    b.HasOne("Database.Entities.PhotoEntity", "FeaturedPhoto")
+                        .WithMany()
+                        .HasForeignKey("FeaturedPhotoId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("FeaturedPhoto");
                 });
 
             modelBuilder.Entity("Database.Entities.DevKitFilmEntity", b =>
