@@ -192,6 +192,7 @@ export class UpsertCollectionComponent extends BaseUpsertComponent<CollectionDto
           this.showPublicPasswordModal = false;
           this.publicPasswordModalRegenerateMode = false;
           this.publicPasswordDraft = '';
+          this.form.patchValue({ publicPassword: '' }, { emitEvent: false });
         },
         error: (err) => {
           this.savingPublicPassword = false;
@@ -430,14 +431,18 @@ export class UpsertCollectionComponent extends BaseUpsertComponent<CollectionDto
           this.loadCollectionPhotos();
         }
 
+        const pwdForVerify = (this.form.get('publicPassword')?.value as string)?.trim() ?? '';
+        this.form.patchValue({ publicPassword: '' }, { emitEvent: false });
+
         if (this.pendingNavigateToPublic && item.isPublic) {
           const targetId = item.id || this.id;
           this.pendingNavigateToPublic = false;
           if (targetId) {
-            const pwd = (this.form.get('publicPassword')?.value as string)?.trim() ?? '';
             const go = () => this.router.navigate(['/collections', targetId, 'public']);
-            if (pwd) {
-              this.publicCollectionService.verify(targetId, pwd).subscribe({ next: go, error: go });
+            if (pwdForVerify) {
+              this.publicCollectionService
+                .verify(targetId, pwdForVerify)
+                .subscribe({ next: go, error: go });
             } else {
               go();
             }

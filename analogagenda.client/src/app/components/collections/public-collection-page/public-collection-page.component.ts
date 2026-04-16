@@ -134,10 +134,10 @@ export class PublicCollectionPageComponent implements OnInit {
     const ids = payload.photos.map((p) => p.id);
     if (ids.length === 0) return;
     this.downloadAllLoading = true;
-    const xlOnly = false;
-    this.publicCollectionService.downloadSelected(this.collectionId, ids, xlOnly).subscribe({
+    const small = payload.small;
+    this.publicCollectionService.downloadSelected(this.collectionId, ids, small).subscribe({
       next: (blob) => {
-        DownloadHelper.triggerBlobDownload(blob, this.selectedArchiveFileName(xlOnly));
+        DownloadHelper.triggerBlobDownload(blob, this.selectedArchiveFileName(small));
         this.downloadAllLoading = false;
       },
       error: (err) => {

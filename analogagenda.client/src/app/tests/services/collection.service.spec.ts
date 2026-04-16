@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
 import { CollectionService } from '../../services/implementations/collection.service';
-import { CollectionDto, CollectionOptionDto, PagedResponseDto } from '../../DTOs';
+import { CollectionDto, CollectionOptionDto, PagedResponseDto, PhotoDto } from '../../DTOs';
 
 describe('CollectionService', () => {
   let service: CollectionService;
@@ -135,9 +135,133 @@ describe('CollectionService', () => {
         (r) =>
           r.method === 'GET' &&
           r.url === `${baseUrl}/${id}/download?small=true` &&
-          r.responseType === 'blob'
+          r.responseType === 'blob' &&
+          r.withCredentials === true
       );
       req.flush(blob);
+    });
+  });
+
+  describe('downloadSelectedArchive', () => {
+    it('should POST ids and small flag with blob response and credentials', () => {
+      const id = 'coll-sel';
+      const ids = ['a', 'b'];
+      const blob = new Blob(['PK'], { type: 'application/zip' });
+
+      service.downloadSelectedArchive(id, ids, true).subscribe((res) => {
+        expect(res).toEqual(blob);
+      });
+
+      const req = httpMock.expectOne(
+        (r) =>
+          r.method === 'POST' &&
+          r.url === `${baseUrl}/${id}/download/selected` &&
+          r.responseType === 'blob' &&
+          r.withCredentials === true
+      );
+      expect(req.request.body).toEqual({ ids, small: true });
+      req.flush(blob);
+    });
+  });
+
+  describe('removePhotos', () => {
+    it('should POST ids to photos/remove', () => {
+      const id = 'c1';
+      const photoIds = ['p1'];
+      const mock: CollectionDto = {
+        id,
+        name: 'N',
+        imageId: 'i',
+        photoIds: [],
+        photoCount: 0,
+        imageUrl: '',
+        isOpen: true,
+        owner: 'o',
+        location: '',
+      };
+
+      service.removePhotos(id, photoIds).subscribe((res) => {
+        expect(res).toEqual(mock);
+      });
+
+      const req = httpMock.expectOne(
+        (r) =>
+          r.method === 'POST' &&
+          r.url === `${baseUrl}/${id}/photos/remove` &&
+          r.withCredentials === true
+      );
+      expect(req.request.body).toEqual({ ids: photoIds });
+      req.flush(mock);
+    });
+  });
+
+  describe('setFeaturedPhoto', () => {
+    it('should POST photoId to featured endpoint', () => {
+      const id = 'c1';
+      const mock: CollectionDto = {
+        id,
+        name: 'N',
+        imageId: 'newImg',
+        photoIds: [],
+        photoCount: 0,
+        imageUrl: '',
+        isOpen: true,
+        owner: 'o',
+        location: '',
+      };
+
+      service.setFeaturedPhoto(id, 'photo-1').subscribe((res) => {
+        expect(res).toEqual(mock);
+      });
+
+      const req = httpMock.expectOne(
+        (r) =>
+          r.method === 'POST' &&
+          r.url === `${baseUrl}/${id}/featured` &&
+          r.withCredentials === true
+      );
+      expect(req.request.body).toEqual({ photoId: 'photo-1' });
+      req.flush(mock);
+    });
+  });
+
+  describe('getPhotos', () => {
+    it('should GET collection photos list', () => {
+      const id = 'c1';
+      const mock: PhotoDto[] = [
+        {
+          id: 'p1',
+          index: 1,
+          filmId: 'f',
+          imageBase64: '',
+          imageUrl: '',
+        },
+      ];
+
+      service.getPhotos(id).subscribe((res) => {
+        expect(res).toEqual(mock);
+      });
+
+      const req = httpMock.expectOne(
+        (r) => r.method === 'GET' && r.url === `${baseUrl}/${id}/photos` && r.withCredentials === true
+      );
+      req.flush(mock);
+    });
+  });
+
+  describe('getPublicPasswordSuggestion', () => {
+    it('should GET suggestion', () => {
+      service.getPublicPasswordSuggestion().subscribe((r) => {
+        expect(r.password).toBe('sug');
+      });
+
+      const req = httpMock.expectOne(
+        (r) =>
+          r.method === 'GET' &&
+          r.url === `${baseUrl}/public-password-suggestion` &&
+          r.withCredentials === true
+      );
+      req.flush({ password: 'sug' });
     });
   });
 
