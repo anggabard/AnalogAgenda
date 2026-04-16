@@ -3,6 +3,7 @@ import { Router } from '@angular/router';
 import { Observable } from 'rxjs';
 import { PagedResponseDto } from '../../../DTOs';
 import { UserSettingsService } from '../../../services';
+import { openRouteInNewTab } from '../../../helpers/navigation.helper';
 
 /**
  * Abstract base component for paginated list views with common patterns
@@ -93,5 +94,9 @@ export abstract class BasePaginatedListComponent<TDto> {
   onItemSelected(item: TDto): void {
     const id = this.getId(item);
     this.router.navigate([`${this.getBaseRoute()}/${id}`]);
+  }
+
+  onItemOpenInNewTab(item: TDto): void {
+    openRouteInNewTab(this.router, [this.getBaseRoute(), this.getId(item)]);
   }
 }

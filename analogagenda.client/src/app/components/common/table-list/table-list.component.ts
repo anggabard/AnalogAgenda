@@ -16,6 +16,7 @@ export class TableListComponent {
 
   @Output() loadMore = new EventEmitter<void>();
   @Output() itemClick = new EventEmitter<any>();
+  @Output() itemAuxClick = new EventEmitter<any>();
 
   onLoadMore(): void {
     this.loadMore.emit();
@@ -23,5 +24,18 @@ export class TableListComponent {
 
   onItemClick(item: any): void {
     this.itemClick.emit(item);
+  }
+
+  /** Suppress browser middle-click autoscroll so auxclick can open in a new tab. */
+  onItemMiddleMouseDown(event: MouseEvent): void {
+    if (event.button === 1) {
+      event.preventDefault();
+    }
+  }
+
+  onItemAuxClick(event: MouseEvent, item: any): void {
+    if (event.button !== 1) return;
+    event.preventDefault();
+    this.itemAuxClick.emit(item);
   }
 }

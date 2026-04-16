@@ -29,7 +29,8 @@
                 [hasMore]="hasMoreMyNotDeveloped"
                 [loading]="loadingMyNotDeveloped"
                 (loadMore)="loadMoreMyNotDevelopedFilms()"
-                (itemClick)="onFilmSelected($event.id)">
+                (itemClick)="onFilmSelected($event.id)"
+                (itemAuxClick)="onFilmOpenInNewTab($event.id)">
             </app-list>
         </div>
 
@@ -44,7 +45,8 @@
                 [hasMore]="hasMoreMyDeveloped"
                 [loading]="loadingMyDeveloped"
                 (loadMore)="loadMoreMyDevelopedFilms()"
-                (itemClick)="onFilmSelected($event.id)">
+                (itemClick)="onFilmSelected($event.id)"
+                (itemAuxClick)="onFilmOpenInNewTab($event.id)">
             </app-list>
         </div>
     </div>
@@ -68,7 +70,8 @@
                 [hasMore]="hasMoreAllNotDeveloped"
                 [loading]="loadingAllNotDeveloped"
                 (loadMore)="loadMoreAllNotDevelopedFilms()"
-                (itemClick)="onFilmSelected($event.id)">
+                (itemClick)="onFilmSelected($event.id)"
+                (itemAuxClick)="onFilmOpenInNewTab($event.id)">
             </app-list>
         </div>
 
@@ -83,7 +86,8 @@
                 [hasMore]="hasMoreAllDeveloped"
                 [loading]="loadingAllDeveloped"
                 (loadMore)="loadMoreAllDevelopedFilms()"
-                (itemClick)="onFilmSelected($event.id)">
+                (itemClick)="onFilmSelected($event.id)"
+                (itemAuxClick)="onFilmOpenInNewTab($event.id)">
             </app-list>
         </div>
     </div>

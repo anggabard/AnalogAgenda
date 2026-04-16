@@ -16,7 +16,8 @@
                 [loading]="loading"
                 listClass="sessions-card-list"
                 (loadMore)="loadMoreSessions()"
-                (itemClick)="onSessionSelected($event.id)">
+                (itemClick)="onSessionSelected($event.id)"
+                (itemAuxClick)="onSessionOpenInNewTab($event.id)">
             </app-list>
         </div>
     </div>

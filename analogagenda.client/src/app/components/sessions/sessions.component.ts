@@ -3,6 +3,7 @@ import { Router } from "@angular/router";
 import { SessionService, AccountService, UserSettingsService } from "../../services";
 import { SessionDto, IdentityDto, PagedResponseDto } from "../../DTOs";
 import { DateHelper } from "../../helpers/date.helper";
+import { openRouteInNewTab } from "../../helpers/navigation.helper";
 
 @Component({
     selector: 'app-sessions',
@@ -86,6 +87,10 @@ export class SessionsComponent implements OnInit {
 
   onSessionSelected(id: string) {
     this.router.navigate(['/sessions/' + id]);
+  }
+
+  onSessionOpenInNewTab(id: string): void {
+    openRouteInNewTab(this.router, ['/sessions', id]);
   }
 
   parseParticipants(participantsJson: string): string[] {

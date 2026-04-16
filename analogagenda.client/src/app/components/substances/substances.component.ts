@@ -2,6 +2,7 @@ import { Component, inject, OnInit, ViewChild, TemplateRef } from "@angular/core
 import { Router } from "@angular/router";
 import { DevKitDto, PagedResponseDto } from "../../DTOs";
 import { DevKitService, UserSettingsService } from "../../services";
+import { openRouteInNewTab } from "../../helpers/navigation.helper";
 
 @Component({
     selector: 'app-substances',
@@ -54,6 +55,10 @@ export class SubstancesComponent implements OnInit {
 
   onKitSelected(id: string): void {
     this.router.navigate(['/substances/' + id]);
+  }
+
+  onKitOpenInNewTab(id: string): void {
+    openRouteInNewTab(this.router, ['/substances', id]);
   }
 
   loadAvailableDevKits(): void {

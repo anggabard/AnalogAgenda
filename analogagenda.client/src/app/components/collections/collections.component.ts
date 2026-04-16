@@ -3,6 +3,7 @@ import { Router } from '@angular/router';
 import { CollectionService, UserSettingsService } from '../../services';
 import { CollectionDto, PagedResponseDto } from '../../DTOs';
 import { ErrorHandlingHelper } from '../../helpers/error-handling.helper';
+import { openRouteInNewTab } from '../../helpers/navigation.helper';
 
 @Component({
   selector: 'app-collections',
@@ -113,6 +114,10 @@ export class CollectionsComponent implements OnInit, OnDestroy {
 
   onCollectionClick(c: CollectionDto): void {
     this.router.navigate(['/collections', c.id]);
+  }
+
+  onCollectionOpenInNewTab(c: CollectionDto): void {
+    openRouteInNewTab(this.router, ['/collections', c.id]);
   }
 
   hasCardImage(c: CollectionDto): boolean {

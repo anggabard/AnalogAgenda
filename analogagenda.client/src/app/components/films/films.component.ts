@@ -3,6 +3,7 @@ import { Router } from "@angular/router";
 import { FilmService, AccountService, LocalStorageService, UserSettingsService } from "../../services";
 import { FilmDto, IdentityDto, PagedResponseDto } from "../../DTOs";
 import { SearchParams } from "./film-search/film-search.component";
+import { openRouteInNewTab } from "../../helpers/navigation.helper";
 
 @Component({
     selector: 'app-films',
@@ -226,6 +227,10 @@ export class FilmsComponent implements OnInit, OnDestroy {
 
   onFilmSelected(id: string) {
     this.router.navigate(['/films/' + id]);
+  }
+
+  onFilmOpenInNewTab(id: string): void {
+    openRouteInNewTab(this.router, ['/films', id]);
   }
 
   setActiveTab(tab: 'my' | 'all') {

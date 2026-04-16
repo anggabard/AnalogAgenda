@@ -7,7 +7,11 @@
         </tr>
       </thead>
       <tbody>
-        <tr *ngFor="let item of items" (click)="onItemClick(item)" class="table-list-row">
+        <tr *ngFor="let item of items"
+            (click)="onItemClick(item)"
+            (mousedown)="onItemMiddleMouseDown($event)"
+            (auxclick)="onItemAuxClick($event, item)"
+            class="table-list-row">
           <ng-container *ngTemplateOutlet="rowTemplate; context: { $implicit: item }"></ng-container>
         </tr>
       </tbody>
