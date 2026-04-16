@@ -88,6 +88,8 @@ namespace Database.Data.Migrations
 
                     b.HasKey("CollectionsId", "PhotosId");
 
+                    b.HasIndex("CollectionsId", "CollectionIndex")
+                        .IsUnique();
                     b.HasIndex("PhotosId");
 
                     b.ToTable("CollectionPhotos", (string)null);
