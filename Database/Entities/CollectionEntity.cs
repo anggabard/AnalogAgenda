@@ -15,6 +15,9 @@ public class CollectionEntity : BaseEntity, IImageEntity
 
     public string Location { get; set; } = string.Empty;
 
+    /// <summary>Optional notes shown on the public collection page.</summary>
+    public string Description { get; set; } = string.Empty;
+
     /// <summary>Blob id for the card thumbnail (default or a frame from the collection).</summary>
     public Guid ImageId { get; set; } = Constants.DefaultCollectionImageId;
 
@@ -27,6 +30,14 @@ public class CollectionEntity : BaseEntity, IImageEntity
     /// <summary>Join rows (ordered by <see cref="CollectionPhotoEntity.CollectionIndex"/>).</summary>
     public ICollection<CollectionPhotoEntity> CollectionPhotoLinks { get; set; } = [];
 
+    /// <summary>When true, collection is listed via share URL with password gate.</summary>
+    public bool IsPublic { get; set; }
+
+    /// <summary>ASP.NET Identity password hash for public access; never exposed on read.</summary>
+    public string? PublicPasswordHash { get; set; }
+
+    public ICollection<CollectionPublicCommentEntity> PublicComments { get; set; } = [];
+
     protected override int IdLength() => 8;
 
     public void Update(CollectionDto dto)
@@ -35,7 +46,9 @@ public class CollectionEntity : BaseEntity, IImageEntity
         FromDate = dto.FromDate;
         ToDate = dto.ToDate;
         Location = dto.Location ?? string.Empty;
+        Description = dto.Description?.Trim() ?? string.Empty;
         IsOpen = dto.IsOpen;
+        IsPublic = dto.IsPublic;
         // ImageId is set by the controller after validating against membership + placeholder rules.
     }
 }

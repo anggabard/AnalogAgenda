@@ -35,8 +35,16 @@ public class DtoConvertor(Configuration.Sections.System systemCfg, Storage stora
         FilmId = entity.FilmId,
         Index = entity.Index,
         ImageUrl = BuildImageUrl(ContainerName.photos, entity.ImageId),
-        Restricted = entity.Restricted
+        Restricted = entity.Restricted,
+        CollectionIndex = null
     };
+
+    public PhotoDto ToCollectionContextDto(PhotoEntity entity, int collectionIndex)
+    {
+        var dto = ToDTO(entity);
+        dto.CollectionIndex = collectionIndex;
+        return dto;
+    }
 
     public FilmDto ToDTO(FilmEntity entity)
     {
@@ -89,8 +97,10 @@ public class DtoConvertor(Configuration.Sections.System systemCfg, Storage stora
             FromDate = entity.FromDate,
             ToDate = entity.ToDate,
             Location = entity.Location,
+            Description = entity.Description ?? string.Empty,
             ImageId = entity.ImageId.ToString(),
             IsOpen = entity.IsOpen,
+            IsPublic = entity.IsPublic,
             Owner = entity.Owner.ToString(),
             PhotoIds = orderedPhotoIds,
             PhotoCount = photoCount,

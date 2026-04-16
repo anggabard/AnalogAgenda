@@ -90,6 +90,7 @@ builder.Services.AddSingleton<IBlobService, BlobService>();
 // Register converter services
 builder.Services.AddScoped<DtoConvertor>();
 builder.Services.AddScoped<EntityConvertor>();
+builder.Services.AddMemoryCache();
 
 // Ceiling must be >= max(Default, PhotoUpload) so UploadPhoto can use 200 MB.
 builder.Services.Configure<Microsoft.AspNetCore.Server.Kestrel.Core.KestrelServerOptions>(options =>

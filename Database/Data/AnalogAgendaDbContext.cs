@@ -27,6 +27,7 @@ public class AnalogAgendaDbContext(DbContextOptions<AnalogAgendaDbContext> optio
     public DbSet<DevKitFilmEntity> DevKitFilms { get; set; }
     public DbSet<CollectionEntity> Collections { get; set; }
     public DbSet<CollectionPhotoEntity> CollectionPhotos { get; set; }
+    public DbSet<CollectionPublicCommentEntity> CollectionPublicComments { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -148,6 +149,7 @@ public class AnalogAgendaDbContext(DbContextOptions<AnalogAgendaDbContext> optio
             entity.Property(e => e.Id).HasMaxLength(50);
             entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
             entity.Property(e => e.Location).HasMaxLength(500);
+            entity.Property(e => e.Description).HasMaxLength(2000);
             entity.Property(e => e.ImageId).IsRequired();
             entity.Property(e => e.Owner)
                 .HasConversion<string>()
@@ -175,6 +177,21 @@ public class AnalogAgendaDbContext(DbContextOptions<AnalogAgendaDbContext> optio
                         je.HasIndex(cp => cp.PhotosId);
                         je.HasIndex(cp => new { cp.CollectionsId, cp.CollectionIndex }).IsUnique();
                     });
+        });
+
+        modelBuilder.Entity<CollectionPublicCommentEntity>(entity =>
+        {
+            entity.ToTable("CollectionPublicComments");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).HasMaxLength(50);
+            entity.Property(e => e.CollectionId).IsRequired().HasMaxLength(50);
+            entity.Property(e => e.AuthorName).IsRequired().HasMaxLength(100);
+            entity.Property(e => e.Body).IsRequired().HasMaxLength(2000);
+            entity.HasIndex(e => new { e.CollectionId, e.CreatedDate });
+            entity.HasOne(e => e.Collection)
+                .WithMany(c => c.PublicComments)
+                .HasForeignKey(e => e.CollectionId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         // Configure PhotoEntity

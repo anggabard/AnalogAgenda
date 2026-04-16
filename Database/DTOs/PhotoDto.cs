@@ -13,5 +13,8 @@ public class PhotoDto : HasImage
 
     public int Index { get; set; }
 
+    /// <summary>1-based position in a collection when returned in collection context; null otherwise.</summary>
+    public int? CollectionIndex { get; set; }
+
     public bool Restricted { get; set; }
 }

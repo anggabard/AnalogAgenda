@@ -12,6 +12,11 @@ export class ErrorHandlingHelper {
       console.error(`Error in ${context}:`, error);
       return error.error.message;
     }
+
+    if (typeof error?.error === 'string' && error.error.trim()) {
+      console.error(`Error in ${context}:`, error);
+      return error.error;
+    }
     
     if (error?.message) {
       console.error(`Error in ${context}:`, error);

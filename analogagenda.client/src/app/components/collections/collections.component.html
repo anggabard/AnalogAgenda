@@ -27,7 +27,10 @@
 
 <ng-template #collectionCardTemplate let-c>
   <div class="card collection-card-inner">
-    <span *ngIf="c.isOpen" class="status-badge status-open">Open</span>
+    <div class="collection-card-badges" *ngIf="c.isOpen || c.isPublic">
+      <span *ngIf="c.isOpen" class="status-badge status-open">Open</span>
+      <span *ngIf="c.isPublic" class="status-badge status-public">Public</span>
+    </div>
     <div class="image collection-thumb">
       <img *ngIf="hasCardImage(c)" [src]="cardImageUrl(c)" alt="" />
     </div>

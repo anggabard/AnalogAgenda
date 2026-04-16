@@ -1,6 +1,8 @@
-<div class="photos-content">
-  <div class="actions-bar">
-    <div class="photos-count">
+<div
+  class="photos-content"
+  [class.photos-content--wide-preview]="mode === 'collectionEdit' || mode === 'publicCollection'">
+  <div class="actions-bar" [class.actions-bar--no-count]="!showPhotoCountInBar()">
+    <div class="photos-count" *ngIf="showPhotoCountInBar()">
       <div *ngIf="mode === 'edit' && uploadLoading && uploadProgress.total > 0" class="upload-progress">
         Uploading photo {{ uploadProgress.current }} of {{ uploadProgress.total }}
       </div>
@@ -99,8 +101,110 @@
           </button>
         </ng-container>
       </ng-container>
-      <!-- Download dropdown (film photos only) -->
-      <div class="download-dropdown-container" *ngIf="mode !== 'ideaResults'">
+      <ng-container *ngIf="mode === 'collectionEdit' && bulkSelectionEnabled">
+        <button
+          type="button"
+          class="download-all-btn select-plain-btn"
+          *ngIf="!bulkSelectionMode"
+          (click)="startBulkSelection()">
+          <span class="button-content">Select</span>
+        </button>
+        <ng-container *ngIf="bulkSelectionMode">
+          <div class="options-dropdown-container" *ngIf="selectedBulkCount > 0">
+            <button type="button" class="download-all-btn select-plain-btn" (click)="toggleOptionsDropdown()">
+              <span class="button-content">Options</span>
+              <span class="dropdown-arrow">▼</span>
+            </button>
+            <div class="download-dropdown-menu options-dropdown-menu" *ngIf="optionsDropdownOpen">
+              <button
+                type="button"
+                class="dropdown-item"
+                [disabled]="!bulkSelectionMode || selectedBulkCount === 0"
+                (click)="onDownloadSelected(false)">
+                Download Selected
+              </button>
+              <button type="button" class="dropdown-item" (click)="onCollectionRemoveFromMenu()">
+                Remove from collection
+              </button>
+              <button
+                type="button"
+                class="dropdown-item"
+                *ngIf="selectedBulkCount === 1"
+                (click)="onCollectionFeaturedFromMenu()">
+                Set as featured photo
+              </button>
+            </div>
+          </div>
+          <button type="button" class="download-all-btn select-plain-btn" (click)="toggleSelectAllOrDeselectAll()">
+            <span class="button-content">{{ allEligibleBulkSelected ? 'Deselect All' : 'Select All' }}</span>
+          </button>
+          <button type="button" class="download-all-btn select-plain-btn" (click)="cancelBulkSelection()">
+            <span class="button-content">Cancel Selection</span>
+          </button>
+        </ng-container>
+        <div class="download-dropdown-container">
+          <button class="download-all-btn" [disabled]="downloadAllLoading" (click)="toggleDownloadDropdown()">
+            <span class="button-content" [class.loading]="downloadAllLoading">📦 Download</span>
+            <span class="dropdown-arrow">▼</span>
+            <svg *ngIf="downloadAllLoading" class="button-spinner" viewBox="0 0 24 24">
+              <circle class="spinner-bg" cx="12" cy="12" r="10" stroke-width="4"></circle>
+              <path class="spinner-path" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+            </svg>
+          </button>
+          <div class="download-dropdown-menu" *ngIf="downloadDropdownOpen && !downloadAllLoading">
+            <button class="dropdown-item" (click)="onDownloadAll(false)">Download XL</button>
+            <button class="dropdown-item" (click)="onDownloadAll(true)">Download XS</button>
+          </div>
+        </div>
+      </ng-container>
+      <ng-container *ngIf="mode === 'publicCollection' && bulkSelectionEnabled">
+        <button
+          type="button"
+          class="download-all-btn select-plain-btn"
+          *ngIf="!bulkSelectionMode"
+          (click)="startBulkSelection()">
+          <span class="button-content">Select</span>
+        </button>
+        <ng-container *ngIf="bulkSelectionMode">
+          <div class="options-dropdown-container" *ngIf="selectedBulkCount > 0">
+            <button type="button" class="download-all-btn select-plain-btn" (click)="toggleOptionsDropdown()">
+              <span class="button-content">Options</span>
+              <span class="dropdown-arrow">▼</span>
+            </button>
+            <div class="download-dropdown-menu options-dropdown-menu" *ngIf="optionsDropdownOpen">
+              <button
+                type="button"
+                class="dropdown-item"
+                [disabled]="!bulkSelectionMode || selectedBulkCount === 0"
+                (click)="onDownloadSelected(false)">
+                Download Selected
+              </button>
+            </div>
+          </div>
+          <button type="button" class="download-all-btn select-plain-btn" (click)="toggleSelectAllOrDeselectAll()">
+            <span class="button-content">{{ allEligibleBulkSelected ? 'Deselect All' : 'Select All' }}</span>
+          </button>
+          <button type="button" class="download-all-btn select-plain-btn" (click)="cancelBulkSelection()">
+            <span class="button-content">Cancel Selection</span>
+          </button>
+        </ng-container>
+        <div class="download-dropdown-container">
+          <button class="download-all-btn" [disabled]="downloadAllLoading" (click)="toggleDownloadDropdown()">
+            <span class="button-content" [class.loading]="downloadAllLoading">📦 Download</span>
+            <span class="dropdown-arrow">▼</span>
+            <svg *ngIf="downloadAllLoading" class="button-spinner" viewBox="0 0 24 24">
+              <circle class="spinner-bg" cx="12" cy="12" r="10" stroke-width="4"></circle>
+              <path class="spinner-path" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+            </svg>
+          </button>
+          <div class="download-dropdown-menu" *ngIf="downloadDropdownOpen && !downloadAllLoading">
+            <button class="dropdown-item" (click)="onDownloadAll(false)">Download XL</button>
+            <button class="dropdown-item" (click)="onDownloadAll(true)">Download XS</button>
+          </div>
+        </div>
+      </ng-container>
+      <!-- Download dropdown (film photos: edit/view only) -->
+      <div class="download-dropdown-container" *ngIf="mode === 'edit' || mode === 'view'">
         <button class="download-all-btn" [disabled]="downloadAllLoading" (click)="toggleDownloadDropdown()">
           <span class="button-content" [class.loading]="downloadAllLoading">
             📦 Download
@@ -130,7 +234,7 @@
         <img [src]="photoService.getPreviewUrl(photo)" [alt]="'Photo ' + photo.index" />
       </div>
       <div class="photo-info">
-        <span class="photo-index">#{{ photo.index.toString().padStart(3, '0') }}</span>
+        <span class="photo-index">#{{ displayIndex(photo) }}</span>
       </div>
     </div>
   </div>
@@ -139,7 +243,7 @@
 <!-- Preview Modal -->
 <div
   class="image-preview-overlay"
-  *ngIf="isPreviewModalOpen"
+  *ngIf="isPreviewModalOpen && photos.length > 0"
   (click)="closePreview()"
   (keydown)="onKeyDown($event)"
   tabindex="0"
@@ -211,14 +315,14 @@
       <button
         class="preview-action-btn restrict-btn"
         (click)="onRestrictToggle()"
-        *ngIf="currentPreviewPhoto && isOwner"
+        *ngIf="currentPreviewPhoto && isOwner && !previewDownloadOnly"
       >
         {{ currentPreviewPhoto.restricted ? '🔓 Allow access' : '🔒 Restrict access' }}
       </button>
       <button
         class="preview-action-btn delete-btn"
         (click)="openDeleteModal()"
-        *ngIf="currentPreviewPhoto && isOwner"
+        *ngIf="currentPreviewPhoto && isOwner && !previewDownloadOnly"
       >
         🗑️ Delete
       </button>

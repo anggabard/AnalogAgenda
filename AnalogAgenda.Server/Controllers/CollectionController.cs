@@ -104,9 +104,16 @@ public class CollectionController(
 
         var list = (entity.CollectionPhotoLinks ?? [])
             .OrderBy(l => l.CollectionIndex)
-            .Select(l => dtoConvertor.ToDTO(l.Photo))
+            .Select(l => dtoConvertor.ToCollectionContextDto(l.Photo, l.CollectionIndex))
             .ToList();
         return Ok(list);
+    }
+
+    /// <summary>Suggested share password for UI (matches <see cref="Database.Helpers.IdGenerator"/> rules server-side).</summary>
+    [HttpGet("public-password-suggestion")]
+    public IActionResult GetPublicPasswordSuggestion()
+    {
+        return Ok(new { password = IdGenerator.Get(32) });
     }
 
     [HttpPost]
@@ -120,6 +127,9 @@ public class CollectionController(
             return Unauthorized();
         var currentUserEnum = currentUser.ToEnum<EUsernameType>();
 
+        if (dto.Description != null && dto.Description.Trim().Length > 2000)
+            return BadRequest("Description must be at most 2000 characters.");
+
         var resolved = await ResolveValidOwnedPhotosAsync(dto.PhotoIds, currentUserEnum);
         var imageErr = ValidateDtoCardImage(dto.ImageId, resolved);
         if (imageErr != null)
@@ -132,6 +142,7 @@ public class CollectionController(
             Name = dto.Name.Trim(),
             Owner = currentUserEnum,
             IsOpen = true,
+            IsPublic = false,
             Location = dto.Location ?? string.Empty,
             FromDate = dto.FromDate,
             ToDate = dto.ToDate,
@@ -139,6 +150,7 @@ public class CollectionController(
         };
         entity.Update(dto);
         entity.IsOpen = true;
+        entity.IsPublic = false;
 
         await databaseService.AddAsync(entity);
         await SyncCollectionPhotosAsync(entity.Id, dto.PhotoIds ?? [], currentUserEnum);
@@ -173,8 +185,18 @@ public class CollectionController(
         if (imageErr != null)
             return BadRequest(imageErr);
 
+        if (dto.IsPublic && string.IsNullOrEmpty(entity.PublicPasswordHash) && string.IsNullOrWhiteSpace(dto.PublicPassword))
+            return BadRequest("Password is required when making a collection public for the first time.");
+
+        if (!string.IsNullOrWhiteSpace(dto.PublicPassword) && dto.PublicPassword.Trim().Length > 32)
+            return BadRequest("Public password must be at most 32 characters.");
+
+        if (dto.Description != null && dto.Description.Trim().Length > 2000)
+            return BadRequest("Description must be at most 2000 characters.");
+
         entity.Update(dto);
         entity.ImageId = ResolveFinalCardImageId(dto.ImageId, resolved);
+        ApplyPublicPasswordState(entity, dto);
 
         await databaseService.UpdateAsync(entity);
         await SyncCollectionPhotosAsync(id, dto.PhotoIds ?? [], currentUserEnum);
@@ -286,6 +308,115 @@ public class CollectionController(
         if (photos.Count == 0)
             return BadRequest("Collection has no photos.");
 
+        return await BuildCollectionZipFileResult(collection.Name, photos, small, fullArchive: true);
+    }
+
+    /// <summary>ZIP of a subset of collection photos (same structure as full archive).</summary>
+    [HttpPost("{id}/download/selected")]
+    public async Task<IActionResult> DownloadSelected(string id, [FromBody] CollectionDownloadSelectedDto? body)
+    {
+        var ids = body?.Ids ?? [];
+        if (ids.Count == 0)
+            return BadRequest("At least one photo id is required.");
+
+        var collection = await databaseService.GetByIdAsync<CollectionEntity>(id);
+        if (collection == null)
+            return NotFound();
+        if (!FilmOwnerHelper.IsCurrentUserCollectionOwner(User, collection))
+            return Forbid();
+
+        var allOrdered = await LoadCollectionPhotosOrderedAsync(id);
+        var idSet = ids.Select(x => x.Trim()).Where(x => x.Length > 0).ToHashSet();
+        var photos = allOrdered.Where(p => idSet.Contains(p.Id)).ToList();
+        if (photos.Count == 0)
+            return BadRequest("No matching photos in this collection.");
+
+        return await BuildCollectionZipFileResult(collection.Name, photos, body!.Small, fullArchive: false);
+    }
+
+    /// <summary>Remove photos from collection membership only; reindexes remaining links.</summary>
+    [HttpPost("{id}/photos/remove")]
+    public async Task<IActionResult> RemovePhotos(string id, [FromBody] IdListDto? body)
+    {
+        var ids = body?.Ids ?? [];
+        if (ids.Count == 0)
+            return BadRequest("At least one photo id is required.");
+
+        var collection = await databaseService.GetByIdAsync<CollectionEntity>(id);
+        if (collection == null)
+            return NotFound();
+        if (!FilmOwnerHelper.IsCurrentUserCollectionOwner(User, collection))
+            return Forbid();
+
+        var trimmed = ids.Select(x => x.Trim()).Where(x => x.Length > 0).Distinct().ToHashSet();
+        await databaseService.DeleteEntitiesAsync<CollectionPhotoEntity>(cp =>
+            cp.CollectionsId == id && trimmed.Contains(cp.PhotosId));
+
+        var remaining = (await databaseService.GetEntitiesAsync<CollectionPhotoEntity>(cp => cp.CollectionsId == id))
+            .OrderBy(cp => cp.CollectionIndex)
+            .ToList();
+        for (var i = 0; i < remaining.Count; i++)
+            remaining[i].CollectionIndex = i + 1;
+        await databaseService.SaveChangesAsync();
+
+        var reloaded = await databaseService.GetByIdWithIncludesAsync<CollectionEntity>(
+            id,
+            c => c.CollectionPhotoLinks);
+        if (reloaded == null)
+            return NotFound();
+
+        var photos = await LoadCollectionPhotosOrderedAsync(id);
+        if (!IsPlaceholderOrMemberPhotoImageId(reloaded.ImageId, photos))
+        {
+            reloaded.ImageId = Constants.DefaultCollectionImageId;
+            await databaseService.UpdateAsync(reloaded);
+            reloaded = await databaseService.GetByIdWithIncludesAsync<CollectionEntity>(id, c => c.CollectionPhotoLinks);
+        }
+
+        return Ok(dtoConvertor.ToDTO(reloaded!));
+    }
+
+    /// <summary>Set collection card image to the blob of an existing member photo.</summary>
+    [HttpPost("{id}/featured")]
+    public async Task<IActionResult> SetFeaturedPhoto(string id, [FromBody] CollectionSetFeaturedDto? body)
+    {
+        if (body == null || string.IsNullOrWhiteSpace(body.PhotoId))
+            return BadRequest("Photo id is required.");
+
+        var entity = await databaseService.GetByIdAsync<CollectionEntity>(id);
+        if (entity == null)
+            return NotFound();
+        if (!FilmOwnerHelper.IsCurrentUserCollectionOwner(User, entity))
+            return Forbid();
+
+        var photoId = body.PhotoId.Trim();
+        var photos = await LoadCollectionPhotosOrderedAsync(id);
+        var photo = photos.FirstOrDefault(p => p.Id == photoId);
+        if (photo == null)
+            return BadRequest("Photo is not in this collection.");
+
+        entity.ImageId = photo.ImageId;
+        await databaseService.UpdateAsync(entity);
+        var reloaded = await databaseService.GetByIdWithIncludesAsync<CollectionEntity>(id, c => c.CollectionPhotoLinks);
+        return Ok(dtoConvertor.ToDTO(reloaded!));
+    }
+
+    private void ApplyPublicPasswordState(CollectionEntity entity, CollectionDto dto)
+    {
+        if (!dto.IsPublic)
+        {
+            entity.PublicPasswordHash = null;
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(dto.PublicPassword))
+            return;
+
+        entity.PublicPasswordHash = PasswordHasher.HashPassword(dto.PublicPassword.Trim());
+    }
+
+    private async Task<IActionResult> BuildCollectionZipFileResult(string collectionName, List<PhotoEntity> photos, bool small, bool fullArchive)
+    {
         var filmIds = photos.Select(p => p.FilmId).Distinct().ToList();
         var films = new Dictionary<string, FilmEntity>();
         foreach (var filmId in filmIds)
@@ -339,11 +470,14 @@ public class CollectionController(
             if (totalEntries == 0)
             {
                 tempFileStream.Dispose();
-                return NotFound("No photos found in this collection.");
+                return NotFound("No photos found.");
             }
 
             tempFileStream.Position = 0;
-            var archiveName = $"{SanitizeFileName(collection.Name)}-collection{(small ? "-small" : "")}.zip";
+            var suffix = fullArchive
+                ? $"-collection{(small ? "-small" : "")}"
+                : $"-collection-selected{(small ? "-small" : "")}";
+            var archiveName = $"{SanitizeFileName(collectionName)}{suffix}.zip";
             return File(tempFileStream, "application/zip", archiveName);
         }
         catch

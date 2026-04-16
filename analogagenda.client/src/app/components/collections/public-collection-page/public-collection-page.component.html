@@ -1,0 +1,103 @@
+<div class="public-collection-page">
+  <app-error-message [message]="errorMessage"></app-error-message>
+
+  <div *ngIf="loading" class="loading">Loading…</div>
+
+  <div *ngIf="!loading && page?.requiresPassword" class="password-gate card">
+    <h1>Enter password</h1>
+    <p class="muted password-gate-lead">This collection is shared with a password.</p>
+    <div class="password-gate-field">
+      <input
+        type="password"
+        class="input password-gate-input"
+        [(ngModel)]="passwordInput"
+        (keyup.enter)="verify()"
+        maxlength="32"
+        autocomplete="off"
+        aria-label="Collection password" />
+    </div>
+    <app-error-message [message]="verifyError"></app-error-message>
+    <div class="password-gate-actions">
+      <button type="button" class="password-gate-submit" [disabled]="verifyLoading" (click)="verify()">
+        {{ verifyLoading ? '…' : 'Submit' }}
+      </button>
+    </div>
+  </div>
+
+  <ng-container *ngIf="!loading && page && !page.requiresPassword">
+    <div class="layout">
+      <div class="main-column">
+        <div class="public-page-header">
+          <div class="public-page-header-inner">
+            <h1>{{ page.name }}</h1>
+            <p class="public-page-meta" *ngIf="formatRange()">{{ formatRange() }}</p>
+            <p class="public-page-meta" *ngIf="page.location?.trim()">{{ page.location }}</p>
+            <p class="public-page-description" *ngIf="page.description?.trim()">{{ page.description }}</p>
+          </div>
+        </div>
+
+        <app-photos-content
+          *ngIf="page.photos.length > 0"
+          [photos]="page.photos"
+          [film]="null"
+          mode="publicCollection"
+          [isOwner]="false"
+          [bulkSelectionEnabled]="true"
+          [uploadLoading]="false"
+          [uploadProgress]="{ current: 0, total: 0 }"
+          [downloadAllLoading]="downloadAllLoading"
+          [previewDownloadOnly]="true"
+          (download)="onPreviewPhotoDownload($event)"
+          (downloadAll)="onDownloadAll($event)"
+          (downloadSelected)="onDownloadSelected($event)">
+        </app-photos-content>
+        <p *ngIf="page.photos.length === 0" class="muted">No public photos in this collection.</p>
+      </div>
+
+      <aside class="comments-column">
+        <h2 class="comments-section-title">Comments</h2>
+        <div class="comments-scroll">
+          <p *ngIf="!page.comments?.length" class="muted comments-empty">No comments yet.</p>
+          <div *ngFor="let c of page.comments" class="comment-item">
+            <div class="comment-meta">
+              <span class="comment-author">{{ c.authorName }}</span>
+              <span class="comment-sep"> · </span>
+              <span class="comment-when">{{ formatCommentWhen(c.createdAt) }}</span>
+            </div>
+            <div class="comment-body">{{ c.body }}</div>
+          </div>
+        </div>
+        <div class="leave-comment">
+          <h3 class="leave-comment-title">Leave a comment</h3>
+          <p *ngIf="commentError" class="error-message leave-comment-error" role="alert">{{ commentError }}</p>
+          <label class="sr-only" for="pub-comment-name">Name</label>
+          <input
+            id="pub-comment-name"
+            type="text"
+            class="input"
+            [(ngModel)]="commentAuthor"
+            placeholder="Your name (required)"
+            maxlength="100"
+            autocomplete="name" />
+          <label class="sr-only" for="pub-comment-body">Comment</label>
+          <textarea
+            id="pub-comment-body"
+            class="input textarea"
+            rows="4"
+            [(ngModel)]="commentBody"
+            placeholder="Comment"
+            maxlength="2000"></textarea>
+          <div class="leave-comment-actions">
+            <button
+              type="button"
+              class="upload-comment-btn"
+              [disabled]="commentSubmitLoading"
+              (click)="submitComment()">
+              {{ commentSubmitLoading ? '…' : 'Upload Comment' }}
+            </button>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </ng-container>
+</div>

@@ -12,6 +12,10 @@
   border-radius: 8px;
 }
 
+.actions-bar.actions-bar--no-count {
+  justify-content: flex-end;
+}
+
 .action-buttons {
   display: flex;
   flex-wrap: wrap;
@@ -264,6 +268,12 @@
   flex-direction: column;
   align-items: stretch;
   min-height: 0;
+}
+
+/* Match film Photos tab container width (1200px) for collection edit / public view */
+.photos-content--wide-preview .preview-content {
+  width: min(100%, 96vw);
+  max-width: min(1200px, 96vw);
 }
 
 /* Wraps img so the close control is positioned to the photo’s top-right corner. */

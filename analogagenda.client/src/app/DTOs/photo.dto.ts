@@ -6,6 +6,8 @@ export interface PhotoDto extends HasImageDto {
   imageId?: string;
   filmId: string;
   index: number;
+  /** 1-based order in a collection when applicable */
+  collectionIndex?: number | null;
   restricted?: boolean;
 }
 

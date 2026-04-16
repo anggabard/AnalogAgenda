@@ -1,4 +1,8 @@
-<div class="modal-overlay" *ngIf="open" (click)="onOverlayClick()">
+<div
+  class="modal-overlay"
+  *ngIf="open"
+  (pointerdown)="onBackdropPointerDown($event)"
+  (click)="onBackdropClick($event)">
   <div class="modal-content" (click)="$event.stopPropagation()">
     <ng-content></ng-content>
   </div>

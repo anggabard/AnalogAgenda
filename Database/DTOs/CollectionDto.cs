@@ -12,10 +12,19 @@ public class CollectionDto
 
     public string Location { get; set; } = string.Empty;
 
+    /// <summary>Optional description (public page and edit form).</summary>
+    public string Description { get; set; } = string.Empty;
+
     /// <summary>Blob id for the card image (write on create/update).</summary>
     public string ImageId { get; set; } = string.Empty;
 
     public bool IsOpen { get; set; } = true;
+
+    /// <summary>When set true, <see cref="PublicPassword"/> may be required to set the share password (hashed server-side).</summary>
+    public bool IsPublic { get; set; }
+
+    /// <summary>Plaintext share password when making the collection public (max 32 characters); never returned from GET APIs.</summary>
+    public string? PublicPassword { get; set; }
 
     public string Owner { get; set; } = string.Empty;
 
