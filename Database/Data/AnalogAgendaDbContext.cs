@@ -173,6 +173,7 @@ public class AnalogAgendaDbContext(DbContextOptions<AnalogAgendaDbContext> optio
                         je.Property(cp => cp.CollectionIndex).HasColumnName("Index").IsRequired();
                         je.Property(cp => cp.FilmId).HasMaxLength(50);
                         je.HasIndex(cp => cp.PhotosId);
+                        je.HasIndex(cp => new { cp.CollectionsId, cp.CollectionIndex }).IsUnique();
                     });
         });
 
