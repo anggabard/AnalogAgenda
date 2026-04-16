@@ -27,7 +27,9 @@ export class PhotosContentComponent implements OnInit, OnChanges {
 
   @Input() photos: PhotoDto[] = [];
   @Input() film: FilmDto | null = null;
-  @Input() mode: 'edit' | 'view' | 'ideaResults' = 'view';
+  @Input() mode: 'edit' | 'view' | 'ideaResults' | 'collectionEdit' | 'publicCollection' = 'view';
+  /** Hide restrict/delete in preview; only Download + navigation. */
+  @Input() previewDownloadOnly = false;
   @Input() isOwner = false;
   @Input() uploadLoading = false;
   @Input() uploadProgress: { current: number; total: number } = { current: 0, total: 0 };
@@ -41,6 +43,9 @@ export class PhotosContentComponent implements OnInit, OnChanges {
   }
 
   ngOnChanges(changes: SimpleChanges): void {
+    if (changes['photos'] && this.photos.length === 0) {
+      this.closePreview();
+    }
     if (changes['photos'] && this.currentPreviewPhoto && this.photos.length > 0) {
       const stillPresent = this.photos.some((p) => p.id === this.currentPreviewPhoto!.id);
       if (!stillPresent) {
@@ -66,6 +71,8 @@ export class PhotosContentComponent implements OnInit, OnChanges {
   @Output() wackyResultRequest = new EventEmitter<PhotoDto[]>();
   /** Idea results page: remove link only (not blob delete) */
   @Output() removeLinkedPhotosRequest = new EventEmitter<PhotoDto[]>();
+  @Output() collectionRemoveRequest = new EventEmitter<PhotoDto[]>();
+  @Output() collectionFeaturedRequest = new EventEmitter<PhotoDto>();
   /** Owner-only: open collections for bulk “Add to collection”. */
   @Input() openCollectionOptions: CollectionOptionDto[] = [];
   @Input() addToCollectionBusy = false;
@@ -108,6 +115,14 @@ export class PhotosContentComponent implements OnInit, OnChanges {
 
   get selectedBulkCount(): number {
     return this.selectedPhotoIds.size;
+  }
+
+  /** Hide “N photos” beside the toolbar for collection public/edit (owner request). */
+  showPhotoCountInBar(): boolean {
+    if (this.mode === 'collectionEdit' || this.mode === 'publicCollection') {
+      return false;
+    }
+    return true;
   }
 
   getSelectedPhotos(): PhotoDto[] {
@@ -240,6 +255,25 @@ export class PhotosContentComponent implements OnInit, OnChanges {
       return;
     }
     this.removeLinkedPhotosRequest.emit(selected);
+  }
+
+  onCollectionRemoveFromMenu(): void {
+    this.optionsDropdownOpen = false;
+    const selected = this.getSelectedPhotos();
+    if (selected.length === 0) return;
+    this.collectionRemoveRequest.emit(selected);
+  }
+
+  onCollectionFeaturedFromMenu(): void {
+    this.optionsDropdownOpen = false;
+    const selected = this.getSelectedPhotos();
+    if (selected.length !== 1) return;
+    this.collectionFeaturedRequest.emit(selected[0]);
+  }
+
+  displayIndex(photo: PhotoDto): string {
+    const n = photo.collectionIndex ?? photo.index;
+    return n.toString().padStart(3, '0');
   }
 
   openPreview(photo: PhotoDto) {

@@ -69,11 +69,19 @@
   transform: scale(0.98);
 }
 
-.collections-section .collection-card-inner .status-badge {
+.collections-section .collection-card-inner .collection-card-badges {
   position: absolute;
   top: 0.45em;
   right: 0.45em;
   z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.35em;
+  max-width: calc(100% - 0.9em);
+}
+
+.collections-section .collection-card-inner .status-badge {
   font-family: Arial, Helvetica, sans-serif;
   font-size: 0.68em;
   font-weight: 600;
@@ -88,6 +96,11 @@
 
 .collections-section .collection-card-inner .status-badge.status-open {
   background: rgba(0, 172, 124, 0.95);
+  color: #fff;
+}
+
+.collections-section .collection-card-inner .status-badge.status-public {
+  background: rgba(37, 99, 235, 0.95);
   color: #fff;
 }
 

@@ -18,3 +18,4 @@ export { UpsertSessionComponent } from './sessions/upsert-session/upsert-session
 export { ChangePasswordComponent } from './change-password/change-password.component'
 export { CollectionsComponent } from './collections/collections.component'
 export { UpsertCollectionComponent } from './collections/upsert-collection/upsert-collection.component'
+export { PublicCollectionPageComponent } from './collections/public-collection-page/public-collection-page.component'

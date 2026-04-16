@@ -1,96 +1,137 @@
-<div class="upsert-collection container">
-  <app-error-message [message]="errorMessage"></app-error-message>
+<div class="upsert-collection-page">
+  <div class="upsert-collection container">
+    <app-error-message [message]="errorMessage"></app-error-message>
 
-  <form [formGroup]="form" (ngSubmit)="submit()" class="form-box">
-    <h1 class="title">{{ isInsert ? 'New Collection' : 'Edit Collection' }}</h1>
+    <form [formGroup]="form" (ngSubmit)="submit()" class="form-box">
+      <h1 class="title">{{ isInsert ? 'New Collection' : 'Edit Collection' }}</h1>
 
-    <div class="field">
-      <label for="name">Name</label>
-      <input
-        id="name"
-        type="text"
-        class="input"
-        formControlName="name"
-        autocomplete="off"
-        (blur)="form.get('name')?.markAsTouched()" />
-      <p class="field-error" *ngIf="showNameRequiredError()">Name is required.</p>
-    </div>
-
-    <div class="field row-two">
-      <div>
-        <label for="fromDate">From</label>
+      <div class="field">
+        <label for="name">Name</label>
         <input
-          id="fromDate"
-          type="date"
+          id="name"
+          type="text"
           class="input"
-          formControlName="fromDate"
-          (change)="form.get('fromDate')?.markAsTouched(); form.updateValueAndValidity()" />
+          formControlName="name"
+          autocomplete="off"
+          (blur)="form.get('name')?.markAsTouched()" />
+        <p class="field-error" *ngIf="showNameRequiredError()">Name is required.</p>
       </div>
-      <div>
-        <label for="toDate">To</label>
-        <input
-          id="toDate"
-          type="date"
-          class="input"
-          formControlName="toDate"
-          (change)="form.get('toDate')?.markAsTouched(); form.updateValueAndValidity()" />
+
+      <div class="field row-two">
+        <div>
+          <label for="fromDate">From</label>
+          <input
+            id="fromDate"
+            type="date"
+            class="input"
+            formControlName="fromDate"
+            (change)="form.get('fromDate')?.markAsTouched(); form.updateValueAndValidity()" />
+        </div>
+        <div>
+          <label for="toDate">To</label>
+          <input
+            id="toDate"
+            type="date"
+            class="input"
+            formControlName="toDate"
+            (change)="form.get('toDate')?.markAsTouched(); form.updateValueAndValidity()" />
+        </div>
       </div>
-    </div>
-    <p class="field-error" *ngIf="showDateRangeError()">From date must be before To date.</p>
+      <p class="field-error" *ngIf="showDateRangeError()">From date must be before To date.</p>
 
-    <div class="field">
-      <label for="location">Location</label>
-      <input id="location" type="text" class="input" formControlName="location" autocomplete="off" />
-    </div>
-
-    <div class="developed-toggle-container" *ngIf="!isInsert">
-      <span class="toggle-label">Open</span>
-      <div class="toggle-border">
-        <input
-          id="isOpenToggle"
-          type="checkbox"
-          [checked]="finishedToggleChecked"
-          (change)="onFinishedToggle($event)" />
-        <label for="isOpenToggle">
-          <div class="handle"></div>
-        </label>
+      <div class="field">
+        <label for="location">Location</label>
+        <input id="location" type="text" class="input" formControlName="location" autocomplete="off" />
       </div>
-      <span class="toggle-label">Finished</span>
-    </div>
 
-    <div class="field" *ngIf="!isInsert">
-      <button type="button" class="btn-secondary" (click)="openFeaturedModal()" [disabled]="featuredModalLoading">
-        Select featured photo
-      </button>
-    </div>
+      <div class="field">
+        <label for="description">Description</label>
+        <textarea
+          id="description"
+          class="input textarea-description"
+          rows="4"
+          formControlName="description"
+          maxlength="2000"
+          autocomplete="off"></textarea>
+      </div>
 
-    <div class="actions">
-      <button
-        *ngIf="!isInsert"
-        type="button"
-        class="delete-btn"
-        (click)="isDeleteModalOpen = true">
-        Delete
-      </button>
-      <div class="actions-trailing">
+      <div class="developed-toggle-container" *ngIf="!isInsert">
+        <span class="toggle-label">Open</span>
+        <div class="toggle-border">
+          <input
+            id="isOpenToggle"
+            type="checkbox"
+            [checked]="finishedToggleChecked"
+            (change)="onFinishedToggle($event)" />
+          <label for="isOpenToggle">
+            <div class="handle"></div>
+          </label>
+        </div>
+        <span class="toggle-label">Finished</span>
+      </div>
+
+      <div class="developed-toggle-container toggle-row-spaced" *ngIf="!isInsert">
+        <span class="toggle-label">Private</span>
+        <div class="toggle-border">
+          <input
+            id="isPublicToggle"
+            type="checkbox"
+            [checked]="publicToggleChecked"
+            (change)="onPublicPrivateToggle($event)" />
+          <label for="isPublicToggle">
+            <div class="handle"></div>
+          </label>
+        </div>
+        <span class="toggle-label">Public</span>
+      </div>
+
+      <div class="go-public-actions" *ngIf="!isInsert && id && publicToggleChecked">
+        <button type="button" class="go-public-btn" (click)="openPublicPageInNewTab()">Go to public page</button>
         <button
-          *ngIf="!isInsert"
           type="button"
-          class="action-primary"
-          [disabled]="downloadLoading || !collectionHasPhotos"
-          (click)="onDownload(false)">
-          Download
-        </button>
-        <button
-          type="submit"
-          class="submit-btn"
-          [disabled]="loading || form.invalid || (!isInsert && form.pristine)">
-          <span *ngIf="!loading">{{ isInsert ? 'Save' : 'Update' }}</span>
-          <span *ngIf="loading">...</span>
+          class="go-public-btn"
+          [disabled]="regeneratePasswordLoading"
+          (click)="openRegeneratePasswordModal()">
+          {{ regeneratePasswordLoading ? '…' : 'Regenerate Password' }}
         </button>
       </div>
-    </div>
-  </form>
+
+      <div class="actions">
+        <button *ngIf="!isInsert" type="button" class="delete-btn" (click)="isDeleteModalOpen = true">Delete</button>
+        <div class="actions-trailing">
+          <button
+            type="submit"
+            class="submit-btn"
+            [disabled]="loading || form.invalid || (!isInsert && form.pristine)">
+            <span *ngIf="!loading">{{ isInsert ? 'Save' : 'Update' }}</span>
+            <span *ngIf="loading">...</span>
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <p class="collection-photos-loading muted" *ngIf="!isInsert && id && photosLoading">Loading photos…</p>
+
+  <section class="collection-photos-section" *ngIf="!isInsert && id && !photosLoading && collectionPhotos.length > 0">
+    <h2 class="section-title">Photos</h2>
+    <app-photos-content
+      [photos]="collectionPhotos"
+      [film]="null"
+      mode="collectionEdit"
+      [isOwner]="true"
+      [bulkSelectionEnabled]="true"
+      [uploadLoading]="false"
+      [uploadProgress]="{ current: 0, total: 0 }"
+      [downloadAllLoading]="downloadLoading"
+      [previewDownloadOnly]="true"
+      (download)="onPreviewPhotoDownload($event)"
+      (downloadAll)="onPhotosDownloadAll($event)"
+      (downloadSelected)="onPhotosDownloadSelected($event)"
+      (collectionRemoveRequest)="onCollectionRemove($event)"
+      (collectionFeaturedRequest)="onCollectionFeatured($event)">
+    </app-photos-content>
+  </section>
 
   <app-confirm-delete-modal
     [open]="isDeleteModalOpen"
@@ -100,27 +141,56 @@
     (cancel)="isDeleteModalOpen = false">
   </app-confirm-delete-modal>
 
-  <app-modal [open]="showFeaturedModal" (close)="closeFeaturedModal()">
+  <app-modal [open]="showPublicPasswordModal" (close)="cancelPublicPasswordModal()">
     <div class="modal-header">
       <span class="modal-header-spacer" aria-hidden="true"></span>
-      <h3>Select featured photo</h3>
-      <button type="button" class="modal-close" (click)="closeFeaturedModal()" aria-label="Close">✕</button>
+      <h3>{{ publicPasswordModalRegenerateMode ? 'Set public collection password' : 'Public collection password' }}</h3>
+      <button type="button" class="modal-close" (click)="cancelPublicPasswordModal()" aria-label="Close">✕</button>
     </div>
-    <div class="modal-body featured-modal-body-inner">
-      <p *ngIf="featuredModalLoading" class="muted">Loading…</p>
-      <div class="photo-pick-grid" *ngIf="!featuredModalLoading && featuredModalPhotos.length > 0">
+    <div class="modal-body public-password-modal-body">
+      <p class="muted public-password-modal-copy">
+        <ng-container *ngIf="!publicPasswordModalRegenerateMode">
+          Visitors will need this password to view the public page. You can change it later by updating the collection.
+        </ng-container>
+        <ng-container *ngIf="publicPasswordModalRegenerateMode">
+          A new suggested password is filled in below — edit it if you like, then confirm to save.
+        </ng-container>
+      </p>
+      <div class="public-password-input-row">
+        <input
+          id="pubPwd"
+          type="text"
+          class="input public-password-input"
+          [(ngModel)]="publicPasswordDraft"
+          [ngModelOptions]="{ standalone: true }"
+          maxlength="32"
+          autocomplete="off"
+          aria-label="Public collection password" />
         <button
           type="button"
-          *ngFor="let photo of featuredModalPhotos"
-          class="photo-pick-tile"
-          [class.selected]="isCardImageSelectedInModal(photo)"
-          (click)="selectCardImageFromPhoto(photo)">
-          <img [src]="previewUrl(photo)" alt="" />
+          class="public-password-copy-btn"
+          (click)="copyPublicPassword()"
+          title="Copy password"
+          aria-label="Copy password to clipboard">
+          📋
         </button>
       </div>
-      <p *ngIf="!featuredModalLoading && featuredModalPhotos.length === 0" class="muted">
-        No photos in this collection yet. Add photos from Film Photos.
-      </p>
+      <div class="modal-actions public-password-modal-actions">
+        <button
+          type="button"
+          class="pub-pwd-btn-cancel"
+          [disabled]="savingPublicPassword"
+          (click)="cancelPublicPasswordModal()">
+          Cancel
+        </button>
+        <button
+          type="button"
+          class="pub-pwd-btn-confirm"
+          [disabled]="savingPublicPassword"
+          (click)="confirmPublicPassword()">
+          {{ savingPublicPassword ? '…' : 'Confirm' }}
+        </button>
+      </div>
     </div>
   </app-modal>
 </div>

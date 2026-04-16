@@ -49,4 +49,29 @@ export class CollectionService extends BaseService {
     const q = small ? '?small=true' : '';
     return this.get<Blob>(`${id}/download${q}`, { responseType: 'blob' });
   }
+
+  downloadSelectedArchive(id: string, photoIds: string[], small: boolean): Observable<Blob> {
+    return this.post<Blob>(
+      `${id}/download/selected`,
+      { ids: photoIds, small },
+      { responseType: 'blob' }
+    );
+  }
+
+  removePhotos(id: string, photoIds: string[]): Observable<CollectionDto> {
+    return this.post<CollectionDto>(`${id}/photos/remove`, { ids: photoIds });
+  }
+
+  setFeaturedPhoto(id: string, photoId: string): Observable<CollectionDto> {
+    return this.post<CollectionDto>(`${id}/featured`, { photoId });
+  }
+
+  getPublicPasswordSuggestion(): Observable<{ password: string }> {
+    return this.get<{ password: string }>('public-password-suggestion');
+  }
+
+  /** Rotate public share password without sending photo membership (owner, collection already public). */
+  updatePublicPassword(id: string, publicPassword: string): Observable<CollectionDto> {
+    return this.put<CollectionDto>(`${id}/public-password`, { publicPassword });
+  }
 }
