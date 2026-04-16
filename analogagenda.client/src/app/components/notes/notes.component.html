@@ -15,7 +15,8 @@
             [hasMore]="hasMoreNotes"
             [loading]="loadingNotes"
             (loadMore)="loadMoreNotes()"
-            (itemClick)="onNoteSelected($event.id)">
+            (itemClick)="onNoteSelected($event.id)"
+            (itemAuxClick)="onItemOpenInNewTab($event)">
         </app-list>
     </div>
 </div>

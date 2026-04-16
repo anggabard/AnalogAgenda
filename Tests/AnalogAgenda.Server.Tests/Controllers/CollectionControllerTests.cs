@@ -201,9 +201,99 @@ public class CollectionControllerTests : IDisposable
         var dto = Assert.IsType<CollectionDto>(ok.Value);
         Assert.Equal(1, dto.PhotoCount);
 
-        var reloaded = await _databaseService.GetByIdWithIncludesAsync<CollectionEntity>(collection.Id, c => c.Photos);
-        Assert.NotNull(reloaded);
-        Assert.Single(reloaded!.Photos);
-        Assert.Equal(photoMine.Id, reloaded.Photos.First().Id);
+        var links = await _databaseService.GetEntitiesAsync<CollectionPhotoEntity>(cp => cp.CollectionsId == collection.Id);
+        Assert.Single(links);
+        var link = links.OrderBy(l => l.CollectionIndex).First();
+        Assert.Equal(photoMine.Id, link.PhotosId);
+        Assert.Equal(1, link.CollectionIndex);
+        Assert.Equal(filmAngel.Id, link.FilmId);
+    }
+
+    [Fact]
+    public async Task AppendPhotos_SameFilm_SortsByPhotoIndexNotRequestOrder()
+    {
+        var collection = NewCollection(EUsernameType.Angel, "Mine");
+        await _databaseService.AddAsync(collection);
+
+        var film = await AddFilmAsync(_databaseService, EUsernameType.Angel, "one");
+        var pHigh = new PhotoEntity { FilmId = film.Id, Index = 10, ImageId = Guid.NewGuid() };
+        var pLow = new PhotoEntity { FilmId = film.Id, Index = 3, ImageId = Guid.NewGuid() };
+        var pMid = new PhotoEntity { FilmId = film.Id, Index = 4, ImageId = Guid.NewGuid() };
+        await _databaseService.AddAsync(pHigh);
+        await _databaseService.AddAsync(pLow);
+        await _databaseService.AddAsync(pMid);
+
+        var body = new IdListDto { Ids = [pHigh.Id, pLow.Id, pMid.Id] };
+        var result = await _controller.AppendPhotos(collection.Id, body);
+        Assert.IsType<OkObjectResult>(result);
+
+        var links = (await _databaseService.GetEntitiesAsync<CollectionPhotoEntity>(cp => cp.CollectionsId == collection.Id))
+            .OrderBy(l => l.CollectionIndex)
+            .ToList();
+        Assert.Equal(3, links.Count);
+        Assert.Equal(pLow.Id, links[0].PhotosId);
+        Assert.Equal(pMid.Id, links[1].PhotosId);
+        Assert.Equal(pHigh.Id, links[2].PhotosId);
+        Assert.Equal(1, links[0].CollectionIndex);
+        Assert.Equal(2, links[1].CollectionIndex);
+        Assert.Equal(3, links[2].CollectionIndex);
+    }
+
+    [Fact]
+    public async Task AppendPhotos_ContinuesCollectionIndexAfterExistingLinks()
+    {
+        var collection = NewCollection(EUsernameType.Angel, "Mine");
+        await _databaseService.AddAsync(collection);
+
+        var film = await AddFilmAsync(_databaseService, EUsernameType.Angel, "one");
+        var p1 = new PhotoEntity { FilmId = film.Id, Index = 1, ImageId = Guid.NewGuid() };
+        var p2 = new PhotoEntity { FilmId = film.Id, Index = 2, ImageId = Guid.NewGuid() };
+        var p3 = new PhotoEntity { FilmId = film.Id, Index = 3, ImageId = Guid.NewGuid() };
+        await _databaseService.AddAsync(p1);
+        await _databaseService.AddAsync(p2);
+        await _databaseService.AddAsync(p3);
+
+        await _databaseService.AddEntitiesAsync(new List<CollectionPhotoEntity>
+        {
+            new() { CollectionsId = collection.Id, PhotosId = p1.Id, CollectionIndex = 1, FilmId = film.Id },
+            new() { CollectionsId = collection.Id, PhotosId = p2.Id, CollectionIndex = 2, FilmId = film.Id },
+        });
+
+        var ok = await _controller.AppendPhotos(collection.Id, new IdListDto { Ids = [p3.Id] });
+        Assert.IsType<OkObjectResult>(ok);
+
+        var links = (await _databaseService.GetEntitiesAsync<CollectionPhotoEntity>(cp => cp.CollectionsId == collection.Id))
+            .OrderBy(l => l.CollectionIndex)
+            .ToList();
+        Assert.Equal(3, links.Count);
+        Assert.Equal(p3.Id, links[2].PhotosId);
+        Assert.Equal(3, links[2].CollectionIndex);
+    }
+
+    [Fact]
+    public async Task AppendPhotos_MultiFilm_OrderFilmsByFirstAppearanceInIds()
+    {
+        var collection = NewCollection(EUsernameType.Angel, "Mine");
+        await _databaseService.AddAsync(collection);
+
+        var filmA = await AddFilmAsync(_databaseService, EUsernameType.Angel, "A");
+        var filmB = await AddFilmAsync(_databaseService, EUsernameType.Angel, "B");
+        var a1 = new PhotoEntity { FilmId = filmA.Id, Index = 5, ImageId = Guid.NewGuid() };
+        var b1 = new PhotoEntity { FilmId = filmB.Id, Index = 1, ImageId = Guid.NewGuid() };
+        var b2 = new PhotoEntity { FilmId = filmB.Id, Index = 2, ImageId = Guid.NewGuid() };
+        await _databaseService.AddAsync(a1);
+        await _databaseService.AddAsync(b1);
+        await _databaseService.AddAsync(b2);
+
+        // B first in Ids → both B photos (sorted by index 1,2) then A
+        var body = new IdListDto { Ids = [b2.Id, a1.Id, b1.Id] };
+        var result = await _controller.AppendPhotos(collection.Id, body);
+        Assert.IsType<OkObjectResult>(result);
+
+        var orderedIds = (await _databaseService.GetEntitiesAsync<CollectionPhotoEntity>(cp => cp.CollectionsId == collection.Id))
+            .OrderBy(l => l.CollectionIndex)
+            .Select(l => l.PhotosId)
+            .ToList();
+        Assert.Equal(new[] { b1.Id, b2.Id, a1.Id }, orderedIds);
     }
 }

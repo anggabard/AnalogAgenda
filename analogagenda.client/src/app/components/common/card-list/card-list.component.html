@@ -1,5 +1,8 @@
 <div #scrollHost class="card-list" [ngClass]="listClass">
-    <div *ngFor="let item of items" (click)="onItemClick(item)">
+    <div *ngFor="let item of items"
+         (click)="onItemClick(item)"
+         (mousedown)="onItemMiddleMouseDown($event)"
+         (auxclick)="onItemAuxClick($event, item)">
         <ng-container *ngTemplateOutlet="cardTemplate; context: { $implicit: item }"></ng-container>
     </div>
     <button *ngIf="hasMore && !loading" class="load-more-btn" (click)="onLoadMore()">

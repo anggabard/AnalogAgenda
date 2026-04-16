@@ -9,7 +9,8 @@
     [loading]="loading"
     [listClass]="listClass"
     (loadMore)="onLoadMore()"
-    (itemClick)="onItemClick($event)">
+    (itemClick)="onItemClick($event)"
+    (itemAuxClick)="onItemAuxClick($event)">
   </app-table-list>
 } @else {
   <app-card-list
@@ -19,6 +20,7 @@
     [loading]="loading"
     [listClass]="listClass"
     (loadMore)="onLoadMore()"
-    (itemClick)="onItemClick($event)">
+    (itemClick)="onItemClick($event)"
+    (itemAuxClick)="onItemAuxClick($event)">
   </app-card-list>
 }

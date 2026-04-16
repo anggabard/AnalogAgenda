@@ -15,7 +15,8 @@
       [hasMore]="hasMore"
       [loading]="loading"
       (loadMore)="loadMoreCollections()"
-      (itemClick)="onCollectionClick($event)">
+      (itemClick)="onCollectionClick($event)"
+      (itemAuxClick)="onCollectionOpenInNewTab($event)">
     </app-list>
   </div>
 

@@ -13,7 +13,8 @@ import { FilmType, UsernameType } from '../../enums';
       [hasMore]="hasMore"
       [loading]="loading"
       (loadMore)="onLoadMore()"
-      (itemClick)="onItemClick($event)">
+      (itemClick)="onItemClick($event)"
+      (itemAuxClick)="onItemAuxClick($event)">
     </app-table-list>
 
     <ng-template #rowTemplate let-item>
@@ -31,6 +32,7 @@ class TestHostComponent {
   loading = false;
   loadMoreCalled = false;
   clickedItem: any = null;
+  auxClickedItem: any = null;
 
   onLoadMore(): void {
     this.loadMoreCalled = true;
@@ -38,6 +40,10 @@ class TestHostComponent {
 
   onItemClick(item: any): void {
     this.clickedItem = item;
+  }
+
+  onItemAuxClick(item: any): void {
+    this.auxClickedItem = item;
   }
 }
 
@@ -144,6 +150,28 @@ describe('TableListComponent', () => {
     row.click();
 
     expect(hostComponent.clickedItem).toEqual(testFilm);
+  });
+
+  it('should emit itemAuxClick when middle button auxclick fires on row', () => {
+    const testFilm = createMockFilm('1', 'Test Film');
+    hostComponent.items = [testFilm];
+    fixture.detectChanges();
+
+    const row = fixture.nativeElement.querySelector('tbody tr.table-list-row');
+    row.dispatchEvent(new MouseEvent('auxclick', { bubbles: true, button: 1 }));
+
+    expect(hostComponent.auxClickedItem).toEqual(testFilm);
+  });
+
+  it('should not emit itemAuxClick for non-middle auxclick', () => {
+    const testFilm = createMockFilm('1', 'Test Film');
+    hostComponent.items = [testFilm];
+    fixture.detectChanges();
+
+    const row = fixture.nativeElement.querySelector('tbody tr.table-list-row');
+    row.dispatchEvent(new MouseEvent('auxclick', { bubbles: true, button: 0 }));
+
+    expect(hostComponent.auxClickedItem).toBeNull();
   });
 
   it('should handle empty items array', () => {

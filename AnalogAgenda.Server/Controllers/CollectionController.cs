@@ -10,6 +10,7 @@ using Database.Services;
 using Database.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using System.IO.Compression;
 
 namespace AnalogAgenda.Server.Controllers;
@@ -38,7 +39,7 @@ public class CollectionController(
 
         var mine = (await databaseService.GetAllWhereWithIncludesAsync<CollectionEntity>(
                 c => c.Owner == currentUserEnum,
-                c => c.Photos))
+                c => c.CollectionPhotoLinks))
             .OrderBy(c => c.FromDate == null && c.ToDate == null)
             .ThenByDescending(c => c.FromDate)
             .ToList();
@@ -82,7 +83,7 @@ public class CollectionController(
     {
         var entity = await databaseService.GetByIdWithIncludesAsync<CollectionEntity>(
             id,
-            c => c.Photos);
+            c => c.CollectionPhotoLinks);
         if (entity == null)
             return NotFound();
         if (!FilmOwnerHelper.IsCurrentUserCollectionOwner(User, entity))
@@ -94,16 +95,16 @@ public class CollectionController(
     [HttpGet("{id}/photos")]
     public async Task<IActionResult> GetPhotos(string id)
     {
-        var entity = await databaseService.GetByIdWithIncludesAsync<CollectionEntity>(id, c => c.Photos);
+        var entity = await databaseService.GetByIdWithQueryAsync<CollectionEntity>(id, q =>
+            q.Include(c => c.CollectionPhotoLinks).ThenInclude(l => l.Photo));
         if (entity == null)
             return NotFound();
         if (!FilmOwnerHelper.IsCurrentUserCollectionOwner(User, entity))
             return Forbid();
 
-        var list = entity.Photos
-            .OrderBy(p => p.FilmId)
-            .ThenBy(p => p.Index)
-            .Select(dtoConvertor.ToDTO)
+        var list = (entity.CollectionPhotoLinks ?? [])
+            .OrderBy(l => l.CollectionIndex)
+            .Select(l => dtoConvertor.ToDTO(l.Photo))
             .ToList();
         return Ok(list);
     }
@@ -144,7 +145,7 @@ public class CollectionController(
 
         var reloaded = await databaseService.GetByIdWithIncludesAsync<CollectionEntity>(
             entity.Id,
-            c => c.Photos);
+            c => c.CollectionPhotoLinks);
         return Created(string.Empty, dtoConvertor.ToDTO(reloaded!));
     }
 
@@ -156,7 +157,7 @@ public class CollectionController(
 
         var entity = await databaseService.GetByIdWithIncludesAsync<CollectionEntity>(
             id,
-            c => c.Photos);
+            c => c.CollectionPhotoLinks);
         if (entity == null)
             return NotFound();
         if (!FilmOwnerHelper.IsCurrentUserCollectionOwner(User, entity))
@@ -180,7 +181,7 @@ public class CollectionController(
 
         var finalReload = await databaseService.GetByIdWithIncludesAsync<CollectionEntity>(
             id,
-            c => c.Photos);
+            c => c.CollectionPhotoLinks);
         if (finalReload == null)
             return NotFound();
 
@@ -208,9 +209,7 @@ public class CollectionController(
         if (ids.Count == 0)
             return BadRequest("At least one photo id is required.");
 
-        var collection = await databaseService.GetByIdWithIncludesAsync<CollectionEntity>(
-            id,
-            c => c.Photos);
+        var collection = await databaseService.GetByIdAsync<CollectionEntity>(id);
         if (collection == null)
             return NotFound();
         if (!FilmOwnerHelper.IsCurrentUserCollectionOwner(User, collection))
@@ -221,8 +220,11 @@ public class CollectionController(
             return Unauthorized();
         var owner = currentUser.ToEnum<EUsernameType>();
 
-        var existing = collection.Photos.Select(p => p.Id).ToHashSet();
-        var distinctIncoming = ids.Where(x => !string.IsNullOrWhiteSpace(x)).Distinct().ToList();
+        var existingLinks = await databaseService.GetEntitiesAsync<CollectionPhotoEntity>(cp => cp.CollectionsId == id);
+        var maxIndex = existingLinks.Count == 0 ? 0 : existingLinks.Max(cp => cp.CollectionIndex);
+        var existing = existingLinks.Select(cp => cp.PhotosId).ToHashSet();
+
+        var distinctIncoming = DistinctPreserveOrder(ids);
         var missingIncoming = distinctIncoming.Where(photoId => !existing.Contains(photoId)).ToList();
 
         if (missingIncoming.Count > 0)
@@ -231,30 +233,41 @@ public class CollectionController(
                 p => missingIncoming.Contains(p.Id),
                 p => p.Film);
 
-            foreach (var photo in candidatePhotos.Where(p => p.Film != null && p.Film.PurchasedBy == owner))
+            var eligible = candidatePhotos
+                .Where(p => p.Film != null && p.Film.PurchasedBy == owner)
+                .ToList();
+
+            var orderedNew = BuildOrderedNewPhotosForAppend(distinctIncoming, eligible, existing);
+            var newRows = new List<CollectionPhotoEntity>();
+            var next = maxIndex;
+            foreach (var photo in orderedNew)
             {
-                if (existing.Contains(photo.Id))
-                    continue;
-
-                collection.Photos.Add(photo);
-                existing.Add(photo.Id);
+                next++;
+                newRows.Add(new CollectionPhotoEntity
+                {
+                    CollectionsId = id,
+                    PhotosId = photo.Id,
+                    CollectionIndex = next,
+                    FilmId = photo.FilmId,
+                });
             }
-        }
 
-        await databaseService.UpdateAsync(collection);
+            if (newRows.Count > 0)
+                await databaseService.AddEntitiesAsync(newRows);
+        }
 
         var reloaded = await databaseService.GetByIdWithIncludesAsync<CollectionEntity>(
             id,
-            c => c.Photos);
+            c => c.CollectionPhotoLinks);
         if (reloaded == null)
             return NotFound();
 
-        var photos = reloaded.Photos.ToList();
+        var photos = await LoadCollectionPhotosOrderedAsync(id);
         if (!IsPlaceholderOrMemberPhotoImageId(reloaded.ImageId, photos))
         {
             reloaded.ImageId = Constants.DefaultCollectionImageId;
             await databaseService.UpdateAsync(reloaded);
-            reloaded = await databaseService.GetByIdWithIncludesAsync<CollectionEntity>(id, c => c.Photos);
+            reloaded = await databaseService.GetByIdWithIncludesAsync<CollectionEntity>(id, c => c.CollectionPhotoLinks);
         }
 
         return Ok(dtoConvertor.ToDTO(reloaded!));
@@ -263,15 +276,13 @@ public class CollectionController(
     [HttpGet("{id}/download")]
     public async Task<IActionResult> DownloadArchive(string id, [FromQuery] bool small = false)
     {
-        var collection = await databaseService.GetByIdWithIncludesAsync<CollectionEntity>(
-            id,
-            c => c.Photos);
+        var collection = await databaseService.GetByIdAsync<CollectionEntity>(id);
         if (collection == null)
             return NotFound();
         if (!FilmOwnerHelper.IsCurrentUserCollectionOwner(User, collection))
             return Forbid();
 
-        var photos = collection.Photos.OrderBy(p => p.FilmId).ThenBy(p => p.Index).ToList();
+        var photos = await LoadCollectionPhotosOrderedAsync(id);
         if (photos.Count == 0)
             return BadRequest("Collection has no photos.");
 
@@ -429,28 +440,125 @@ public class CollectionController(
 
     private async Task SyncCollectionPhotosAsync(string collectionId, List<string> photoIds, EUsernameType owner)
     {
-        var distinctIds = photoIds.Where(x => !string.IsNullOrWhiteSpace(x)).Distinct().ToList();
-
-        var collection = await databaseService.GetByIdWithIncludesAsync<CollectionEntity>(
-            collectionId,
-            c => c.Photos);
+        var collection = await databaseService.GetByIdAsync<CollectionEntity>(collectionId);
         if (collection == null)
             return;
 
-        collection.Photos.Clear();
+        var orderedDistinct = DistinctPreserveOrder(photoIds);
 
-        if (distinctIds.Count > 0)
+        List<PhotoEntity> orderedOwned = [];
+        if (orderedDistinct.Count > 0)
         {
             var photos = await databaseService.GetAllWhereWithIncludesAsync<PhotoEntity>(
-                p => distinctIds.Contains(p.Id),
+                p => orderedDistinct.Contains(p.Id),
                 p => p.Film);
-
-            foreach (var photo in photos.Where(p => p.Film != null && p.Film.PurchasedBy == owner))
+            var byId = photos
+                .Where(p => p.Film != null && p.Film.PurchasedBy == owner)
+                .ToDictionary(p => p.Id);
+            foreach (var pid in orderedDistinct)
             {
-                collection.Photos.Add(photo);
+                if (byId.TryGetValue(pid, out var photo))
+                    orderedOwned.Add(photo);
             }
         }
 
-        await databaseService.UpdateAsync(collection);
+        var newLinks = new List<CollectionPhotoEntity>();
+        for (var i = 0; i < orderedOwned.Count; i++)
+        {
+            var photo = orderedOwned[i];
+            newLinks.Add(new CollectionPhotoEntity
+            {
+                CollectionsId = collectionId,
+                PhotosId = photo.Id,
+                CollectionIndex = i + 1,
+                FilmId = photo.FilmId,
+            });
+        }
+
+        await databaseService.ReplaceEntitiesAsync<CollectionPhotoEntity>(
+            cp => cp.CollectionsId == collectionId,
+            newLinks);
+    }
+
+    private async Task<List<PhotoEntity>> LoadCollectionPhotosOrderedAsync(string collectionId)
+    {
+        var c = await databaseService.GetByIdWithQueryAsync<CollectionEntity>(collectionId, q =>
+            q.Include(x => x.CollectionPhotoLinks).ThenInclude(l => l.Photo));
+        if (c?.CollectionPhotoLinks == null || c.CollectionPhotoLinks.Count == 0)
+            return [];
+        return c.CollectionPhotoLinks
+            .OrderBy(l => l.CollectionIndex)
+            .Select(l => l.Photo)
+            .ToList();
+    }
+
+    /// <summary>Distinct ids preserving first occurrence order in <paramref name="ids"/>.</summary>
+    private static List<string> DistinctPreserveOrder(IEnumerable<string> ids)
+    {
+        var result = new List<string>();
+        var seen = new HashSet<string>();
+        foreach (var raw in ids)
+        {
+            if (string.IsNullOrWhiteSpace(raw))
+                continue;
+            var t = raw.Trim();
+            if (!seen.Add(t))
+                continue;
+            result.Add(t);
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Cross-film: film groups ordered by first appearance in <paramref name="idsRequestOrder"/>;
+    /// within each film, sort by <see cref="PhotoEntity.Index"/> ascending.
+    /// </summary>
+    private static List<PhotoEntity> BuildOrderedNewPhotosForAppend(
+        IReadOnlyList<string> idsRequestOrder,
+        IReadOnlyList<PhotoEntity> eligibleOwned,
+        HashSet<string> existingIds)
+    {
+        var eligibleById = eligibleOwned.ToDictionary(p => p.Id);
+        var orderedNewIds = new List<string>();
+        var seen = new HashSet<string>();
+        foreach (var id in idsRequestOrder)
+        {
+            if (string.IsNullOrWhiteSpace(id))
+                continue;
+            var t = id.Trim();
+            if (existingIds.Contains(t))
+                continue;
+            if (!eligibleById.ContainsKey(t))
+                continue;
+            if (!seen.Add(t))
+                continue;
+            orderedNewIds.Add(t);
+        }
+
+        if (orderedNewIds.Count == 0)
+            return [];
+
+        var filmFirstPos = new Dictionary<string, int>();
+        for (var i = 0; i < orderedNewIds.Count; i++)
+        {
+            var fid = eligibleById[orderedNewIds[i]].FilmId;
+            if (!filmFirstPos.ContainsKey(fid))
+                filmFirstPos[fid] = i;
+        }
+
+        var filmOrder = filmFirstPos.OrderBy(kv => kv.Value).Select(kv => kv.Key).ToList();
+        var result = new List<PhotoEntity>();
+        foreach (var fid in filmOrder)
+        {
+            var batch = orderedNewIds
+                .Where(pid => eligibleById[pid].FilmId == fid)
+                .Select(pid => eligibleById[pid])
+                .OrderBy(p => p.Index)
+                .ToList();
+            result.AddRange(batch);
+        }
+
+        return result;
     }
 }

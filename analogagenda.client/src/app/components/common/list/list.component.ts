@@ -21,6 +21,7 @@ export class ListComponent implements OnInit {
 
   @Output() loadMore = new EventEmitter<void>();
   @Output() itemClick = new EventEmitter<any>();
+  @Output() itemAuxClick = new EventEmitter<any>();
 
   tableView = false;
   settingsLoaded = false;
@@ -48,5 +49,9 @@ export class ListComponent implements OnInit {
 
   onItemClick(item: any): void {
     this.itemClick.emit(item);
+  }
+
+  onItemAuxClick(item: any): void {
+    this.itemAuxClick.emit(item);
   }
 }

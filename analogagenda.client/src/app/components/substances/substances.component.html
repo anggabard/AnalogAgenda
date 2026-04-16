@@ -15,7 +15,8 @@
                 [hasMore]="hasMoreAvailable"
                 [loading]="loadingAvailable"
                 (loadMore)="loadMoreAvailableDevKits()"
-                (itemClick)="onKitSelected($event.id)">
+                (itemClick)="onKitSelected($event.id)"
+                (itemAuxClick)="onKitOpenInNewTab($event.id)">
             </app-list>
         </div>
 
@@ -30,7 +31,8 @@
                 [hasMore]="hasMoreExpired"
                 [loading]="loadingExpired"
                 (loadMore)="loadMoreExpiredDevKits()"
-                (itemClick)="onKitSelected($event.id)">
+                (itemClick)="onKitSelected($event.id)"
+                (itemAuxClick)="onKitOpenInNewTab($event.id)">
             </app-list>
         </div>
     </div>
