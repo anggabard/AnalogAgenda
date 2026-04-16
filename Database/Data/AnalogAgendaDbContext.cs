@@ -26,6 +26,7 @@ public class AnalogAgendaDbContext(DbContextOptions<AnalogAgendaDbContext> optio
     public DbSet<DevKitSessionEntity> DevKitSessions { get; set; }
     public DbSet<DevKitFilmEntity> DevKitFilms { get; set; }
     public DbSet<CollectionEntity> Collections { get; set; }
+    public DbSet<CollectionPhotoEntity> CollectionPhotos { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -139,7 +140,7 @@ public class AnalogAgendaDbContext(DbContextOptions<AnalogAgendaDbContext> optio
             entity.HasIndex(e => e.DevelopedWithDevKitId);
         });
 
-        // Configure CollectionEntity (photo collections)
+        // Configure CollectionEntity (photo collections) — many-to-many via CollectionPhotos with Index + optional FilmId
         modelBuilder.Entity<CollectionEntity>(entity =>
         {
             entity.ToTable("Collections");
@@ -156,7 +157,23 @@ public class AnalogAgendaDbContext(DbContextOptions<AnalogAgendaDbContext> optio
 
             entity.HasMany(e => e.Photos)
                 .WithMany(p => p.Collections)
-                .UsingEntity(j => j.ToTable("CollectionPhotos"));
+                .UsingEntity<CollectionPhotoEntity>(
+                    r => r.HasOne(cp => cp.Photo)
+                        .WithMany(p => p.CollectionPhotoLinks)
+                        .HasForeignKey(cp => cp.PhotosId)
+                        .HasPrincipalKey(p => p.Id),
+                    l => l.HasOne(cp => cp.Collection)
+                        .WithMany(c => c.CollectionPhotoLinks)
+                        .HasForeignKey(cp => cp.CollectionsId)
+                        .HasPrincipalKey(c => c.Id),
+                    je =>
+                    {
+                        je.ToTable("CollectionPhotos");
+                        je.HasKey(cp => new { cp.CollectionsId, cp.PhotosId });
+                        je.Property(cp => cp.CollectionIndex).HasColumnName("Index").IsRequired();
+                        je.Property(cp => cp.FilmId).HasMaxLength(50);
+                        je.HasIndex(cp => cp.PhotosId);
+                    });
         });
 
         // Configure PhotoEntity

@@ -74,6 +74,14 @@ public class DtoConvertor(Configuration.Sections.System systemCfg, Storage stora
             ? BuildImageUrl(ContainerName.photos, entity.ImageId)
             : string.Empty;
 
+        var orderedPhotoIds = entity.CollectionPhotoLinks != null && entity.CollectionPhotoLinks.Count > 0
+            ? entity.CollectionPhotoLinks.OrderBy(cp => cp.CollectionIndex).Select(cp => cp.PhotosId).ToList()
+            : entity.Photos?.Select(p => p.Id).ToList() ?? [];
+
+        var photoCount = entity.CollectionPhotoLinks != null && entity.CollectionPhotoLinks.Count > 0
+            ? entity.CollectionPhotoLinks.Count
+            : entity.Photos?.Count ?? 0;
+
         return new CollectionDto
         {
             Id = entity.Id,
@@ -84,8 +92,8 @@ public class DtoConvertor(Configuration.Sections.System systemCfg, Storage stora
             ImageId = entity.ImageId.ToString(),
             IsOpen = entity.IsOpen,
             Owner = entity.Owner.ToString(),
-            PhotoIds = entity.Photos?.Select(p => p.Id).ToList() ?? [],
-            PhotoCount = entity.Photos?.Count ?? 0,
+            PhotoIds = orderedPhotoIds,
+            PhotoCount = photoCount,
             ImageUrl = imageUrl
         };
     }

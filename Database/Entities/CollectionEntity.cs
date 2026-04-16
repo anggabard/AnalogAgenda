@@ -24,6 +24,9 @@ public class CollectionEntity : BaseEntity, IImageEntity
 
     public ICollection<PhotoEntity> Photos { get; set; } = [];
 
+    /// <summary>Join rows (ordered by <see cref="CollectionPhotoEntity.CollectionIndex"/>).</summary>
+    public ICollection<CollectionPhotoEntity> CollectionPhotoLinks { get; set; } = [];
+
     protected override int IdLength() => 8;
 
     public void Update(CollectionDto dto)

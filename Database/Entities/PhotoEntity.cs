@@ -1,5 +1,3 @@
-using Database.DBObjects.Enums;
-
 namespace Database.Entities;
 
 public class PhotoEntity : BaseEntity, IImageEntity
@@ -16,6 +14,8 @@ public class PhotoEntity : BaseEntity, IImageEntity
     public FilmEntity Film { get; set; } = default!;
 
     public ICollection<CollectionEntity> Collections { get; set; } = [];
+
+    public ICollection<CollectionPhotoEntity> CollectionPhotoLinks { get; set; } = [];
 
     protected override int IdLength() => 16;
 }
