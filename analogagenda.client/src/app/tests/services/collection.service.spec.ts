@@ -140,4 +140,32 @@ describe('CollectionService', () => {
       req.flush(blob);
     });
   });
+
+  it('updatePublicPassword PUTs body with credentials', (done) => {
+    const id = 'col1';
+    const mock: CollectionDto = {
+      id,
+      name: 'N',
+      imageId: 'img',
+      photoIds: [],
+      photoCount: 0,
+      imageUrl: '',
+      isOpen: true,
+      isPublic: true,
+      owner: '',
+      location: '',
+      description: undefined,
+    };
+
+    service.updatePublicPassword(id, 'new-secret').subscribe((c) => {
+      expect(c.name).toBe('N');
+      done();
+    });
+
+    const req = httpMock.expectOne(`${baseUrl}/${id}/public-password`);
+    expect(req.request.method).toBe('PUT');
+    expect(req.request.withCredentials).toBeTrue();
+    expect(req.request.body).toEqual({ publicPassword: 'new-secret' });
+    req.flush(mock);
+  });
 });

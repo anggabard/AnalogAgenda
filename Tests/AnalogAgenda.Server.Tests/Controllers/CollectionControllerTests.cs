@@ -7,6 +7,7 @@ using Database.DBObjects;
 using Database.DBObjects.Enums;
 using Database.DTOs;
 using Database.Entities;
+using Database.Helpers;
 using Database.Services;
 using Database.Services.Interfaces;
 using Microsoft.AspNetCore.Http;
@@ -295,5 +296,66 @@ public class CollectionControllerTests : IDisposable
             .Select(l => l.PhotosId)
             .ToList();
         Assert.Equal(new[] { b1.Id, b2.Id, a1.Id }, orderedIds);
+    }
+
+    [Fact]
+    public async Task SetPublicPassword_PublicCollection_UpdatesHashWithoutTouchingPhotos()
+    {
+        var collection = NewCollection(EUsernameType.Angel, "Pub");
+        collection.IsPublic = true;
+        collection.PublicPasswordHash = PasswordHasher.HashPassword("old");
+        await _databaseService.AddAsync(collection);
+
+        var film = await AddFilmAsync(_databaseService, EUsernameType.Angel, "f");
+        var photo = new PhotoEntity { FilmId = film.Id, Index = 1, ImageId = Guid.NewGuid() };
+        await _databaseService.AddAsync(photo);
+        await _databaseService.AddEntitiesAsync(new List<CollectionPhotoEntity>
+        {
+            new()
+            {
+                CollectionsId = collection.Id,
+                PhotosId = photo.Id,
+                FilmId = film.Id,
+                CollectionIndex = 1,
+            },
+        });
+
+        var result = await _controller.SetPublicPassword(
+            collection.Id,
+            new CollectionSetPublicPasswordDto { PublicPassword = "newsecret" });
+
+        Assert.IsType<OkObjectResult>(result);
+        var reloaded = await _databaseService.GetByIdAsync<CollectionEntity>(collection.Id);
+        Assert.NotNull(reloaded);
+        Assert.NotNull(reloaded.PublicPasswordHash);
+        Assert.True(PasswordHasher.VerifyPassword("newsecret", reloaded.PublicPasswordHash!));
+
+        var links = await _databaseService.GetEntitiesAsync<CollectionPhotoEntity>(cp => cp.CollectionsId == collection.Id);
+        Assert.Single(links);
+        Assert.Equal(photo.Id, links[0].PhotosId);
+    }
+
+    [Fact]
+    public async Task SetPublicPassword_NotPublic_ReturnsBadRequest()
+    {
+        var c = NewCollection(EUsernameType.Angel, "Private");
+        await _databaseService.AddAsync(c);
+
+        var result = await _controller.SetPublicPassword(c.Id, new CollectionSetPublicPasswordDto { PublicPassword = "x" });
+
+        Assert.IsType<BadRequestObjectResult>(result);
+    }
+
+    [Fact]
+    public async Task SetPublicPassword_NonOwner_ReturnsForbid()
+    {
+        var c = NewCollection(EUsernameType.Tudor, "Other");
+        c.IsPublic = true;
+        c.PublicPasswordHash = PasswordHasher.HashPassword("p");
+        await _databaseService.AddAsync(c);
+
+        var result = await _controller.SetPublicPassword(c.Id, new CollectionSetPublicPasswordDto { PublicPassword = "new" });
+
+        Assert.IsType<ForbidResult>(result);
     }
 }

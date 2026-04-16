@@ -185,8 +185,7 @@ export class UpsertCollectionComponent extends BaseUpsertComponent<CollectionDto
       this.savingPublicPassword = true;
       this.form.patchValue({ isPublic: true, publicPassword: pwd });
       this.form.markAsDirty();
-      const dto = this.toWriteDto({} as CollectionDto, false);
-      this.collectionService.update(this.id, dto).subscribe({
+      this.collectionService.updatePublicPassword(this.id, pwd).subscribe({
         next: (c) => {
           this.loadedCollection = c;
           this.savingPublicPassword = false;

@@ -44,7 +44,8 @@ public class PublicCollectionController(
         if (entity == null || !entity.IsPublic)
             return NotFound();
 
-        if (!await HasValidAccessCookieAsync(collectionId))
+        if (!TryGetAccessCookieFingerprint(collectionId, out var cookieHash)
+            || !CookieMatchesStoredPublicHash(entity, cookieHash))
         {
             return Ok(new PublicCollectionPageDto
             {
@@ -212,8 +213,10 @@ public class PublicCollectionController(
         }
     }
 
-    private async Task<bool> HasValidAccessCookieAsync(string collectionId)
+    /// <summary>Parse and validate cookie structure/expiry; returns embedded password hash without a DB call.</summary>
+    private bool TryGetAccessCookieFingerprint(string collectionId, out string embeddedHash)
     {
+        embeddedHash = string.Empty;
         var cookieName = CookiePrefix + WebUtility.UrlEncode(collectionId);
         if (!Request.Cookies.TryGetValue(cookieName, out var raw) || string.IsNullOrEmpty(raw))
             return false;
@@ -229,17 +232,28 @@ public class PublicCollectionController(
                 return false;
             if (exp <= DateTime.UtcNow)
                 return false;
-
-            var entity = await databaseService.GetByIdAsync<CollectionEntity>(collectionId);
-            if (entity == null || !entity.IsPublic || string.IsNullOrEmpty(entity.PublicPasswordHash))
-                return false;
-
-            return parts[2] == entity.PublicPasswordHash;
+            embeddedHash = parts[2];
+            return !string.IsNullOrEmpty(embeddedHash);
         }
         catch
         {
             return false;
         }
+    }
+
+    private static bool CookieMatchesStoredPublicHash(CollectionEntity? entity, string embeddedHashFromCookie)
+    {
+        if (entity == null || !entity.IsPublic || string.IsNullOrEmpty(entity.PublicPasswordHash))
+            return false;
+        return entity.PublicPasswordHash == embeddedHashFromCookie;
+    }
+
+    private async Task<bool> HasValidAccessCookieAsync(string collectionId)
+    {
+        if (!TryGetAccessCookieFingerprint(collectionId, out var fingerprint))
+            return false;
+        var entity = await databaseService.GetByIdAsync<CollectionEntity>(collectionId);
+        return CookieMatchesStoredPublicHash(entity, fingerprint);
     }
 
     private CookieOptions BuildCookieOptions()

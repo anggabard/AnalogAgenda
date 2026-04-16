@@ -69,4 +69,9 @@ export class CollectionService extends BaseService {
   getPublicPasswordSuggestion(): Observable<{ password: string }> {
     return this.get<{ password: string }>('public-password-suggestion');
   }
+
+  /** Rotate public share password without sending photo membership (owner, collection already public). */
+  updatePublicPassword(id: string, publicPassword: string): Observable<CollectionDto> {
+    return this.put<CollectionDto>(`${id}/public-password`, { publicPassword });
+  }
 }

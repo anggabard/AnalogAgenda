@@ -210,6 +210,43 @@ public class CollectionController(
         return Ok(dtoConvertor.ToDTO(finalReload));
     }
 
+    /// <summary>
+    /// Set or rotate the public share password for an already-public collection.
+    /// Does not touch photo membership — avoids accidental clears from partial client state.
+    /// </summary>
+    [HttpPut("{id}/public-password")]
+    public async Task<IActionResult> SetPublicPassword(string id, [FromBody] CollectionSetPublicPasswordDto? body)
+    {
+        if (body == null || string.IsNullOrWhiteSpace(body.PublicPassword))
+            return BadRequest("Password is required.");
+
+        var pwd = body.PublicPassword.Trim();
+        if (pwd.Length > 32)
+            return BadRequest("Public password must be at most 32 characters.");
+
+        var entity = await databaseService.GetByIdWithIncludesAsync<CollectionEntity>(
+            id,
+            c => c.CollectionPhotoLinks);
+        if (entity == null)
+            return NotFound();
+        if (!FilmOwnerHelper.IsCurrentUserCollectionOwner(User, entity))
+            return Forbid();
+
+        if (!entity.IsPublic)
+            return BadRequest("Collection must be public to set a share password.");
+
+        entity.PublicPasswordHash = PasswordHasher.HashPassword(pwd);
+        await databaseService.UpdateAsync(entity);
+
+        var reloaded = await databaseService.GetByIdWithIncludesAsync<CollectionEntity>(
+            id,
+            c => c.CollectionPhotoLinks);
+        if (reloaded == null)
+            return NotFound();
+
+        return Ok(dtoConvertor.ToDTO(reloaded));
+    }
+
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(string id)
     {
