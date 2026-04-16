@@ -93,6 +93,9 @@ namespace Database.Data.Migrations
 
                     b.HasIndex("PhotosId");
 
+                    b.HasIndex("CollectionsId", "CollectionIndex")
+                        .IsUnique();
+
                     b.ToTable("CollectionPhotos", (string)null);
                 });
 
