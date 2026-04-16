@@ -1,8 +1,7 @@
-import { Component, OnInit, ViewChild, inject } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { PublicCollectionService } from '../../../services';
 import { PublicCollectionPageDto, CollectionPublicCommentDto, PhotoDto } from '../../../DTOs';
-import { PhotosContentComponent } from '../../films/photos-content/photos-content.component';
 import { DownloadHelper } from '../../../helpers/download.helper';
 import { ErrorHandlingHelper } from '../../../helpers/error-handling.helper';
 
@@ -13,8 +12,6 @@ import { ErrorHandlingHelper } from '../../../helpers/error-handling.helper';
   standalone: false,
 })
 export class PublicCollectionPageComponent implements OnInit {
-  @ViewChild(PhotosContentComponent) photosContent?: PhotosContentComponent;
-
   private route = inject(ActivatedRoute);
   private publicCollectionService = inject(PublicCollectionService);
 
