@@ -318,13 +318,10 @@ public class PublicCollectionController(
     private async Task<IActionResult> BuildZipAsync(string collectionName, List<PhotoEntity> photos, bool small, bool fullArchive)
     {
         var filmIds = photos.Select(p => p.FilmId).Distinct().ToList();
-        var films = new Dictionary<string, FilmEntity>();
-        foreach (var filmId in filmIds)
-        {
-            var film = await databaseService.GetByIdAsync<FilmEntity>(filmId);
-            if (film != null)
-                films[filmId] = film;
-        }
+        var filmEntities = filmIds.Count == 0
+            ? []
+            : await databaseService.GetAllWithQueryAsync<FilmEntity>(q => q.Where(f => filmIds.Contains(f.Id)));
+        var films = filmEntities.ToDictionary(f => f.Id, f => f);
 
         var tempFilePath = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid()}.zip");
         FileStream? tempFileStream = null;
