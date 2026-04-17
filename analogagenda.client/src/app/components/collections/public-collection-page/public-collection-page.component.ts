@@ -169,6 +169,14 @@ export class PublicCollectionPageComponent implements OnInit {
     });
   }
 
+  /** Same preview rule as collections list cards (thumbnail path). */
+  featuredPreviewUrl(url: string | null | undefined): string {
+    const u = url?.trim();
+    if (!u) return '';
+    if (u.includes('photos/preview/')) return u;
+    return u.replace('photos/', 'photos/preview/');
+  }
+
   formatRange(): string {
     const p = this.page;
     if (!p || p.requiresPassword) return '';

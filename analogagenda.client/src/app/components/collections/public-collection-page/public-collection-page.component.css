@@ -39,6 +39,23 @@
   white-space: pre-wrap;
 }
 
+.public-collection-featured-wrap {
+  display: flex;
+  justify-content: center;
+  margin: 1.25rem auto 0;
+  width: 100%;
+}
+
+.public-collection-featured-img {
+  display: block;
+  max-width: min(28rem, 100%);
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
 .password-gate.card {
   max-width: 28rem;
   margin: 2rem auto;

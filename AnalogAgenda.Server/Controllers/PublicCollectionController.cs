@@ -290,6 +290,7 @@ public class PublicCollectionController(
                 q.Where(c => c.CollectionId == entity.Id).OrderBy(c => c.CreatedDate))
             : [];
 
+        var collectionDto = dtoConvertor.ToDTO(entity);
         return new PublicCollectionPageDto
         {
             RequiresPassword = false,
@@ -299,7 +300,7 @@ public class PublicCollectionController(
             ToDate = entity.ToDate,
             Location = entity.Location,
             Description = string.IsNullOrWhiteSpace(entity.Description) ? null : entity.Description.Trim(),
-            FeaturedImageUrl = null,
+            FeaturedImageUrl = string.IsNullOrWhiteSpace(collectionDto.ImageUrl) ? null : collectionDto.ImageUrl,
             Photos = photoDtos,
             Comments = comments.Select(c => new CollectionPublicCommentDto
             {

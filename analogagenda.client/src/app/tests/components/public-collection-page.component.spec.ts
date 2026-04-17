@@ -64,6 +64,16 @@ describe('PublicCollectionPageComponent', () => {
     expect(component).toBeTruthy();
   });
 
+  it('featuredPreviewUrl uses preview path like collections cards', () => {
+    expect(component.featuredPreviewUrl('')).toBe('');
+    expect(component.featuredPreviewUrl('https://x.blob/photos/abc-guid')).toBe(
+      'https://x.blob/photos/preview/abc-guid'
+    );
+    expect(component.featuredPreviewUrl('https://x.blob/photos/preview/abc-guid')).toBe(
+      'https://x.blob/photos/preview/abc-guid'
+    );
+  });
+
   it('normalizes undefined photos and comments from API to empty arrays', async () => {
     mockService.getPage.and.returnValue(
       of({
