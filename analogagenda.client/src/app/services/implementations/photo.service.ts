@@ -5,6 +5,7 @@ import { retryWhen, mergeMap } from 'rxjs/operators';
 import { HttpErrorResponse } from '@angular/common/http';
 import { BaseService } from '../base.service';
 import { FileUploadHelper } from '../../helpers/file-upload.helper';
+import { toPhotosPreviewUrl } from '../../helpers/photo-url.helper';
 
 @Injectable({
   providedIn: 'root'
@@ -50,7 +51,7 @@ export class PhotoService extends BaseService {
 
   // Get preview URL for a photo (returns direct blob storage URL)
   getPreviewUrl(photo: PhotoDto): string {
-    return photo.imageUrl.replace("photos/", "photos/preview/")
+    return toPhotosPreviewUrl(photo.imageUrl);
   }
 
   /**
