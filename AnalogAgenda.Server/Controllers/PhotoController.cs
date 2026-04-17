@@ -390,8 +390,10 @@ public class PhotoController(
             foreach (var col in collectionsWithCardImage)
             {
                 col.ImageId = Constants.DefaultCollectionImageId;
-                await databaseService.UpdateAsync(col);
             }
+
+            if (collectionsWithCardImage.Any())
+                await databaseService.SaveChangesAsync();
         }
 
         // Delete image blob and preview blob (photos always have real images, no default)
