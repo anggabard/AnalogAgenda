@@ -324,6 +324,19 @@ describe('PhotoService', () => {
       // Verify no HTTP call was made
       httpMock.expectNone(`${baseUrl}/preview/${photo.id}`);
     });
+
+    it('should leave URL unchanged when imageUrl already uses preview path', () => {
+      const preview =
+        'https://analogagendastorage.blob.core.windows.net/photos/preview/12345678-1234-1234-1234-123456789012';
+      const photo: PhotoDto = {
+        id: 'test-photo-id',
+        filmId: 'test-film-id',
+        index: 1,
+        imageUrl: preview,
+        imageBase64: ''
+      };
+      expect(service.getPreviewUrl(photo)).toBe(preview);
+    });
   });
 
   describe('uploadMultiplePhotos - sequential uploads', () => {

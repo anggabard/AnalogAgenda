@@ -5,22 +5,36 @@
 
   <app-error-message [message]="errorMessage"></app-error-message>
 
-  <div class="collections-section" *ngIf="!errorMessage">
-    <app-list
-      *ngIf="collectionCardTemplate && collectionRowTemplate"
+  <div class="collections-section" *ngIf="!errorMessage && settingsLoaded">
+    <app-table-list
+      *ngIf="tableView && collectionRowTemplate"
       [items]="collections"
-      [cardTemplate]="collectionCardTemplate"
       [rowTemplate]="collectionRowTemplate"
       [columnHeaders]="collectionTableHeaders"
-      [hasMore]="hasMore"
+      [hasMore]="false"
       [loading]="loading"
-      (loadMore)="loadMoreCollections()"
       (itemClick)="onCollectionClick($event)"
       (itemAuxClick)="onCollectionOpenInNewTab($event)">
-    </app-list>
+    </app-table-list>
+
+    <ng-container *ngIf="!tableView">
+      <div *ngIf="loading" class="loading-row">Loading collections…</div>
+      <div
+        *ngIf="!loading && collections.length > 0 && collectionCardTemplate"
+        class="collections-grid">
+        <div
+          *ngFor="let c of collections"
+          class="collection-grid-cell"
+          (click)="onCollectionClick(c)"
+          (mousedown)="onCollectionGridMiddleMouseDown($event)"
+          (auxclick)="onCollectionGridAuxClick($event, c)">
+          <ng-container *ngTemplateOutlet="collectionCardTemplate; context: { $implicit: c }"></ng-container>
+        </div>
+      </div>
+    </ng-container>
   </div>
 
-  <div *ngIf="!loading && collections.length === 0 && !errorMessage" class="empty-state">
+  <div *ngIf="!loading && collections.length === 0 && !errorMessage && settingsLoaded" class="empty-state">
     <p>No collections yet. Create one with the button above.</p>
   </div>
 </div>

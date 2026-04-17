@@ -5,6 +5,7 @@ using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 using Configuration.Sections;
 using Database.Data;
+using Database.DBObjects;
 using Database.DBObjects.Enums;
 using Database.DTOs;
 using Database.Entities;
@@ -215,6 +216,29 @@ public class PhotoControllerTests : IDisposable
         // Verify photo was deleted
         var deletedPhoto = await _databaseService.GetByIdAsync<PhotoEntity>(id);
         Assert.Null(deletedPhoto);
+    }
+
+    [Fact]
+    public async Task DeletePhoto_ResetsCollectionCardImageId_WhenItMatchesPhotoBlob()
+    {
+        var filmId = "test-film-coll";
+        var film = new FilmEntity { Id = filmId, Brand = "Test Film", Iso = "400", PurchasedBy = EUsernameType.Angel };
+        await _databaseService.AddAsync(film);
+
+        var imgId = Guid.NewGuid();
+        var photoId = "test-photo-coll-thumb";
+        var photo = new PhotoEntity { Id = photoId, FilmId = filmId, Index = 1, ImageId = imgId };
+        await _databaseService.AddAsync(photo);
+
+        var coll = new CollectionEntity { Id = "collcard1", Name = "C", Owner = EUsernameType.Angel, ImageId = imgId };
+        await _databaseService.AddAsync(coll);
+
+        var result = await _controller.DeletePhoto(photoId);
+
+        Assert.IsType<NoContentResult>(result);
+        var updatedColl = await _databaseService.GetByIdAsync<CollectionEntity>("collcard1");
+        Assert.NotNull(updatedColl);
+        Assert.Equal(Constants.DefaultCollectionImageId, updatedColl!.ImageId);
     }
 
     [Fact]

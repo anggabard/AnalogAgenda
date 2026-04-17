@@ -1,5 +1,6 @@
 using AnalogAgenda.Server.Helpers;
 using Azure.Storage.Blobs;
+using Database.DBObjects;
 using Database.DBObjects.Enums;
 using Database.DTOs;
 using Database.Entities;
@@ -380,6 +381,17 @@ public class PhotoController(
         var filmEntity = await databaseService.GetByIdAsync<FilmEntity>(entity.FilmId);
         if (filmEntity == null || !FilmOwnerHelper.IsCurrentUserFilmOwner(User, filmEntity))
             return Forbid();
+
+        // Collection card image stores the photo blob id; reset so we do not point at deleted blobs.
+        var imageId = entity.ImageId;
+        if (imageId != Guid.Empty)
+        {
+            var collectionsWithCardImage = await databaseService.GetAllAsync<CollectionEntity>(c => c.ImageId == imageId);
+            foreach (var col in collectionsWithCardImage)
+            {
+                col.ImageId = Constants.DefaultCollectionImageId;
+            }
+        }
 
         // Delete image blob and preview blob (photos always have real images, no default)
         if (entity.ImageId != Guid.Empty)

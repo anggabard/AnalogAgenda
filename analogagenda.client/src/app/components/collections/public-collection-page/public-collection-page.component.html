@@ -33,6 +33,12 @@
             <p class="public-page-meta" *ngIf="formatRange()">{{ formatRange() }}</p>
             <p class="public-page-meta" *ngIf="page.location?.trim()">{{ page.location }}</p>
             <p class="public-page-description" *ngIf="page.description?.trim()">{{ page.description }}</p>
+            <div *ngIf="page.featuredImageUrl?.trim()" class="public-collection-featured-wrap">
+              <img
+                class="public-collection-featured-img"
+                [src]="toPhotosPreviewUrl(page.featuredImageUrl)"
+                alt="" />
+            </div>
           </div>
         </div>
 

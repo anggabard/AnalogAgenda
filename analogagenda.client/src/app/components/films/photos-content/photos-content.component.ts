@@ -117,14 +117,6 @@ export class PhotosContentComponent implements OnInit, OnChanges {
     return this.selectedPhotoIds.size;
   }
 
-  /** Hide “N photos” beside the toolbar for collection public/edit (owner request). */
-  showPhotoCountInBar(): boolean {
-    if (this.mode === 'collectionEdit' || this.mode === 'publicCollection') {
-      return false;
-    }
-    return true;
-  }
-
   getSelectedPhotos(): PhotoDto[] {
     return this.photos.filter((p) => this.selectedPhotoIds.has(p.id));
   }

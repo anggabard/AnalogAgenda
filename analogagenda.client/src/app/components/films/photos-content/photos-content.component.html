@@ -1,8 +1,8 @@
 <div
   class="photos-content"
   [class.photos-content--wide-preview]="mode === 'collectionEdit' || mode === 'publicCollection'">
-  <div class="actions-bar" [class.actions-bar--no-count]="!showPhotoCountInBar()">
-    <div class="photos-count" *ngIf="showPhotoCountInBar()">
+  <div class="actions-bar">
+    <div class="photos-count">
       <div *ngIf="mode === 'edit' && uploadLoading && uploadProgress.total > 0" class="upload-progress">
         Uploading photo {{ uploadProgress.current }} of {{ uploadProgress.total }}
       </div>

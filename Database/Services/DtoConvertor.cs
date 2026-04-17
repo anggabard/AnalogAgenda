@@ -76,11 +76,13 @@ public class DtoConvertor(Configuration.Sections.System systemCfg, Storage stora
         };
     }
 
+    /// <summary>Public blob URL for a collection card/featured image from <see cref="CollectionEntity.ImageId"/> only (no link ordering or full DTO).</summary>
+    public string GetCollectionImageUrl(Guid imageId) =>
+        imageId == Guid.Empty ? string.Empty : BuildImageUrl(ContainerName.photos, imageId);
+
     public CollectionDto ToDTO(CollectionEntity entity)
     {
-        var imageUrl = entity.ImageId != Guid.Empty
-            ? BuildImageUrl(ContainerName.photos, entity.ImageId)
-            : string.Empty;
+        var imageUrl = GetCollectionImageUrl(entity.ImageId);
 
         var orderedPhotoIds = entity.CollectionPhotoLinks != null && entity.CollectionPhotoLinks.Count > 0
             ? entity.CollectionPhotoLinks.OrderBy(cp => cp.CollectionIndex).Select(cp => cp.PhotosId).ToList()
@@ -110,9 +112,7 @@ public class DtoConvertor(Configuration.Sections.System systemCfg, Storage stora
 
     public CollectionOptionDto ToOptionDto(CollectionEntity entity)
     {
-        var imageUrl = entity.ImageId != Guid.Empty
-            ? BuildImageUrl(ContainerName.photos, entity.ImageId)
-            : string.Empty;
+        var imageUrl = GetCollectionImageUrl(entity.ImageId);
 
         return new CollectionOptionDto
         {

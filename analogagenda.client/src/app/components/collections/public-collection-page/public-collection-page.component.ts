@@ -4,6 +4,7 @@ import { PublicCollectionService } from '../../../services';
 import { PublicCollectionPageDto, CollectionPublicCommentDto, PhotoDto } from '../../../DTOs';
 import { DownloadHelper } from '../../../helpers/download.helper';
 import { ErrorHandlingHelper } from '../../../helpers/error-handling.helper';
+import { toPhotosPreviewUrl } from '../../../helpers/photo-url.helper';
 
 @Component({
   selector: 'app-public-collection-page',
@@ -12,6 +13,9 @@ import { ErrorHandlingHelper } from '../../../helpers/error-handling.helper';
   standalone: false,
 })
 export class PublicCollectionPageComponent implements OnInit {
+  /** Exposed for template: same preview URL rule as collections list and PhotoService. */
+  readonly toPhotosPreviewUrl = toPhotosPreviewUrl;
+
   private route = inject(ActivatedRoute);
   private publicCollectionService = inject(PublicCollectionService);
 

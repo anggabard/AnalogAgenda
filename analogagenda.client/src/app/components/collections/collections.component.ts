@@ -1,9 +1,13 @@
-import { Component, HostListener, OnDestroy, OnInit, TemplateRef, ViewChild, inject } from '@angular/core';
+import { Component, OnInit, TemplateRef, ViewChild, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { CollectionService, UserSettingsService } from '../../services';
 import { CollectionDto, PagedResponseDto } from '../../DTOs';
 import { ErrorHandlingHelper } from '../../helpers/error-handling.helper';
+import { toPhotosPreviewUrl } from '../../helpers/photo-url.helper';
 import { openRouteInNewTab } from '../../helpers/navigation.helper';
+
+/** Single request loads all collections (not tied to user "entities per page"). */
+const COLLECTIONS_LIST_PAGE_SIZE = 10_000;
 
 @Component({
   selector: 'app-collections',
@@ -11,7 +15,7 @@ import { openRouteInNewTab } from '../../helpers/navigation.helper';
   styleUrl: './collections.component.css',
   standalone: false,
 })
-export class CollectionsComponent implements OnInit, OnDestroy {
+export class CollectionsComponent implements OnInit {
   private collectionService = inject(CollectionService);
   private userSettingsService = inject(UserSettingsService);
   private router = inject(Router);
@@ -24,56 +28,32 @@ export class CollectionsComponent implements OnInit, OnDestroy {
   collections: CollectionDto[] = [];
   loading = true;
   errorMessage: string | null = null;
-  hasMore = false;
-
-  private page = 1;
-  pageSize = 20;
-
-  private scrollLoadDebounceTimer: ReturnType<typeof setTimeout> | null = null;
-  private readonly scrollDebounceMs = 150;
+  /** Set after user settings load so we can branch card grid vs table. */
+  settingsLoaded = false;
+  tableView = false;
 
   ngOnInit(): void {
     this.userSettingsService.getUserSettings().subscribe({
       next: (settings) => {
-        this.pageSize = Math.max(1, settings.entitiesPerPage ?? 20);
-        this.resetAndLoadFirstPage();
+        this.tableView = settings.tableView ?? false;
+        this.settingsLoaded = true;
+        this.loadAllCollections();
       },
       error: () => {
-        this.pageSize = 20;
-        this.resetAndLoadFirstPage();
+        this.tableView = false;
+        this.settingsLoaded = true;
+        this.loadAllCollections();
       },
     });
   }
 
-  ngOnDestroy(): void {
-    if (this.scrollLoadDebounceTimer != null) {
-      clearTimeout(this.scrollLoadDebounceTimer);
-      this.scrollLoadDebounceTimer = null;
-    }
-  }
-
-  private resetAndLoadFirstPage(): void {
-    this.page = 1;
-    this.collections = [];
-    this.hasMore = false;
-    // Must clear before loadNextPage(): it no-ops while loading is true, and the component
-    // starts with loading=true so the first fetch would never run.
-    this.loading = false;
-    this.loadNextPage();
-  }
-
-  /** Loads the next page and appends (same pattern as films lists). */
-  loadNextPage(): void {
-    if (this.loading) return;
-
+  private loadAllCollections(): void {
     this.loading = true;
     this.errorMessage = null;
-    this.collectionService.getMinePaged(this.page, this.pageSize).subscribe({
+    this.collections = [];
+    this.collectionService.getMinePaged(1, COLLECTIONS_LIST_PAGE_SIZE).subscribe({
       next: (response: PagedResponseDto<CollectionDto>) => {
-        const rows = response?.data ?? [];
-        this.collections.push(...rows);
-        this.hasMore = !!response?.hasNextPage;
-        this.page++;
+        this.collections = response?.data ?? [];
         this.loading = false;
       },
       error: (err) => {
@@ -81,31 +61,6 @@ export class CollectionsComponent implements OnInit, OnDestroy {
         this.errorMessage = ErrorHandlingHelper.handleError(err, 'loading collections');
       },
     });
-  }
-
-  loadMoreCollections(): void {
-    this.loadNextPage();
-  }
-
-  @HostListener('window:scroll', [])
-  onWindowScroll(): void {
-    if (this.scrollLoadDebounceTimer != null) {
-      clearTimeout(this.scrollLoadDebounceTimer);
-    }
-    this.scrollLoadDebounceTimer = setTimeout(() => {
-      this.scrollLoadDebounceTimer = null;
-      this.maybeLoadMoreOnScroll();
-    }, this.scrollDebounceMs);
-  }
-
-  private maybeLoadMoreOnScroll(): void {
-    const threshold = 300;
-    const pos = window.innerHeight + window.scrollY;
-    const max = document.body.offsetHeight - threshold;
-    if (pos < max) return;
-    if (this.hasMore && !this.loading) {
-      this.loadMoreCollections();
-    }
   }
 
   onNewClick(): void {
@@ -120,16 +75,26 @@ export class CollectionsComponent implements OnInit, OnDestroy {
     openRouteInNewTab(this.router, ['/collections', c.id]);
   }
 
+  /** Suppress browser middle-click autoscroll so auxclick can open in a new tab (same as app-card-list). */
+  onCollectionGridMiddleMouseDown(event: MouseEvent): void {
+    if (event.button === 1) {
+      event.preventDefault();
+    }
+  }
+
+  onCollectionGridAuxClick(event: MouseEvent, c: CollectionDto): void {
+    if (event.button !== 1) return;
+    event.preventDefault();
+    this.onCollectionOpenInNewTab(c);
+  }
+
   hasCardImage(c: CollectionDto): boolean {
     return !!c.imageUrl?.trim();
   }
 
-  /** Blob URLs use full-size path; list/table use preview thumbnails only (same rule as PhotoService). */
+  /** Blob URLs use full-size path; list/table use preview thumbnails only (shared with PhotoService). */
   cardImageUrl(c: CollectionDto): string {
-    const u = c.imageUrl?.trim();
-    if (!u) return '';
-    if (u.includes('photos/preview/')) return u;
-    return u.replace('photos/', 'photos/preview/');
+    return toPhotosPreviewUrl(c.imageUrl);
   }
 
   formatRange(c: CollectionDto): string {
