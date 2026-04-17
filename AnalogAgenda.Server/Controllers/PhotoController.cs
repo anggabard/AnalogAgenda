@@ -391,9 +391,6 @@ public class PhotoController(
             {
                 col.ImageId = Constants.DefaultCollectionImageId;
             }
-
-            if (collectionsWithCardImage.Any())
-                await databaseService.SaveChangesAsync();
         }
 
         // Delete image blob and preview blob (photos always have real images, no default)
