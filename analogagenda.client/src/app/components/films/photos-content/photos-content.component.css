@@ -12,10 +12,6 @@
   border-radius: 8px;
 }
 
-.actions-bar.actions-bar--no-count {
-  justify-content: flex-end;
-}
-
 .action-buttons {
   display: flex;
   flex-wrap: wrap;

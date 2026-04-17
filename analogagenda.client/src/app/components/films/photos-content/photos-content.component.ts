@@ -117,10 +117,6 @@ export class PhotosContentComponent implements OnInit, OnChanges {
     return this.selectedPhotoIds.size;
   }
 
-  showPhotoCountInBar(): boolean {
-    return true;
-  }
-
   getSelectedPhotos(): PhotoDto[] {
     return this.photos.filter((p) => this.selectedPhotoIds.has(p.id));
   }
