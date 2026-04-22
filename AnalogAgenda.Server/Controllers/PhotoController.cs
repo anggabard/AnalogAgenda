@@ -408,16 +408,14 @@ public class PhotoController(
                 photosContainer,
                 rotatedBytes,
                 outputContentType,
-                photoEntity.ImageId,
-                overwriteExisting: true);
+                photoEntity.ImageId);
 
             await BlobImageHelper.UploadPreviewImageFromBytesAsync(
                 photosContainer,
                 rotatedBytes,
                 photoEntity.ImageId,
                 maxDimension: 1200,
-                quality: 80,
-                overwriteExisting: true);
+                quality: 80);
 
             // Bump collection rows that use this blob as the card image so their UpdatedDate matches new pixels.
             var collectionsUsingImage = await databaseService.GetAllAsync<CollectionEntity>(

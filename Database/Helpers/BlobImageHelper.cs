@@ -20,15 +20,14 @@ public static class BlobImageHelper
         BlobContainerClient blobContainerClient,
         byte[] imageBytes,
         string contentType,
-        Guid blobName,
-        bool overwriteExisting = false)
+        Guid blobName)
     {
         ArgumentNullException.ThrowIfNull(imageBytes);
         
         var blobClient = blobContainerClient.GetBlobClient(blobName.ToString());
 
-        if (overwriteExisting)
-            await blobClient.DeleteIfExistsAsync().ConfigureAwait(false);
+        // Block blob UploadAsync replaces existing content on commit — do not delete first, or a failed
+        // upload leaves the blob missing (data loss).
 
         // Check size before processing
         var wasLargeImage = imageBytes.Length > 10_000_000; // 10MB threshold
@@ -70,15 +69,15 @@ public static class BlobImageHelper
         byte[] imageBytes, 
         Guid blobName,
         int maxDimension = 1200,
-        int quality = 80,
-        bool overwriteExisting = false)
+        int quality = 80)
     {
         ArgumentNullException.ThrowIfNull(imageBytes);
         
         var previewBlobName = $"preview/{blobName}";
         var previewBlobClient = blobContainerClient.GetBlobClient(previewBlobName);
-        if (overwriteExisting)
-            await previewBlobClient.DeleteIfExistsAsync().ConfigureAwait(false);
+
+        // Upload overwrites an existing preview blob; do not delete before generating bytes or a failed
+        // resize/upload would leave no preview.
 
         // Resize using ImageSharp - dispose input stream immediately
         byte[]? previewBytes = null;
