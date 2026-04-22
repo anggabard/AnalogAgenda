@@ -30,7 +30,7 @@ export function appendUpdatedDateQuery(
   const u = url?.trim() ?? '';
   if (!u) return '';
   if (updatedDate == null || updatedDate === '') return u;
-  const v = typeof updatedDate === 'string' ? formatUpdatedDateForQuery(updatedDate) : formatUpdatedDateForQuery(updatedDate);
+  const v = formatUpdatedDateForQuery(updatedDate);
   if (!v) return u;
   const sep = u.includes('?') ? '&' : '?';
   return `${u}${sep}${updatedDateParam}=${encodeURIComponent(v)}`;
