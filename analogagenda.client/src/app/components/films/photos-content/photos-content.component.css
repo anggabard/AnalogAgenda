@@ -280,12 +280,11 @@
   line-height: 0;
 }
 
-/* Center of the button sits on the top-right corner of the image (half overlaps in, half out). */
-.preview-close-btn {
+/* Same chrome as close; center sits on a corner (half overlaps in, half out). */
+.preview-close-btn,
+.preview-rotate-btn {
   position: absolute;
-  left: 100%;
   top: 0;
-  transform: translate(-50%, -50%);
   z-index: 1003;
   width: 44px;
   height: 44px;
@@ -303,10 +302,30 @@
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
 }
 
-/* Keep translate(-50%,-50%) on hover: global styles.css uses button:hover { transform: scale(1.03) } which would replace it and shift the control. */
+.preview-close-btn {
+  left: 100%;
+  transform: translate(-50%, -50%);
+}
+
+.preview-rotate-btn {
+  left: 0;
+  transform: translate(-50%, -50%);
+}
+
+/* Keep corner translate on hover: global styles.css uses button:hover { transform: scale(1.03) } which would replace it and shift the control. */
 .preview-image-frame .preview-close-btn:hover:not(:disabled) {
   background: rgba(255, 255, 255, 0.15);
   transform: translate(-50%, -50%);
+}
+
+.preview-image-frame .preview-rotate-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.15);
+  transform: translate(-50%, -50%);
+}
+
+.preview-image-frame .preview-rotate-btn:disabled {
+  opacity: 0.55;
+  cursor: wait;
 }
 
 .preview-image-wrap {
@@ -531,9 +550,9 @@
     width: 100%;
     max-width: 100%;
     box-sizing: border-box;
-    padding-left: max(0.5rem, env(safe-area-inset-left));
+    /* Half of 44px corner controls (rotate left, close right) extend past the image frame */
+    padding-left: max(0.75rem, calc(env(safe-area-inset-left) + 22px));
     padding-right: max(0.75rem, calc(env(safe-area-inset-right) + 22px));
-    /* Half of 44px close btn above image corner + breathing room below status bar */
     padding-top: max(0.75rem, calc(env(safe-area-inset-top) + 26px));
     touch-action: pan-y;
     /* Let the sheet grow with content; overlay scrolls */

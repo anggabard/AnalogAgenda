@@ -36,7 +36,7 @@
             <div *ngIf="page.featuredImageUrl?.trim()" class="public-collection-featured-wrap">
               <img
                 class="public-collection-featured-img"
-                [src]="toPhotosPreviewUrl(page.featuredImageUrl)"
+                [src]="toPhotosPreviewDisplayUrl(page.featuredImageUrl, page.featuredImageUpdatedDate)"
                 alt="" />
             </div>
           </div>

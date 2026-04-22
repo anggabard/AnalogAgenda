@@ -4,6 +4,7 @@ import { FilmService, AccountService, LocalStorageService, UserSettingsService }
 import { FilmDto, IdentityDto, PagedResponseDto } from "../../DTOs";
 import { SearchParams } from "./film-search/film-search.component";
 import { openRouteInNewTab } from "../../helpers/navigation.helper";
+import { appendUpdatedDateQuery } from "../../helpers/photo-url.helper";
 
 @Component({
     selector: 'app-films',
@@ -360,6 +361,11 @@ export class FilmsComponent implements OnInit, OnDestroy {
       allFilmsIsSearching: this.allFilmsIsSearching
     };
     this.localStorageService.saveState(this.FILMS_PAGE_STATE_KEY, state);
+  }
+
+  /** Cache-bust film card and table preview image URLs. */
+  filmDisplayImageUrl(film: FilmDto): string {
+    return appendUpdatedDateQuery(film.imageUrl, film.updatedDate);
   }
 
   isFilmExposed(film: FilmDto): boolean {

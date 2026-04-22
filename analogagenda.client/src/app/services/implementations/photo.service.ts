@@ -5,8 +5,6 @@ import { retryWhen, mergeMap } from 'rxjs/operators';
 import { HttpErrorResponse } from '@angular/common/http';
 import { BaseService } from '../base.service';
 import { FileUploadHelper } from '../../helpers/file-upload.helper';
-import { toPhotosPreviewUrl } from '../../helpers/photo-url.helper';
-
 @Injectable({
   providedIn: 'root'
 })
@@ -49,9 +47,9 @@ export class PhotoService extends BaseService {
     return this.patch<PhotoDto>(`${id}/restricted`, { restricted });
   }
 
-  // Get preview URL for a photo (returns direct blob storage URL)
-  getPreviewUrl(photo: PhotoDto): string {
-    return toPhotosPreviewUrl(photo.imageUrl);
+  /** Rotate image 90° clockwise in blob storage; regenerates preview (film owner only). */
+  rotatePhoto90Clockwise(id: string): Observable<PhotoDto> {
+    return this.post<PhotoDto>(`${id}/rotate`, {});
   }
 
   /**

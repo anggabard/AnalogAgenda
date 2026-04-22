@@ -16,10 +16,13 @@ export interface CollectionDto {
   photoIds: string[];
   photoCount: number;
   imageUrl: string;
+  /** UTC from API; cache-bust collection card image. */
+  updatedDate?: string | null;
 }
 
 export interface CollectionOptionDto {
   id: string;
   name: string;
   imageUrl: string;
+  updatedDate?: string | null;
 }

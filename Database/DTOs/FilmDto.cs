@@ -35,4 +35,7 @@ public class FilmDto
     public string FormattedExposureDate { get; set; } = string.Empty;
 
     public int PhotoCount { get; set; } = 0;
+
+    /// <summary>UTC row version for cache-busting film card image URLs.</summary>
+    public DateTime UpdatedDate { get; set; }
 }

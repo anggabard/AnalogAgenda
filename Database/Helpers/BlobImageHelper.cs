@@ -16,11 +16,19 @@ public static class BlobImageHelper
         await UploadImageFromBytesAsync(blobContainerClient, imageBytes, contentType, blobName);
     }
 
-    public static async Task UploadImageFromBytesAsync(BlobContainerClient blobContainerClient, byte[] imageBytes, string contentType, Guid blobName)
+    public static async Task UploadImageFromBytesAsync(
+        BlobContainerClient blobContainerClient,
+        byte[] imageBytes,
+        string contentType,
+        Guid blobName,
+        bool overwriteExisting = false)
     {
         ArgumentNullException.ThrowIfNull(imageBytes);
         
         var blobClient = blobContainerClient.GetBlobClient(blobName.ToString());
+
+        if (overwriteExisting)
+            await blobClient.DeleteIfExistsAsync().ConfigureAwait(false);
 
         // Check size before processing
         var wasLargeImage = imageBytes.Length > 10_000_000; // 10MB threshold
@@ -35,7 +43,7 @@ public static class BlobImageHelper
         await blobClient.UploadAsync(stream, new BlobUploadOptions
         {
             HttpHeaders = headers
-        });
+        }).ConfigureAwait(false);
         
         // Note: imageBytes parameter goes out of scope when method returns, allowing GC to collect it
         // For large images, we force GC collection below to help with memory pressure
@@ -62,10 +70,16 @@ public static class BlobImageHelper
         byte[] imageBytes, 
         Guid blobName,
         int maxDimension = 1200,
-        int quality = 80)
+        int quality = 80,
+        bool overwriteExisting = false)
     {
         ArgumentNullException.ThrowIfNull(imageBytes);
         
+        var previewBlobName = $"preview/{blobName}";
+        var previewBlobClient = blobContainerClient.GetBlobClient(previewBlobName);
+        if (overwriteExisting)
+            await previewBlobClient.DeleteIfExistsAsync().ConfigureAwait(false);
+
         // Resize using ImageSharp - dispose input stream immediately
         byte[]? previewBytes = null;
         using (var inputStream = new MemoryStream(imageBytes, writable: false))
@@ -100,10 +114,6 @@ public static class BlobImageHelper
         // Note: imageBytes parameter goes out of scope after the using block, allowing GC to collect it
         // The original image bytes are no longer needed after creating the preview
         
-        // Upload preview to preview subfolder
-        var previewBlobName = $"preview/{blobName}";
-        var previewBlobClient = blobContainerClient.GetBlobClient(previewBlobName);
-
         using var previewStream = new MemoryStream(previewBytes, writable: false);
         var headers = new BlobHttpHeaders
         {
@@ -113,7 +123,7 @@ public static class BlobImageHelper
         await previewBlobClient.UploadAsync(previewStream, new BlobUploadOptions
         {
             HttpHeaders = headers
-        });
+        }).ConfigureAwait(false);
         
         // Force GC after preview processing for large images (Y1 Consumption plan)
         // Check size before clearing reference
@@ -240,6 +250,44 @@ public static class BlobImageHelper
             "image/tiff" => "tiff",
             _ => "jpg" // Default to jpg for unknown types
         };
+    }
+
+    /// <summary>
+    /// Loads image bytes, rotates 90° clockwise, and encodes using a format compatible with <paramref name="contentType"/>.
+    /// </summary>
+    public static async Task<(byte[] rotatedBytes, string outputContentType)> RotateImageBytes90ClockwiseAsync(
+        byte[] imageBytes,
+        string contentType)
+    {
+        ArgumentNullException.ThrowIfNull(imageBytes);
+        using var inputStream = new MemoryStream(imageBytes, writable: false);
+        using var image = await Image.LoadAsync(inputStream);
+        image.Mutate(x => x.Rotate(RotateMode.Rotate90));
+
+        using var outputStream = new MemoryStream();
+        var ext = GetFileExtensionFromContentType(contentType);
+        string outputContentType;
+        switch (ext)
+        {
+            case "png":
+                await image.SaveAsPngAsync(outputStream);
+                outputContentType = "image/png";
+                break;
+            case "webp":
+                await image.SaveAsWebpAsync(outputStream);
+                outputContentType = "image/webp";
+                break;
+            case "gif":
+                await image.SaveAsGifAsync(outputStream);
+                outputContentType = "image/gif";
+                break;
+            default:
+                await image.SaveAsJpegAsync(outputStream, new JpegEncoder { Quality = 92 });
+                outputContentType = "image/jpeg";
+                break;
+        }
+
+        return (outputStream.ToArray(), outputContentType);
     }
 
     /// <summary>

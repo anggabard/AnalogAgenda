@@ -301,6 +301,7 @@ public class PublicCollectionController(
             Location = entity.Location,
             Description = string.IsNullOrWhiteSpace(entity.Description) ? null : entity.Description.Trim(),
             FeaturedImageUrl = string.IsNullOrWhiteSpace(featuredUrl) ? null : featuredUrl,
+            FeaturedImageUpdatedDate = string.IsNullOrWhiteSpace(featuredUrl) ? null : entity.UpdatedDate,
             Photos = photoDtos,
             Comments = comments.Select(c => new CollectionPublicCommentDto
             {

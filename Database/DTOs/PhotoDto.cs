@@ -17,4 +17,7 @@ public class PhotoDto : HasImage
     public int? CollectionIndex { get; set; }
 
     public bool Restricted { get; set; }
+
+    /// <summary>UTC row version for cache-busting image URLs after rotate or other updates.</summary>
+    public DateTime UpdatedDate { get; set; }
 }

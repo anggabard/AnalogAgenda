@@ -5,11 +5,14 @@ import { PhotoService } from '../../services';
 import { CollectionOptionDto, FilmDto, PhotoDto } from '../../DTOs';
 import { FilmType, UsernameType } from '../../enums';
 import { TestConfig } from '../test.config';
+import { toPhotosPreviewDisplayUrl } from '../../helpers/photo-url.helper';
+import { of } from 'rxjs';
 
 describe('PhotosContentComponent', () => {
   let component: PhotosContentComponent;
   let fixture: ComponentFixture<PhotosContentComponent>;
   let mockRouter: jasmine.SpyObj<Router>;
+  let photoServiceSpy: jasmine.SpyObj<PhotoService>;
   const mockFilm: FilmDto = {
     id: 'film-1',
     brand: 'Test Film',
@@ -23,14 +26,20 @@ describe('PhotosContentComponent', () => {
     developed: true,
     imageUrl: '',
   };
+  const blobMainP1 = 'https://x.blob.core.windows.net/photos/11111111-1111-1111-1111-111111111111';
+  const blobMainP2 = 'https://x.blob.core.windows.net/photos/22222222-2222-2222-2222-222222222222';
+  const photoUpdated1 = '2026-01-10T12:00:00.000Z';
+  const photoUpdated2 = '2026-01-11T12:00:00.000Z';
   const mockPhotos: PhotoDto[] = [
-    { id: 'p1', filmId: 'film-1', index: 1, imageUrl: 'u1', imageBase64: '' },
-    { id: 'p2', filmId: 'film-1', index: 2, imageUrl: 'u2', imageBase64: '' },
+    { id: 'p1', filmId: 'film-1', index: 1, imageUrl: blobMainP1, imageBase64: '', updatedDate: photoUpdated1 },
+    { id: 'p2', filmId: 'film-1', index: 2, imageUrl: blobMainP2, imageBase64: '', updatedDate: photoUpdated2 },
   ];
 
   beforeEach(async () => {
-    const photoServiceSpy = jasmine.createSpyObj('PhotoService', ['getPreviewUrl']);
-    photoServiceSpy.getPreviewUrl.and.callFake((p: PhotoDto) => `url-${p.id}`);
+    photoServiceSpy = jasmine.createSpyObj('PhotoService', ['rotatePhoto90Clockwise']);
+    photoServiceSpy.rotatePhoto90Clockwise.and.callFake((id: string) =>
+      of({ ...mockPhotos.find((p) => p.id === id)! }),
+    );
     mockRouter = TestConfig.createRouterSpy();
 
     await TestConfig.configureTestBed({
@@ -127,6 +136,37 @@ describe('PhotosContentComponent', () => {
       spyOn(ev, 'preventDefault');
       component.onKeyDown(ev);
       expect(component.currentPhotoIndex).toBe(0);
+    });
+
+    it('showRotateInPreview is true for edit and view when owner', () => {
+      component.isOwner = true;
+      component.mode = 'edit';
+      expect(component.showRotateInPreview).toBeTrue();
+      component.mode = 'view';
+      expect(component.showRotateInPreview).toBeTrue();
+    });
+
+    it('showRotateInPreview is false when not owner or non-edit modes', () => {
+      component.mode = 'edit';
+      component.isOwner = false;
+      expect(component.showRotateInPreview).toBeFalse();
+      component.isOwner = true;
+      component.mode = 'collectionEdit';
+      expect(component.showRotateInPreview).toBeFalse();
+      component.mode = 'ideaResults';
+      expect(component.showRotateInPreview).toBeFalse();
+    });
+
+    it('rotatePreviewClockwise calls API and clears loading', () => {
+      component.mode = 'edit';
+      component.isOwner = true;
+      component.openPreview(component.photos[0]);
+      expect(component.previewImageUrl(component.photos[0])).toBe(
+        toPhotosPreviewDisplayUrl(blobMainP1, photoUpdated1),
+      );
+      component.rotatePreviewClockwise(new MouseEvent('click'));
+      expect(photoServiceSpy.rotatePhoto90Clockwise).toHaveBeenCalledWith('p1');
+      expect(component.rotateInPreviewLoading).toBeFalse();
     });
   });
 

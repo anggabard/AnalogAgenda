@@ -3,7 +3,7 @@ import { Router } from '@angular/router';
 import { CollectionService, UserSettingsService } from '../../services';
 import { CollectionDto, PagedResponseDto } from '../../DTOs';
 import { ErrorHandlingHelper } from '../../helpers/error-handling.helper';
-import { toPhotosPreviewUrl } from '../../helpers/photo-url.helper';
+import { toPhotosPreviewDisplayUrl } from '../../helpers/photo-url.helper';
 import { openRouteInNewTab } from '../../helpers/navigation.helper';
 
 /** Single request loads all collections (not tied to user "entities per page"). */
@@ -94,7 +94,7 @@ export class CollectionsComponent implements OnInit {
 
   /** Blob URLs use full-size path; list/table use preview thumbnails only (shared with PhotoService). */
   cardImageUrl(c: CollectionDto): string {
-    return toPhotosPreviewUrl(c.imageUrl);
+    return toPhotosPreviewDisplayUrl(c.imageUrl, c.updatedDate);
   }
 
   formatRange(c: CollectionDto): string {

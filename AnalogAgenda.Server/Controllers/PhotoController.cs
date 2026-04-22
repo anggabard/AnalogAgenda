@@ -175,45 +175,6 @@ public class PhotoController(
         return Ok(sortedPhotos);
     }
 
-    [HttpGet("preview/{id}")]
-    public async Task<IActionResult> GetPreview(string id)
-    {
-        var photoEntity = await databaseService.GetByIdAsync<PhotoEntity>(id);
-        if (photoEntity == null)
-            return NotFound("Photo not found.");
-
-        if (photoEntity.Restricted)
-        {
-            var filmEntity = await databaseService.GetByIdAsync<FilmEntity>(photoEntity.FilmId);
-            if (filmEntity == null || !FilmOwnerHelper.IsCurrentUserFilmOwner(User, filmEntity))
-                return NotFound("Photo not found.");
-        }
-
-        try
-        {
-            // Serve preview directly from blob storage (preview/{imageId})
-            var previewBlobClient = photosContainer.GetBlobClient($"preview/{photoEntity.ImageId}");
-
-            if (!await previewBlobClient.ExistsAsync())
-            {
-                return NotFound("Preview not found in storage.");
-            }
-
-            var response = await previewBlobClient.DownloadAsync();
-            var contentType = response.Value.Details.ContentType ?? "image/jpeg";
-
-            using var memoryStream = new MemoryStream();
-            await response.Value.Content.CopyToAsync(memoryStream);
-            var previewBytes = memoryStream.ToArray();
-
-            return File(previewBytes, contentType);
-        }
-        catch (Exception ex)
-        {
-            return UnprocessableEntity($"Error loading preview: {ex.Message}");
-        }
-    }
-
     [HttpGet("download/{id}")]
     public async Task<IActionResult> DownloadPhoto(string id)
     {
@@ -418,6 +379,66 @@ public class PhotoController(
         photoEntity.Restricted = dto.Restricted;
         await databaseService.UpdateAsync(photoEntity);
         return Ok(dtoConvertor.ToDTO(photoEntity));
+    }
+
+    [HttpPost("{id}/rotate")]
+    public async Task<IActionResult> RotatePhoto90Clockwise(string id)
+    {
+        var photoEntity = await databaseService.GetByIdAsync<PhotoEntity>(id);
+        if (photoEntity == null)
+            return NotFound();
+
+        var filmEntity = await databaseService.GetByIdAsync<FilmEntity>(photoEntity.FilmId);
+        if (filmEntity == null || !FilmOwnerHelper.IsCurrentUserFilmOwner(User, filmEntity))
+            return Forbid();
+
+        if (photoEntity.ImageId == Guid.Empty)
+            return BadRequest("Photo has no image.");
+
+        try
+        {
+            var (imageBytes, contentType) = await BlobImageHelper.DownloadImageAsBytesAsync(
+                photosContainer,
+                photoEntity.ImageId.ToString());
+
+            var (rotatedBytes, outputContentType) =
+                await BlobImageHelper.RotateImageBytes90ClockwiseAsync(imageBytes, contentType);
+
+            await BlobImageHelper.UploadImageFromBytesAsync(
+                photosContainer,
+                rotatedBytes,
+                outputContentType,
+                photoEntity.ImageId,
+                overwriteExisting: true);
+
+            await BlobImageHelper.UploadPreviewImageFromBytesAsync(
+                photosContainer,
+                rotatedBytes,
+                photoEntity.ImageId,
+                maxDimension: 1200,
+                quality: 80,
+                overwriteExisting: true);
+
+            await databaseService.UpdateAsync(photoEntity);
+
+            // Bump collection rows that use this blob as the card image so their UpdatedDate matches new pixels.
+            var collectionsUsingImage = await databaseService.GetAllAsync<CollectionEntity>(
+                c => c.ImageId == photoEntity.ImageId);
+            foreach (var coll in collectionsUsingImage)
+            {
+                await databaseService.UpdateAsync(coll);
+            }
+
+            return Ok(dtoConvertor.ToDTO(photoEntity));
+        }
+        catch (FileNotFoundException)
+        {
+            return NotFound("Image not found in storage.");
+        }
+        catch (Exception ex)
+        {
+            return UnprocessableEntity($"Error rotating photo: {ex.Message}");
+        }
     }
 
     private static string SanitizeFileName(string fileName)

@@ -17,6 +17,8 @@ export interface PublicCollectionPageDto {
   location?: string;
   description?: string | null;
   featuredImageUrl?: string;
+  /** UTC when featured image is set; cache-bust featured `<img>`. */
+  featuredImageUpdatedDate?: string | null;
   photos: PhotoDto[];
   comments: CollectionPublicCommentDto[];
 }
