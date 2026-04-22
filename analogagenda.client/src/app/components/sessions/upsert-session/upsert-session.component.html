@@ -33,6 +33,13 @@
   <div class="alert alert-success" *ngIf="successMessage">{{ successMessage }}</div>
   <app-error-message [message]="errorMessage"></app-error-message>
 
+  <div class="session-view-summary" *ngIf="isViewMode && !isInsert">
+    <p class="session-wacky-tried" *ngIf="linkedIdeaIds.length > 0">
+      <span class="session-wacky-label">Tried Wacky Ideas:</span>
+      {{ wackyIdeasNamesDisplay }}
+    </p>
+    <p class="session-description-body" *ngIf="trimmedSessionDescription">{{ trimmedSessionDescription }}</p>
+  </div>
 
   <!-- DevKit Lists -->
   <div class="devkit-lists">
