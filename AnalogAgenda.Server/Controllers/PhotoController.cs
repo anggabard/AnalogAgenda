@@ -419,16 +419,16 @@ public class PhotoController(
                 quality: 80,
                 overwriteExisting: true);
 
-            await databaseService.UpdateAsync(photoEntity);
-
             // Bump collection rows that use this blob as the card image so their UpdatedDate matches new pixels.
             var collectionsUsingImage = await databaseService.GetAllAsync<CollectionEntity>(
                 c => c.ImageId == photoEntity.ImageId);
+            var updatedDate = DateTime.UtcNow;
             foreach (var coll in collectionsUsingImage)
             {
-                await databaseService.UpdateAsync(coll);
+                coll.UpdatedDate = updatedDate;
             }
 
+            await databaseService.UpdateAsync(photoEntity);
             return Ok(dtoConvertor.ToDTO(photoEntity));
         }
         catch (FileNotFoundException)
