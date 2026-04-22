@@ -18,13 +18,9 @@ public class DeleteUnusedThumbnails(
     {
         _logger.LogInformation($"GarbageCollector - DeleteUnusedThumbnails function executed at: {DateTime.UtcNow}");
 
-        var cleanupTasks = new List<Task>
-        {
-            DeleteUnusedThumbnailsAsync<UsedFilmThumbnailEntity, FilmEntity>(),
-            DeleteUnusedThumbnailsAsync<UsedDevKitThumbnailEntity, DevKitEntity>()
-        };
-
-        await Task.WhenAll(cleanupTasks);
+        // Run sequentially: IDatabaseService shares a single scoped DbContext and is not safe for concurrent use.
+        await DeleteUnusedThumbnailsAsync<UsedFilmThumbnailEntity, FilmEntity>();
+        await DeleteUnusedThumbnailsAsync<UsedDevKitThumbnailEntity, DevKitEntity>();
 
         if (myTimer.ScheduleStatus is not null)
         {
