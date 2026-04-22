@@ -1,6 +1,5 @@
 using Database.Helpers;
 using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace AnalogAgenda.Server.Tests.Helpers;
