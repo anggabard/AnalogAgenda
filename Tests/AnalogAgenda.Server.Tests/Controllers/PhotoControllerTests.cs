@@ -69,45 +69,6 @@ public class PhotoControllerTests : IDisposable
     }
 
     [Fact]
-    public async Task GetPreview_WithNonExistentPhoto_ReturnsNotFound()
-    {
-        // Arrange
-        var id = "non-existent-photo";
-
-        // Act
-        var result = await _controller.GetPreview(id);
-
-        // Assert
-        Assert.IsType<NotFoundObjectResult>(result);
-    }
-
-    [Fact]
-    public async Task GetPreview_WithNonExistentBlob_ReturnsNotFound()
-    {
-        // Arrange
-        var photoId = "test-photo-id";
-        var imageId = Guid.NewGuid();
-        var filmId = "test-film-id";
-        var film = new FilmEntity { Id = filmId, Brand = "Test Film", Iso = "400" };
-        await _databaseService.AddAsync(film);
-
-        var photo = new PhotoEntity { Id = photoId, FilmId = filmId, Index = 1, ImageId = imageId };
-        await _databaseService.AddAsync(photo);
-
-        var previewBlobClient = new Mock<BlobClient>();
-        previewBlobClient.Setup(x => x.ExistsAsync(default)).ReturnsAsync(Azure.Response.FromValue(false, Mock.Of<Azure.Response>()));
-        
-        _mockPhotosContainerClient.Setup(x => x.GetBlobClient($"preview/{imageId}"))
-                                   .Returns(previewBlobClient.Object);
-
-        // Act
-        var result = await _controller.GetPreview(photoId);
-
-        // Assert
-        Assert.IsType<NotFoundObjectResult>(result);
-    }
-
-    [Fact]
     public async Task GetPhotosByFilmId_WithValidFilmId_ReturnsOkWithPhotos()
     {
         // Arrange
@@ -453,5 +414,45 @@ public class PhotoControllerTests : IDisposable
         Assert.NotNull(updatedFilm);
         Assert.True(updatedFilm!.Developed);
     }
+
+    [Fact]
+    public async Task RotatePhoto90Clockwise_NonExistentPhoto_ReturnsNotFound()
+    {
+        var result = await _controller.RotatePhoto90Clockwise("missing");
+
+        Assert.IsType<NotFoundResult>(result);
+    }
+
+    [Fact]
+    public async Task RotatePhoto90Clockwise_NonOwner_ReturnsForbid()
+    {
+        var filmId = "film-rot";
+        var film = new FilmEntity { Id = filmId, Brand = "B", Iso = "400", PurchasedBy = EUsernameType.Cristiana };
+        await _databaseService.AddAsync(film);
+        var photoId = "photo-rot";
+        var photo = new PhotoEntity { Id = photoId, FilmId = filmId, Index = 1, ImageId = Guid.NewGuid() };
+        await _databaseService.AddAsync(photo);
+
+        var result = await _controller.RotatePhoto90Clockwise(photoId);
+
+        Assert.IsType<ForbidResult>(result);
+    }
+
+    [Fact]
+    public async Task RotatePhoto90Clockwise_NoImageId_ReturnsBadRequest()
+    {
+        var filmId = "film-rot2";
+        var film = new FilmEntity { Id = filmId, Brand = "B", Iso = "400", PurchasedBy = EUsernameType.Angel };
+        await _databaseService.AddAsync(film);
+        var photoId = "photo-rot2";
+        var photo = new PhotoEntity { Id = photoId, FilmId = filmId, Index = 1, ImageId = Guid.Empty };
+        await _databaseService.AddAsync(photo);
+
+        var result = await _controller.RotatePhoto90Clockwise(photoId);
+
+        var bad = Assert.IsType<BadRequestObjectResult>(result);
+        Assert.Equal("Photo has no image.", bad.Value);
+    }
+
 }
 

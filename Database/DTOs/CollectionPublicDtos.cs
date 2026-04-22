@@ -42,6 +42,9 @@ public class PublicCollectionPageDto
 
     public string? FeaturedImageUrl { get; set; }
 
+    /// <summary>Collection row <see cref="Entities.CollectionEntity.UpdatedDate"/> when <see cref="FeaturedImageUrl"/> is set; for cache-busting.</summary>
+    public DateTime? FeaturedImageUpdatedDate { get; set; }
+
     public List<PhotoDto> Photos { get; set; } = [];
 
     public List<CollectionPublicCommentDto> Comments { get; set; } = [];

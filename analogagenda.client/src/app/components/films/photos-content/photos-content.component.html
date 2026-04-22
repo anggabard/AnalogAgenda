@@ -231,7 +231,7 @@
       (click)="onPhotoItemClick(photo)"
     >
       <div class="photo-thumbnail">
-        <img [src]="photoService.getPreviewUrl(photo)" [alt]="'Photo ' + photo.index" />
+        <img [src]="previewImageUrl(photo)" [alt]="'Photo ' + photo.index" />
       </div>
       <div class="photo-info">
         <span class="photo-index">#{{ displayIndex(photo) }}</span>
@@ -269,10 +269,21 @@
       <div class="preview-image-frame">
         <img
           *ngIf="currentPreviewPhoto"
-          [src]="photoService.getPreviewUrl(currentPreviewPhoto!)"
+          [src]="previewImageUrl(currentPreviewPhoto!)"
           [alt]="'Photo ' + currentPreviewPhoto.index"
           draggable="false"
         />
+        <button
+          type="button"
+          class="preview-rotate-btn"
+          *ngIf="showRotateInPreview && currentPreviewPhoto"
+          [disabled]="rotateInPreviewLoading"
+          (click)="rotatePreviewClockwise($event)"
+          title="Rotate 90° clockwise"
+          aria-label="Rotate photo 90 degrees clockwise"
+        >
+          ↻
+        </button>
         <button
           type="button"
           class="preview-close-btn"

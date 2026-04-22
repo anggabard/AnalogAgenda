@@ -57,6 +57,8 @@ export class UpsertSessionComponent extends BaseUpsertComponent<SessionDto> impl
   /** Wacky ideas linked to this session (ids + titles for tags). */
   allIdeas: IdeaDto[] = [];
   linkedIdeaIds: string[] = [];
+  /** Titles from GET session (preferred over allIdeas for view labels). */
+  connectedIdeaSummaries: { id: string; title: string }[] = [];
   selectedIdeaIdToAdd = '';
 
   nextSessionIndexForPlaceholder = 1;
@@ -85,8 +87,22 @@ export class UpsertSessionComponent extends BaseUpsertComponent<SessionDto> impl
   }
 
   linkedIdeaTitle(id: string): string {
+    const fromSession = this.connectedIdeaSummaries.find((x) => x.id === id);
+    if (fromSession?.title?.trim()) {
+      return fromSession.title.trim();
+    }
     const fromApi = this.allIdeas.find((i) => i.id === id);
     return fromApi?.title?.trim() || id;
+  }
+
+  /** Comma-separated idea names for view mode (uses loaded ideas + linked ids). */
+  get wackyIdeasNamesDisplay(): string {
+    return this.linkedIdeaIds.map((id) => this.linkedIdeaTitle(id)).join(', ');
+  }
+
+  get trimmedSessionDescription(): string {
+    const d = (this.form.get('description')?.value as string) ?? '';
+    return d.trim();
   }
 
   addLinkedIdea(): void {
@@ -215,6 +231,7 @@ export class UpsertSessionComponent extends BaseUpsertComponent<SessionDto> impl
                 session.connectedIdeaIds?.length
                   ? [...session.connectedIdeaIds]
                   : (session.connectedIdeas?.map((x) => x.id) ?? []);
+              this.connectedIdeaSummaries = session.connectedIdeas ? [...session.connectedIdeas] : [];
 
               this.loading = false;
               observer.next(session);
@@ -326,6 +343,7 @@ export class UpsertSessionComponent extends BaseUpsertComponent<SessionDto> impl
     this.sessionDevKits = [];
     this.unassignedFilms = [];
     this.linkedIdeaIds = [];
+    this.connectedIdeaSummaries = [];
     this.selectedIdeaIdToAdd = '';
   }
 

@@ -13,6 +13,8 @@ import {
 import { Router } from '@angular/router';
 import { PhotoService } from '../../../services';
 import { PhotoDto, FilmDto, CollectionOptionDto } from '../../../DTOs';
+import { toPhotosPreviewDisplayUrl } from '../../../helpers/photo-url.helper';
+import { finalize } from 'rxjs/operators';
 
 @Component({
   selector: 'app-photos-content',
@@ -97,6 +99,7 @@ export class PhotosContentComponent implements OnInit, OnChanges {
   isPreviewModalOpen = false;
   currentPreviewPhoto: PhotoDto | null = null;
   currentPhotoIndex = 0;
+  rotateInPreviewLoading = false;
   isDeleteModalOpen = false;
   downloadDropdownOpen = false;
   optionsDropdownOpen = false;
@@ -266,6 +269,41 @@ export class PhotosContentComponent implements OnInit, OnChanges {
   displayIndex(photo: PhotoDto): string {
     const n = photo.collectionIndex ?? photo.index;
     return n.toString().padStart(3, '0');
+  }
+
+  /** Film-owner contexts where photo pixels may be edited (not collection/idea/public overlays). */
+  get showRotateInPreview(): boolean {
+    return (this.mode === 'edit' || this.mode === 'view') && this.isOwner;
+  }
+
+  previewImageUrl(photo: PhotoDto): string {
+    return toPhotosPreviewDisplayUrl(photo.imageUrl, photo.updatedDate);
+  }
+
+  rotatePreviewClockwise(event: Event): void {
+    event.stopPropagation();
+    const photo = this.currentPreviewPhoto;
+    if (!photo || this.rotateInPreviewLoading || !this.showRotateInPreview) {
+      return;
+    }
+    this.rotateInPreviewLoading = true;
+    this.photoService
+      .rotatePhoto90Clockwise(photo.id)
+      .pipe(finalize(() => (this.rotateInPreviewLoading = false)))
+      .subscribe({
+        next: (dto) => {
+          const i = this.photos.findIndex((p) => p.id === dto.id);
+          if (i >= 0) {
+            Object.assign(this.photos[i], dto);
+            this.photos = [...this.photos];
+          }
+          if (this.currentPreviewPhoto?.id === dto.id) {
+            const idx = this.photos.findIndex((p) => p.id === dto.id);
+            this.currentPreviewPhoto = idx >= 0 ? this.photos[idx] : { ...dto };
+          }
+        },
+        error: (err) => console.error('Rotate photo failed', err),
+      });
   }
 
   openPreview(photo: PhotoDto) {

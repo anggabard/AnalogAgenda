@@ -18,4 +18,6 @@ export interface FilmDto {
   developedWithDevKitId?: string | null;
   formattedExposureDate?: string;
   photoCount?: number;
+  /** UTC from API; appended as `UpdatedDate` on film image display URLs. */
+  updatedDate?: string | null;
 }

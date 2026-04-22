@@ -47,9 +47,8 @@ describe('FilmPhotosComponent', () => {
       'deletePhoto',
       'uploadMultiplePhotos',
       'setRestricted',
-      'getPreviewUrl',
+      'rotatePhoto90Clockwise',
     ]);
-    photoServiceSpy.getPreviewUrl.and.callFake((photo: PhotoDto) => `preview-${photo.id}`);
     const accountServiceSpy = jasmine.createSpyObj('AccountService', ['whoAmI']);
     accountServiceSpy.whoAmI.and.returnValue(of({ username: 'Angel', email: 'angel@test.com' }));
     const routerSpy = TestConfig.createRouterSpy();

@@ -3,6 +3,7 @@ using Database.DTOs;
 using Database.Entities;
 using Database.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 using System.Linq.Expressions;
 
 namespace Database.Services;
@@ -137,15 +138,14 @@ public class DatabaseService(AnalogAgendaDbContext context) : IDatabaseService
             entity.Id = entity.GetId();
 
         await _context.Set<T>().AddAsync(entity);
-        await _context.SaveChangesAsync();
+        await PersistChangesAsync();
         return entity;
     }
 
     public async Task UpdateAsync<T>(T entity) where T : BaseEntity
     {
-        entity.UpdatedDate = DateTime.UtcNow;
         _context.Set<T>().Update(entity);
-        await _context.SaveChangesAsync();
+        await PersistChangesAsync();
     }
 
     public async Task DeleteAsync<T>(string id) where T : BaseEntity
@@ -154,32 +154,48 @@ public class DatabaseService(AnalogAgendaDbContext context) : IDatabaseService
         if (entity != null)
         {
             _context.Set<T>().Remove(entity);
-            await _context.SaveChangesAsync();
+            await PersistChangesAsync();
         }
     }
 
     public async Task DeleteAsync<T>(T entity) where T : BaseEntity
     {
         _context.Set<T>().Remove(entity);
-        await _context.SaveChangesAsync();
+        await PersistChangesAsync();
     }
 
     public async Task DeleteRangeAsync<T>(IEnumerable<T> entities) where T : BaseEntity
     {
         _context.Set<T>().RemoveRange(entities);
-        await _context.SaveChangesAsync();
+        await PersistChangesAsync();
     }
 
     public async Task DeleteRangeAsync<T>(Expression<Func<T, bool>> predicate) where T : BaseEntity
     {
         var entities = await _context.Set<T>().Where(predicate).ToListAsync();
         _context.Set<T>().RemoveRange(entities);
-        await _context.SaveChangesAsync();
+        await PersistChangesAsync();
     }
 
-    public async Task<int> SaveChangesAsync()
+    public async Task<int> SaveChangesAsync() => await PersistChangesAsync();
+
+    /// <summary>
+    /// Sets <see cref="BaseEntity.UpdatedDate"/> for tracked added/modified entities before save (PUT/PATCH-style flows).
+    /// </summary>
+    private async Task<int> PersistChangesAsync()
     {
+        StampUpdatedDateOnTrackedBaseEntities();
         return await _context.SaveChangesAsync();
+    }
+
+    private void StampUpdatedDateOnTrackedBaseEntities()
+    {
+        var utc = DateTime.UtcNow;
+        foreach (EntityEntry<BaseEntity> entry in _context.ChangeTracker.Entries<BaseEntity>())
+        {
+            if (entry.State == EntityState.Modified || entry.State == EntityState.Added)
+                entry.Entity.UpdatedDate = utc;
+        }
     }
 
     public async Task ExecuteInTransactionAsync(Func<Task> action)
@@ -219,7 +235,7 @@ public class DatabaseService(AnalogAgendaDbContext context) : IDatabaseService
         var list = newEntities.ToList();
         if (list.Count > 0)
             await _context.Set<T>().AddRangeAsync(list);
-        await _context.SaveChangesAsync();
+        await PersistChangesAsync();
     }
 
     public async Task AddEntitiesAsync<T>(IEnumerable<T> entities) where T : class
@@ -228,7 +244,7 @@ public class DatabaseService(AnalogAgendaDbContext context) : IDatabaseService
         if (list.Count == 0)
             return;
         await _context.Set<T>().AddRangeAsync(list);
-        await _context.SaveChangesAsync();
+        await PersistChangesAsync();
     }
 
     public async Task DeleteEntitiesAsync<T>(Expression<Func<T, bool>> predicate) where T : class
@@ -237,7 +253,7 @@ public class DatabaseService(AnalogAgendaDbContext context) : IDatabaseService
         if (rows.Count == 0)
             return;
         _context.Set<T>().RemoveRange(rows);
-        await _context.SaveChangesAsync();
+        await PersistChangesAsync();
     }
 
     public async Task<List<T>> GetAllWhereWithIncludesAsync<T>(

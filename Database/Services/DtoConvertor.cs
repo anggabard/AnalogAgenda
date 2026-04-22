@@ -36,7 +36,8 @@ public class DtoConvertor(Configuration.Sections.System systemCfg, Storage stora
         Index = entity.Index,
         ImageUrl = BuildImageUrl(ContainerName.photos, entity.ImageId),
         Restricted = entity.Restricted,
-        CollectionIndex = null
+        CollectionIndex = null,
+        UpdatedDate = entity.UpdatedDate
     };
 
     public PhotoDto ToCollectionContextDto(PhotoEntity entity, int collectionIndex)
@@ -72,7 +73,8 @@ public class DtoConvertor(Configuration.Sections.System systemCfg, Storage stora
             DevelopedInSessionId = entity.DevelopedInSessionId,
             DevelopedWithDevKitId = entity.DevelopedWithDevKitId,
             FormattedExposureDate = formattedDate,
-            PhotoCount = entity.Photos?.Count ?? 0
+            PhotoCount = entity.Photos?.Count ?? 0,
+            UpdatedDate = entity.UpdatedDate
         };
     }
 
@@ -106,7 +108,8 @@ public class DtoConvertor(Configuration.Sections.System systemCfg, Storage stora
             Owner = entity.Owner.ToString(),
             PhotoIds = orderedPhotoIds,
             PhotoCount = photoCount,
-            ImageUrl = imageUrl
+            ImageUrl = imageUrl,
+            UpdatedDate = entity.UpdatedDate
         };
     }
 
@@ -118,7 +121,8 @@ public class DtoConvertor(Configuration.Sections.System systemCfg, Storage stora
         {
             Id = entity.Id,
             Name = entity.Name,
-            ImageUrl = imageUrl
+            ImageUrl = imageUrl,
+            UpdatedDate = entity.UpdatedDate
         };
     }
 

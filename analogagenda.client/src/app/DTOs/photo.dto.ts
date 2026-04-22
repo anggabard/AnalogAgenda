@@ -9,6 +9,8 @@ export interface PhotoDto extends HasImageDto {
   /** 1-based order in a collection when applicable */
   collectionIndex?: number | null;
   restricted?: boolean;
+  /** UTC from API; appended as `UpdatedDate` on display URLs for cache busting. */
+  updatedDate?: string | null;
 }
 
 export interface PhotoCreateDto {

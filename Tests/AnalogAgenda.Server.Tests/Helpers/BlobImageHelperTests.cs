@@ -1,4 +1,6 @@
 using Database.Helpers;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.PixelFormats;
 
 namespace AnalogAgenda.Server.Tests.Helpers;
 
@@ -98,5 +100,23 @@ public class BlobImageHelperTests
 
         // Assert
         Assert.Equal("jpg", result); // Should return default for non-image types
+    }
+
+    [Fact]
+    public async Task RotateImageBytes90ClockwiseAsync_Jpeg_SwapsDimensions()
+    {
+        await using var jpegStream = new MemoryStream();
+        using (var img = new Image<Rgb24>(8, 4))
+        {
+            await img.SaveAsJpegAsync(jpegStream);
+        }
+
+        var (rotated, contentType) =
+            await BlobImageHelper.RotateImageBytes90ClockwiseAsync(jpegStream.ToArray(), "image/jpeg");
+
+        Assert.Equal("image/jpeg", contentType);
+        using var loaded = await Image.LoadAsync(new MemoryStream(rotated));
+        Assert.Equal(4, loaded.Width);
+        Assert.Equal(8, loaded.Height);
     }
 }

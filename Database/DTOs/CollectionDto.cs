@@ -35,6 +35,9 @@ public class CollectionDto
 
     /// <summary>Resolved URL for list cards (photos container).</summary>
     public string ImageUrl { get; set; } = string.Empty;
+
+    /// <summary>UTC row version for cache-busting collection card image URLs.</summary>
+    public DateTime UpdatedDate { get; set; }
 }
 
 /// <summary>Minimal row for adding photos to an open collection.</summary>
@@ -45,4 +48,6 @@ public class CollectionOptionDto
     public string Name { get; set; } = string.Empty;
 
     public string ImageUrl { get; set; } = string.Empty;
+
+    public DateTime UpdatedDate { get; set; }
 }

@@ -38,6 +38,36 @@
   color: #2196F3;
 }
 
+.session-view-summary {
+  margin-bottom: 24px;
+  width: 100%;
+  max-width: none;
+}
+
+.session-wacky-tried {
+  margin: 0 0 16px 0;
+  font-size: 15px;
+  line-height: 1.5;
+  color: #333;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.session-wacky-label {
+  font-weight: 600;
+  margin-right: 0.35em;
+}
+
+.session-description-body {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.55;
+  color: #222;
+  white-space: pre-wrap;
+  width: 100%;
+  box-sizing: border-box;
+}
+
 .header-actions {
   display: flex;
   flex-direction: column;

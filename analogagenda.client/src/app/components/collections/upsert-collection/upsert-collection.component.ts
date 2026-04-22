@@ -7,6 +7,7 @@ import { CollectionDto, PhotoDto } from '../../../DTOs';
 import { ErrorHandlingHelper } from '../../../helpers/error-handling.helper';
 import { DownloadHelper } from '../../../helpers/download.helper';
 import { formatCollectionArchiveDateSegment } from '../../../helpers/date-archive-formatting.helper';
+import { toPhotosPreviewDisplayUrl } from '../../../helpers/photo-url.helper';
 
 function collectionDateRangeValidator(): ValidatorFn {
   return (group: AbstractControl): ValidationErrors | null => {
@@ -357,7 +358,7 @@ export class UpsertCollectionComponent extends BaseUpsertComponent<CollectionDto
   }
 
   previewUrl(photo: PhotoDto): string {
-    return this.photoService.getPreviewUrl(photo);
+    return toPhotosPreviewDisplayUrl(photo.imageUrl, photo.updatedDate);
   }
 
   private collectionZipFileName(small: boolean): string {

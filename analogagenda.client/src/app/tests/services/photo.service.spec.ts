@@ -31,6 +31,22 @@ describe('PhotoService', () => {
     expect(service).toBeTruthy();
   });
 
+  describe('rotatePhoto90Clockwise', () => {
+    it('should POST to rotate endpoint', () => {
+      const id = 'photo-rot-1';
+      const dto = createMockPhoto(id, 'film-a', 1);
+      let result: PhotoDto | undefined;
+      service.rotatePhoto90Clockwise(id).subscribe((r) => (result = r));
+
+      const req = httpMock.expectOne(`${baseUrl}/${id}/rotate`);
+      expect(req.request.method).toBe('POST');
+      expect(req.request.body).toEqual({});
+      expect(req.request.withCredentials).toBe(true);
+      req.flush(dto);
+      expect(result).toEqual(dto);
+    });
+  });
+
   describe('uploadMultiplePhotos', () => {
     it('should upload a single photo via backend API', async () => {
       // Arrange
@@ -263,79 +279,6 @@ describe('PhotoService', () => {
       // Assert HTTP call
       const req = httpMock.expectOne(`${baseUrl}/${id}`);
       req.flush('Photo not found', { status: 404, statusText: 'Not Found' });
-    });
-  });
-
-  describe('getPreviewUrl', () => {
-    it('should return correct preview URL from blob storage', () => {
-      // Arrange
-      const photo: PhotoDto = {
-        id: 'test-photo-id-123',
-        filmId: 'test-film-id',
-        index: 1,
-        imageUrl: 'https://analogagendastorage.blob.core.windows.net/photos/12345678-1234-1234-1234-123456789012',
-        imageBase64: ''
-      };
-      const expectedUrl = 'https://analogagendastorage.blob.core.windows.net/photos/preview/12345678-1234-1234-1234-123456789012';
-
-      // Act
-      const result = service.getPreviewUrl(photo);
-
-      // Assert
-      expect(result).toBe(expectedUrl);
-    });
-
-    it('should extract account name and imageId from ImageUrl', () => {
-      // Arrange
-      const photo: PhotoDto = {
-        id: 'test-photo-id',
-        filmId: 'test-film-id',
-        index: 1,
-        imageUrl: 'https://mystorageaccount.blob.core.windows.net/photos/abcdef12-3456-7890-abcd-ef1234567890',
-        imageBase64: ''
-      };
-      const expectedUrl = 'https://mystorageaccount.blob.core.windows.net/photos/preview/abcdef12-3456-7890-abcd-ef1234567890';
-
-      // Act
-      const result = service.getPreviewUrl(photo);
-
-      // Assert
-      expect(result).toBe(expectedUrl);
-    });
-
-    it('should not make HTTP call - just return URL string', () => {
-      // Arrange
-      const photo: PhotoDto = {
-        id: 'test-photo-id',
-        filmId: 'test-film-id',
-        index: 1,
-        imageUrl: 'https://analogagendastorage.blob.core.windows.net/photos/12345678-1234-1234-1234-123456789012',
-        imageBase64: ''
-      };
-
-      // Act
-      const result = service.getPreviewUrl(photo);
-
-      // Assert
-      expect(typeof result).toBe('string');
-      expect(result).toContain('/photos/preview/');
-      expect(result).toContain('12345678-1234-1234-1234-123456789012');
-      
-      // Verify no HTTP call was made
-      httpMock.expectNone(`${baseUrl}/preview/${photo.id}`);
-    });
-
-    it('should leave URL unchanged when imageUrl already uses preview path', () => {
-      const preview =
-        'https://analogagendastorage.blob.core.windows.net/photos/preview/12345678-1234-1234-1234-123456789012';
-      const photo: PhotoDto = {
-        id: 'test-photo-id',
-        filmId: 'test-film-id',
-        index: 1,
-        imageUrl: preview,
-        imageBase64: ''
-      };
-      expect(service.getPreviewUrl(photo)).toBe(preview);
     });
   });
 
