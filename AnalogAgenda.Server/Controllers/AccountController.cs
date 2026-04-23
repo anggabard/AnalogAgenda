@@ -17,7 +17,7 @@ public class AccountController(IDatabaseService database) : ControllerBase
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginDto login)
     {
-        var users = await database.GetAllAsync<UserEntity>(user => user.Email == login.Email.ToLowerInvariant());
+        var users = await database.GetAllAsync<UserEntity>(user => user.Email.Equals(login.Email, StringComparison.InvariantCultureIgnoreCase));
 
         if (users.Count == 0) return Unauthorized("Bad creds");
 

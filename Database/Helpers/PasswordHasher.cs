@@ -1,13 +1,11 @@
-﻿using System.Security.Cryptography;
+﻿using Database.DBObjects;
+using System.Security.Cryptography;
 
 namespace Database.Helpers;
 
 public static class PasswordHasher
 {
-    private static readonly HashAlgorithmName hashAlgorithmName = HashAlgorithmName.SHA256;
-    private const int inputLength = 32;
-    private static readonly DateTime startDate = new(2025, 6, 27, 14, 57, 18, 226, 758, DateTimeKind.Utc);
-    private static readonly int iterations = (DateTime.UtcNow - startDate).Days / 30 * 1_000 + 100_000;
+    private static readonly int iterations = (DateTime.UtcNow - DBObjects.Constants.AnalogAgendaGenesis).Days / 30 * 1_000 + 100_000;
 
     public static bool VerifyPassword(string plain, string stored)
     {
@@ -22,8 +20,8 @@ public static class PasswordHasher
                            plain,
                            saltPart,
                            iterationsPart,
-                           hashAlgorithmName,
-                           inputLength);
+                           DBObjects.Constants.HashAlgorithmName,
+                           DBObjects.Constants.HashAlgorithmInputLength);
 
         return CryptographicOperations.FixedTimeEquals(hashPart, testHash);
     }
@@ -36,8 +34,8 @@ public static class PasswordHasher
                        plain,
                        salt,
                        iterations,
-                       hashAlgorithmName,
-                       inputLength);
+                       DBObjects.Constants.HashAlgorithmName,
+                       DBObjects.Constants.HashAlgorithmInputLength);
 
         return $"{iterations}.{Convert.ToBase64String(salt)}.{Convert.ToBase64String(hash)}";
     }

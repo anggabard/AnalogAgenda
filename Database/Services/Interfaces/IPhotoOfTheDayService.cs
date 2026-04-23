@@ -5,8 +5,7 @@ namespace Database.Services.Interfaces;
 public interface IPhotoOfTheDayService
 {
     /// <summary>
-    /// Returns the current pick as a <see cref="PhotoEntity"/> if still valid (&lt; 12h and row exists unrestricted), otherwise repicks.
-    /// Picked-at is tracked only in this service (in-memory), not persisted.
+    /// Returns the unrestricted photo for the current UTC 12-hour window. The choice is deterministic from time + eligible set (stable order by id), so all replicas return the same photo.
     /// </summary>
     Task<PhotoEntity?> GetCurrentOrRefreshAsync(CancellationToken cancellationToken = default);
 }

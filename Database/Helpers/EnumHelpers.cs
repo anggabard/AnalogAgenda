@@ -25,13 +25,13 @@ public static class EnumHelpers
         throw new InvalidCastException($"{value} could not be casted");
     }
 
-    public static string ToDisplayString(this Database.DBObjects.Enums.EFilmType filmType)
+    public static string ToDisplayString(this DBObjects.Enums.EFilmType filmType)
     {
         return filmType switch
         {
-            Database.DBObjects.Enums.EFilmType.ColorNegative => "Color Negative",
-            Database.DBObjects.Enums.EFilmType.ColorPositive => "Color Positive",
-            Database.DBObjects.Enums.EFilmType.BlackAndWhite => "Black and White",
+            DBObjects.Enums.EFilmType.ColorNegative => "Color Negative",
+            DBObjects.Enums.EFilmType.ColorPositive => "Color Positive",
+            DBObjects.Enums.EFilmType.BlackAndWhite => "Black and White",
             _ => filmType.ToString()
         };
     }
