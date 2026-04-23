@@ -19,12 +19,16 @@ internal sealed class AzureBlobXmlRepository : IXmlRepository
     private static readonly XName RepositoryElementName = "repository";
     private static readonly BlobHttpHeaders BlobHttpHeaders = new() { ContentType = "application/xml; charset=utf-8" };
 
-    private readonly Random _random = new();
     private BlobData? _cachedBlobData;
-    private readonly BlobClient _blobClient;
+    private readonly IBlobXmlRepositoryStorage _storage;
 
-    public AzureBlobXmlRepository(BlobClient blobClient) =>
-        _blobClient = blobClient ?? throw new ArgumentNullException(nameof(blobClient));
+    public AzureBlobXmlRepository(BlobClient blobClient)
+        : this(new BlobClientXmlRepositoryStorage(blobClient))
+    {
+    }
+
+    internal AzureBlobXmlRepository(IBlobXmlRepositoryStorage storage) =>
+        _storage = storage ?? throw new ArgumentNullException(nameof(storage));
 
     public IReadOnlyCollection<XElement> GetAllElements()
     {
@@ -39,13 +43,15 @@ internal sealed class AzureBlobXmlRepository : IXmlRepository
 
         ExceptionDispatchInfo? lastError = null;
 
+        GetLatestData();
+
         for (var i = 0; i < ConflictMaxRetries; i++)
         {
-            if (i > 1)
-                Thread.Sleep(GetRandomizedBackoffPeriod());
-
             if (i > 0)
+            {
+                Thread.Sleep(GetRandomizedBackoffMilliseconds());
                 GetLatestData();
+            }
 
             var latestData = Volatile.Read(ref _cachedBlobData);
             var doc = CreateDocumentFromBlobData(latestData);
@@ -61,7 +67,7 @@ internal sealed class AzureBlobXmlRepository : IXmlRepository
 
             try
             {
-                var uploadResponse = _blobClient.Upload(
+                var newETag = _storage.Upload(
                     serializedDoc,
                     new BlobUploadOptions
                     {
@@ -74,7 +80,7 @@ internal sealed class AzureBlobXmlRepository : IXmlRepository
                     new BlobData
                     {
                         BlobContents = serializedDoc.ToArray(),
-                        ETag = uploadResponse.Value.ETag,
+                        ETag = newETag,
                     });
                 return;
             }
@@ -104,27 +110,25 @@ internal sealed class AzureBlobXmlRepository : IXmlRepository
 
     private BlobData? GetLatestData()
     {
-        try
-        {
-            var downloadResult = _blobClient.DownloadContent().Value;
-            var latestCachedData = new BlobData
-            {
-                BlobContents = downloadResult.Content.ToMemory().ToArray(),
-                ETag = downloadResult.Details.ETag,
-            };
-            Volatile.Write(ref _cachedBlobData, latestCachedData);
-        }
-        catch (RequestFailedException ex) when (ex.Status == 404)
+        var snapshot = _storage.TryDownload();
+        if (snapshot is null)
         {
             Volatile.Write(ref _cachedBlobData, null);
+            return null;
         }
 
-        return Volatile.Read(ref _cachedBlobData);
+        var latestCachedData = new BlobData
+        {
+            BlobContents = snapshot.Value.Contents,
+            ETag = snapshot.Value.ETag,
+        };
+        Volatile.Write(ref _cachedBlobData, latestCachedData);
+        return latestCachedData;
     }
 
-    private int GetRandomizedBackoffPeriod()
+    private static int GetRandomizedBackoffMilliseconds()
     {
-        var multiplier = 0.8 + (_random.NextDouble() * 0.2);
+        var multiplier = 0.8 + (Random.Shared.NextDouble() * 0.2);
         return (int)(multiplier * ConflictBackoffPeriod.TotalMilliseconds);
     }
 
