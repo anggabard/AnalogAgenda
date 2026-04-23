@@ -19,7 +19,15 @@ export class PhotoService extends BaseService {
 
   /** Photo of the day (404 → null). */
   getPhotoOfTheDay(): Observable<PhotoDto | null> {
-    return this.get<PhotoDto>('photo-of-the-day');
+    return this.get<PhotoDto>('photo-of-the-day').pipe(
+      catchError((error: HttpErrorResponse) => {
+        if (error.status === 404) {
+          return of(null);
+        }
+
+        return throwError(() => error);
+      })
+    );
   }
 
   // Download a single photo
