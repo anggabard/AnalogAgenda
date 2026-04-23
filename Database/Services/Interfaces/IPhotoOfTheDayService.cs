@@ -1,4 +1,3 @@
-using Database.DTOs;
 using Database.Entities;
 
 namespace Database.Services.Interfaces;
