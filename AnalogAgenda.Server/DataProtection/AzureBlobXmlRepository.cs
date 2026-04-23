@@ -75,6 +75,8 @@ internal sealed class AzureBlobXmlRepository : IXmlRepository
                         Conditions = requestConditions,
                     });
 
+                EnsureUsableEtag(newETag, "upload");
+
                 Volatile.Write(
                     ref _cachedBlobData,
                     new BlobData
@@ -117,13 +119,26 @@ internal sealed class AzureBlobXmlRepository : IXmlRepository
             return null;
         }
 
+        var etag = snapshot.Value.ETag;
+        EnsureUsableEtag(etag, "download");
+
         var latestCachedData = new BlobData
         {
             BlobContents = snapshot.Value.Contents,
-            ETag = snapshot.Value.ETag,
+            ETag = etag,
         };
         Volatile.Write(ref _cachedBlobData, latestCachedData);
         return latestCachedData;
+    }
+
+    /// <summary>Blob storage must return a concrete ETag so we never upload with a missing If-Match.</summary>
+    private static void EnsureUsableEtag(ETag etag, string stage)
+    {
+        if (string.IsNullOrEmpty(etag.ToString()))
+        {
+            throw new InvalidOperationException(
+                $"Data protection key blob {stage} did not return a usable ETag; optimistic concurrency cannot be enforced.");
+        }
     }
 
     private static int GetRandomizedBackoffMilliseconds()
@@ -135,6 +150,6 @@ internal sealed class AzureBlobXmlRepository : IXmlRepository
     private sealed class BlobData
     {
         public required byte[] BlobContents;
-        public required ETag? ETag;
+        public required ETag ETag;
     }
 }
