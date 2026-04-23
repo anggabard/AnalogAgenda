@@ -1,7 +1,9 @@
+using System.Text.Json;
 using AnalogAgenda.Server.Helpers;
 using AnalogAgenda.Server.Identity;
 using Database.DTOs;
 using Database.Entities;
+using Database.Helpers;
 using Database.Services;
 using Database.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
@@ -61,6 +63,13 @@ public class UserSettingsController(
                 return BadRequest("Current film not found.");
             if (!FilmOwnerHelper.IsCurrentUserFilmOwner(User, film))
                 return Forbid();
+        }
+
+        if (dto.HomeSectionOrder != null)
+        {
+            if (!HomeSectionOrderDefaults.IsValidOrder(dto.HomeSectionOrder))
+                return BadRequest("HomeSectionOrder must be a permutation of the five allowed section ids.");
+            existingSettings.HomeSectionOrderJson = JsonSerializer.Serialize(dto.HomeSectionOrder);
         }
 
         // Update existing settings

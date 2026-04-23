@@ -6,6 +6,77 @@
     box-sizing: border-box;
 }
 
+.home-edit-toolbar {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 14px;
+}
+
+.edit-home-btn {
+    padding: 0.5rem 1rem;
+    background-color: rgba(37, 35, 35, 0.897);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: opacity 0.2s ease;
+}
+
+.edit-home-btn:hover {
+    opacity: 0.92;
+}
+
+.home-section-tile {
+    position: relative;
+    min-width: 0;
+}
+
+.home-section-tile-inner {
+    min-width: 0;
+}
+
+.home-section-tile-inner--muted {
+    filter: grayscale(0.35);
+    opacity: 0.48;
+    pointer-events: none;
+}
+
+/* CDK updates transform every frame; disable transitions on rows while dragging. */
+.sections-row.cdk-drop-list-dragging > .home-zone-row {
+    transition: none !important;
+}
+
+.home-section-drag-float {
+    box-sizing: border-box;
+    border-radius: 12px;
+    box-shadow: 0 14px 36px rgba(0, 0, 0, 0.38);
+    opacity: 0.98;
+}
+
+/* Empty zone while dragging — shows where the row will land. */
+.home-zone-row.cdk-drag-placeholder,
+.home-zone-row.home-section-drag-slot {
+    opacity: 1 !important;
+    background: rgba(40, 40, 45, 0.55) !important;
+    border: 3px dashed rgba(255, 255, 255, 0.65) !important;
+    border-radius: 12px;
+    min-height: 120px;
+    box-sizing: border-box;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+}
+
+.home-zone-row.cdk-drag-placeholder .home-zone-body,
+.home-zone-row.home-section-drag-slot .home-zone-body {
+    visibility: hidden;
+    min-height: 0;
+}
+
+.home-zone-row.cdk-drag-placeholder .home-zone-label,
+.home-zone-row.home-section-drag-slot .home-zone-label {
+    visibility: hidden;
+}
+
 /* Grid layout: fluid columns so sections resize with viewport (no clipping when shrinking) */
 .sections-row {
     display: grid;
@@ -16,8 +87,63 @@
     min-width: 0;
 }
 
-.sections-row > * {
+.sections-row > .home-section-tile {
     min-width: 0;
+}
+
+/*
+ * Edit Home: one column of numbered zones (1…n). CDK vertical list = clear insert positions.
+ */
+.sections-row.sections-row--reorder {
+    display: flex;
+    flex-direction: column;
+    flex-wrap: nowrap;
+    align-items: stretch;
+    gap: 14px;
+    max-width: 920px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.home-zone-row {
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+    gap: 12px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    background: rgba(0, 0, 0, 0.18);
+    box-sizing: border-box;
+    cursor: grab;
+    touch-action: none;
+    user-select: none;
+}
+
+.home-zone-row:active {
+    cursor: grabbing;
+}
+
+.home-zone-label {
+    flex: 0 0 44px;
+    width: 44px;
+    min-height: 44px;
+    align-self: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #fff;
+    background: rgba(37, 35, 35, 0.85);
+    border: 2px solid rgba(255, 255, 255, 0.35);
+}
+
+.home-zone-body {
+    flex: 1;
+    min-width: 0;
+    position: relative;
 }
 
 /* Mobile / phone responsive */
@@ -28,7 +154,7 @@
         max-width: 100%;
     }
 
-    .sections-row {
+    .sections-row:not(.sections-row--reorder) {
         grid-template-columns: minmax(0, 1fr);
         justify-items: stretch;
         row-gap: 16px;
@@ -37,16 +163,31 @@
         overflow-x: hidden;
     }
 
-    .sections-row > * {
+    .sections-row > .home-section-tile {
         max-width: 100%;
         min-width: 0;
         width: 100%;
         justify-self: stretch;
         box-sizing: border-box;
+        overflow-x: hidden;
     }
 
-    .sections-row > *:not(app-film-check-section) {
+    .sections-row.sections-row--reorder {
+        max-width: 100%;
         overflow-x: hidden;
+        gap: 16px;
+    }
+
+    .home-zone-row {
+        padding: 14px 14px;
+        gap: 14px;
+    }
+
+    .home-zone-label {
+        flex: 0 0 48px;
+        width: 48px;
+        min-height: 48px;
+        font-size: 1.15rem;
     }
 
     .film-item {

@@ -13,6 +13,8 @@ import { SettingsSectionComponent } from '../../components/home/settings-section
 import { PhotoOfTheDaySectionComponent } from '../../components/home/photo-of-the-day-section/photo-of-the-day-section.component';
 import { TestConfig } from '../test.config';
 import { UserSettingsDto, IdeaDto } from '../../DTOs';
+import { CdkDragDrop } from '@angular/cdk/drag-drop';
+import { DEFAULT_HOME_SECTION_ORDER, normalizeHomeSectionOrder } from '../../helpers/home-section-order.helper';
 
 describe('HomeComponent', () => {
   let component: HomeComponent;
@@ -44,7 +46,7 @@ describe('HomeComponent', () => {
       currentFilmId: null
     } as UserSettingsDto));
     userSettingsServiceSpy.getSubscribedUsers.and.returnValue(of([]));
-    userSettingsServiceSpy.updateUserSettings.and.returnValue(of({} as UserSettingsDto));
+    userSettingsServiceSpy.updateUserSettings.and.returnValue(of(undefined));
     filmServiceSpy.getMyNotDevelopedFilmsAll.and.returnValue(of([]));
     filmServiceSpy.getExposureDates.and.returnValue(of([]));
     ideaServiceSpy.getAll.and.returnValue(of([]));
@@ -80,6 +82,40 @@ describe('HomeComponent', () => {
 
   it('should create', () => {
     expect(component).toBeTruthy();
+  });
+
+  it('should use default section order when settings omit homeSectionOrder', () => {
+    expect(component.homeSectionOrder).toEqual([...DEFAULT_HOME_SECTION_ORDER]);
+  });
+
+  it('toggleEditHomeLayout should toggle isEditingHomeLayout', () => {
+    expect(component.isEditingHomeLayout).toBe(false);
+    component.toggleEditHomeLayout();
+    expect(component.isEditingHomeLayout).toBe(true);
+    component.toggleEditHomeLayout();
+    expect(component.isEditingHomeLayout).toBe(false);
+  });
+
+  it('onHomeSectionDrop should reorder and call updateUserSettings', () => {
+    component.userSettings = {
+      userId: 'test-user',
+      isSubscribed: true,
+      tableView: false,
+      entitiesPerPage: 5,
+      currentFilmId: null,
+    };
+    component.homeSectionOrder = normalizeHomeSectionOrder(undefined);
+    mockUserSettingsService.updateUserSettings.calls.reset();
+
+    component.onHomeSectionDrop({
+      previousIndex: 0,
+      currentIndex: 1,
+    } as unknown as CdkDragDrop<string[]>);
+
+    expect(mockUserSettingsService.updateUserSettings).toHaveBeenCalled();
+    const arg = mockUserSettingsService.updateUserSettings.calls.mostRecent().args[0] as UserSettingsDto;
+    expect(arg.homeSectionOrder?.[0]).toBe(DEFAULT_HOME_SECTION_ORDER[1]);
+    expect(arg.homeSectionOrder?.[1]).toBe(DEFAULT_HOME_SECTION_ORDER[0]);
   });
 
   it('should open add idea modal when openAddIdeaModal is called', () => {

@@ -1,25 +1,65 @@
 <div class="home-container">
-    <div class="sections-row">
-        <app-film-check-section></app-film-check-section>
+    <div class="home-edit-toolbar">
+        <button type="button" class="edit-home-btn" (click)="toggleEditHomeLayout()">
+            {{ isEditingHomeLayout ? 'Done' : 'Edit Home' }}
+        </button>
+    </div>
 
-        <app-current-film-section
-            [userSettings]="userSettings"
-            [currentFilm]="currentFilm"
-            (changeCurrentFilmRequested)="openChangeCurrentFilmModal()">
-        </app-current-film-section>
+    <ng-template #homeSectionContent let-sectionId="sectionId">
+        <ng-container [ngSwitch]="sectionId">
+            <app-film-check-section *ngSwitchCase="'filmCheck'"></app-film-check-section>
+            <app-current-film-section
+                *ngSwitchCase="'currentFilm'"
+                [userSettings]="userSettings"
+                [currentFilm]="currentFilm"
+                (changeCurrentFilmRequested)="openChangeCurrentFilmModal()">
+            </app-current-film-section>
+            <app-settings-section
+                *ngSwitchCase="'settings'"
+                [userSettings]="userSettings"
+                (settingsUpdated)="loadUserSettings()">
+            </app-settings-section>
+            <app-wacky-ideas-section
+                *ngSwitchCase="'wackyIdeas'"
+                (addIdea)="openAddIdeaModal()"
+                (editIdea)="openEditIdeaModal($event)">
+            </app-wacky-ideas-section>
+            <app-photo-of-the-day-section *ngSwitchCase="'photoOfTheDay'"></app-photo-of-the-day-section>
+        </ng-container>
+    </ng-template>
 
-        <app-settings-section
-            [userSettings]="userSettings"
-            (settingsUpdated)="loadUserSettings()">
-        </app-settings-section>
+    <!-- Browse: responsive grid, no drag -->
+    <div *ngIf="!isEditingHomeLayout" class="sections-row">
+        <div *ngFor="let sectionId of homeSectionOrder; trackBy: trackBySectionId" class="home-section-tile">
+            <div class="home-section-tile-inner">
+                <ng-container *ngTemplateOutlet="homeSectionContent; context: { sectionId: sectionId }"></ng-container>
+            </div>
+        </div>
+    </div>
 
-        <app-wacky-ideas-section
-            (addIdea)="openAddIdeaModal()"
-            (editIdea)="openEditIdeaModal($event)"
-            #wackyIdeasSection>
-        </app-wacky-ideas-section>
-
-        <app-photo-of-the-day-section></app-photo-of-the-day-section>
+    <!-- Edit: numbered zones; page scrolls with the window (no nested scroll box). -->
+    <div
+        *ngIf="isEditingHomeLayout"
+        class="sections-row sections-row--reorder"
+        cdkDropList
+        [cdkDropListData]="homeSectionOrder"
+        [cdkDropListAutoScrollStep]="32"
+        (cdkDropListDropped)="onHomeSectionDrop($event)">
+        <div
+            *ngFor="let sectionId of homeSectionOrder; let zoneIndex = index; trackBy: trackBySectionId"
+            class="home-zone-row"
+            cdkDrag
+            [cdkDragData]="sectionId"
+            cdkDragPreviewClass="home-section-drag-float"
+            cdkDragPlaceholderClass="home-section-drag-slot"
+            (cdkDragMoved)="onHomeDragMoved($event)">
+            <div class="home-zone-label" aria-hidden="true">{{ zoneIndex + 1 }}</div>
+            <div class="home-zone-body">
+                <div class="home-section-tile-inner home-section-tile-inner--muted">
+                    <ng-container *ngTemplateOutlet="homeSectionContent; context: { sectionId: sectionId }"></ng-container>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Change Current Film Modal -->
