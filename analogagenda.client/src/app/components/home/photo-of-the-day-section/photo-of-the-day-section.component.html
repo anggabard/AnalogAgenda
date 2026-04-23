@@ -1,0 +1,25 @@
+<div class="photo-of-the-day-section">
+  <div class="box">
+    <h1 class="form-title">Photo of the Day</h1>
+
+    <div *ngIf="loading" class="state-message">Loading…</div>
+    <div *ngIf="loadError" class="state-message error">{{ loadError }}</div>
+    <div *ngIf="!loading && noPhotoAvailable && !loadError" class="state-message">
+      No unrestricted photos are available yet.
+    </div>
+
+    <div *ngIf="photo" class="pod-card">
+      <div *ngIf="imageLoadError" class="state-message error">{{ imageLoadError }}</div>
+      <div class="pod-image-container">
+        <img
+          class="pod-image"
+          [src]="previewImageUrl(photo)"
+          (error)="onPreviewImageError()"
+          alt="Photo of the Day" />
+      </div>
+      <div class="pod-actions">
+        <button type="button" class="btn btn-primary" (click)="viewFilm()">View Film</button>
+      </div>
+    </div>
+  </div>
+</div>

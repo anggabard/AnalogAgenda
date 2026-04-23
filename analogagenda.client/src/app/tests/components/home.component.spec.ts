@@ -3,16 +3,16 @@ import { Router } from '@angular/router';
 import { of } from 'rxjs';
 import { By } from '@angular/platform-browser';
 import { HomeComponent } from '../../components/home/home.component';
-import { FilmService, UserSettingsService, IdeaService } from '../../services';
+import { FilmService, UserSettingsService, IdeaService, PhotoService } from '../../services';
 import { WackyIdeasSectionComponent } from '../../components/home/wacky-ideas-section/wacky-ideas-section.component';
 import { UpsertIdeaComponent } from '../../components/home/wacky-ideas-section/upsert-idea/upsert-idea.component';
 import { FilmCheckSectionComponent } from '../../components/home/film-check-section/film-check-section.component';
 import { FilmCheckUserComponent } from '../../components/home/film-check-section/film-check-user/film-check-user.component';
 import { CurrentFilmSectionComponent } from '../../components/home/current-film-section/current-film-section.component';
 import { SettingsSectionComponent } from '../../components/home/settings-section/settings-section.component';
+import { PhotoOfTheDaySectionComponent } from '../../components/home/photo-of-the-day-section/photo-of-the-day-section.component';
 import { TestConfig } from '../test.config';
-import { FilmDto, UserSettingsDto, IdeaDto } from '../../DTOs';
-import { FilmType, UsernameType } from '../../enums';
+import { UserSettingsDto, IdeaDto } from '../../DTOs';
 
 describe('HomeComponent', () => {
   let component: HomeComponent;
@@ -30,7 +30,10 @@ describe('HomeComponent', () => {
       'getUserSettings', 'getSubscribedUsers', 'updateUserSettings'
     ]);
     const ideaServiceSpy = jasmine.createSpyObj('IdeaService', ['getAll', 'getById', 'add', 'update', 'deleteById']);
+    const photoServiceSpy = jasmine.createSpyObj('PhotoService', ['getPhotoOfTheDay']);
     const routerSpy = TestConfig.createRouterSpy();
+
+    photoServiceSpy.getPhotoOfTheDay.and.returnValue(of(null));
 
     // Set up default return values
     userSettingsServiceSpy.getUserSettings.and.returnValue(of({
@@ -54,12 +57,14 @@ describe('HomeComponent', () => {
         FilmCheckSectionComponent,
         FilmCheckUserComponent,
         CurrentFilmSectionComponent,
+        PhotoOfTheDaySectionComponent,
         SettingsSectionComponent
       ],
       providers: [
         { provide: FilmService, useValue: filmServiceSpy },
         { provide: UserSettingsService, useValue: userSettingsServiceSpy },
         { provide: IdeaService, useValue: ideaServiceSpy },
+        { provide: PhotoService, useValue: photoServiceSpy },
         { provide: Router, useValue: routerSpy }
       ]
     }).compileComponents();

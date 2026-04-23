@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { PhotoDto, PhotoCreateDto } from '../../DTOs';
-import { Observable, lastValueFrom, throwError, timer } from 'rxjs';
-import { retryWhen, mergeMap } from 'rxjs/operators';
+import { Observable, lastValueFrom, of, throwError, timer } from 'rxjs';
+import { catchError, mergeMap, retryWhen } from 'rxjs/operators';
 import { HttpErrorResponse } from '@angular/common/http';
 import { BaseService } from '../base.service';
 import { FileUploadHelper } from '../../helpers/file-upload.helper';
@@ -15,6 +15,11 @@ export class PhotoService extends BaseService {
   // Get all photos for a specific film
   getPhotosByFilmId(filmId: string): Observable<PhotoDto[]> {
     return this.get<PhotoDto[]>(`film/${filmId}`);
+  }
+
+  /** Photo of the day (404 → null). */
+  getPhotoOfTheDay(): Observable<PhotoDto | null> {
+    return this.get<PhotoDto>('photo-of-the-day');
   }
 
   // Download a single photo

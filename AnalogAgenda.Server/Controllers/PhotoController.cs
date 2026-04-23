@@ -18,12 +18,14 @@ public class PhotoController(
     IDatabaseService databaseService,
     IBlobService blobsService,
     DtoConvertor dtoConvertor,
-    EntityConvertor entityConvertor
+    EntityConvertor entityConvertor,
+    IPhotoOfTheDayService photoOfTheDayService
 ) : ControllerBase
 {
     private readonly IDatabaseService databaseService = databaseService;
     private readonly DtoConvertor dtoConvertor = dtoConvertor;
     private readonly EntityConvertor entityConvertor = entityConvertor;
+    private readonly IPhotoOfTheDayService photoOfTheDayService = photoOfTheDayService;
     private readonly BlobContainerClient photosContainer = blobsService.GetBlobContainer(ContainerName.photos);
 
     [HttpPost]
@@ -173,6 +175,16 @@ public class PhotoController(
             .ToList();
 
         return Ok(sortedPhotos);
+    }
+
+    [HttpGet("photo-of-the-day")]
+    public async Task<IActionResult> GetPhotoOfTheDay(CancellationToken cancellationToken)
+    {
+        var photoEntity = await photoOfTheDayService.GetCurrentOrRefreshAsync(cancellationToken).ConfigureAwait(false);
+        if (photoEntity is null)
+            return NotFound();
+
+        return Ok(dtoConvertor.ToDTO(photoEntity));
     }
 
     [HttpGet("download/{id}")]
