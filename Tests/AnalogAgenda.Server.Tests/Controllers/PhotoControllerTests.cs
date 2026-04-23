@@ -50,7 +50,7 @@ public class PhotoControllerTests : IDisposable
         _mockPhotoOfTheDayService = new Mock<IPhotoOfTheDayService>();
         _mockPhotoOfTheDayService
             .Setup(s => s.GetCurrentOrRefreshAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync((PhotoDto?)null);
+            .ReturnsAsync((PhotoEntity?)null);
 
         _mockBlobService.Setup(x => x.GetBlobContainer(ContainerName.photos))
                        .Returns(_mockPhotosContainerClient.Object);
@@ -469,7 +469,7 @@ public class PhotoControllerTests : IDisposable
     {
         _mockPhotoOfTheDayService
             .Setup(s => s.GetCurrentOrRefreshAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync((PhotoDto?)null);
+            .ReturnsAsync((PhotoEntity?)null);
 
         var result = await _controller.GetPhotoOfTheDay(CancellationToken.None);
 
@@ -479,17 +479,18 @@ public class PhotoControllerTests : IDisposable
     [Fact]
     public async Task GetPhotoOfTheDay_WhenServiceReturnsPhoto_ReturnsOkWithPhotoDto()
     {
-        var dto = new PhotoDto
+        var imageId = Guid.NewGuid();
+        var entity = new PhotoEntity
         {
             Id = "pod-photo",
             FilmId = "pod-film",
             Index = 1,
-            ImageId = Guid.NewGuid().ToString(),
+            ImageId = imageId,
             Restricted = false,
         };
         _mockPhotoOfTheDayService
             .Setup(s => s.GetCurrentOrRefreshAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(dto);
+            .ReturnsAsync(entity);
 
         var result = await _controller.GetPhotoOfTheDay(CancellationToken.None);
 
