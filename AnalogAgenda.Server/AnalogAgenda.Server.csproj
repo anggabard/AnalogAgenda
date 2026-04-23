@@ -7,6 +7,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="AnalogAgenda.Server.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\AnalogAgenda.ServiceDefaults\AnalogAgenda.ServiceDefaults.csproj" />
     <ProjectReference Include="..\Database\Database.csproj" />
   </ItemGroup>

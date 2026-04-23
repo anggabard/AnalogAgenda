@@ -39,7 +39,11 @@ try
     if (!string.IsNullOrEmpty(connectionString))
     {
         builder.Services.AddDataProtection()
-            .PersistKeysToAzureBlobStorage(connectionString, ContainerName.dataprotectionkeys.ToString(), "keys.xml")
+            .PersistKeysToAzureBlobStorage(
+                connectionString,
+                ContainerName.dataprotectionkeys.ToString(),
+                "keys.xml",
+                createContainerIfNotExists: builder.Environment.IsDevelopment())
             .SetApplicationName("AnalogAgenda");
     }
     else
