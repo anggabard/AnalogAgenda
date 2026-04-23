@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Configuration.Sections;
 using Database.DBObjects.Enums;
 using Database.DTOs;
@@ -256,8 +257,24 @@ public class DtoConvertor(Configuration.Sections.System systemCfg, Storage stora
         IsSubscribed = entity.IsSubscribed,
         CurrentFilmId = entity.CurrentFilmId,
         TableView = entity.TableView,
-        EntitiesPerPage = entity.EntitiesPerPage
+        EntitiesPerPage = entity.EntitiesPerPage,
+        HomeSectionOrder = DeserializeHomeSectionOrder(entity.HomeSectionOrderJson)
     };
+
+    private static string[]? DeserializeHomeSectionOrder(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json))
+            return null;
+        try
+        {
+            var arr = JsonSerializer.Deserialize<string[]>(json);
+            return HomeSectionOrderDefaults.IsValidOrder(arr) ? arr : null;
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+    }
 
     public IdeaDto ToDTO(IdeaEntity entity)
     {

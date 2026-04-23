@@ -51,4 +51,3 @@ public interface IDatabaseService
     /// <summary>Load by id after applying arbitrary <see cref="IQueryable{T}"/> configuration.</summary>
     Task<T?> GetByIdWithQueryAsync<T>(string id, Func<IQueryable<T>, IQueryable<T>> configure) where T : BaseEntity;
 }
-

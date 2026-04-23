@@ -90,6 +90,7 @@ builder.Services.AddSecurityConfigBinding();
 // Register database and blob services
 builder.Services.AddScoped<IDatabaseService, DatabaseService>();
 builder.Services.AddSingleton<IBlobService, BlobService>();
+builder.Services.AddScoped<IPhotoOfTheDayService, PhotoOfTheDayService>();
 
 // Register converter services
 builder.Services.AddScoped<DtoConvertor>();

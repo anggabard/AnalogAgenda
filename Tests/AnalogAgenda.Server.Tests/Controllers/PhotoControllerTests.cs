@@ -31,6 +31,7 @@ public class PhotoControllerTests : IDisposable
     private readonly Storage _storageConfig;
     private readonly DtoConvertor _dtoConvertor;
     private readonly EntityConvertor _entityConvertor;
+    private readonly Mock<IPhotoOfTheDayService> _mockPhotoOfTheDayService;
     private readonly PhotoController _controller;
 
     public PhotoControllerTests()
@@ -46,6 +47,10 @@ public class PhotoControllerTests : IDisposable
         var systemConfig = new Configuration.Sections.System { IsDev = false };
         _dtoConvertor = new DtoConvertor(systemConfig, _storageConfig);
         _entityConvertor = new EntityConvertor();
+        _mockPhotoOfTheDayService = new Mock<IPhotoOfTheDayService>();
+        _mockPhotoOfTheDayService
+            .Setup(s => s.GetCurrentOrRefreshAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync((PhotoEntity?)null);
 
         _mockBlobService.Setup(x => x.GetBlobContainer(ContainerName.photos))
                        .Returns(_mockPhotosContainerClient.Object);
@@ -53,7 +58,12 @@ public class PhotoControllerTests : IDisposable
         _mockPhotosContainerClient.Setup(x => x.GetBlobClient(It.IsAny<string>()))
                                  .Returns(_mockBlobClient.Object);
 
-        _controller = new PhotoController(_databaseService, _mockBlobService.Object, _dtoConvertor, _entityConvertor);
+        _controller = new PhotoController(
+            _databaseService,
+            _mockBlobService.Object,
+            _dtoConvertor,
+            _entityConvertor,
+            _mockPhotoOfTheDayService.Object);
 
         var identity = new ClaimsIdentity(new[] { new Claim(ClaimTypes.Name, nameof(EUsernameType.Angel)) }, "TestAuth");
         _controller.ControllerContext = new ControllerContext
@@ -454,5 +464,40 @@ public class PhotoControllerTests : IDisposable
         Assert.Equal("Photo has no image.", bad.Value);
     }
 
+    [Fact]
+    public async Task GetPhotoOfTheDay_WhenServiceReturnsNull_ReturnsNotFound()
+    {
+        _mockPhotoOfTheDayService
+            .Setup(s => s.GetCurrentOrRefreshAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync((PhotoEntity?)null);
+
+        var result = await _controller.GetPhotoOfTheDay(CancellationToken.None);
+
+        Assert.IsType<NotFoundResult>(result);
+    }
+
+    [Fact]
+    public async Task GetPhotoOfTheDay_WhenServiceReturnsPhoto_ReturnsOkWithPhotoDto()
+    {
+        var imageId = Guid.NewGuid();
+        var entity = new PhotoEntity
+        {
+            Id = "pod-photo",
+            FilmId = "pod-film",
+            Index = 1,
+            ImageId = imageId,
+            Restricted = false,
+        };
+        _mockPhotoOfTheDayService
+            .Setup(s => s.GetCurrentOrRefreshAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(entity);
+
+        var result = await _controller.GetPhotoOfTheDay(CancellationToken.None);
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var returned = Assert.IsType<PhotoDto>(ok.Value);
+        Assert.Equal("pod-photo", returned.Id);
+        Assert.Equal("pod-film", returned.FilmId);
+    }
 }
 

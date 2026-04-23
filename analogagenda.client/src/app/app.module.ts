@@ -22,6 +22,7 @@ import { UpsertIdeaComponent } from './components/home/wacky-ideas-section/upser
 import { FilmCheckSectionComponent } from './components/home/film-check-section/film-check-section.component';
 import { FilmCheckUserComponent } from './components/home/film-check-section/film-check-user/film-check-user.component';
 import { CurrentFilmSectionComponent } from './components/home/current-film-section/current-film-section.component';
+import { PhotoOfTheDaySectionComponent } from './components/home/photo-of-the-day-section/photo-of-the-day-section.component';
 import { SettingsSectionComponent } from './components/home/settings-section/settings-section.component';
 import { MainLayoutComponent, AuthLayoutComponent} from './layouts';
 
@@ -36,6 +37,7 @@ import { MainLayoutComponent, AuthLayoutComponent} from './layouts';
     FilmCheckSectionComponent,
     FilmCheckUserComponent,
     CurrentFilmSectionComponent,
+    PhotoOfTheDaySectionComponent,
     SettingsSectionComponent,
     AppComponent,
     NotesComponent,

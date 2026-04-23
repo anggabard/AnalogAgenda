@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Database.DBObjects.Enums;
 using Database.DTOs;
 using Database.Entities;
@@ -163,7 +164,10 @@ public class EntityConvertor()
         IsSubscribed = dto.IsSubscribed,
         CurrentFilmId = dto.CurrentFilmId,
         TableView = dto.TableView,
-        EntitiesPerPage = dto.EntitiesPerPage
+        EntitiesPerPage = dto.EntitiesPerPage,
+        HomeSectionOrderJson = dto.HomeSectionOrder is { Length: > 0 } && HomeSectionOrderDefaults.IsValidOrder(dto.HomeSectionOrder)
+            ? JsonSerializer.Serialize(dto.HomeSectionOrder)
+            : null
     };
 
     public IdeaEntity ToEntity(IdeaDto dto) => new()
