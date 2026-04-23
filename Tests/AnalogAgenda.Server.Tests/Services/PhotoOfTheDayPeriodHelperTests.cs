@@ -52,4 +52,15 @@ public class PhotoOfTheDayPeriodHelperTests
     {
         Assert.Equal(0, PhotoOfTheDayPeriodHelper.GetDeterministicIndex(999, 1));
     }
+
+    /// <summary>
+    /// Golden value for the current SHA-256 preimage (algorithm UTF-8 + LE half-day + LE genesis ToBinary).
+    /// If this fails after an intentional change, update the expected value and document the migration.
+    /// </summary>
+    [Fact]
+    public void GetDeterministicIndex_Golden902831Count7_StaysStable()
+    {
+        const int expected = 1;
+        Assert.Equal(expected, PhotoOfTheDayPeriodHelper.GetDeterministicIndex(902_831, 7));
+    }
 }
