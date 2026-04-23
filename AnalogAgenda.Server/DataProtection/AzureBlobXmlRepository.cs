@@ -106,13 +106,11 @@ internal sealed class AzureBlobXmlRepository : IXmlRepository
     {
         try
         {
-            using var memoryStream = new MemoryStream();
-            _blobClient.DownloadTo(memoryStream);
-            var etag = _blobClient.GetProperties().Value.ETag;
+            var downloadResult = _blobClient.DownloadContent().Value;
             var latestCachedData = new BlobData
             {
-                BlobContents = memoryStream.ToArray(),
-                ETag = etag,
+                BlobContents = downloadResult.Content.ToMemory().ToArray(),
+                ETag = downloadResult.Details.ETag,
             };
             Volatile.Write(ref _cachedBlobData, latestCachedData);
         }
